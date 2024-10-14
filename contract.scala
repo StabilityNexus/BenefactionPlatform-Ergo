@@ -1,3 +1,12 @@
+/*
+*
+* Benefaction Project
+* R5     -> Block limit until allowed withdrawal or refund
+* R6     -> ERG/Token exchange rate
+* R7     -> Address where the funds can be withdrawn
+* R8     -> Link or hash that contains project information
+* R9     -> Minimum amount sold to allow withdrawal
+*/
 {
   // Validation of the box replication process
   val isSelfReplication = {
@@ -67,7 +76,7 @@
   // Validation for withdrawing funds by project owners
   val isWithdrawFunds = {
     val outputBox = OUTPUTS(0)
-    val isToProjectAddress = outputBox.propositionBytes == SELF.R7[GroupElement].get
+    val isToProjectAddress = outputBox.propositionBytes == SELF.R7[GroupElement].get.getEncoded
     val allFundsWithdrawn = outputBox.value == SELF.value
 
     // Condition to check if the minimum Ergo is reached.
@@ -80,7 +89,7 @@
   // Validation for withdrawing unsold tokens after the block limit
   val isWithdrawUnsoldTokens = {
     val outputBox = OUTPUTS(0)
-    val isToProjectAddress = outputBox.propositionBytes == SELF.R7[GroupElement].get
+    val isToProjectAddress = outputBox.propositionBytes == SELF.R7[GroupElement].get.getEncoded
 
     // Allow withdrawal of unsold tokens after the block limit has passed
     isSelfReplication && afterBlockLimit && outputBox.tokens.nonEmpty && outputBox.tokens(0)._1 == SELF.tokens(0)._1
