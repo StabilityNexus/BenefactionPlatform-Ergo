@@ -31,10 +31,10 @@
 
   // Validation for purchasing Tokens
   val isBuyTokens = {
-    val canBuyNow = HEIGHT <= SELF.R5[Int].get || SELF.tokens.nonEmpty
+    val canBuyNow = HEIGHT <= SELF.R5[Int].get || SELF.tokens.size > 0
     val userBox = OUTPUTS(1)
-    val contractHasTokens = SELF.tokens.nonEmpty
-    val userHasTokens = userBox.tokens.nonEmpty && userBox.tokens(0)._1 == SELF.tokens(0)._1
+    val contractHasTokens = SELF.tokens.size > 0
+    val userHasTokens = userBox.tokens.size > 0 && userBox.tokens(0)._1 == SELF.tokens(0)._1
     
     // Calculate the added value from the user's ERG payment
     val addedValueToTheContract = OUTPUTS(0).value - SELF.value
@@ -55,7 +55,7 @@
     val inputUserBox = INPUTS(1)
     
     // Check if tokens are being returned from the user's input box back to the contract
-    val returningTokens = inputUserBox.tokens.nonEmpty && SELF.tokens.nonEmpty && inputUserBox.tokens(0)._1 == SELF.tokens(0)._1
+    val returningTokens = inputUserBox.tokens.size > 0 && SELF.tokens.size > 0 && inputUserBox.tokens(0)._1 == SELF.tokens(0)._1
     
     // Calculate the value returned from the contract to the user
     val retiredValueFromTheContract = SELF.value - OUTPUTS(0).value
@@ -64,7 +64,7 @@
     val correctExchange = retiredValueFromTheContract == inputUserBox.tokens(0)._2 * SELF.R6[Long].get
 
     // Ensure all Tokens are refunded
-    val refundAllTheTokens = outputUserBox.tokens.isEmpty
+    val refundAllTheTokens = outputUserBox.tokens.size == 0
 
     // Condition to check if the minimum Ergo is reached.
     val minimumNotReached = SELF.value >= SELF.R9[Long].get
@@ -92,9 +92,9 @@
     val isToProjectAddress = outputBox.propositionBytes == SELF.R7[GroupElement].get.getEncoded
 
     // Allow withdrawal of unsold tokens after the block limit has passed
-    isSelfReplication && afterBlockLimit && outputBox.tokens.nonEmpty && outputBox.tokens(0)._1 == SELF.tokens(0)._1
+    isSelfReplication && afterBlockLimit && outputBox.tokens.size > 0 && outputBox.tokens(0)._1 == SELF.tokens(0)._1
   }
 
   // The contract allows purchasing tokens, requesting refunds, and withdrawing funds before the block limit.
-  isBuyTokens || isRefundTokens || isWithdrawFunds || isWithdrawUnsoldTokens
+  sigmaProp(isBuyTokens || isRefundTokens || isWithdrawFunds || isWithdrawUnsoldTokens)
 }
