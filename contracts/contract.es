@@ -106,13 +106,22 @@
     isSelfReplication && canBeRefund && returningTokens && correctExchange
   }
 
+  val projectAddress = OUTPUTS(1)
+  
+  val isToProjectAddress = {
+    val g: GroupElement = SELF.R7[GroupElement].get
+    val sigmaprop: SigmaProp = proveDlog(g)
+
+    sigmaprop.propBytes == projectAddress.propositionBytes
+  }
+
   // Validation for withdrawing funds by project owners
   val isWithdrawFunds = {
-    // Is correct this access?
-    val outputDevFee = OUTPUTS(0).R8[Int].get
-    val outputDevAddress = OUTPUTS(0).R8[GroupElement].get
-
-    val projectAddress = OUTPUTS(1)
+    val devData = OUTPUTS(0).R8[(Int, GroupElement)].get
+    val devFee = devData._1
+    val devAddress = devData._2
+    // Check https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
+    
 
     // Replicate the contract in case of partial withdraw
     val endOrReplicate = {
@@ -121,27 +130,34 @@
       isSelfReplication || allFundsWithdrawn
     }
 
-    val isToProjectAddress = projectAddress.propositionBytes == SELF.R7[GroupElement].get.getEncoded
-
     // > Project owners are allowed to withdraw ERGs if and only if the minimum number of tokens has been sold. (The deadline plays no role here.)
     val minimumReached = SELF.value >= SELF.R5[Long].get
 
     endOrReplicate && isToProjectAddress && minimumReached
   }
 
+  // Can't withdraw ERG
+  val mantainValue = SELF.value == OUTPUTS(0).value
+
   // Validation for withdrawing unsold tokens after the block limit
   // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens = {
-    val projectAddress = OUTPUTS(1)
+  val isWithdrawUnsoldTokens = isSelfReplication && isToProjectAddress && mantainValue
 
-    val isToProjectAddress = projectAddress.propositionBytes == SELF.R7[GroupElement].get.getEncoded
+  
+  // > Project owners may add more tokens to the contract at any time.
+  val isAddTokens = {
+    // TODO logic to check: No adds more than one type of token. No withdraw tokens.
 
-    // Project owners can't withdraw ERG
-    val mantainValue = SELF.value == OUTPUTS(0).value
+    val isFromProjectAddress = {
+      val g: GroupElement = SELF.R7[GroupElement].get
+      val sigmaprop: SigmaProp = proveDlog(g)
+      val isSamePropBytes: Boolean = (sigmaprop.propBytes == INPUTS(1).propositionBytes)
+      
+      isSamePropBytes
+    }
 
-    // Allow withdrawal of unsold tokens after the block limit has passed
-    isSelfReplication && isToProjectAddress && mantainValue
+    isSelfReplication && mantainValue && isFromProjectAddress
   }
 
-  sigmaProp(isBuyTokens || isRefundTokens || isWithdrawFunds || isWithdrawUnsoldTokens)
+  sigmaProp(isBuyTokens || isRefundTokens || isWithdrawFunds || isWithdrawUnsoldTokens || isAddTokens)
 }
