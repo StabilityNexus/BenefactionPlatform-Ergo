@@ -14,10 +14,10 @@ A box created by a project will have the following parameters:
 
 - **Amount of Tokens**: Represents the number of participation tokens available.
 - **Block Limit (R4)**: The block height limit until which withdrawal or refund is allowed.
-- **Minimum ERGs in Contract (R5)**: The minimum amount of ERG required in the contract to enable withdrawal.
+- **Minimum Tokens Sold (R5)**: A tuple representing the minimum amount of tokens that must be sold as required by the contract to enable withdrawals, along with a token sale counter.
 - **ERGs / Token (R6)**: The exchange rate of ERG per token.
-- **Withdrawal Address (R7)**: The address where the funds can be withdrawn if conditions are met.
-- **Developer Fee (R8)**: A tuple representing the percentage fee for the developers and the address where it will be sent.
+- **Withdrawal Address (R7)**: The address where the funds can be withdrawn if the conditions are met, specified by the SHA-256 hash of the proposition bytes.
+- **Developer Fee (R8)**: A tuple representing the percentage fee for the developers and the address to which it will be sent, specified by its proposition bytes.
 - **Project Link/Hash (R9)**: A link or hash containing the project's information (e.g., GitHub repository).
 
 These parameters ensure that the box remains consistent throughout the funding process and allows for transparency in the exchange process.

@@ -2,10 +2,10 @@
 *
 * Benefaction Platform
 * R4     -> Block limit until allowed withdrawal or refund
-* R5     -> Minimum amount of Erg on contract to allow withdrawal
+* R5     -> tuple[Q, N] where   Q: the minimum amount of tokens that need to be sold.   N: the amount of tokens that have already been sold.
 * R6     -> ERG/Token exchange rate
-* R7     -> Address where the funds can be withdrawn
-* R8     -> devFee  tuple[%, address]
+* R7     -> Sha256 of the contract proposition bytes where the funds can be withdrawn
+* R8     -> devFee  tuple[%, contract proposition bytes]
 * R9     -> Link or hash that contains project information
 */
 {
@@ -16,17 +16,17 @@
     // The block limit must be the same
     val sameBlockLimit = SELF.R4[Int].get == OUTPUTS(0).R4[Int].get
 
-    // The minimum amount of ERG must remain the same
-    val sameMinimumSold = SELF.R5[Long].get == OUTPUTS(0).R5[Long].get
+    // The minimum amount of tokens sold must be the same.
+    val sameMinimumSold = SELF.R5[(Long, Long)].get._1 == OUTPUTS(0).R5[(Long, Long)].get._1
 
     // The ERG/Token exchange rate must be same
     val sameExchangeRate = SELF.R6[Long].get == OUTPUTS(0).R6[Long].get
 
     // The project address must remain the same
-    val sameProjectAddress = SELF.R7[GroupElement].get == OUTPUTS(0).R7[GroupElement].get
+    val sameProjectAddress = SELF.R7[Coll[Byte]].get == OUTPUTS(0).R7[Coll[Byte]].get
 
     // The dev fee must be the same
-    val sameDevFee = SELF.R8[(Int, GroupElement)].get == OUTPUTS(0).R8[(Int, GroupElement)].get
+    val sameDevFee = SELF.R8[(Int, Coll[Byte])].get == OUTPUTS(0).R8[(Int, Coll[Byte])].get
 
     // The project link must be the same
     val sameProjectLink = SELF.R9[Coll[Byte]].get == OUTPUTS(0).R9[Coll[Byte]].get
@@ -53,8 +53,28 @@
     // Verify if the ERG amount matches the required exchange rate for the given token quantity
     val correctExchange = addedValueToTheContract == userBox.tokens(0)._2 * SELF.R6[Long].get
 
-    isSelfReplication && userHasTokens && correctExchange
+    // Verify if the token sold counter (second element of R5) is increased in proportion of the tokens sold.
+    val incrementSoldCounterCorrectly = {
+
+      // Calculate how much the sold counter is incremented.
+      val counterIncrement = {
+        // Obtain the current and the next "tokens sold counter"
+        val selfAlreadySoldCounter = SELF.R5[(Long, Long)].get._2
+        val outputAlreadySoldCounter = OUTPUTS(0).R5[(Long, Long)].get._2
+
+        outputAlreadySoldCounter - selfAlreadySoldCounter
+      }
+
+      // Calculate the extracted number of tokens from the contract
+      val numberOfTokensBuyed = SELF.tokens(0)._2 - OUTPUTS(0).tokens(0)._2
+
+      numberOfTokensBuyed == counterIncrement
+    }
+
+    isSelfReplication && userHasTokens && correctExchange && incrementSoldCounterCorrectly
   }
+
+  val soldCounterRemainsConstant = SELF.R5[(Long, Long)].get._2 == OUTPUTS(0).R5[(Long, Long)].get._2
 
   // Validation for refunding tokens
   val isRefundTokens = {
@@ -63,8 +83,14 @@
 
     // > People should be allowed to exchange tokens for ERGs if and only if the deadline has passed and the minimum number of tokens has not been sold.
     val canBeRefund = {
-      // The minimum Ergo is not reached, that means, the minimum number of tokens has not been sold. (Check the amount of ergo instead of the amount of tokens to avoid verifying if the token held by the contract is the correct one.)
-      val minimumNotReached = SELF.value < SELF.R5[Long].get
+      // The minimum number of tokens has not been sold.
+      val minimumNotReached = {
+        val minData = SELF.R5[(Long, Long)].get
+        val minimumSalesThreshold = minData._1
+        val soldCounter = minData._2
+
+        soldCounter < minimumSalesThreshold
+      }
 
       // Condition to check if the current height is beyond the block limit
       val afterBlockLimit = HEIGHT > SELF.R4[Int].get
@@ -103,37 +129,64 @@
     }
 
     // The contract returns the equivalent ERG value for the returned tokens
-    isSelfReplication && canBeRefund && returningTokens && correctExchange
+    isSelfReplication && soldCounterRemainsConstant && canBeRefund && returningTokens && correctExchange
   }
 
   val projectAddress = OUTPUTS(1)
   
   val isToProjectAddress = {
-    val g: GroupElement = SELF.R7[GroupElement].get
-    val sigmaprop: SigmaProp = proveDlog(g)
+    val addrHash: Coll[Byte] = SELF.R7[Coll[Byte]].get
+    val isSamePropBytes: Boolean = addrHash == sha256(projectAddress.propositionBytes)
 
-    sigmaprop.propBytes == projectAddress.propositionBytes
+    isSamePropBytes
   }
 
   // Validation for withdrawing funds by project owners
   val isWithdrawFunds = {
-    val devData = OUTPUTS(0).R8[(Int, GroupElement)].get
-    val devFee = devData._1
-    val devAddress = devData._2
-    // Check https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
-    
+
+    // ERG extracted amount considering that the contract could not be replicated.
+    val extractedValue: Long = {
+      if (INPUTS.size > 1) {
+        // In case where the project owners uses multiple boxes
+        projectAddress.value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc, box) => acc + box.value })
+      }
+      else {
+        projectAddress.value
+      }
+    }
+
+    val correctDevFee = {
+      // Could be a dev prop bytes: https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
+      val devData = OUTPUTS(0).R8[(Int, Coll[Byte])].get
+      val devFee = devData._1
+      val devAddress = devData._2
+
+      val isToDevAddress = {
+        devAddress == OUTPUTS(2).propositionBytes
+      }
+
+      val devAmount = extractedValue * devFee / 100
+
+      devAmount == OUTPUTS(2).value && isToDevAddress
+    }
 
     // Replicate the contract in case of partial withdraw
     val endOrReplicate = {
-      val allFundsWithdrawn = projectAddress.value == SELF.value
+      val allFundsWithdrawn = extractedValue == SELF.value
 
       isSelfReplication || allFundsWithdrawn
     }
 
     // > Project owners are allowed to withdraw ERGs if and only if the minimum number of tokens has been sold. (The deadline plays no role here.)
-    val minimumReached = SELF.value >= SELF.R5[Long].get
+    val minimumReached = {
+      val minData = SELF.R5[(Long, Long)].get
+      val minimumSalesThreshold = minData._1
+      val soldCounter = minData._2
 
-    endOrReplicate && isToProjectAddress && minimumReached
+      soldCounter > minimumSalesThreshold
+    }
+    
+    endOrReplicate && soldCounterRemainsConstant && isToProjectAddress && minimumReached && correctDevFee
   }
 
   // Can't withdraw ERG
@@ -141,22 +194,30 @@
 
   // Validation for withdrawing unsold tokens after the block limit
   // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens = isSelfReplication && isToProjectAddress && mantainValue
+  val isWithdrawUnsoldTokens = isSelfReplication && soldCounterRemainsConstant && isToProjectAddress && mantainValue
 
   
   // > Project owners may add more tokens to the contract at any time.
   val isAddTokens = {
-    // TODO logic to check: No adds more than one type of token. No withdraw tokens.
+
+    val addsCorrectly = {
+
+      val noAddsMoreTokens = OUTPUTS(0).tokens.size == 1
+      val noWithdraw = SELF.tokens.size == 0 || SELF.tokens(0)._1 == OUTPUTS(0).tokens(0)._1 && SELF.tokens(0)._2 < OUTPUTS(0).tokens(0)._2
+
+      // TODO: In case of SELF.tokens.size == 0, how to check if OUTPUTS(0).tokens(0)._1 is the initial token?
+
+      noAddsMoreTokens && noWithdraw
+    }
 
     val isFromProjectAddress = {
-      val g: GroupElement = SELF.R7[GroupElement].get
-      val sigmaprop: SigmaProp = proveDlog(g)
-      val isSamePropBytes: Boolean = (sigmaprop.propBytes == INPUTS(1).propositionBytes)
+      val addrHash: Coll[Byte] = SELF.R7[Coll[Byte]].get
+      val isSamePropBytes: Boolean = (addrHash == sha256(INPUTS(1).propositionBytes))
       
       isSamePropBytes
     }
 
-    isSelfReplication && mantainValue && isFromProjectAddress
+    isSelfReplication && soldCounterRemainsConstant && mantainValue && isFromProjectAddress && addsCorrectly
   }
 
   sigmaProp(isBuyTokens || isRefundTokens || isWithdrawFunds || isWithdrawUnsoldTokens || isAddTokens)
