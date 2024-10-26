@@ -1,13 +1,10 @@
-/*
-*
-* Benefaction Platform
-* R4     -> Block limit until allowed withdrawal or refund
-* R5     -> The minimum amount of tokens that need to be sold.
-* R6     -> The amount of tokens that have already been sold.
-* R7     -> ERG/Token exchange rate
-* R8     -> Sha256 of the contract proposition bytes where the funds can be withdrawn
-* R9     -> Link or hash that contains project information
-*/
+import { compile } from "@fleet-sdk/compiler";
+import { ErgoAddress, Network } from "@fleet-sdk/core";
+import { sha256, hex } from "@fleet-sdk/crypto";
+
+export const explorer_uri = "https://api.ergoplatform.com";
+
+let contract = `
 {
 
   // Validation of the box replication process
@@ -217,3 +214,11 @@
 
   sigmaProp(isBuyTokens || isRefundTokens || isWithdrawFunds || isWithdrawUnsoldTokens || isAddTokens)
 }
+  `;
+let ergoTree = compile(contract, {version: 1})
+
+let ergoTreeAddress = ErgoAddress.fromErgoTree(ergoTree.toHex(), Network.Testnet).toString()
+let ergoTreeHash = hex.encode(sha256(ergoTree.template.toBytes()))
+
+export const ergo_tree_hash = ergoTreeHash
+export const ergo_tree_address = ergoTreeAddress;

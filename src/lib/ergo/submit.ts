@@ -2,21 +2,27 @@ import {
     OutputBuilder,
     SAFE_MIN_BOX_VALUE,
     RECOMMENDED_MIN_FEE_VALUE,
-    TransactionBuilder
+    TransactionBuilder,
+    SLong
 } from '@fleet-sdk/core';
+import { SInt } from '@fleet-sdk/serializer';
 
 import { ergo_tree_address } from './envs';
 import { stringToSerialized } from './utils';
+import { sha256 } from './sha256';
 
 // Function to submit a project to the blockchain
 export async function submit_project(
+    token_id: string | null, 
+    token_amount: number | null,
     blockLimit: number,     // Block height until withdrawal/refund is allowed
-    tokenAmount: number,    // Amount of tokens being created
     exchangeRate: number,   // Exchange rate ERG/Token
     projectLink: string,    // Link or hash containing project information
     minimumSold: number     // Minimum amount sold to allow withdrawal
 ): Promise<string|null> {
     
+    console.log(token_id, token_amount)
+
     // Get the wallet address (will be the project address)
     const walletPk = await ergo.get_change_address();
     
@@ -30,19 +36,30 @@ export async function submit_project(
         ergo_tree_address    // Address of the project contract
     );
 
-    // Minting a new token since tokenId is always null
-    projectOutput.mintToken({
-        amount: tokenAmount.toString() // Amount of tokens being minted
-    });
+
+    if (token_id === null || token_amount === null) {
+        // Minting a new token since tokenId is always null
+        projectOutput.mintToken({
+            amount: "1000000000" // Amount of tokens being minted
+        });
+    } else {
+        projectOutput.addTokens({
+            tokenId: token_id,
+            amount: token_amount.toString()
+          }, {sum: false})
+    }
+
+    const devAddress = "0xabcdefghijklmnñoqrstuvwxyz"
+    const devFeePercentage = 5
 
     // Set additional registers in the output box
     projectOutput.setAdditionalRegisters({
-        R4: '',
-        R5: stringToSerialized(blockLimit.toString()),      // Block limit for withdrawals/refunds
-        R6: stringToSerialized(exchangeRate.toString()),    // Exchange rate ERG/Token
-        R7: stringToSerialized(walletPk),                   // Withdrawal address (projectAddress is walletPk)
-        R8: stringToSerialized(projectLink),                // Link or hash with project info
-        R9: stringToSerialized(minimumSold.toString())      // Minimum amount sold
+       R4: SInt(blockLimit).toHex(),                              // Block limit for withdrawals/refunds
+       R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
+       R6: SLong(BigInt(0)).toHex(),                              // Tokens sold counter
+       R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
+       R8: stringToSerialized(await sha256(walletPk)),            // Withdrawal address (hash of walletPk)
+       R9: stringToSerialized(projectLink)                        // Link or hash with project info
     });
 
     // Add the project box to the outputs list

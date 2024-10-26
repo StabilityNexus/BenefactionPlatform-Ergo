@@ -1,4 +1,5 @@
 import { ErgoAddress, SBool, SByte, SColl, SConstant, SGroupElement } from "@fleet-sdk/core";
+import { SPair } from '@fleet-sdk/serializer';
 import { stringToBytes } from "@scure/base";
 import { connected } from "./store";
 import { get } from "svelte/store";

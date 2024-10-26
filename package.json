@@ -21,13 +21,11 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@dagrejs/dagre": "^1.0.4",
-		"@fleet-sdk/compiler": "^0.2.3",
-		"@fleet-sdk/core": "^0.2.3",
+		"@fleet-sdk/compiler": "^0.7.0",
+		"@fleet-sdk/core": "^0.7.0",
 		"@scure/base": "^1.1.3",
 		"@sveltejs/adapter-static": "^2.0.3",
-		"@types/three": "^0.161.2",
-		"@xyflow/svelte": "^0.1.3",
+		"spaper": "^1.4.0",
 		"update": "^0.7.4"
 	}
 }
