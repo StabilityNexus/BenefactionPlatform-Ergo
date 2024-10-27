@@ -4,7 +4,7 @@
     https://api.ergoplatform.com/api/v1/docs/#operation/postApiV1BoxesUnspentSearch
 */
 
-import type { Project } from "./project";
+import type { Project } from "../common/project";
 import { hexToUtf8 } from "./utils";
 
 type RegisterValue = {

@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import type { Project } from './project';
+import type { Project } from '../common/project';
 
 export const address = writable<string|null>(null);
 export const network = writable<string|null>(null);

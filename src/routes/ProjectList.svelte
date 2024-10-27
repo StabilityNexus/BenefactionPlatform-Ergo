@@ -3,7 +3,7 @@
     import { fetch_projects } from '$lib/ergo/fetch'; // Asumiendo que fetch_projects está en $lib
     import { onMount } from 'svelte';
     import ProjectCard from './ProjectCard.svelte';
-    import {type Project } from '$lib/ergo/project';
+    import {type Project } from '$lib/common/project';
 
     // States for managing the fetched projects
     let projects: Map<string, Project> | null = null;

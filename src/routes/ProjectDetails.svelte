@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Project, is_ended, min_raised } from "$lib/ergo/project";
+    import { type Project, is_ended, min_raised } from "$lib/common/project";
     import { sha256 } from "$lib/ergo/sha256";
     import { exchange } from "$lib/ergo/exchange";
     import { withdraw } from "$lib/ergo/withdraw";

@@ -9,7 +9,7 @@ import {
 import { ergo_tree_address } from './envs';
 import { SString } from './utils';
 import { sha256 } from './sha256';
-import { type Project } from './project';
+import { type Project } from '../common/project';
 
 // Function to submit a project to the blockchain
 export async function rebalance(
