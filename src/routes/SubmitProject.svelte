@@ -2,7 +2,7 @@
     import { time_to_block } from '$lib/common/countdown';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import { submit_project } from '$lib/ergo/submit';
-    import { Button } from 'spaper';
+    import { Button, NumberInput, Slider } from 'spaper';
 
 
     let platform = new ErgoPlatform();
@@ -13,7 +13,7 @@
     let daysLimit: number;
     let exchangeRate: number;
     let projectLink: string;
-    let minimumSold: number;
+    let minimumSoldPercent: number;
 
     // State for handling the result
     let transactionId: string | null = null;
@@ -32,6 +32,8 @@
         let target_date = new Date();
         target_date.setDate(target_date.getDate() + daysLimit);
         let blockLimit = await time_to_block(target_date.getTime(), platform);
+
+        let minimumSold = Math.round(Number(token_amount * minimumSoldPercent / 100));
         
         try {
             // Submit the project to the blockchain using the submit_project function
@@ -70,6 +72,14 @@
         }
     }
     getUserTokens();
+
+    function formatToDays(value: number) {
+        return `${value} days until user refund`
+    }
+
+    function formatToRate(value: number) {
+        return `${value} ${platform.main_token}/Token`
+    }
 </script>
 
 <div>
@@ -90,36 +100,38 @@
                 </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group {token_id === null ? 'disabled' : ''}">
                 <label for="tokenAmount">Token amount</label>
                 <!-- Input for the token amount, setting the max value dynamically -->
                 <input 
+                    disabled={token_id === null}
                     type="number" 
                     id="tokenAmount" 
                     bind:value={token_amount} 
                     max={user_tokens.find(t => t.tokenId === token_id)?.balance || 0}
+                    min={0}
                     placeholder="Max amount token"  
                 />
             </div>
 
             <div class="form-group">
                 <label for="blockLimit">Days limit</label>
-                <input type="number" id="blockLimit" bind:value={daysLimit} min={1} placeholder="Enter days limit" />
+                <NumberInput id="blockLimit" format={formatToDays} controlsType="primary" bind:value={daysLimit} min={1} placeholder="Enter days limit" />
             </div>
 
             <div class="form-group">
                 <label for="exchangeRate">Exchange Rate (ERG/Token)</label>
-                <input type="number" id="exchangeRate" bind:value={exchangeRate} placeholder="Enter exchange rate" required />
+                <NumberInput id="exchangeRate" format={formatToRate} controlsType="primary" bind:value={exchangeRate} placeholder="Enter exchange rate" required />
+            </div>
+
+            <div class="form-group">
+                <label for="minimumSold">Minimum Sold</label>
+                <Slider label="Minimum Sold" background="primary" block percentage bind:value={minimumSoldPercent} />
             </div>
 
             <div class="form-group">
                 <label for="projectLink">Project Link</label>
                 <input type="text" id="projectLink" bind:value={projectLink} placeholder="Enter project link or hash" required />
-            </div>
-
-            <div class="form-group">
-                <label for="minimumSold">Minimum Sold</label>
-                <input type="number" id="minimumSold" bind:value={minimumSold} placeholder="Enter minimum amount sold" required />
             </div>
         </div>
         

@@ -2,6 +2,9 @@
 import { type Project } from "$lib/common/project";
 
 export interface Platform {
+    title: string;  // Ergo, Ethereum ...
+    main_token: string; // ERG, ETH ...
+    icon: string;  // Icon path or url.
     time_per_block: number; // milliseconds
     connect(): Promise<void>;
     get_current_height(): Promise<number>;
