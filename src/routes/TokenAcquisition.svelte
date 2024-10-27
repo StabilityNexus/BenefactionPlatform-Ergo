@@ -3,9 +3,9 @@
     import { is_ended, type Project} from "$lib/ergo/project";
 
     async function projectFilter(project: Project) {
-        return ! is_ended(project)
+        return true  
     }
 </script>
-<ProjectList filterProject={null}>
+<ProjectList filterProject={projectFilter}>
     Available projects
 </ProjectList>
