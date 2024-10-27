@@ -11,7 +11,7 @@
     let token_id: string;
     let token_amount: number;
     let daysLimit: number;
-    let exchangeRate: number;
+    let exchangeRate: number = 1;
     let projectLink: string;
     let minimumSoldPercent: number;
 
@@ -130,8 +130,9 @@
             </div>
 
             <div class="form-group">
-                <label for="exchangeRate">Exchange Rate (ERG/Token)</label>
-                <NumberInput id="exchangeRate" format={formatToRate} controlsType="primary" bind:value={exchangeRate} placeholder="Enter exchange rate" required />
+                <label for="exchangeRate">Exchange Rate ({platform.main_token}/Token)</label>
+                <NumberInput id="exchangeRate" format={formatToRate} min={0} controlsType="primary" step={1}
+                    bind:value={exchangeRate} placeholder="Enter exchange rate" required />
             </div>
 
             <div class="form-group">
