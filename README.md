@@ -55,3 +55,29 @@ The Benefaction Platform supports six main processes:
 
 
 In addition to the current functionality, a more advanced implementation could include support for other assets beyond ERG. For example, projects could request **GAU** or other tokens on Ergo. This would provide even more flexibility in terms of the types of contributions a project can receive and enable a broader range of funding options for projects and participants.
+
+## Installation Steps
+
+1. **Clone the Repository**
+Clone the repository URL and navigate to the project folder.
+   ```bash
+   git clone <repo-url>
+   cd <repo-folder>
+   ```
+
+2. **Set Node Version to 20**
+Make sure you have Node Version Manager (nvm) installed. If not, you can install it from the official NVM repository. Once installed, switch to Node.js version 20.
+   ```bash
+   nvm use 20
+   ```
+
+3. **Install Dependencies**
+Run the installation command to install the required dependencies for the project.
+   ```bash
+   npm install
+   ```
+
+4. **Run the Development Server**
+   ```bash
+   npm run dev
+   ```
