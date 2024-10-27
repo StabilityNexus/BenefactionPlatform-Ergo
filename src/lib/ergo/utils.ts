@@ -43,19 +43,15 @@ export function generate_pk_proposition(wallet_pk: string): string {
     return encodedProp.toHex();
 }
 
-export function stringToSerialized(value: string): string {
+export function SString(value: string): string {
     return SConstant(SColl(SByte, stringToBytes('utf8', value)));
 }
 
-export function booleanToSerializer(value: boolean): string {
-    return SConstant(SBool(value));
-}
-
 export function stringToRendered(value: string): string {
-    return serializedToRendered(stringToSerialized(value));
+    return serializedToRendered(SString(value));
 }
 
-export async function check_if_r7_is_local_addr(value: string): Promise<boolean> {
+export async function is_local_addr(value: string): Promise<boolean> {
     if (!get(connected)) return false;
     return stringToRendered(generate_pk_proposition((await ergo.get_change_address()))).substring(4,) === stringToRendered(value);
 }

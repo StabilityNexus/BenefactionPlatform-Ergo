@@ -7,7 +7,7 @@ import {
 } from '@fleet-sdk/core';
 
 import { ergo_tree_address } from './envs';
-import { stringToSerialized } from './utils';
+import { SString } from './utils';
 import { sha256 } from './sha256';
 import { type Project } from './project';
 
@@ -47,8 +47,8 @@ export async function rebalance(
         R5: SLong(BigInt(project.minimum_amount)).toHex(),                             // Minimum sold
         R6: SLong(BigInt(project.amount_sold)).toHex(),                                // Tokens sold counter
         R7: SLong(BigInt(project.exchange_rate)).toHex(),              // Exchange rate ERG/Token
-        R8: stringToSerialized(await sha256(walletPk)),                        // Withdrawal address (hash of walletPk)
-        R9: stringToSerialized(project.link)                                   // Link or hash with project info
+        R8: SString(await sha256(walletPk)),                        // Withdrawal address (hash of walletPk)
+        R9: SString(project.link)                                   // Link or hash with project info
     });
     outputs.push(contractOutput);
     

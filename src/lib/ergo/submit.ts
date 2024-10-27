@@ -8,7 +8,7 @@ import {
 import { SInt } from '@fleet-sdk/serializer';
 
 import { ergo_tree_address } from './envs';
-import { stringToSerialized } from './utils';
+import { SString } from './utils';
 import { sha256 } from './sha256';
 
 // Function to submit a project to the blockchain
@@ -58,8 +58,8 @@ export async function submit_project(
        R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
        R6: SLong(BigInt(0)).toHex(),                              // Tokens sold counter
        R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
-       R8: stringToSerialized(await sha256(walletPk)),            // Withdrawal address (hash of walletPk)
-       R9: stringToSerialized(projectLink)                        // Link or hash with project info
+       R8: SString(await sha256(walletPk)),            // Withdrawal address (hash of walletPk)
+       R9: SString(projectLink)                        // Link or hash with project info
     });
 
     // Add the project box to the outputs list
