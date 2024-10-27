@@ -117,11 +117,6 @@
 </div>
 
 <style>
-    .container {
-        padding: 20px;
-        background-color: black;
-        width: 100% !important;
-    }
 
     .wallet-info {
         position: absolute;
@@ -132,8 +127,8 @@
 
     .message {
         position: absolute;
-        top: 60px;
-        left: 20px;
+        top: 120px;
+        right: 20px;
         background: #28a745;
         color: #fff;
         padding: 5px 10px;
