@@ -182,6 +182,9 @@
         <p><strong>Tokens sold:</strong> {project.amount_sold}</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
+        {#if !is_owner}
+            <p><strong>Owner hash:</strong> {project.owner.slice(0, 6)}</p>
+        {/if}
 
         <!-- Action Buttons -->
         <div class="actions">
@@ -200,8 +203,6 @@
                         Withdraw ERGs
                     </Button>
                 {/if}
-            {:else}
-                <p><strong>Owner hash:</strong> {project.owner.slice(0, 6)}</p>
             {/if}
 
             <!-- User actions -->
@@ -227,13 +228,13 @@
 
         <!-- Input field and submit button for actions -->
         {#if show_submit}
-            <div>
+            <div class="actions-form">
                 <NumberInput
                     bind:value={value_submit}
                     label={label_submit}
                     min={0}
                 />
-                <Button style="background-color: orange; color: black; border: none;" on:click={function_submit}>
+                <Button style="background-color: orange; color: black; border: none; margin-top: 1rem;" on:click={function_submit}>
                     Submit
                 </Button>
             </div>
@@ -295,6 +296,7 @@
 
     .details {
         width: 30vw;
+        height: max-content;
     }
 
     .btn-close {
@@ -309,6 +311,14 @@
     }
 
     .actions {
+        margin-top: 3rem;
+    }
+
+    .actions-form {
+        margin-top: 2rem;
+    }
+
+    .actions-form-submit {
         margin-top: 1rem;
     }
 
