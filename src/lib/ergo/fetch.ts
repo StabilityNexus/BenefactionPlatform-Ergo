@@ -73,11 +73,11 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                         block_limit: parseInt(hexToUtf8(e.additionalRegisters.R4.renderedValue), 10),
                         minimum_amount: parseInt(hexToUtf8(e.additionalRegisters.R5.renderedValue), 10),
                         total_amount: e.assets[0].amount,
-                        exchange_rate: parseInt(hexToUtf8(e.additionalRegisters.R6.renderedValue), 10),
+                        exchange_rate: parseInt(hexToUtf8(e.additionalRegisters.R7.renderedValue), 10),
                         link: hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? "",
-                        owner: hexToUtf8(e.additionalRegisters.R7.renderedValue) ?? "",
+                        owner: hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "",
                         value: e.value,
-                        amount_sold: parseInt(hexToUtf8(e.additionalRegisters.R5.renderedValue), 10),
+                        amount_sold: parseInt(hexToUtf8(e.additionalRegisters.R6.renderedValue), 10),
                     })
                 }                
                 params.offset += params.limit;
