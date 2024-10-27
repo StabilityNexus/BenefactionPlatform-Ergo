@@ -5,6 +5,7 @@
 */
 
 import type { Project } from "../common/project";
+import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
 
 type RegisterValue = {
@@ -68,6 +69,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                 for (const e of json_data.items) {
                     let token_id = e.assets[0].tokenId;
                     projects.set(token_id, {
+                        platform: new ErgoPlatform(),
                         box: e,
                         token_id: e.assets[0].tokenId.slice(0, 6),
                         block_limit: parseInt(hexToUtf8(e.additionalRegisters.R4.renderedValue), 10),

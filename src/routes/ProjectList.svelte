@@ -4,6 +4,9 @@
     import { onMount } from 'svelte';
     import ProjectCard from './ProjectCard.svelte';
     import {type Project } from '$lib/common/project';
+    import { ErgoPlatform } from '$lib/ergo/platform';
+
+    let platform = new ErgoPlatform();
 
     // States for managing the fetched projects
     let projects: Map<string, Project> | null = null;
@@ -20,7 +23,7 @@
     async function loadProjects() {
         try {
             // Fetch the projects using the fetch_projects function
-            const projectsList: Map<string, Project>= await fetch_projects(explorerUri, ergoTreeTemplateHash, await ergo);
+            const projectsList: Map<string, Project>= await platform.fetch();
             const filteredProjectsMap = new Map<string, Project>();
 
             // Iteramos sobre los proyectos y aplicamos el filtro si existe

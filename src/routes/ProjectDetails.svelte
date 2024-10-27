@@ -6,7 +6,7 @@
     import { rebalance } from "$lib/ergo/rebalance";
     import { address, connected, project_detail } from "$lib/common/store";
     import { Button, Progress, NumberInput } from "spaper";
-    import { block_to_time } from "$lib/countdown";
+    import { block_to_time } from "$lib/common/countdown";
 
     // Define 'project' as a prop of type Project
     let project: Project = $project_detail;

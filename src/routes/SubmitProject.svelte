@@ -1,6 +1,10 @@
 <script lang="ts">
+    import { ErgoPlatform } from '$lib/ergo/platform';
     import { submit_project } from '$lib/ergo/submit';
     import { Button } from 'spaper';
+
+
+    let platform = new ErgoPlatform();
 
     // States for form fields
     let token_id: string;
@@ -41,7 +45,7 @@
 
     async function getCurrentHeight() {
         try {
-            current_height = await ergo.get_current_height();
+            current_height = await platform.get_current_height();
         } catch (error) {
             console.error("Error fetching current height:", error);
         }
@@ -51,10 +55,10 @@
     async function getUserTokens() {
         try {
             // Fetch user tokens
-            const tokens = await ergo.get_balance("all");
-            user_tokens = tokens.map(token => ({
-                tokenId: token.tokenId,
-                balance: Number(token.balance)
+            const tokens = await platform.get_balance();
+            user_tokens = Array.from(tokens.entries()).map(([tokenId, balance]) => ({
+                tokenId: tokenId,
+                balance: balance,
             }));
         } catch (error) {
             console.error("Error fetching user tokens:", error);

@@ -1,14 +1,17 @@
 <script>
+    import { ErgoPlatform } from "$lib/ergo/platform";
     import ProjectList from "./ProjectList.svelte";
+
+    let platform = new ErgoPlatform();
 
     const filter = async (project) => {
     try {
         // Fetch user tokens using the same logic as in getUserTokens
-        const tokens = await ergo.get_balance("all");
-        const user_tokens = tokens.map(token => ({
-            tokenId: token.tokenId,
-            balance: Number(token.balance)
-        }));
+        const tokens = await platform.get_balance();
+        const user_tokens = Array.from(tokens.entries()).map(([tokenId, balance]) => ({
+                tokenId: tokenId,
+                balance: balance,
+            }));
 
         // Check if the project token_id exists in the user's tokens
         return user_tokens.some(token => token.tokenId === project.token_id);

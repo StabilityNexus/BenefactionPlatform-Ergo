@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { block_to_time } from "$lib/countdown";
+    import { block_to_time } from "$lib/common/countdown";
     import { is_ended, min_raised, type Project } from "$lib/common/project";
     import {project_detail} from "$lib/common/store";
     import { Button } from "spaper";

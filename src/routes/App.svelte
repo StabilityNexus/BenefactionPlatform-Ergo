@@ -1,6 +1,5 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { connectNautilus } from "$lib/ergo/connect";
     import { address, connected, balance, project_detail } from "$lib/common/store";
     import MyProjects from './MyProjects.svelte';
     import MyDonations from './MyDonations.svelte';
@@ -9,13 +8,16 @@
     import 'papercss/dist/paper.min.css'
     import { Navbar, Badge } from 'spaper';
     import ProjectDetails from './ProjectDetails.svelte';
+    import { ErgoPlatform } from '$lib/ergo/platform';
 
 
     let activeTab = 'acquireTokens'; // Default tab is "My Donations"
     let showMessage = false;
 
+    let platform = new ErgoPlatform();
+
     onMount(async () => {
-        connectNautilus();
+        platform.connect();
     });
 
     connected.subscribe(async () => {
@@ -42,7 +44,7 @@
 
     async function getCurrentHeight() {
         try {
-            current_height = await ergo.get_current_height();
+            current_height = await platform.get_current_height();
         } catch (error) {
             console.error("Error fetching current height:", error);
         }
