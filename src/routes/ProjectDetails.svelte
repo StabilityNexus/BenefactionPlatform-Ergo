@@ -123,7 +123,7 @@
 
     let targetDate = 0;
     async function setTargetDate() {
-        targetDate = await block_to_time(project.block_limit);
+        targetDate = await block_to_time(project.block_limit, project.platform);
     }
     setTargetDate()
 

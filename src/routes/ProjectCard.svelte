@@ -14,7 +14,7 @@
     {
         deadline_passed = await is_ended(project);
         is_min_raised = await min_raised(project)
-        limit_date = new Date(await block_to_time(project.block_limit)).toLocaleString();
+        limit_date = new Date(await block_to_time(project.block_limit, project.platform)).toLocaleString();
     }
     load()
 

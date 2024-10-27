@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { time_to_block } from '$lib/common/countdown';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import { submit_project } from '$lib/ergo/submit';
     import { Button } from 'spaper';
@@ -9,7 +10,7 @@
     // States for form fields
     let token_id: string;
     let token_amount: number;
-    let blockLimit: number;
+    let daysLimit: number;
     let exchangeRate: number;
     let projectLink: string;
     let minimumSold: number;
@@ -27,6 +28,10 @@
         isSubmitting = true;
         errorMessage = null;
         transactionId = null;
+
+        let target_date = new Date();
+        target_date.setDate(target_date.getDate() + daysLimit);
+        let blockLimit = await time_to_block(target_date.getTime(), platform);
         
         try {
             // Submit the project to the blockchain using the submit_project function
@@ -98,8 +103,8 @@
             </div>
 
             <div class="form-group">
-                <label for="blockLimit">Block Limit</label>
-                <input type="number" step="0.001" id="blockLimit" bind:value={blockLimit} min={current_height} placeholder="Enter block limit" />
+                <label for="blockLimit">Days limit</label>
+                <input type="number" id="blockLimit" bind:value={daysLimit} min={1} placeholder="Enter days limit" />
             </div>
 
             <div class="form-group">
