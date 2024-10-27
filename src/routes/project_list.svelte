@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { explorer_uri, ergo_tree_hash } from '$lib/ergo/envs';
+    import { explorer_uri, ergo_tree_template_hash } from '$lib/ergo/envs';
     import { fetch_projects } from '$lib/ergo/fetch'; // Asumiendo que fetch_projects está en $lib
     import { onMount } from 'svelte';
     import ProjectCard from './ProjectCard.svelte';
@@ -12,7 +12,7 @@
 
     // Parameters required for fetch_projects
     let explorerUri: string = explorer_uri; // Cambia esto por el URI correcto
-    let ergoTreeTemplateHash: string = ergo_tree_hash; // Cambia por el hash correcto
+    let ergoTreeTemplateHash: string = ergo_tree_template_hash; // Cambia por el hash correcto
 
     export let filterProject: ((project: any) => Promise<boolean>) | null = null;
 
