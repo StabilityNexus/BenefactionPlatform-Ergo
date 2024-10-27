@@ -80,6 +80,16 @@
     function formatToRate(value: number) {
         return `${value} ${platform.main_token}/Token`
     }
+
+    function getSliderBackground(percent) {
+        if (percent == 0) {
+            return 'success';
+        } else if (percent < 100) {
+            return 'warning';
+        } else {
+            return 'danger';
+        }
+    }
 </script>
 
 <div>
@@ -126,7 +136,7 @@
 
             <div class="form-group">
                 <label for="minimumSold">Minimum Sold</label>
-                <Slider label="Minimum Sold" background="primary" block percentage bind:value={minimumSoldPercent} />
+                <Slider background={getSliderBackground(minimumSoldPercent)} block percentage bind:value={minimumSoldPercent} />
             </div>
 
             <div class="form-group">

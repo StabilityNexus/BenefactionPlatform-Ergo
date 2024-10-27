@@ -88,7 +88,7 @@
                 <Badge style="background-color: orange; color: black; font-size: 0.9em; margin-bottom: 5px;">Wallet: {($address.slice(0, 6) + '...' + $address.slice(-4))}</Badge>
             </div>
         {/if}
-        <Badge style="background-color: orange; color: black; font-size: 0.9em;">Balance: {ergInErgs} ERG</Badge>
+        <Badge style="background-color: orange; color: black; font-size: 0.9em;">Balance: {ergInErgs} {platform.main_token}</Badge>
     </div>
 
     {#if showMessage}
