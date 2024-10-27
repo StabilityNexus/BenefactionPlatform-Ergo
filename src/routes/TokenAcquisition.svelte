@@ -1,5 +1,5 @@
 <script lang="ts">
-    import ProjectList from "./project_list.svelte";
+    import ProjectList from "./ProjectList.svelte";
     import { is_ended, type Project} from "$lib/ergo/project";
 
     async function projectFilter(project: Project) {

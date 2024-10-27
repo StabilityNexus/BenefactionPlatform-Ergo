@@ -1,5 +1,5 @@
 <script>
-    import ProjectList from "./project_list.svelte";
+    import ProjectList from "./ProjectList.svelte";
 
     const filter = async (project) => {
     try {
