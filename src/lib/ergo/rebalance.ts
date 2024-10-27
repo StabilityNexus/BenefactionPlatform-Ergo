@@ -17,7 +17,6 @@ export async function rebalance(
     token_amount: number
 ): Promise<string|null> {
     
-    console.log(project)
     console.log("wants to add ", token_amount)
 
     // Get the wallet address (will be the project address)

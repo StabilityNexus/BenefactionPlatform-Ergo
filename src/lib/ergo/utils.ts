@@ -19,8 +19,7 @@ export function serializedToRendered(serializedValue: string): string {
 export function hexToUtf8(hexString: string): string | null {
     try {
         if (hexString.length % 2 !== 0) {
-        console.log('The hexadecimal string has an odd length.');
-        return null;
+            return null;
         }
     
         // Convierte la cadena hexadecimal a un array de bytes

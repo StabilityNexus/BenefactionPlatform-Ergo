@@ -19,7 +19,6 @@ export async function exchange(
     token_amount: number
 ): Promise<string|null> {
     
-    console.log(project)
     console.log("wants to buy ", token_amount)
 
     let ergo_amount = token_amount * project.exchange_rate

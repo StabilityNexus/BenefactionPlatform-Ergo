@@ -18,7 +18,6 @@ export async function withdraw(
     amount: number
 ): Promise<string|null> {
     
-    console.log(project)
     console.log("wants withdraw ", amount)
 
     // Get the wallet address (will be the project address)

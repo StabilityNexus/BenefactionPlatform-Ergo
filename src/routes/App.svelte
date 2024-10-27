@@ -43,7 +43,6 @@
     async function getCurrentHeight() {
         try {
             current_height = await ergo.get_current_height();
-            console.log(current_height);
         } catch (error) {
             console.error("Error fetching current height:", error);
         }

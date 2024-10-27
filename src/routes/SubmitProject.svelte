@@ -42,7 +42,6 @@
     async function getCurrentHeight() {
         try {
             current_height = await ergo.get_current_height();
-            console.log(current_height);
         } catch (error) {
             console.error("Error fetching current height:", error);
         }
@@ -57,7 +56,6 @@
                 tokenId: token.tokenId,
                 balance: Number(token.balance)
             }));
-            console.log(user_tokens);
         } catch (error) {
             console.error("Error fetching user tokens:", error);
         }
