@@ -217,7 +217,7 @@ let contract = `
   `;
 let ergoTree = compile(contract, {version: 1})
 
-let ergoTreeAddress = ergoTree.toAddress().toString
+let ergoTreeAddress = ergoTree.toAddress(Network.Mainnet).toString()
 let ergoTreeHash = hex.encode(sha256(ergoTree.template.toBytes())) 
 
 export const ergo_tree_address = ergoTreeAddress;

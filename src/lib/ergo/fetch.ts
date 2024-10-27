@@ -66,7 +66,6 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                     break;
                 }
                 for (const e of json_data.items) {
-                    console.log(e)
                     let token_id = e.assets[0].tokenId;
                     projects.set(token_id, {
                         box: e,
