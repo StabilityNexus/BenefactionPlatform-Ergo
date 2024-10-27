@@ -26,7 +26,7 @@
 
 <div class="card">
     <div class="card-body">
-        <h3 class="card-title">Project ID: {project.token_id}</h3>
+        <h3 class="card-title">Project ID: {project.token_id.slice(0, 6)}</h3>
         <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>Minimum Amount:</strong> {project.minimum_amount}</p>
         <p><strong>Total Amount:</strong> {project.total_amount}</p>

@@ -76,7 +76,7 @@
             </ul>
         {:else}
             <ul class="inline">
-                <li><a style="color: orange; border-bottom-color: orange;">Project: {$project_detail.token_id.slice(0.6)}</a></li>
+                <li><a style="color: orange; border-bottom-color: orange;">Project: {$project_detail.token_id.slice(0, 6)}</a></li>
             </ul>
         {/if}
     </Navbar>

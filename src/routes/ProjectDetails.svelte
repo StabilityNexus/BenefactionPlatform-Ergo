@@ -7,9 +7,13 @@
     import { address, connected, project_detail } from "$lib/common/store";
     import { Button, Progress, NumberInput } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
+    import { onMount } from "svelte";
+    import { ErgoPlatform } from "$lib/ergo/platform";
 
     // Define 'project' as a prop of type Project
     let project: Project = $project_detail;
+
+    let platform = new ErgoPlatform();
 
     // TODO Valores ficticios
     let currentVal = 2000;
@@ -28,6 +32,28 @@
     let label_submit = "";
     let function_submit = null;
     let value_submit = 0;
+
+    onMount(() => {
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get('project');
+        if (projectId) {
+            loadProjectById(projectId);
+        }
+    });
+
+    async function loadProjectById(projectId: string) {
+        const projects = await platform.fetch();
+        if (projectId in projects) {
+            const project = projects.get(projectId);
+            if (project) {
+                project_detail.set(project);
+            } else {
+                console.error(`Project with ID ${projectId} is undefined.`);
+            }
+        } else {
+            console.error(`Project with ID ${projectId} not found.`);
+        }
+    }
 
     // Project owner actions
     function setupAddTokens() {
@@ -99,7 +125,7 @@
     // Function to handle sharing the project
     function shareProject() {
         console.log("Sharing project link:", project.link);
-        // Implement sharing functionality here (e.g., using navigator.share)
+        navigator.clipboard.writeText(project.token_id);
     }
 
     // Function to close the detail page
@@ -198,7 +224,7 @@
                     </Button>
                 {/if}
             {:else}
-                <p><strong>Owner (sha256):</strong> {project.owner}</p>
+                <p><strong>Owner hash:</strong> {project.owner.slice(0, 6)}</p>
             {/if}
 
             <!-- User actions -->

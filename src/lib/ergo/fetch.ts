@@ -71,7 +71,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                     projects.set(token_id, {
                         platform: new ErgoPlatform(),
                         box: e,
-                        token_id: e.assets[0].tokenId.slice(0, 6),
+                        token_id: e.assets[0].tokenId,
                         block_limit: parseInt(hexToUtf8(e.additionalRegisters.R4.renderedValue), 10),
                         minimum_amount: parseInt(hexToUtf8(e.additionalRegisters.R5.renderedValue), 10),
                         total_amount: e.assets[0].amount,

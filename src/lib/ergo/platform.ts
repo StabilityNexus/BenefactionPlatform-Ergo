@@ -87,7 +87,7 @@ export class ErgoPlatform implements Platform {
         return await withdraw(project, amount);
     }
 
-    async fetch(): Promise<any> {
+    async fetch(): Promise<Map<string, Project>> {
         return await fetch_projects(explorer_uri, ergo_tree_template_hash, await ergo);
     }
 }
