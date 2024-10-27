@@ -10,7 +10,7 @@ import { SString } from './utils';
 import { sha256 } from './sha256';
 import { type Project } from '../common/project';
 import { get } from 'svelte/store';
-import { address, ergBalance } from './store';
+import { address, balance } from '../common/store';
 
 // Function to submit a project to the blockchain
 export async function withdraw(
@@ -54,7 +54,7 @@ export async function withdraw(
     outputs.push(contractOutput);
 
     const userOutput = new OutputBuilder(
-        BigInt(Number(get(ergBalance))  + amount - devAmount),
+        BigInt(Number(get(balance))  + amount - devAmount),
         get(address) ?? ""
     );
     outputs.push(userOutput);

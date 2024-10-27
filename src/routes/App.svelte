@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { connectNautilus } from "$lib/ergo/connect";
-    import { address, connected, ergBalance, project_detail } from "$lib/ergo/store";
+    import { address, connected, balance, project_detail } from "$lib/common/store";
     import MyProjects from './MyProjects.svelte';
     import MyDonations from './MyDonations.svelte';
     import SubmitProject from './SubmitProject.svelte';
@@ -49,7 +49,7 @@
     }
     getCurrentHeight();
 
-    $: ergInErgs = $ergBalance ? ($ergBalance / 1_000_000_000).toFixed(4) : 0;
+    $: ergInErgs = $balance ? ($balance / 1_000_000_000).toFixed(4) : 0;
 
 </script>
 

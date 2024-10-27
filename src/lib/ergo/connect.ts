@@ -1,4 +1,4 @@
-import { address, connected, network, ergBalance } from "./store";
+import { address, connected, network, balance } from "../common/store";
 
 
 export async function connectNautilus() {
@@ -9,7 +9,7 @@ export async function connectNautilus() {
             console.log('Connected!');
             address.set(await ergo.get_change_address());
             network.set("ergo-mainnet");
-            ergBalance.set(await ergo.get_balance("ERG"));
+            balance.set(await ergo.get_balance("ERG"));
             connected.set(true);
         } else {
             alert('Not connected!');

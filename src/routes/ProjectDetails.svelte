@@ -4,7 +4,7 @@
     import { exchange } from "$lib/ergo/exchange";
     import { withdraw } from "$lib/ergo/withdraw";
     import { rebalance } from "$lib/ergo/rebalance";
-    import { address, connected, project_detail } from "$lib/ergo/store";
+    import { address, connected, project_detail } from "$lib/common/store";
     import { Button, Progress, NumberInput } from "spaper";
     import { block_to_time } from "$lib/countdown";
 
