@@ -11,7 +11,7 @@ import { address, connected, network, balance } from "../common/store";
 
 export class ErgoPlatform implements Platform {
 
-    title = "Ergo";
+    id = "ergo";
     main_token = "ERG";
     icon = "";
     time_per_block = 10*60*1000;

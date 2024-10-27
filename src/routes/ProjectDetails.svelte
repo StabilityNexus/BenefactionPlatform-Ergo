@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { page } from '$app/stores';
     import { type Project, is_ended, min_raised } from "$lib/common/project";
     import { sha256 } from "$lib/common/utils";
     import { exchange } from "$lib/ergo/exchange";
@@ -7,7 +8,6 @@
     import { address, connected, project_detail } from "$lib/common/store";
     import { Button, Progress, NumberInput } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
-    import { onMount } from "svelte";
     import { ErgoPlatform } from "$lib/ergo/platform";
 
     // Define 'project' as a prop of type Project
@@ -32,28 +32,6 @@
     let label_submit = "";
     let function_submit = null;
     let value_submit = 0;
-
-    onMount(() => {
-        const params = new URLSearchParams(window.location.search);
-        const projectId = params.get('project');
-        if (projectId) {
-            loadProjectById(projectId);
-        }
-    });
-
-    async function loadProjectById(projectId: string) {
-        const projects = await platform.fetch();
-        if (projectId in projects) {
-            const project = projects.get(projectId);
-            if (project) {
-                project_detail.set(project);
-            } else {
-                console.error(`Project with ID ${projectId} is undefined.`);
-            }
-        } else {
-            console.error(`Project with ID ${projectId} not found.`);
-        }
-    }
 
     // Project owner actions
     function setupAddTokens() {
@@ -125,7 +103,6 @@
     // Function to handle sharing the project
     function shareProject() {
         console.log("Sharing project link:", project.link);
-        navigator.clipboard.writeText(project.token_id);
     }
 
     // Function to close the detail page

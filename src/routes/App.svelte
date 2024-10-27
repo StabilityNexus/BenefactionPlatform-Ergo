@@ -9,6 +9,9 @@
     import { Navbar, Badge } from 'spaper';
     import ProjectDetails from './ProjectDetails.svelte';
     import { ErgoPlatform } from '$lib/ergo/platform';
+    import { loadProjectById } from '$lib/common/load_by_id';
+    import { page } from '$app/stores';
+    import { type Project } from '$lib/common/project';
 
 
     let activeTab = 'acquireTokens'; // Default tab is "My Donations"
@@ -18,6 +21,14 @@
 
     onMount(async () => {
         platform.connect();
+
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get('project');
+        const platformId = params.get('platform');
+
+        if (projectId && platformId == platform.id) {
+            loadProjectById(platformId, platform);
+        }
     });
 
     connected.subscribe(async () => {
@@ -51,7 +62,20 @@
     }
     getCurrentHeight();
 
+    async function changeUrl(project: Project|null)
+    {
+        if (project !== null) {
+            $page.url.searchParams.set("platform", platform.id);
+            $page.url.searchParams.set("project", project.token_id);
+        }
+        else {
+            $page.url.searchParams.delete("platform");
+            $page.url.searchParams.delete("project");
+        }
+    }
+
     $: ergInErgs = $balance ? ($balance / 1_000_000_000).toFixed(4) : 0;
+    $: changeUrl($project_detail);
 
 </script>
 
