@@ -231,7 +231,7 @@
                 <NumberInput
                     bind:value={value_submit}
                     label={label_submit}
-                    min="0"
+                    min={0}
                 />
                 <Button style="background-color: orange; color: black; border: none;" on:click={function_submit}>
                     Submit
