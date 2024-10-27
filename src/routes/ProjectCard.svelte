@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { block_to_time } from "$lib/countdown";
     import { is_ended, min_raised, type Project } from "$lib/ergo/project";
     import {project_detail} from "$lib/ergo/store";
     import { Button } from "spaper";
@@ -8,10 +9,12 @@
 
     let deadline_passed = false;
     let is_min_raised = false;
+    let limit_date = "";
     async function load()
     {
         deadline_passed = await is_ended(project);
         is_min_raised = await min_raised(project)
+        limit_date = new Date(await block_to_time(project.block_limit)).toLocaleString();
     }
     load()
 
@@ -24,7 +27,7 @@
 <div class="card">
     <div class="card-body">
         <h3 class="card-title">Project ID: {project.token_id}</h3>
-        <p><strong>Block Limit:</strong> {project.block_limit}</p>
+        <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>Minimum Amount:</strong> {project.minimum_amount}</p>
         <p><strong>Total Amount:</strong> {project.total_amount}</p>
         <p><strong>Exchange Rate:</strong> {project.exchange_rate}</p>
