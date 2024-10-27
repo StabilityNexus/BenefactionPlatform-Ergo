@@ -8,7 +8,7 @@ import {
 
 import { ergo_tree_address } from './envs';
 import { SString } from './utils';
-import { sha256 } from './sha256';
+import { sha256 } from '$lib/common/utils';
 import { type Project } from '../common/project';
 
 // Function to submit a project to the blockchain

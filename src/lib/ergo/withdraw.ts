@@ -7,7 +7,7 @@ import {
 } from '@fleet-sdk/core';
 import { ergo_tree_address } from './envs';
 import { SString } from './utils';
-import { sha256 } from './sha256';
+import { sha256 } from '$lib/common/utils';
 import { type Project } from '../common/project';
 import { get } from 'svelte/store';
 import { address, balance } from '../common/store';

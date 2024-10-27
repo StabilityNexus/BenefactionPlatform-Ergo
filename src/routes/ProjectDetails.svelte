@@ -1,6 +1,6 @@
 <script lang="ts">
     import { type Project, is_ended, min_raised } from "$lib/common/project";
-    import { sha256 } from "$lib/ergo/sha256";
+    import { sha256 } from "$lib/common/utils";
     import { exchange } from "$lib/ergo/exchange";
     import { withdraw } from "$lib/ergo/withdraw";
     import { rebalance } from "$lib/ergo/rebalance";

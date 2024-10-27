@@ -9,7 +9,7 @@ import { SInt } from '@fleet-sdk/serializer';
 
 import { ergo_tree_address } from './envs';
 import { SString } from './utils';
-import { sha256 } from './sha256';
+import { sha256 } from '$lib/common/utils';
 
 // Function to submit a project to the blockchain
 export async function submit_project(

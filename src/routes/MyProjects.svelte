@@ -1,6 +1,6 @@
 <script>
-    import { sha256 } from "$lib/ergo/sha256";
     import { address } from "$lib/common/store";
+    import { sha256 } from "$lib/common/utils";
     import ProjectList from "./ProjectList.svelte";
 
     const filter = async (project) => project.owner == await sha256($address ?? "")
