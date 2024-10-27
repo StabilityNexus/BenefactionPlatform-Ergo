@@ -104,6 +104,8 @@
 
     // Function to close the detail page
     function closePage() {
+        targetDate = 0;
+        clearInterval(countdownInterval);
         project_detail.set(null);
     }
 
