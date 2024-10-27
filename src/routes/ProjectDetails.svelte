@@ -15,10 +15,9 @@
 
     let platform = new ErgoPlatform();
 
-    // TODO Valores ficticios
-    let currentVal = 2000;
-    let min = 5000;
-    let max = 10000;
+    let currentVal = project.amount_sold;
+    let min = project.minimum_amount;
+    let max = project.total_amount;
     let percentage = (currentVal * 100 / (min * 2));
     let typeProgress = 'secondary';
     if(currentVal < min) {
@@ -264,17 +263,19 @@
             </div>
         </div>
         <div class="progress">
-            <Progress value="{percentage}" type="{typeProgress}" striped style="color: black;">Current: {currentVal}</Progress>
+            {#if project.amount_sold !== project.total_amount}
+                <Progress value="{percentage}" type="{typeProgress}" style="color: black;" />
+            {:else}
+                <Progress infinite type="primary" />
+            {/if}
         </div>
         
         <br/>
-        <span style="color:white">
-            Minimum Amount: {min} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            Maximum Amount: {max}
-        </span>
+        <div style="display: flex; justify-content: space-between; color: white;">
+            <span style="flex: 1; text-align: left;">Minimum Amount: {min}</span>
+            <span style="flex: 1; text-align: center;">Current Amount: {currentVal}</span>
+            <span style="flex: 1; text-align: right;">Maximum Amount: {max}</span>
+        </div>        
     </div>
 </div>
 
