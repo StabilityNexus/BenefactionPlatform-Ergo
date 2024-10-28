@@ -1,5 +1,4 @@
-import { ErgoAddress, SBool, SByte, SColl, SConstant, SGroupElement } from "@fleet-sdk/core";
-import { SPair } from '@fleet-sdk/serializer';
+import { ErgoAddress, SByte, SColl, SConstant, SGroupElement } from "@fleet-sdk/core";
 import { stringToBytes } from "@scure/base";
 import { connected } from "../common/store";
 import { get } from "svelte/store";
@@ -31,7 +30,6 @@ export function hexToUtf8(hexString: string): string | null {
     
         return utf8String;
     } catch {
-        console.log("hex to utf-8 error with ", hexString, typeof(hexString))
         return null;
     }
   }
