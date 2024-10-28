@@ -10,10 +10,10 @@
     // States for form fields
     let token_id: string;
     let token_amount: number;
-    let daysLimit: number;
+    let daysLimit: number = 5;
     let exchangeRate: number = 1;
-    let projectLink: string;
-    let minimumSoldPercent: number;
+    let projectLink: string = "";
+    let minimumSoldPercent: number = 20;
 
     // State for handling the result
     let transactionId: string | null = null;
@@ -33,11 +33,12 @@
         target_date.setDate(target_date.getDate() + daysLimit);
         let blockLimit = await time_to_block(target_date.getTime(), platform);
 
-        let minimumSold = Math.round(Number(token_amount * minimumSoldPercent / 100));
+        let minimumSold = Math.round(Number((token_amount ?? 1000000000) * minimumSoldPercent / 100));
         
+        console.log(token_id, token_amount, blockLimit, exchangeRate, projectLink, minimumSold)
         try {
             // Submit the project to the blockchain using the submit_project function
-            const result = await submit_project(token_id, token_amount, blockLimit, exchangeRate, projectLink, minimumSold);
+            const result = await submit_project(token_id, token_amount, blockLimit, exchangeRate, projectLink ?? "", minimumSold);
             
             // Save the transactionId in case of success
             transactionId = result;
