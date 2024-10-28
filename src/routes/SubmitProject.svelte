@@ -9,11 +9,12 @@
 
     // States for form fields
     let token_id: string;
-    let token_amount: number;
+    let token_amount: number = 1000;
     let daysLimit: number = 5;
-    let exchangeRate: number = 1;
+    let exchangeRate: number;
     let projectLink: string = "";
-    let minimumSoldPercent: number = 20;
+    let maxValue: number = 0;
+    let minValue: number = 0;
 
     // State for handling the result
     let transactionId: string | null = null;
@@ -33,12 +34,15 @@
         target_date.setDate(target_date.getDate() + daysLimit);
         let blockLimit = await time_to_block(target_date.getTime(), platform);
 
-        let minimumSold = Math.round(Number((token_amount ?? 1000000000) * minimumSoldPercent / 100));
-        
-        console.log(token_id, token_amount, blockLimit, exchangeRate, projectLink, minimumSold)
+        let maxValueNano = maxValue * 1000000000
+        let minValueNano = minValue * 1000000000
+
+        exchangeRate = maxValueNano / token_amount;
+        let minimumTokenSold = minValueNano / exchangeRate;
+
         try {
             // Submit the project to the blockchain using the submit_project function
-            const result = await submit_project(token_id, token_amount, blockLimit, exchangeRate, projectLink ?? "", minimumSold);
+            const result = await submit_project(token_id, token_amount, blockLimit, exchangeRate, projectLink, minimumTokenSold);
             
             // Save the transactionId in case of success
             transactionId = result;
@@ -76,20 +80,6 @@
 
     function formatToDays(value: number) {
         return `${value} days until user refund`
-    }
-
-    function formatToRate(value: number) {
-        return `${value} ${platform.main_token}/Token`
-    }
-
-    function getSliderBackground(percent) {
-        if (percent == 0) {
-            return 'success';
-        } else if (percent < 100) {
-            return 'warning';
-        } else {
-            return 'danger';
-        }
     }
 </script>
 
@@ -131,19 +121,31 @@
             </div>
 
             <div class="form-group">
-                <label for="exchangeRate">Exchange Rate ({platform.main_token}/Token)</label>
-                <NumberInput id="exchangeRate" format={formatToRate} min={0} controlsType="primary" step={1}
-                    bind:value={exchangeRate} placeholder="Enter exchange rate" required />
-            </div>
-
-            <div class="form-group">
-                <label for="minimumSold">Minimum Sold</label>
-                <Slider background={getSliderBackground(minimumSoldPercent)} block percentage bind:value={minimumSoldPercent} />
+                <label for="maxValue">Max ERGs collected</label>
+                <input 
+                    type="number" 
+                    id="maxValue" 
+                    bind:value={maxValue}
+                    min={minValue}
+                    placeholder="Max amount token"  
+                />
             </div>
 
             <div class="form-group">
                 <label for="projectLink">Project Link</label>
                 <input type="text" id="projectLink" bind:value={projectLink} placeholder="Enter project link or hash" required />
+            </div>
+
+            <div class="form-group">   <!-- This should be in an advance optional group.-->
+                <label for="minValue">Min ERGs collected</label>
+                <input 
+                    type="number" 
+                    id="minValue" 
+                    bind:value={minValue} 
+                    max={maxValue}
+                    min={0}
+                    placeholder="Max amount token"  
+                />
             </div>
         </div>
         
