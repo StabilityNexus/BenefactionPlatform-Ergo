@@ -171,7 +171,6 @@
 
 <!-- Main Project Detail Page -->
 <div class="project-detail">
-
     <div class="details">
         <p><strong>Block Limit:</strong> {project.block_limit}</p>
         <p><strong>Minimum Amount:</strong> {project.minimum_amount}</p>
@@ -189,55 +188,54 @@
         <div class="actions">
             <!-- Project owner actions -->
             {#if is_owner}
-                <Button style="background-color: orange; color: black; border: none;" on:click={setupAddTokens}>
-                    Add tokens
-                </Button>
-                
-                <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawTokens}>
-                    Withdraw tokens
-                </Button>
-                
-                {#if deadline_passed && is_min_raised}
-                    <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawErg}>
-                        Withdraw ERGs
-                    </Button>
-                {/if}
+                <div class="action-group">
+                    <span class="group-label">Owner:</span>
+                    <div class="action-buttons">
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupAddTokens}>
+                            Add tokens
+                        </Button>
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawTokens}>
+                            Withdraw tokens
+                        </Button>
+                        {#if deadline_passed && is_min_raised}
+                            <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawErg}>
+                                Withdraw ERGs
+                            </Button>
+                        {/if}
+                    </div>
+                </div>
             {/if}
 
             <!-- User actions -->
             {#if $connected}
-                {#if project.total_amount !== project.amount_sold}
-                    <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy}>
-                        Buy
-                    </Button>
-                {/if}
-                
-                {#if deadline_passed && !is_min_raised}
-                    <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund}>
-                        Refund
-                    </Button>
-                {/if}
+                <div class="action-group">
+                    <span class="group-label">User:</span>
+                    <div class="action-buttons">
+                        {#if project.total_amount !== project.amount_sold}
+                            <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy}>
+                                Buy
+                            </Button>
+                        {/if}
+                        {#if deadline_passed && !is_min_raised}
+                            <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund}>
+                                Refund
+                            </Button>
+                        {/if}
+                    </div>
+                </div>
             {/if}
 
             <!-- General actions -->
-            <Button style="background-color: orange; color: black; border: none;" on:click={shareProject}>
-                Share
-            </Button>
+            <div class="action-group">
+                <span class="group-label">General:</span>
+                <div class="action-buttons">
+                    <Button style="background-color: orange; color: black; border: none;" on:click={shareProject}>
+                        Share
+                    </Button>
+                </div>
+            </div>
         </div>
 
-        <!-- Input field and submit button for actions -->
-        {#if show_submit}
-            <div class="actions-form">
-                <NumberInput
-                    bind:value={value_submit}
-                    label={label_submit}
-                    min={0}
-                />
-                <Button style="background-color: orange; color: black; border: none; margin-top: 1rem;" on:click={function_submit}>
-                    Submit
-                </Button>
-            </div>
-        {/if}
     </div>
 
     <div class="extra">
@@ -270,12 +268,27 @@
             {/if}
         </div>
         
-        <br/>
         <div style="display: flex; justify-content: space-between; color: white;">
             <span style="flex: 1; text-align: left;">Minimum Amount: {min}</span>
             <span style="flex: 1; text-align: center;">Current Amount: {currentVal}</span>
             <span style="flex: 1; text-align: right;">Maximum Amount: {max}</span>
-        </div>        
+        </div>
+
+        <!-- Input field and submit button for actions -->
+        {#if show_submit}
+            <div class="actions-form">
+                <div class="centered-form">
+                    <NumberInput
+                        bind:value={value_submit}
+                        label={label_submit}
+                        min={0}
+                    />
+                    <Button style="background-color: orange; color: black; border: none; width: 100%; padding: 0.25rem 1rem; font-size: 0.9rem; margin-top: 1rem;" on:click={function_submit}>
+                        Submit
+                    </Button>
+                </div>
+            </div>
+        {/if}
     </div>
 </div>
 
@@ -293,6 +306,7 @@
         color: #ddd;
         display: flex;
         flex-direction: row;
+        gap: 2rem;
     }
 
     .details {
@@ -300,53 +314,72 @@
         height: max-content;
     }
 
-    .btn-close {
-        background-color: transparent; /* Transparent background for close button */
-        color: white; /* White text for visibility */
-        border: none; /* No border */
-        font-size: 1.5rem; /* Larger text size */
-        cursor: pointer; /* Pointer cursor on hover */
-        position: absolute; /* Position it in the top left */
-        top: 1rem;
-        left: 1rem;
+    .extra {
+        width: 50vw;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
     }
 
     .actions {
-        margin-top: 3rem;
+        margin-top: 4rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .action-group {
+        padding: 0.5rem;
+        border-left: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .group-label {
+        color: #ddd;
+        font-size: 0.9rem;
+        opacity: 0.8;
+        margin-left: 0.5rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+    }
+
+    .action-buttons :global(button) {
+        padding: 0.25rem 1rem;
+        font-size: 0.9rem;
     }
 
     .actions-form {
-        margin-top: 2rem;
+        margin-top: 4rem;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
     }
 
-    .actions-form-submit {
-        margin-top: 1rem;
-    }
-
-    .btn-primary {
-        background-color: yellow; /* Change button background to yellow */
-        color: black; /* Change button text color to black */
-        border: none; /* Remove border */
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        margin-right: 1rem;
-        cursor: pointer; /* Pointer cursor for buttons */
-    }
-
-    .btn-primary:hover {
-        background-color: #ffeb3b; /* Lighter yellow on hover */
-    }
-
-    .extra {
-        width: 50vw;
+    .centered-form {
+        width: 100%;
+        max-width: 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
     }
 
     .timeleft {
-        margin-bottom: 50px;
+        margin-bottom: 2rem;
     }
 
-    .timeleft>span{
+    .timeleft > span {
         font-size: 30px;
+    }
+
+    .progress {
+        margin-bottom: 1rem;
     }
 
     .item {
@@ -360,13 +393,14 @@
         border-radius: 5px;
     }
 
-    .item>div{
+    .item > div {
         font-size: 40px;
         animation: fade 3s;
         line-height: 30px;
         margin-top: 5px;
     }
-    .item>div>h3 {
+
+    .item > div > h3 {
         margin-top: 15px;
         font-size: 20px;
         font-weight: normal;
