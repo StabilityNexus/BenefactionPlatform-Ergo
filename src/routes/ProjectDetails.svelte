@@ -18,7 +18,7 @@
     let currentVal = project.amount_sold;
     let min = project.minimum_amount;
     let max = project.total_amount;
-    let percentage = (currentVal * 100 / (min * 2));
+    let percentage =  parseInt(((currentVal/max)*100).toString())
     let typeProgress = 'secondary';
     if(currentVal < min) {
         typeProgress = 'danger'; 
