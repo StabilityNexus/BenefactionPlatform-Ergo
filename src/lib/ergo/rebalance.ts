@@ -4,6 +4,7 @@ import {
     TransactionBuilder,
     SLong,
     SInt,
+    SAFE_MIN_BOX_VALUE,
 } from '@fleet-sdk/core';
 
 import { ergo_tree_address } from './envs';
@@ -25,32 +26,41 @@ export async function rebalance(
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = [project.box, ...(await ergo.get_utxos())];
 
-    // Building the project output
-    let outputs: OutputBuilder[] = [];
-    const contractOutput = new OutputBuilder(
-        BigInt(project.value),
-        ergo_tree_address    // Address of the project contract
-    );
-
     const devAddress = "0xabcdefghijklmnñoqrstuvwxyz";
     const devFeePercentage = 5;
 
-    contractOutput.addTokens({
-        tokenId: project.token_id,
-        amount: (project.total_amount + token_amount).toString()
-    }, {sum: true});
-
-    // Set additional registers in the output box
-    contractOutput.setAdditionalRegisters({
-        R4: SInt(project.block_limit).toHex(),                 // Block limit for withdrawals/refunds
-        R5: SLong(BigInt(project.minimum_amount)).toHex(),                             // Minimum sold
-        R6: SLong(BigInt(project.amount_sold)).toHex(),                                // Tokens sold counter
-        R7: SLong(BigInt(project.exchange_rate)).toHex(),              // Exchange rate ERG/Token
-        R8: SString(await sha256(walletPk)),                        // Withdrawal address (hash of walletPk)
-        R9: SString(project.link)                                   // Link or hash with project info
-    });
-    outputs.push(contractOutput);
+    // Building the project output
+    let outputs: OutputBuilder[] = [
+        new OutputBuilder(
+            BigInt(project.value),
+            ergo_tree_address
+        )
+        .addTokens({
+            tokenId: project.token_id,
+            amount: (project.total_amount + token_amount).toString()
+        })
+        .setAdditionalRegisters({
+            R4: SInt(project.block_limit).toHex(),                        // Block limit for withdrawals/refunds
+            R5: SLong(BigInt(project.minimum_amount)).toHex(),            // Minimum sold
+            R6: SLong(BigInt(project.amount_sold)).toHex(),               // Tokens sold counter
+            R7: SLong(BigInt(project.exchange_rate)).toHex(),             // Exchange rate ERG/Token
+            R8: SString(await sha256(walletPk)),                          // Withdrawal address (hash of walletPk)
+            R9: SString(project.link)                                     // Link or hash with project info
+        })
+    ];
     
+    if (token_amount < 0) {
+        outputs.push(
+            new OutputBuilder(
+                SAFE_MIN_BOX_VALUE,
+                walletPk
+            )
+            .addTokens({
+                tokenId: project.token_id,
+                amount: token_amount.toString()
+            })
+        )
+    }
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
