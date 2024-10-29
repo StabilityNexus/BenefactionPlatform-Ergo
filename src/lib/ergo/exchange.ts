@@ -3,7 +3,8 @@ import {
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
-    SInt
+    SInt,
+    SAFE_MIN_BOX_VALUE
 } from '@fleet-sdk/core';
 
 import { ergo_tree_address } from './envs';
@@ -45,8 +46,16 @@ export async function exchange(
             R5: SLong(BigInt(project.minimum_amount)).toHex(),                       // Minimum sold
             R6: SLong(BigInt(project.amount_sold + token_amount)).toHex(),           // Tokens sold counter
             R7: SLong(BigInt(project.exchange_rate)).toHex(),                        // Exchange rate ERG/Token
-            R8: SString(project.owner),                                     // Withdrawal address (hash of walletPk)
+            R8: SString(project.owner),                                              // Withdrawal address (hash of walletPk)
             R9: SString(project.link)                                                // Link or hash with project info
+        }),
+        new OutputBuilder(
+            SAFE_MIN_BOX_VALUE,
+            walletPk
+        )
+        .addTokens({
+            tokenId: project.token_id,
+            amount: (token_amount).toString()
         })
     ];    
 
