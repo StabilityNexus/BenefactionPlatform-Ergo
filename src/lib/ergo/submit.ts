@@ -14,7 +14,7 @@ import { sha256 } from '$lib/common/utils';
 // Function to submit a project to the blockchain
 export async function submit_project(
     token_id: string | null, 
-    token_amount: number | null,
+    token_amount: number,
     blockLimit: number,     // Block height until withdrawal/refund is allowed
     exchangeRate: number,   // Exchange rate ERG/Token
     projectLink: string,    // Link or hash containing project information
@@ -37,10 +37,9 @@ export async function submit_project(
     );
 
 
-    if (token_id === null || token_amount === null) {
-        // Minting a new token since tokenId is always null
+    if (token_id === null) {
         projectOutput.mintToken({
-            amount: "1000000000" // Amount of tokens being minted
+            amount: token_amount?.toString() ?? "1000000000"
         });
     } else {
         projectOutput.addTokens({

@@ -31,6 +31,23 @@ type ApiBox = {
     transactionId: string;
 };
 
+const expectedSigmaTypes = {
+    R4: 'SInt',
+    R5: 'SLong',
+    R6: 'SLong',
+    R7: 'SLong',
+    R8: 'Coll[SByte]',
+    R9: 'Coll[SByte]'
+};
+
+function hasValidSigmaTypes(additionalRegisters: any): boolean {
+    for (const [key, expectedType] of Object.entries(expectedSigmaTypes)) {
+        if (additionalRegisters[key] && additionalRegisters[key].sigmaType !== expectedType) {
+            return false;
+        }
+    }
+    return true;
+}
 
 export async function fetch_projects(explorer_uri: string, ergo_tree_template_hash: string, ergo: any): Promise<Map<string, Project>> {
     try {
@@ -67,20 +84,22 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                     break;
                 }
                 for (const e of json_data.items) {
-                    let token_id = e.assets[0].tokenId;
-                    projects.set(token_id, {
-                        platform: new ErgoPlatform(),
-                        box: e,
-                        token_id: e.assets[0].tokenId,
-                        block_limit: parseInt(e.additionalRegisters.R4.renderedValue),
-                        minimum_amount: parseInt(e.additionalRegisters.R5.renderedValue),
-                        total_amount: e.assets[0].amount,
-                        exchange_rate: parseInt(e.additionalRegisters.R7.renderedValue),
-                        link: hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? "",
-                        owner: hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "",
-                        value: e.value,
-                        amount_sold: parseInt(e.additionalRegisters.R6.renderedValue),
-                    })
+                    if (hasValidSigmaTypes(e.additionalRegisters)) {
+                        let token_id = e.assets[0].tokenId;
+                        projects.set(token_id, {
+                            platform: new ErgoPlatform(),
+                            box: e,
+                            token_id: e.assets[0].tokenId,
+                            block_limit: parseInt(e.additionalRegisters.R4.renderedValue),
+                            minimum_amount: parseInt(e.additionalRegisters.R5.renderedValue),
+                            total_amount: e.assets[0].amount,
+                            exchange_rate: parseInt(e.additionalRegisters.R7.renderedValue),
+                            link: hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? "",
+                            owner: hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "",
+                            value: e.value,
+                            amount_sold: parseInt(e.additionalRegisters.R6.renderedValue),
+                        })
+                    }
                 }                
                 params.offset += params.limit;
             } 

@@ -1,8 +1,7 @@
 <script lang="ts">
     import { time_to_block } from '$lib/common/countdown';
     import { ErgoPlatform } from '$lib/ergo/platform';
-    import { submit_project } from '$lib/ergo/submit';
-    import { Button, NumberInput, Slider } from 'spaper';
+    import { Button, NumberInput } from 'spaper';
 
 
     let platform = new ErgoPlatform();
@@ -40,9 +39,11 @@
         exchangeRate = maxValueNano / token_amount;
         let minimumTokenSold = minValueNano / exchangeRate;
 
+        console.log("exchange rate ", exchangeRate)
+
         try {
             // Submit the project to the blockchain using the submit_project function
-            const result = await submit_project(token_id, token_amount, blockLimit, exchangeRate, projectLink, minimumTokenSold);
+            const result = await platform.submit(token_id, token_amount, blockLimit, exchangeRate, projectLink, minimumTokenSold);
             
             // Save the transactionId in case of success
             transactionId = result;

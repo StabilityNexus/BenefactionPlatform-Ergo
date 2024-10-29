@@ -65,21 +65,21 @@ export class ErgoPlatform implements Platform {
         return await rebalance(project, token_amount);
     }
 
-    async submit(data: {
-        token_id: string | null;
-        token_amount: number | null;
-        blockLimit: number;     
-        exchangeRate: number;   
-        projectLink: string;    
-        minimumSold: number;     
-    }): Promise<string | null> {
+    async submit(
+        token_id: string,
+        token_amount: number,
+        blockLimit: number,
+        exchangeRate: number,
+        projectLink: string,
+        minimumSold: number
+    ): Promise<string | null> {
         return await submit_project(
-            data.token_id,
-            data.token_amount,
-            data.blockLimit,
-            data.exchangeRate,
-            data.projectLink,
-            data.minimumSold
+            token_id,
+            token_amount,
+            blockLimit,
+            exchangeRate,
+            projectLink,
+            minimumSold
         );
     }
 

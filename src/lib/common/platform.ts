@@ -12,13 +12,13 @@ export interface Platform {
     withdraw(project: Project, amount: number): Promise<string | null>;
     exchange(project: Project, token_amount: number): Promise<string | null>;
     rebalance(project: Project, token_amount: number): Promise<string | null>;
-    submit(data: {
-        token_id: string | null; 
-        token_amount: number | null;
-        blockLimit: number;     // Block height until withdrawal/refund is allowed
-        exchangeRate: number;   // Exchange rate ERG/Token
-        projectLink: string;    // Link or hash containing project information
-        minimumSold: number;     // Minimum amount sold to allow withdrawal
-    }): Promise<string | null>;
+    submit(
+        token_id: string,
+        token_amount: number,
+        blockLimit: number,
+        exchangeRate: number,
+        projectLink: string,
+        minimumSold: number
+    ): Promise<string | null>;
     fetch(): Promise<Map<string, Project>>;
 }
