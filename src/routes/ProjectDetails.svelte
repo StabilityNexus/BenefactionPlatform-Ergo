@@ -113,9 +113,14 @@
 
     let deadline_passed = false;
     let is_min_raised = false;
+    let limit_date = "";
     async function load() {
         deadline_passed = await is_ended(project);
         is_min_raised = await min_raised(project);
+
+        deadline_passed = await is_ended(project);
+        is_min_raised = await min_raised(project)
+        limit_date = new Date(await block_to_time(project.block_limit, project.platform)).toLocaleString();
     }
     load();
 
@@ -166,23 +171,23 @@
 </script>
 
 <div class="back">
-    <Button class="btn-primary" on:click={closePage}>&lt; Go to main</Button>
+    <Button style="background-color: #FFB347; color: black; border: none; padding: 0.25rem 1rem; font-size: 0.9rem;" on:click={closePage}>
+        &lt; Go to main
+    </Button>
 </div>
 
 <!-- Main Project Detail Page -->
 <div class="project-detail">
     <div class="details">
+        <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>Block Limit:</strong> {project.block_limit}</p>
-        <p><strong>Minimum Amount:</strong> {project.minimum_amount}</p>
         <p><strong>Total Amount:</strong> {project.total_amount}</p>
         <p><strong>Exchange Rate:</strong> {project.exchange_rate/1000000000} ERG/tokens</p>
         <p><strong>ERGs collected:</strong> {project.value/1000000000} ERG</p>
         <p><strong>Tokens sold:</strong> {project.amount_sold}</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
-        {#if !is_owner}
-            <p><strong>Owner hash:</strong> {project.owner.slice(0, 6)}</p>
-        {/if}
+        <p><strong>Owner hash:</strong> {project.owner.slice(0, 15)}</p>
 
         <!-- Action Buttons -->
         <div class="actions">
@@ -322,7 +327,7 @@
     }
 
     .actions {
-        margin-top: 4rem;
+        margin-top: 3rem;
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
