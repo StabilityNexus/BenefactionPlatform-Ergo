@@ -1,20 +1,14 @@
-<script>
+<script lang="ts">
     import { ErgoPlatform } from "$lib/ergo/platform";
+    import { type Project } from "$lib/common/project";
     import ProjectList from "./ProjectList.svelte";
 
     let platform = new ErgoPlatform();
 
-    const filter = async (project) => {
+    const filter = async (project: Project) => {
     try {
-        // Fetch user tokens using the same logic as in getUserTokens
-        const tokens = await platform.get_balance();
-        const user_tokens = Array.from(tokens.entries()).map(([tokenId, balance]) => ({
-                tokenId: tokenId,
-                balance: balance,
-            }));
-
-        // Check if the project token_id exists in the user's tokens
-        return user_tokens.some(token => token.tokenId === project.token_id);
+        const tokens: Map<string, number> = await platform.get_balance(project.token_id);
+        return tokens.has(project.token_id) && (tokens.get(project.token_id) ?? 0) > 0;
     } catch (error) {
         console.error("Error checking project token:", error);
         return false;

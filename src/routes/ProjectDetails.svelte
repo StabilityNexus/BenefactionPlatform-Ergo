@@ -176,7 +176,7 @@
         <p><strong>Block Limit:</strong> {project.block_limit}</p>
         <p><strong>Minimum Amount:</strong> {project.minimum_amount}</p>
         <p><strong>Total Amount:</strong> {project.total_amount}</p>
-        <p><strong>Exchange Rate:</strong> {project.exchange_rate}</p>
+        <p><strong>Exchange Rate:</strong> {project.exchange_rate/1000000000} ERG/tokens</p>
         <p><strong>ERGs collected:</strong> {project.value/1000000000} ERG</p>
         <p><strong>Tokens sold:</strong> {project.amount_sold}</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
