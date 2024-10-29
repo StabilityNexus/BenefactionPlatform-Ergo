@@ -4,7 +4,7 @@
 Benefaction Platform is a decentralized application (DApp) that enables projects to receive funding in exchange for participation tokens. This DApp allows projects to request ERGs (the native cryptocurrency of the Ergo blockchain) in exchange for participation tokens.
 
 ### How it Works
-- Project owners can create a box that holds an amount of tokens, la cual puede variar, setting a **block limit** as a deadline.
+- Project owners can create a box that holds an amount of tokens, which may vary, setting a **block limit** as a deadline.
 - A minimum amount of tokens must be sold before the project can withdraw funds. This ensures that the project receives sufficient backing.
 - If the block limit is reached before minimum amount of tokens are sold, users have the option to exchange their tokens back for the corresponding ERGs, provided the minimum has not been reached.
 - The main box is self-replicating, meaning that anyone can spend the box as long as they re-create it with the same parameters and add ERGs in exchange for a specified amount of tokens.
