@@ -88,7 +88,21 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                         let token_id = e.assets[0].tokenId;
                         projects.set(token_id, {
                             platform: new ErgoPlatform(),
-                            box: e,
+                            box: {
+                                boxId: e.boxId,
+                                value: e.value,
+                                assets: e.assets,
+                                ergoTree: e.ergoTree,
+                                creationHeight: e.creationHeight,
+                                additionalRegisters: Object.entries(e.additionalRegisters).reduce((acc, [key, value]) => {
+                                    acc[key] = value.serializedValue;
+                                    return acc;
+                                }, {} as {
+                                    [key: string]: string;
+                                }),
+                                index: e.index,
+                                transactionId: e.transactionId
+                            },
                             token_id: e.assets[0].tokenId,
                             block_limit: parseInt(e.additionalRegisters.R4.renderedValue),
                             minimum_amount: parseInt(e.additionalRegisters.R5.renderedValue),

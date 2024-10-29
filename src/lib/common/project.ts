@@ -1,8 +1,9 @@
 import { type Platform } from "./platform";
+import type { Amount, Box } from "@fleet-sdk/core";
 
 export interface Project {
     platform: Platform,
-    box: any,
+    box: Box<Amount>,
     token_id: string,
     block_limit: number,
     minimum_amount: number,
