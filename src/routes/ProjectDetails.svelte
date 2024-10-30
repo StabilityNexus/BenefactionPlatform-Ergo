@@ -168,13 +168,6 @@
 
     var countdownInterval = setInterval(updateCountdown, 1000);
 
-    if (project.content.image) {
-        const backgroundImage = `url(${project.content.image})`;
-        document.documentElement.style.setProperty('--background-image', backgroundImage);
-    } else {
-        document.documentElement.style.setProperty('--background-image', ``);
-    }
-
 </script>
 
 <div class="back">
@@ -321,19 +314,6 @@
         display: flex;
         flex-direction: row;
         gap: 2rem;
-    }
-
-    .project-detail::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 25rem;
-        right: 0;
-        bottom: 0;
-        background-image: var(--background-image);
-        background-size: cover;
-        opacity: 0.05;
-        z-index: 1;
     }
 
     .details {

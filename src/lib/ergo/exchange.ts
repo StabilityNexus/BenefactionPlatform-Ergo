@@ -49,8 +49,8 @@ export async function exchange(
             R5: SLong(BigInt(project.minimum_amount)).toHex(),                       // Minimum sold
             R6: SLong(BigInt(project.amount_sold + token_amount)).toHex(),           // Tokens sold counter
             R7: SLong(BigInt(project.exchange_rate)).toHex(),                        // Exchange rate ERG/Token
-            R8: SConstant(SColl(SByte, project.owner)),                                              // Withdrawal address (hash of walletPk)
-            R9: SString(project.link)                                                // Link or hash with project info
+            R8: SConstant(SColl(SByte, project.owner)),                              // Withdrawal address (hash of walletPk)
+            R9: SString(JSON.stringify(project.content))                             // Link or hash with project info
         }),
         new OutputBuilder(
             SAFE_MIN_BOX_VALUE,
