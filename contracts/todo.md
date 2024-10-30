@@ -1,3 +1,0 @@
-- Store the dev fee and dev proposition bytes as constants.
-- Store the token ID as a constant and ensure that only this token can be added in the addsCorrectly function.
-- Separate the R8 registry into two roles: the address that can withdraw funds and the address that can add more tokens to the contract. This requires splitting the owner property in Svelte into two different addresses.
