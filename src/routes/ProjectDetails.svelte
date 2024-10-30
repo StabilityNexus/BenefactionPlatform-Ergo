@@ -179,7 +179,7 @@
 <!-- Main Project Detail Page -->
 <div class="project-detail">
     <div class="details">
-        <p>{project.content.description.slice(0, 48)}</p>
+        <p>{project.content.description.length > 300 ? project.content.description.slice(0, 300) + "..." : project.content.description}</p>
         <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>Block Limit:</strong> {project.block_limit}</p>
         <p><strong>Total Amount:</strong> {project.total_amount}</p>
@@ -227,19 +227,12 @@
                                 Refund
                             </Button>
                         {/if}
+                        <Button style="background-color: orange; color: black; border: none;" on:click={shareProject}>
+                            Share
+                        </Button>
                     </div>
                 </div>
             {/if}
-
-            <!-- General actions -->
-            <div class="action-group">
-                <span class="group-label">General:</span>
-                <div class="action-buttons">
-                    <Button style="background-color: orange; color: black; border: none;" on:click={shareProject}>
-                        Share
-                    </Button>
-                </div>
-            </div>
         </div>
 
     </div>

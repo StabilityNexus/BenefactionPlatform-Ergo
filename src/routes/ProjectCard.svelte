@@ -27,7 +27,7 @@
 <div class="card">
     <div class="card-body">
         <h3 class="card-title">Project: {project.content.title}</h3>
-        <p>{project.content.description}</p>
+        <p>{project.content.description.length > 48 ? project.content.description.slice(0, 48) + " ...." : project.content.description}</p>
         <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>ERGs collected:</strong> {project.value/1000000000} ERG</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes": "No"}</p>
