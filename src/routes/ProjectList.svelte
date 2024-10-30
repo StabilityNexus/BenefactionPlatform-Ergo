@@ -23,34 +23,40 @@
     async function loadProjects() {
         try {
             // Fetch the projects using the fetch_projects function
-            const projectsList: Map<string, Project>= await platform.fetch();
+            const projectsList: Map<string, Project> = await platform.fetch();
             const filteredProjectsMap = new Map<string, Project>();
 
-            // Iteramos sobre los proyectos y aplicamos el filtro si existe
+            // Iterate over the projects and apply the filter if it exists
             for (const [id, project] of projectsList.entries()) {
                 let shouldAdd = true;
 
-                // Si filterProject está definido, aplicamos el filtro al proyecto actual
+                // If filterProject is defined, apply the filter to the current project
                 if (filterProject) {
                     shouldAdd = await filterProject(project);
                 }
 
-                // Solo agregamos el proyecto si pasa el filtro (o si no hay filtro)
+                // Only add the project if it passes the filter (or if there is no filter)
                 if (shouldAdd) {
                     filteredProjectsMap.set(id, project);
                 }
             }
 
-            // Asignamos los proyectos filtrados al Map de proyectos
-            projects = filteredProjectsMap;
+            // Sort projects by `creationHeight` in descending order
+            const sortedProjectsArray = Array.from(filteredProjectsMap.entries()).sort(
+                ([, projectA], [, projectB]) => projectB.box.creationHeight - projectA.box.creationHeight
+            );
+
+            // Convert sorted array back to Map
+            projects = new Map(sortedProjectsArray);
+            
         } catch (error) {
             // Handle errors (if fetching fails)
             errorMessage = error.message || "Error occurred while fetching projects";
-        } finally { 
+        } finally {
             // Set "isLoading" back to false
             isLoading = false;
         }
-}
+    }
 
     // Fetch the projects when the component is mounted
     onMount(() => {
@@ -84,13 +90,15 @@
 
 <style>
     .container {
-        max-width: 900px;
+        max-width: 1200px;
         margin: 0 auto;
     }
+    
     h1 {
         margin-top: 15px;
         margin-bottom: 20px;
     }
+
     .project-list {
         display: flex;
         flex-wrap: wrap;
@@ -98,12 +106,13 @@
         justify-content: center;
         overflow-y: scroll;
         overflow-x: hidden;
-        height: 60vh;
-        scrollbar-color: white black;
+        height: 80vh;
+        scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
     }
 
     .card {
-        width: 400px;
+        width: 500px;
+        height: 410px;
         margin: 0.5rem;
     }
     .error {

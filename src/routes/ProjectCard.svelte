@@ -28,11 +28,8 @@
     <div class="card-body">
         <h3 class="card-title">Project ID: {project.token_id.slice(0, 6)}</h3>
         <p><strong>Limit date:</strong> {limit_date}</p>
-        <p><strong>Minimum Amount:</strong> {project.minimum_amount} tokens</p>
-        <p><strong>Total Amount:</strong> {project.total_amount} tokens</p>
         <p><strong>Exchange Rate:</strong> {project.exchange_rate/1000000000} ERG/token</p>
         <p><strong>ERGs collected:</strong> {project.value/1000000000} ERG</p>
-        <p><strong>Sold:</strong> {project.amount_sold} tokens</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes": "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes": "No"}</p>
         <Button on:click={toggleDetails} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">View</Button>

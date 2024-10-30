@@ -86,6 +86,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                 for (const e of json_data.items) {
                     if (hasValidSigmaTypes(e.additionalRegisters)) {
                         let token_id = e.assets[0].tokenId;
+                        console.log(e)
                         projects.set(token_id, {
                             platform: new ErgoPlatform(),
                             box: {
