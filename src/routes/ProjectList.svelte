@@ -65,7 +65,7 @@
 </script>
 
 <div class="container">
-    <h1><slot></slot></h1>
+    <h1 class="title"><slot></slot></h1>
 
     {#if errorMessage}
         <div class="error">
@@ -94,8 +94,10 @@
         margin: 0 auto;
     }
     
-    h1 {
-        margin-top: 15px;
+    .title {
+        font-size: 3em;
+        text-align: center;
+        margin-top: 0px;
         margin-bottom: 20px;
     }
 
