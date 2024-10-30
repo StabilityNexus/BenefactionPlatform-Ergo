@@ -174,10 +174,6 @@
             </div>
         </div>
         
-        <Button on:click={handleSubmit} disabled={isSubmitting} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">
-            {isSubmitting ? 'Submitting...' : 'Submit'}
-        </Button>
-        
         {#if transactionId}
             <div class="result">
                 <p>
@@ -187,6 +183,10 @@
                     </a>
                 </p>
             </div>
+        {:else}
+            <Button on:click={handleSubmit} disabled={isSubmitting} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">
+                {isSubmitting ? 'Submitting...' : 'Submit'}
+            </Button>  
         {/if}
         
         {#if errorMessage}
@@ -248,7 +248,7 @@
         border:1px solid orange;
     }
     .result {
-        margin-top: 1.5rem;
+        margin-top: 1rem;
         padding: 1rem;
     }
     .error {
