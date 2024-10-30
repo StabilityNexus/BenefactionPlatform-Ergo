@@ -1,5 +1,6 @@
 <script lang="ts">
     import { time_to_block } from '$lib/common/countdown';
+    import { web_explorer_uri } from '$lib/ergo/envs';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import { Button, NumberInput } from 'spaper';
 
@@ -100,11 +101,10 @@
                 </select>
             </div>
 
-            <div class="form-group {token_id === null ? 'disabled' : ''}">
+            <div class="form-group">
                 <label for="tokenAmount">Token amount</label>
                 <!-- Input for the token amount, setting the max value dynamically -->
                 <input 
-                    disabled={token_id === null}
                     type="number" 
                     id="tokenAmount" 
                     bind:value={token_amount} 
@@ -156,7 +156,12 @@
         <!-- Show result -->
         {#if transactionId}
             <div class="result">
-                <p><strong>Transaction ID:</strong> {transactionId}</p>
+                <p>
+                    <strong>Transaction ID:</strong>
+                    <a href="{web_explorer_uri + transactionId}" target="_blank" rel="noopener noreferrer" style="color: #ffa500;">
+                        {transactionId}
+                    </a>
+                </p>
             </div>
         {/if}
         
@@ -208,8 +213,6 @@
     .result {
         margin-top: 1.5rem;
         padding: 1rem;
-        border: 1px solid #ccc;
-        background-color: #f9f9f9;
     }
     .error {
         color: red;

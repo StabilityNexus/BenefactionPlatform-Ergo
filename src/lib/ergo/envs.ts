@@ -3,6 +3,7 @@ import { Network } from "@fleet-sdk/core";
 import { sha256, hex } from "@fleet-sdk/crypto";
 
 export const explorer_uri = "https://api.ergoplatform.com";
+export const web_explorer_uri = "https://sigmaspace.io/en/transaction/";
 
 let contract = `
 {
