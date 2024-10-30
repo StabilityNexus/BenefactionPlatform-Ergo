@@ -186,7 +186,7 @@ let contract = `
 
   // Validation for withdrawing unsold tokens after the block limit
   // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens = isSelfReplication && soldCounterRemainsConstant && mantainValue
+  val isWithdrawUnsoldTokens = isSelfReplication && soldCounterRemainsConstant && isToProjectAddress && mantainValue
 
   
   // > Project owners may add more tokens to the contract at any time.
