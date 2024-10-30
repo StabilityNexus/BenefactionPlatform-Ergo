@@ -22,7 +22,7 @@
     let isSubmitting: boolean = false;
 
     let current_height: number | null = null;
-    let user_tokens: Array<{ tokenId: string, balance: number }> = [];
+    let user_tokens: Array<{ tokenId: string, title: string, balance: number }> = [];
 
     // Function to handle the submit action
     async function handleSubmit() {
@@ -68,10 +68,13 @@
         try {
             // Fetch user tokens
             const tokens = await platform.get_balance();
-            user_tokens = Array.from(tokens.entries()).map(([tokenId, balance]) => ({
-                tokenId: tokenId,
-                balance: balance,
-            }));
+            user_tokens = Array.from(tokens.entries())
+                .filter(([tokenId, _]) => tokenId !== "ERG")
+                .map(([tokenId, balance]) => ({
+                    tokenId: tokenId,
+                    title: tokenId.slice(0, 6) + tokenId.slice(-4),
+                    balance: balance,
+                }));
         } catch (error) {
             console.error("Error fetching user tokens:", error);
         }
@@ -96,7 +99,7 @@
                     <option value="" disabled>Select a token</option>
                     <option value={null}>-- None (Deselect) --</option>
                     {#each user_tokens as token}
-                        <option value={token.tokenId}>{token.tokenId} (Balance: {token.balance})</option>
+                        <option value={token.tokenId}>{token.title} (Balance: {token.balance})</option>
                     {/each}
                 </select>
             </div>
@@ -187,7 +190,17 @@
         margin-bottom: 20px;
     }
 
-    /* CSS Grid for two-column layout */
+    #tokenId {
+        background-color: #000;
+        color: orange;
+        border: 1px solid #555;
+    }
+
+    #tokenId option {
+        background-color: #000;
+        color: orange;
+    }
+
     .form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
