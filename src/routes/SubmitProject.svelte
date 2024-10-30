@@ -4,19 +4,20 @@
     import { ErgoPlatform } from '$lib/ergo/platform';
     import { Button, NumberInput } from 'spaper';
 
-
     let platform = new ErgoPlatform();
 
-    // States for form fields
     let token_id: string;
     let token_amount: number = 1000;
     let daysLimit: number = 5;
     let exchangeRate: number;
-    let projectLink: string = "";
     let maxValue: number = 0;
     let minValue: number = 0;
 
-    // State for handling the result
+    let projectTitle: string = "";
+    let projectDescription: string = "";
+    let projectImage: string = "";
+    let projectLink: string = "";
+
     let transactionId: string | null = null;
     let errorMessage: string | null = null;
     let isSubmitting: boolean = false;
@@ -24,7 +25,6 @@
     let current_height: number | null = null;
     let user_tokens: Array<{ tokenId: string, title: string, balance: number }> = [];
 
-    // Function to handle the submit action
     async function handleSubmit() {
         isSubmitting = true;
         errorMessage = null;
@@ -34,23 +34,33 @@
         target_date.setDate(target_date.getDate() + daysLimit);
         let blockLimit = await time_to_block(target_date.getTime(), platform);
 
-        let maxValueNano = maxValue * 1000000000
-        let minValueNano = minValue * 1000000000
+        let maxValueNano = maxValue * 1000000000;
+        let minValueNano = minValue * 1000000000;
 
         exchangeRate = maxValueNano / token_amount;
         let minimumTokenSold = minValueNano / exchangeRate;
 
+        let projectContent = JSON.stringify({
+            title: projectTitle,
+            description: projectDescription,
+            image: projectImage,
+            link: projectLink
+        });
+
         try {
-            // Submit the project to the blockchain using the submit_project function
-            const result = await platform.submit(token_id, token_amount, blockLimit, exchangeRate, projectLink, minimumTokenSold);
-            
-            // Save the transactionId in case of success
+            const result = await platform.submit(
+                token_id, 
+                token_amount, 
+                blockLimit, 
+                exchangeRate, 
+                projectContent, 
+                minimumTokenSold
+            );
+
             transactionId = result;
         } catch (error) {
-            // Handle errors (if submission fails)
             errorMessage = error.message || "Error occurred while submitting the project";
         } finally {
-            // Set "isSubmitting" back to false
             isSubmitting = false;
         }
     }
@@ -66,7 +76,6 @@
 
     async function getUserTokens() {
         try {
-            // Fetch user tokens
             const tokens = await platform.get_balance();
             user_tokens = Array.from(tokens.entries())
                 .filter(([tokenId, _]) => tokenId !== "ERG")
@@ -82,7 +91,7 @@
     getUserTokens();
 
     function formatToDays(value: number) {
-        return `${value} days until user refund`
+        return `${value} days until user refund`;
     }
 </script>
 
@@ -133,11 +142,6 @@
                 />
             </div>
 
-            <div class="form-group">
-                <label for="projectLink">Project Link</label>
-                <input type="text" id="projectLink" bind:value={projectLink} placeholder="Enter project link or hash" required />
-            </div>
-
             <div class="form-group">   <!-- This should be in an advance optional group.-->
                 <label for="minValue">Min ERGs collected</label>
                 <input 
@@ -149,14 +153,32 @@
                     placeholder="Max amount token"  
                 />
             </div>
+
+            <div class="form-group">
+                <label for="projectTitle">Project Title</label>
+                <input type="text" id="projectTitle" bind:value={projectTitle} placeholder="Enter project title" required />
+            </div>
+
+            <div class="form-group">
+                <label for="projectDescription">Project Description</label>
+                <input type="text" id="projectDescription" bind:value={projectDescription} placeholder="Enter project description" required />
+            </div>
+
+            <div class="form-group">
+                <label for="projectImage">Project Image URL</label>
+                <input type="text" id="projectImage" bind:value={projectImage} placeholder="Enter image URL" required />
+            </div>
+
+            <div class="form-group">
+                <label for="projectLink">Project Link</label>
+                <input type="text" id="projectLink" bind:value={projectLink} placeholder="Enter project link" required />
+            </div>
         </div>
         
-        <!-- Submit button -->
         <Button on:click={handleSubmit} disabled={isSubmitting} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">
             {isSubmitting ? 'Submitting...' : 'Submit'}
         </Button>
         
-        <!-- Show result -->
         {#if transactionId}
             <div class="result">
                 <p>
@@ -168,7 +190,6 @@
             </div>
         {/if}
         
-        <!-- Show error if it exists -->
         {#if errorMessage}
             <div class="error">
                 <p>{errorMessage}</p>
