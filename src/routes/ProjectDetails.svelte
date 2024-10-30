@@ -9,11 +9,16 @@
     import { Button, Progress, NumberInput } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
+    import { web_explorer_uri } from '$lib/ergo/envs';
 
     // Define 'project' as a prop of type Project
     let project: Project = $project_detail;
 
     let platform = new ErgoPlatform();
+
+    let transactionId: string | null = null;
+    let errorMessage: string | null = null;
+    let isSubmitting: boolean = false;
 
     let currentVal = project.amount_sold;
     let min = project.minimum_amount;
@@ -80,10 +85,19 @@
         show_submit = true;
     }
 
-    function buy() {
+    async function buy() {
         console.log("Buying tokens:", value_submit);
-        exchange(project, value_submit);
-        show_submit = false;
+
+        isSubmitting = true;
+
+        try {
+            const result = await platform.exchange(project, value_submit);
+            transactionId = result;
+        } catch (error) {
+            errorMessage = error.message || "Error occurred while buying some tokens";
+        } finally {
+            isSubmitting = false;
+        }
     }
 
     function setupRefund() {
@@ -109,6 +123,13 @@
         targetDate = 0;
         clearInterval(countdownInterval);
         project_detail.set(null);
+    }
+
+    function close_submit_form() {
+        show_submit = false;
+        transactionId = null;
+        errorMessage = null;
+        isSubmitting = false;
     }
 
     let deadline_passed = false;
@@ -275,24 +296,55 @@
 
         <!-- Input field and submit button for actions -->
         {#if show_submit}
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
             <div class="actions-form">
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <div class="close-button" on:click={close_submit_form}>
+                    &times;
+                </div>
                 <div class="centered-form">
-                    <NumberInput
-                        controlsType="primary"
-                        bind:value={value_submit}
-                        label={label_submit}
-                        min={0}
-                    />
-                    <Button style="background-color: orange; color: black; border: none; width: 100%; padding: 0.25rem 1rem; font-size: 0.9rem; margin-top: 1rem;" on:click={function_submit}>
-                        Submit
-                    </Button>
+                    {#if transactionId}
+                        <div class="result">
+                            <p>
+                                <strong>Transaction ID:</strong>
+                                <a href="{web_explorer_uri + transactionId}" target="_blank" rel="noopener noreferrer" style="color: #ffa500;">
+                                    {transactionId.slice(0,16)}
+                                </a>
+                            </p>
+                        </div>
+                    {:else if errorMessage}
+                        <div class="error">
+                            <p>{errorMessage}</p>
+                        </div>
+                    {:else}
+                        <NumberInput
+                            controlsType="primary"
+                            bind:value={value_submit}
+                            label={label_submit}
+                            min={0}
+                        />
+                        <Button on:click={function_submit} disabled={isSubmitting} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">
+                            {isSubmitting ? 'Submitting...' : 'Submit'}
+                        </Button>  
+                    {/if}
                 </div>
             </div>
         {/if}
+
     </div>
 </div>
 
 <style>
+
+    .result {
+        margin-top: 1rem;
+    }
+
+    .error {
+        color: red;
+    }
+
     .back {
         margin-top: 15px;
         margin-left: 3.5rem;
@@ -353,6 +405,7 @@
     }
 
     .actions-form {
+        position: relative;
         margin-top: 8rem;
         padding: 1rem;
         background: rgba(255, 255, 255, 0.05);
@@ -360,6 +413,17 @@
         display: flex;
         justify-content: center;
         align-items: center;
+    }
+
+    .close-button {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background-color: transparent;
+        border: none;
+        font-size: 24px;
+        color: rgb(255, 255, 255);
+        cursor: pointer;
     }
 
     .centered-form {
