@@ -91,7 +91,7 @@
     getUserTokens();
 
     function formatToDays(value: number) {
-        return `${value} days until user refund`;
+        return `${value} days until user refund or project withdraw`;
     }
 </script>
 
@@ -115,7 +115,6 @@
 
             <div class="form-group">
                 <label for="tokenAmount">Token amount</label>
-                <!-- Input for the token amount, setting the max value dynamically -->
                 <input 
                     type="number" 
                     id="tokenAmount" 
@@ -126,9 +125,9 @@
                 />
             </div>
 
-            <div class="form-group">
+            <div class="form-group form-group-full">
                 <label for="blockLimit">Days limit</label>
-                <NumberInput id="blockLimit" format={formatToDays} controlsType="primary" bind:value={daysLimit} min={1} placeholder="Enter days limit" />
+                <NumberInput id="blockLimit" format={formatToDays} controlsType="primary" bind:value={daysLimit} min={1} style="width: 20rem; align-self:center;" placeholder="Enter days limit" />
             </div>
 
             <div class="form-group">
@@ -142,7 +141,7 @@
                 />
             </div>
 
-            <div class="form-group">   <!-- This should be in an advance optional group.-->
+            <div class="form-group">  
                 <label for="minValue">Min ERGs collected</label>
                 <input 
                     type="number" 
@@ -226,6 +225,10 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1rem;
+    }
+
+    .form-group-full {
+        grid-column: span 2;
     }
 
     .form-group {
