@@ -334,7 +334,7 @@
         background-size: cover;
         opacity: 0.05;
         z-index: 1;
-        }
+    }
 
     .details {
         width: 30vw;
