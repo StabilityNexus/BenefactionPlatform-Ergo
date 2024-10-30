@@ -18,7 +18,7 @@ A box created by a project will have the following parameters:
 - **Token sold counter (R6)**: Token sale counter.
 - **ERGs / Token (R7)**: The exchange rate of ERG per token.
 - **Withdrawal Address (R8)**: The address where the funds can be withdrawn if the conditions are met, specified by the SHA-256 hash of the proposition bytes.
-- **Project Link/Hash (R9)**: A link or hash containing the project's information (e.g., GitHub repository).
+- **Project Content (R9)**: JSON content with title, description and other information.
 
 These parameters ensure that the box remains consistent throughout the funding process and allows for transparency in the exchange process.
 

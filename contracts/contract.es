@@ -6,7 +6,7 @@
 * R6     -> The amount of tokens that have already been sold.
 * R7     -> ERG/Token exchange rate
 * R8     -> Sha256 of the contract proposition bytes where the funds can be withdrawn
-* R9     -> Link or hash that contains project information
+* R9     -> Project content (title, description ...) on string formated JSON.
 */
 {
 
