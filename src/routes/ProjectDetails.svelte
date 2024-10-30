@@ -171,7 +171,7 @@
 </script>
 
 <div class="back">
-    <Button style="background-color: #FFB347; color: black; border: none; padding: 0.25rem 1rem; font-size: 0.9rem;" on:click={closePage}>
+    <Button style="background-color: #FFB347; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;" on:click={closePage}>
         &lt; Go to main
     </Button>
 </div>
@@ -354,7 +354,7 @@
 
     .action-buttons :global(button) {
         padding: 0.25rem 1rem;
-        font-size: 0.9rem;
+        font-size: 1rem;
     }
 
     .actions-form {

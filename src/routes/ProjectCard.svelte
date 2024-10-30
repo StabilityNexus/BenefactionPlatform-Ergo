@@ -35,7 +35,7 @@
         <p><strong>Sold:</strong> {project.amount_sold} tokens</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes": "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes": "No"}</p>
-        <Button on:click={toggleDetails} style="background-color: orange; border: none; color: black">View</Button>
+        <Button on:click={toggleDetails} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">View</Button>
         
     </div>
 </div>

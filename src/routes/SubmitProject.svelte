@@ -39,8 +39,6 @@
         exchangeRate = maxValueNano / token_amount;
         let minimumTokenSold = minValueNano / exchangeRate;
 
-        console.log("exchange rate ", exchangeRate)
-
         try {
             // Submit the project to the blockchain using the submit_project function
             const result = await platform.submit(token_id, token_amount, blockLimit, exchangeRate, projectLink, minimumTokenSold);
@@ -151,7 +149,7 @@
         </div>
         
         <!-- Submit button -->
-        <Button on:click={handleSubmit} disabled={isSubmitting} style="background-color: orange; border: none;">
+        <Button on:click={handleSubmit} disabled={isSubmitting} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">
             {isSubmitting ? 'Submitting...' : 'Submit'}
         </Button>
         
@@ -206,10 +204,6 @@
     input:focus, select:focus {
         outline: none !important;
         border:1px solid orange;
-    }
-    button:disabled {
-        background-color: #ccc;
-        cursor: not-allowed;
     }
     .result {
         margin-top: 1.5rem;
