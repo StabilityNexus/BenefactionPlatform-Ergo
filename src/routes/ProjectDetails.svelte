@@ -285,6 +285,7 @@
             <div class="actions-form">
                 <div class="centered-form">
                     <NumberInput
+                        controlsType="primary"
                         bind:value={value_submit}
                         label={label_submit}
                         min={0}
