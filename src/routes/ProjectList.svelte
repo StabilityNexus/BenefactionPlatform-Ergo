@@ -82,7 +82,7 @@
             {/each}
         </div>
     {:else if isLoading}
-        <p>Loading projects...</p>
+        <p style="text-align: center;">Loading projects...</p>
     {:else}
         <p>No projects found.</p>
     {/if}
