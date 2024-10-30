@@ -133,7 +133,7 @@
   
   val isToProjectAddress = {
     val addrHash: Coll[Byte] = SELF.R8[Coll[Byte]].get
-    val isSamePropBytes: Boolean = addrHash == sha256(projectAddress.propositionBytes)
+    val isSamePropBytes: Boolean = addrHash == sha256(projectAddress.propositionBytes.slice(1, 34))
 
     isSamePropBytes
   }

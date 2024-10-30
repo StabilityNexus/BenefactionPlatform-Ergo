@@ -3,12 +3,13 @@ import {
     SAFE_MIN_BOX_VALUE,
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
-    SLong
+    SLong,
+    SConstant
 } from '@fleet-sdk/core';
-import { SInt } from '@fleet-sdk/serializer';
-
+import { SByte, SColl, SInt } from '@fleet-sdk/serializer';
 import { ergo_tree_address } from './envs';
 import { SString } from './utils';
+import { blake2b256 } from "@fleet-sdk/crypto";
 import { sha256 } from '$lib/common/utils';
 
 // Function to submit a project to the blockchain
@@ -50,14 +51,14 @@ export async function submit_project(
 
     const devAddress = "0xabcdefghijklmnñoqrstuvwxyz"
     const devFeePercentage = 5
-
+    
     // Set additional registers in the output box
     projectOutput.setAdditionalRegisters({
        R4: SInt(blockLimit).toHex(),                              // Block limit for withdrawals/refunds
        R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
        R6: SLong(BigInt(0)).toHex(),                              // Tokens sold counter
        R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
-       R8: SString(await sha256(walletPk)),            // Withdrawal address (hash of walletPk)
+       R8: SConstant(SColl(SByte, await sha256(walletPk))),            // Withdrawal address (hash of walletPk)
        R9: SString(projectLink)                        // Link or hash with project info
     });
 
