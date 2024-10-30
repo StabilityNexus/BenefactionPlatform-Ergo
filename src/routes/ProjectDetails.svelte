@@ -179,6 +179,7 @@
 <!-- Main Project Detail Page -->
 <div class="project-detail">
     <div class="details">
+        <p>{project.content.description}</p>
         <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>Block Limit:</strong> {project.block_limit}</p>
         <p><strong>Total Amount:</strong> {project.total_amount}</p>

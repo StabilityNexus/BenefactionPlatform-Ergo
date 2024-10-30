@@ -26,9 +26,9 @@
 
 <div class="card">
     <div class="card-body">
-        <h3 class="card-title">Project ID: {project.token_id.slice(0, 6)}</h3>
+        <h3 class="card-title">Project: {project.content.title}</h3>
+        <p>{project.content.description}</p>
         <p><strong>Limit date:</strong> {limit_date}</p>
-        <p><strong>Exchange Rate:</strong> {project.exchange_rate/1000000000} ERG/token</p>
         <p><strong>ERGs collected:</strong> {project.value/1000000000} ERG</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes": "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes": "No"}</p>

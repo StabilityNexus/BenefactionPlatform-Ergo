@@ -4,7 +4,7 @@
     https://api.ergoplatform.com/api/v1/docs/#operation/postApiV1BoxesUnspentSearch
 */
 
-import type { Project } from "../common/project";
+import { type Project, getProjectContent } from "../common/project";
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
 
@@ -86,7 +86,6 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                 for (const e of json_data.items) {
                     if (hasValidSigmaTypes(e.additionalRegisters)) {
                         let token_id = e.assets[0].tokenId;
-                        console.log(e)
                         projects.set(token_id, {
                             platform: new ErgoPlatform(),
                             box: {
@@ -109,7 +108,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                             minimum_amount: parseInt(e.additionalRegisters.R5.renderedValue),
                             total_amount: e.assets[0].amount,
                             exchange_rate: parseInt(e.additionalRegisters.R7.renderedValue),
-                            link: hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? "",
+                            content: getProjectContent(token_id.slice(0, 8), hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ""),
                             owner: e.additionalRegisters.R8.renderedValue,
                             value: e.value,
                             amount_sold: parseInt(e.additionalRegisters.R6.renderedValue),

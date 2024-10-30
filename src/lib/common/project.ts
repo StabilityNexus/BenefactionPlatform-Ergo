@@ -1,6 +1,13 @@
 import { type Platform } from "./platform";
 import type { Amount, Box } from "@fleet-sdk/core";
 
+export interface ProjectContent {
+    title: string,
+    description: string | null,
+    link: string | null,
+    image: string | null
+}
+
 export interface Project {
     platform: Platform,
     box: Box<Amount>,
@@ -11,7 +18,7 @@ export interface Project {
     value: number,
     total_amount: number,
     exchange_rate: number, 
-    link: string,
+    content: ProjectContent,
     owner: string
 }
 
@@ -23,4 +30,23 @@ export async function is_ended(project: Project): Promise<boolean> {
 
 export async function min_raised(project: Project): Promise<boolean> {
     return project.amount_sold > project.minimum_amount
+}
+
+export function getProjectContent(id: string, value: string): ProjectContent {
+    try {
+        const parsed = JSON.parse(value);
+        return {
+            title: parsed.title || 'Id '+id,
+            description: parsed.description || null,
+            link: parsed.link || null,
+            image: parsed.image || null
+        };
+    } catch (error) {
+        return {
+            title: 'Id '+id,
+            description: "No description provided.",
+            link: null,
+            image: null
+        };
+    }
 }

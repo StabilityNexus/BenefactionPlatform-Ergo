@@ -100,7 +100,7 @@
             </ul>
         {:else}
             <ul class="inline">
-                <li><a style="color: orange; border-bottom-color: orange;">Project: {$project_detail.token_id.slice(0, 6)}</a></li>
+                <li><a style="color: orange; border-bottom-color: orange; margin-left: 8rem; font-size: 2rem">{$project_detail.content.title}</a></li>
             </ul>
         {/if}
     </Navbar>
@@ -108,6 +108,7 @@
     <div class="wallet-info">
         {#if $address}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div class="identifier" id="walletIdentifier" on:click={copyToClipboard}>
                 <Badge style="background-color: orange; color: black; font-size: 0.9em; margin-bottom: 5px;">Wallet: {($address.slice(0, 6) + '...' + $address.slice(-4))}</Badge>
             </div>
