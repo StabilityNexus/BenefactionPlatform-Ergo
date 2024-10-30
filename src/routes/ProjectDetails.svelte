@@ -179,7 +179,7 @@
 <!-- Main Project Detail Page -->
 <div class="project-detail">
     <div class="details">
-        <p>{project.content.description}</p>
+        <p>{project.content.description.slice(0, 48)}</p>
         <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>Block Limit:</strong> {project.block_limit}</p>
         <p><strong>Total Amount:</strong> {project.total_amount}</p>
@@ -359,7 +359,7 @@
     }
 
     .actions-form {
-        margin-top: 4rem;
+        margin-top: 8rem;
         padding: 1rem;
         background: rgba(255, 255, 255, 0.05);
         border-radius: 16px;
