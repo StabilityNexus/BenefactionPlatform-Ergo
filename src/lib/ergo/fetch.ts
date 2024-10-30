@@ -108,7 +108,10 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                             minimum_amount: parseInt(e.additionalRegisters.R5.renderedValue),
                             total_amount: e.assets[0].amount,
                             exchange_rate: parseInt(e.additionalRegisters.R7.renderedValue),
-                            content: getProjectContent(token_id.slice(0, 8), hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ""),
+                            content: getProjectContent(
+                                token_id.slice(0, 8), 
+                                hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ""
+                            ),
                             owner: e.additionalRegisters.R8.renderedValue,
                             value: e.value,
                             amount_sold: parseInt(e.additionalRegisters.R6.renderedValue),

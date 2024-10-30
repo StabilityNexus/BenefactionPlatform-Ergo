@@ -2,6 +2,7 @@ import { type Platform } from "./platform";
 import type { Amount, Box } from "@fleet-sdk/core";
 
 export interface ProjectContent {
+    raw: string,
     title: string,
     description: string,
     link: string | null,
@@ -36,6 +37,7 @@ export function getProjectContent(id: string, value: string): ProjectContent {
     try {
         const parsed = JSON.parse(value);
         return {
+            raw: value,
             title: parsed.title || 'Id '+id,
             description: parsed.description || "No description provided.",
             link: parsed.link || null,
@@ -43,6 +45,7 @@ export function getProjectContent(id: string, value: string): ProjectContent {
         };
     } catch (error) {
         return {
+            raw: value,
             title: 'Id '+id,
             description: "No description provided.",
             link: null,

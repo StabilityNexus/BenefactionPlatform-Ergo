@@ -12,10 +12,7 @@ import {
 
 import { ergo_tree_address } from './envs';
 import { SString } from './utils';
-import { sha256 } from '$lib/common/utils';
 import { type Project } from '../common/project';
-import { get } from 'svelte/store';
-import { address, balance } from '../common/store';
 
 // Function to submit a project to the blockchain
 export async function exchange(
@@ -50,7 +47,7 @@ export async function exchange(
             R6: SLong(BigInt(project.amount_sold + token_amount)).toHex(),           // Tokens sold counter
             R7: SLong(BigInt(project.exchange_rate)).toHex(),                        // Exchange rate ERG/Token
             R8: SConstant(SColl(SByte, project.owner)),                              // Withdrawal address (hash of walletPk)
-            R9: SString(JSON.stringify(project.content))                             // Link or hash with project info
+            R9: SString(project.content.raw)                                         // Project content
         }),
         new OutputBuilder(
             SAFE_MIN_BOX_VALUE,
@@ -60,7 +57,7 @@ export async function exchange(
             tokenId: project.token_id,
             amount: (token_amount).toString()
         })
-    ];    
+    ];
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
