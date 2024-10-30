@@ -57,7 +57,7 @@ export async function rebalance(
             )
             .addTokens({
                 tokenId: project.token_id,
-                amount: token_amount.toString()
+                amount: ((-1)*token_amount).toString()
             })
         )
     }
