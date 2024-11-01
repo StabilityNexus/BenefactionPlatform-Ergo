@@ -79,7 +79,7 @@
 
     // User actions
     function setupBuy() {
-        label_submit = "Tokens to buy";
+        label_submit = "Tokens contributed";
         function_submit = buy;
         value_submit = 0;
         show_submit = true;
@@ -240,7 +240,7 @@
                     <div class="action-buttons">
                         {#if project.total_amount !== project.amount_sold}
                             <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy}>
-                                Buy
+                                Contribute
                             </Button>
                         {/if}
                         {#if deadline_passed && !is_min_raised}
