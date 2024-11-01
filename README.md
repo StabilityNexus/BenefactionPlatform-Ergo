@@ -1,7 +1,7 @@
-# Benefaction Platform
+# Bene: Fundraising Platform
 
 ## Overview
-Benefaction Platform is a decentralized application (DApp) that enables projects to receive funding in exchange for participation tokens. This DApp allows projects to request ERGs (the native cryptocurrency of the Ergo blockchain) in exchange for participation tokens.
+Bene: Fundraising Platform is a decentralized application (DApp) that enables projects to receive funding in exchange for participation tokens. This DApp allows projects to request ERGs (the native cryptocurrency of the Ergo blockchain) in exchange for participation tokens.
 
 ### How it Works
 - Project owners can create a box that holds an amount of tokens, which may vary, setting a **block limit** as a deadline.
@@ -27,7 +27,7 @@ In addition, the following constants are added:
 - **Developer address**: The address to which it will be sent, specified by its proposition bytes.
 
 ## Processes
-The Benefaction Platform supports six main processes:
+The Bene: Fundraising Platform supports six main processes:
 
 1. **Box Creation**: 
    - Allows anyone to create a box with the specified script and parameters.
@@ -35,11 +35,11 @@ The Benefaction Platform supports six main processes:
    - The tokens of the box are provided by the box creator, that is, the project owner.
    
 2. **Token Acquisition**: 
-   - People should be allowed to exchange ERGs for tokens (at the R6 exchange rate) until there are no more tokens left (even if the deadline has passed).
-   - People receive tokens in their own boxes, which adhere to the standards for tokens, making them visible and transferable through wallets like Nautilus.
+   - People should be allowed to exchange ERGs for tokens (at the R7 exchange rate) until there are no more tokens left (even if the deadline has passed).
+   - People receive tokens in their own boxes, which can adhere to the standards for tokens, making them visible and transferable through wallets like Nautilus.
 
 3. **Refund tokens**: 
-   - People should be allowed to exchange tokens for ERGs (at the R6 exchange rate) if and only if the deadline has passed and the minimum number of tokens has not been sold.
+   - People should be allowed to exchange tokens for ERGs (at the R7 exchange rate) if and only if the deadline has passed and the minimum number of tokens has not been sold.
    - This ensures that participants can retrieve their contributions if the funding goal isn't met.
 
 4. **Withdraw ERGs**: 
@@ -54,6 +54,8 @@ The Benefaction Platform supports six main processes:
    - Project owners may add more tokens to the contract at any time.
 
 
+The current client implementation only supports the creation of a new project and contributions to a project. The contract implementation is complete, although it may undergo corrections.
+
 In addition to the current functionality, a more advanced implementation could include support for other assets beyond ERG. For example, projects could request **GAU** or other tokens on Ergo. This would provide even more flexibility in terms of the types of contributions a project can receive and enable a broader range of funding options for projects and participants.
 
 ## Installation Steps
@@ -61,8 +63,8 @@ In addition to the current functionality, a more advanced implementation could i
 1. **Clone the Repository**
 Clone the repository URL and navigate to the project folder.
    ```bash
-   git clone <repo-url>
-   cd <repo-folder>
+   git clone https://github.com/StabilityNexus/BenefactionPlatform-Ergo
+   cd BenefactionPlatform-Ergo
    ```
 
 2. **Set Node Version to 20**
