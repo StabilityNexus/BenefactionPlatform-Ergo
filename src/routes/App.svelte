@@ -2,8 +2,8 @@
     import { onMount } from 'svelte';
     import { address, connected, balance, project_detail } from "$lib/common/store";
     import MyProjects from './MyProjects.svelte';
-    import MyDonations from './MyDonations.svelte';
-    import SubmitProject from './SubmitProject.svelte';
+    import MyContributions from './MyContributions.svelte';
+    import NewProject from './NewProject.svelte';
     import TokenAcquisition from './TokenAcquisition.svelte';
     import 'papercss/dist/paper.min.css'
     import { Navbar, Badge } from 'spaper';
@@ -82,21 +82,21 @@
 <div>
 
     <Navbar border={false} split={false} style="background-color: black; width: 80%">
-        <h3 slot="brand">Benefaction <br/> Platform</h3>
+        <h3 slot="brand">Bene <br/> Fundraising Platform</h3>
         {#if $project_detail === null}
             <ul class="inline">
                 <li><a href="#" on:click={() => changeTab('acquireTokens')} 
                     style="color: orange; {activeTab === 'acquireTokens' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
-                    Acquire Tokens</a></li>
-                <li><a href="#" on:click={() => changeTab('myDonations')} 
-                    style="color: orange; {activeTab === 'myDonations' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
-                    My Donations</a></li>
+                    Contribute to a Project</a></li>
+                <li><a href="#" on:click={() => changeTab('myContributions')} 
+                    style="color: orange; {activeTab === 'myContributions' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
+                    My Contributions</a></li>
                 <li><a href="#" on:click={() => changeTab('myProjects')} 
                     style="color: orange; {activeTab === 'myProjects' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
                     My Projects</a></li>
                 <li><a href="#" on:click={() => changeTab('submitProject')} 
                     style="color: orange; {activeTab === 'submitProject' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
-                    Submit Project</a></li>
+                    New Project</a></li>
             </ul>
         {:else}
             <ul class="inline">
@@ -127,14 +127,14 @@
         {#if activeTab === 'acquireTokens'}
             <TokenAcquisition />
         {/if}
-        {#if activeTab === 'myDonations'}
-            <MyDonations />
+        {#if activeTab === 'myContributions'}
+            <MyContributions />
         {/if}
         {#if activeTab === 'myProjects'}
             <MyProjects />
         {/if}
         {#if activeTab === 'submitProject'}
-            <SubmitProject />
+            <NewProject />
         {/if}
     {:else}
         <ProjectDetails />

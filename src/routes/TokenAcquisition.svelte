@@ -7,5 +7,5 @@
     }
 </script>
 <ProjectList filterProject={projectFilter}>
-    Available projects
+    Available Projects
 </ProjectList>

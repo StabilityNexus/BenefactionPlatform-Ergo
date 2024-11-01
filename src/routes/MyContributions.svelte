@@ -16,5 +16,5 @@
 };
 </script>
 <ProjectList filterProject={filter}>
-    My donations
+    My Contributions
 </ProjectList>

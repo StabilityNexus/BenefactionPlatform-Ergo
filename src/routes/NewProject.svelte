@@ -97,7 +97,7 @@
 
 <div>
     <div class="container">
-        <h1 class="title">Submit Your Project</h1>
+        <h1 class="title">Raise Funds for a new Project</h1>
 
         <!-- Form grid with two columns -->
         <div class="form-grid">
