@@ -232,11 +232,9 @@
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawTokens}>
                             Withdraw tokens
                         </Button>
-                        {#if deadline_passed && is_min_raised}
-                            <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawErg}>
-                                Withdraw ERGs
-                            </Button>
-                        {/if}
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawErg} disabled={!(deadline_passed && is_min_raised)}>
+                            Withdraw ERGs
+                        </Button>
                     </div>
                 </div>
             {/if}
@@ -246,16 +244,12 @@
                 <div class="action-group">
                     <span class="group-label">User:</span>
                     <div class="action-buttons">
-                        {#if project.total_amount !== project.amount_sold}
-                            <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy}>
-                                Contribute
-                            </Button>
-                        {/if}
-                        {#if deadline_passed && !is_min_raised}
-                            <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund}>
-                                Refund
-                            </Button>
-                        {/if}
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy} disabled={!(project.total_amount !== project.amount_sold)}>
+                            Contribute
+                        </Button>
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund} disabled={!(deadline_passed && !is_min_raised)}>
+                            Refund
+                        </Button>
                         <Button style="background-color: orange; color: black; border: none;" on:click={shareProject}>
                             Share
                         </Button>
