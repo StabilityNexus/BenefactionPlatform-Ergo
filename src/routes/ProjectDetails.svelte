@@ -1,12 +1,11 @@
 <script lang="ts">
-    import { page } from '$app/stores';
     import { type Project, is_ended, min_raised } from "$lib/common/project";
     import { sha256 } from "$lib/common/utils";
     import { exchange } from "$lib/ergo/exchange";
     import { withdraw } from "$lib/ergo/withdraw";
     import { rebalance } from "$lib/ergo/rebalance";
     import { address, connected, project_detail } from "$lib/common/store";
-    import { Button, Progress, NumberInput } from "spaper";
+    import { Button, Progress, NumberInput, Badge } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { web_explorer_uri } from '$lib/ergo/envs';
@@ -36,13 +35,18 @@
     let label_submit = "";
     let function_submit = null;
     let value_submit = 0;
+    let submit_info = "";
+    let hide_submit_info = false;
+
+    $: submit_info = Number(value_submit*project.exchange_rate/1000000000).toString() + "ERGs in total."
 
     // Project owner actions
     function setupAddTokens() {
-        label_submit = "Tokens to add";
+        label_submit = "How many tokens do you want to add?";
         function_submit = add_tokens;
         value_submit = 0;
         show_submit = true;
+        hide_submit_info = false;
     }
 
     function add_tokens() {
@@ -52,10 +56,11 @@
     }
 
     function setupWithdrawTokens() {
-        label_submit = "Tokens to withdraw";
+        label_submit = "How many tokens do you want to withdraw?";
         function_submit = withdraw_tokens;
         value_submit = 0;
         show_submit = true;
+        hide_submit_info = false;
     }
 
     function withdraw_tokens() {
@@ -65,10 +70,11 @@
     }
 
     function setupWithdrawErg() {
-        label_submit = "ERGs to withdraw";
+        label_submit = "How many ERGs do you want to withdraw?";
         function_submit = withdraw_erg;
         value_submit = 0;
         show_submit = true;
+        hide_submit_info = true;
     }
 
     function withdraw_erg() {
@@ -79,10 +85,11 @@
 
     // User actions
     function setupBuy() {
-        label_submit = "Tokens contributed";
+        label_submit = "With how many tokens do you want to contribute?";
         function_submit = buy;
         value_submit = 0;
         show_submit = true;
+        hide_submit_info = true;
     }
 
     async function buy() {
@@ -101,10 +108,11 @@
     }
 
     function setupRefund() {
-        label_submit = "Tokens to refund";
+        label_submit = "How many tokens do you want to refund?";
         function_submit = refund;
         value_submit = 0;
         show_submit = true;
+        hide_submit_info = true;
     }
 
     function refund() {
@@ -318,12 +326,21 @@
                             <p>{errorMessage}</p>
                         </div>
                     {:else}
-                        <NumberInput
-                            controlsType="primary"
-                            bind:value={value_submit}
-                            label={label_submit}
-                            min={0}
-                        />
+                        <!-- svelte-ignore a11y-label-has-associated-control -->
+                        <label>{label_submit}</label>
+                        <div style="display: flex; align-items: center;">
+                            <input
+                                type="number"
+                                bind:value={value_submit}
+                                min="0"
+                                step="1"
+                                style="margin-left: 5px;"
+                            />
+                            <span style="margin-left: 15px;">tokens</span>
+                        </div>
+                        {#if hide_submit_info}
+                            <Badge type="primary" rounded>{submit_info}</Badge>
+                        {/if}
                         <Button on:click={function_submit} disabled={isSubmitting} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">
                             {isSubmitting ? 'Submitting...' : 'Submit'}
                         </Button>  
@@ -428,8 +445,9 @@
 
     .centered-form {
         width: 100%;
-        max-width: 300px;
+        max-width: 500px;
         display: flex;
+        align-items: center;
         flex-direction: column;
         gap: 1rem;
     }
