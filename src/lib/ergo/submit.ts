@@ -58,8 +58,8 @@ export async function submit_project(
        R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
        R6: SLong(BigInt(0)).toHex(),                              // Tokens sold counter
        R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
-       R8: SConstant(SColl(SByte, await sha256(walletPk))),            // Withdrawal address (hash of walletPk)
-       R9: SString(projectContent)                        // Link or hash with project info
+       R8: SConstant(SColl(SByte, await sha256(walletPk))),       // Withdrawal address (hash of walletPk)
+       R9: SString(projectContent)                                // Link or hash with project info
     });
 
     // Add the project box to the outputs list
