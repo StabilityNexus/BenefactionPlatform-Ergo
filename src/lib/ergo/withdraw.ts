@@ -44,12 +44,12 @@ export async function withdraw(
 
     // Set additional registers in the output box
     contractOutput.setAdditionalRegisters({
-        R4: SInt(project.block_limit).toHex(),                 // Block limit for withdrawals/refunds
-        R5: SLong(BigInt(project.minimum_amount)).toHex(),                             // Minimum sold
-        R6: SLong(BigInt(project.amount_sold)).toHex(),                                // Tokens sold counter
-        R7: SLong(BigInt(project.exchange_rate)).toHex(),              // Exchange rate ERG/Token
-        R8: SString(await sha256(walletPk)),                        // Withdrawal address (hash of walletPk)
-        R9: SString(project.link)                                   // Link or hash with project info
+        R4: SInt(project.block_limit).toHex(),                     // Block limit for withdrawals/refunds
+        R5: SLong(BigInt(project.minimum_amount)).toHex(),         // Minimum sold
+        R6: SLong(BigInt(project.amount_sold)).toHex(),            // Tokens sold counter
+        R7: SLong(BigInt(project.exchange_rate)).toHex(),          // Exchange rate ERG/Token
+        R8: SString(await sha256(walletPk)),                       // Withdrawal address (hash of walletPk)
+        R9: SString(project.content.raw)                           // Project content
     });
     outputs.push(contractOutput);
 

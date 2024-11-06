@@ -18,7 +18,7 @@ export async function submit_project(
     token_amount: number,
     blockLimit: number,     // Block height until withdrawal/refund is allowed
     exchangeRate: number,   // Exchange rate ERG/Token
-    projectLink: string,    // Link or hash containing project information
+    projectContent: string,    // Project content
     minimumSold: number     // Minimum amount sold to allow withdrawal
 ): Promise<string|null> {
     
@@ -59,7 +59,7 @@ export async function submit_project(
        R6: SLong(BigInt(0)).toHex(),                              // Tokens sold counter
        R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
        R8: SConstant(SColl(SByte, await sha256(walletPk))),            // Withdrawal address (hash of walletPk)
-       R9: SString(projectLink)                        // Link or hash with project info
+       R9: SString(projectContent)                        // Link or hash with project info
     });
 
     // Add the project box to the outputs list

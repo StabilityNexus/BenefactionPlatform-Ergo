@@ -45,7 +45,7 @@ export async function rebalance(
             R6: SLong(BigInt(project.amount_sold)).toHex(),               // Tokens sold counter
             R7: SLong(BigInt(project.exchange_rate)).toHex(),             // Exchange rate ERG/Token
             R8: SString(await sha256(walletPk)),                          // Withdrawal address (hash of walletPk)
-            R9: SString(project.link)                                     // Link or hash with project info
+            R9: SString(project.content.raw)                              // Project content
         })
     ];
     
