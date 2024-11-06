@@ -42,22 +42,29 @@ export async function exchange(
             amount: (project.total_amount - token_amount).toString()
         })
         .setAdditionalRegisters({
-            R4: SInt(project.block_limit).toHex(),                                   // Block limit for withdrawals/refunds
-            R5: SLong(BigInt(project.minimum_amount)).toHex(),                       // Minimum sold
-            R6: SLong(BigInt(project.amount_sold + token_amount)).toHex(),           // Tokens sold counter
-            R7: SLong(BigInt(project.exchange_rate)).toHex(),                        // Exchange rate ERG/Token
-            R8: SConstant(SColl(SByte, project.owner)),                              // Withdrawal address (hash of walletPk)
-            R9: SString(project.content.raw)                                         // Project content
-        }),
-        new OutputBuilder(
-            SAFE_MIN_BOX_VALUE,
-            walletPk
-        )
-        .addTokens({
-            tokenId: project.token_id,
-            amount: (token_amount).toString()
+            R4: SInt(project.block_limit).toHex(),                                                          // Block limit for withdrawals/refunds
+            R5: SLong(BigInt(project.minimum_amount)).toHex(),                                              // Minimum sold
+            R6: SLong(
+                BigInt(token_amount > 0 ? project.amount_sold + token_amount : project.amount_sold)
+            ).toHex(),                                                                                      // Tokens sold counter
+            R7: SLong(BigInt(project.exchange_rate)).toHex(),                                               // Exchange rate ERG/Token
+            R8: SConstant(SColl(SByte, project.owner)),                                                     // Withdrawal address (hash of walletPk)
+            R9: SString(project.content.raw)                                                                // Project content
         })
     ];
+
+    if (token_amount > 0) {
+        outputs.push(
+            new OutputBuilder(
+                SAFE_MIN_BOX_VALUE,
+                walletPk
+            )
+            .addTokens({
+                tokenId: project.token_id,
+                amount: (token_amount).toString()
+            })
+        )
+    }
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())

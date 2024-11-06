@@ -21,8 +21,7 @@ export async function submit_project(
     projectContent: string,    // Project content
     minimumSold: number     // Minimum amount sold to allow withdrawal
 ): Promise<string|null> {
-    
-    console.log(token_id, token_amount)
+
 
     // Get the wallet address (will be the project address)
     const walletPk = await ergo.get_change_address();

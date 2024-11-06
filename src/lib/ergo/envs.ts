@@ -73,14 +73,11 @@ let contract = `
 
   // Validation for refunding tokens
   val isRefundTokens = {
-    val outputUserBox = OUTPUTS(1)
-    val inputUserBox = INPUTS(1)
 
     // > People should be allowed to exchange tokens for ERGs if and only if the deadline has passed and the minimum number of tokens has not been sold.
     val canBeRefund = {
       // The minimum number of tokens has not been sold.
       val minimumNotReached = {
-        val minData = SELF.R6[Long].get
         val minimumSalesThreshold = SELF.R5[Long].get
         val soldCounter = SELF.R6[Long].get
 
@@ -91,20 +88,6 @@ let contract = `
       val afterBlockLimit = HEIGHT > SELF.R4[Int].get
       
       afterBlockLimit && minimumNotReached
-    }
-    
-    // Check if tokens are being returned from the user's input box back to the contract
-    val returningTokens = {
-      // The user has tokens
-      val userHasTokens = inputUserBox.tokens.size > 0
-
-      // The contract has tokens
-      val contractHasTokens = SELF.tokens.size > 0
-
-      // The user has the contract token
-      val userTokenIsValid = inputUserBox.tokens(0)._1 == SELF.tokens(0)._1
-
-      userHasTokens && contractHasTokens && userTokenIsValid
     }
 
     // Verify if the ERG amount matches the required exchange rate for the returned token quantity
@@ -120,11 +103,11 @@ let contract = `
         addedTokensOnTheContract * SELF.R7[Long].get
       }
 
-      retiredValueFromTheContract == addedTokensValue
+      retiredValueFromTheContract == addedTokensValue && OUTPUTS(0).tokens(0)._1 == SELF.tokens(0)._1
     }
 
     // The contract returns the equivalent ERG value for the returned tokens
-    isSelfReplication && soldCounterRemainsConstant && canBeRefund && returningTokens && correctExchange
+    isSelfReplication && soldCounterRemainsConstant && canBeRefund && correctExchange
   }
 
   val projectAddress = OUTPUTS(1)
@@ -209,6 +192,8 @@ let contract = `
       
       isSamePropBytes
     }
+
+    // TODO: Not working with and without isFromProjectAddress, so needs to check other { soldCounterRemainsConstant && mantainValue && addsCorrectly }
 
     isSelfReplication && soldCounterRemainsConstant && mantainValue && isFromProjectAddress && addsCorrectly
   }
