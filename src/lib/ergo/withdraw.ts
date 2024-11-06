@@ -3,7 +3,10 @@ import {
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
-    SInt
+    SInt,
+    SByte,
+    SColl,
+    SConstant
 } from '@fleet-sdk/core';
 import { ergo_tree_address } from './envs';
 import { SString } from './utils';
@@ -48,7 +51,7 @@ export async function withdraw(
         R5: SLong(BigInt(project.minimum_amount)).toHex(),         // Minimum sold
         R6: SLong(BigInt(project.amount_sold)).toHex(),            // Tokens sold counter
         R7: SLong(BigInt(project.exchange_rate)).toHex(),          // Exchange rate ERG/Token
-        R8: SString(await sha256(walletPk)),                       // Withdrawal address (hash of walletPk)
+        R8: SConstant(SColl(SByte, project.owner)),                // Withdrawal address (hash of walletPk)
         R9: SString(project.content.raw)                           // Project content
     });
     outputs.push(contractOutput);
