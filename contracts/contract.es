@@ -212,6 +212,8 @@
       isSamePropBytes
     }
 
+    // TODO: Not working with and without isFromProjectAddress, so needs to check other { soldCounterRemainsConstant && mantainValue && addsCorrectly }
+
     isSelfReplication && soldCounterRemainsConstant && mantainValue && isFromProjectAddress && addsCorrectly
   }
 
