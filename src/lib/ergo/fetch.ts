@@ -86,6 +86,16 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                 for (const e of json_data.items) {
                     if (hasValidSigmaTypes(e.additionalRegisters)) {
                         let token_id = e.assets[0].tokenId;
+                        let amount_sold = parseInt(e.additionalRegisters.R6.renderedValue);
+                        let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
+                        let current_amount = e.assets[0].amount;
+                        let current_value = e.value - 1000000;
+
+                        // Refunded amount
+                        let collected_value = (amount_sold * exchange_rate) - 1000000;
+                        let ergs_refunded = collected_value - current_value;
+                        let refunded_amount = ergs_refunded / exchange_rate;
+
                         projects.set(token_id, {
                             platform: new ErgoPlatform(),
                             box: {
@@ -106,15 +116,19 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                             token_id: e.assets[0].tokenId,
                             block_limit: parseInt(e.additionalRegisters.R4.renderedValue),
                             minimum_amount: parseInt(e.additionalRegisters.R5.renderedValue),
-                            total_amount: e.assets[0].amount,
-                            exchange_rate: parseInt(e.additionalRegisters.R7.renderedValue),
+                            total_amount: current_amount + amount_sold - refunded_amount,
+                            current_amount: current_amount,
+                            refunded_amount: refunded_amount,
+                            amount_sold: amount_sold,
+                            exchange_rate: exchange_rate,
                             content: getProjectContent(
                                 token_id.slice(0, 8), 
                                 hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ""
                             ),
                             owner: e.additionalRegisters.R8.renderedValue,
                             value: e.value,
-                            amount_sold: parseInt(e.additionalRegisters.R6.renderedValue),
+                            collected_value: collected_value,
+                            current_value: current_value
                         })
                     }
                 }                

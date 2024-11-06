@@ -211,10 +211,12 @@
         <p>{project.content.description.length > 300 ? project.content.description.slice(0, 300) + "..." : project.content.description}</p>
         <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>Block Limit:</strong> {project.block_limit}</p>
-        <p><strong>Total Amount:</strong> {project.total_amount}</p>
+        <p><strong>Current Amount:</strong> {project.current_amount} tokens</p>
+        <p><strong>Tokens sold:</strong> {project.amount_sold} tokens</p>
+        <p><strong>Tokens refunded:</strong> {project.refunded_amount} tokens</p>
         <p><strong>Exchange Rate:</strong> {project.exchange_rate/1000000000} ERG/tokens</p>
-        <p><strong>ERGs collected:</strong> {project.value/1000000000} ERG</p>
-        <p><strong>Tokens sold:</strong> {project.amount_sold}</p>
+       <!-- <p><strong>ERGs collected (included refuned or withdraw):</strong> {project.collected_value/1000000000} ERG</p>  -->
+        <p><strong>Current ERG balance:</strong> {project.current_value/1000000000} ERG</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
         <p><strong>Owner hash:</strong> {project.owner.slice(0, 15)}</p>
@@ -292,7 +294,7 @@
         
         <div style="display: flex; justify-content: space-between; color: white;">
             <span style="flex: 1; text-align: left;">Minimum Amount: {min}</span>
-            <span style="flex: 1; text-align: center;">Current Amount: {currentVal}</span>
+            <span style="flex: 1; text-align: center;">Current Amount Sold: {currentVal}</span>
             <span style="flex: 1; text-align: right;">Maximum Amount: {max}</span>
         </div>
 

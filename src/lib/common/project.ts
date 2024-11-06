@@ -16,8 +16,12 @@ export interface Project {
     block_limit: number,
     minimum_amount: number,
     amount_sold: number,
-    value: number,
+    value: number,  // Real exact value
+    collected_value: number,  // Value collected
+    current_value: number,  // Current value - contract reserves (ex: min box value on ergo)
     total_amount: number,
+    current_amount: number,
+    refunded_amount: number,
     exchange_rate: number, 
     content: ProjectContent,
     owner: string

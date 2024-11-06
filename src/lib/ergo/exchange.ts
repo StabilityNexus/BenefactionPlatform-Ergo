@@ -39,7 +39,7 @@ export async function exchange(
         )
         .addTokens({
             tokenId: project.token_id,
-            amount: (project.total_amount - token_amount).toString()
+            amount: (project.current_amount - token_amount).toString()
         })
         .setAdditionalRegisters({
             R4: SInt(project.block_limit).toHex(),                                                          // Block limit for withdrawals/refunds

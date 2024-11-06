@@ -29,7 +29,7 @@
         <h3 class="card-title">Project: {project.content.title}</h3>
         <p>{project.content.description.length > 48 ? project.content.description.slice(0, 48) + " ...." : project.content.description}</p>
         <p><strong>Limit date:</strong> {limit_date}</p>
-        <p><strong>ERGs collected:</strong> {project.value/1000000000} ERG</p>
+        <p><strong>ERGs collected:</strong> {project.collected_value/1000000000} ERG</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes": "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes": "No"}</p>
         <Button on:click={toggleDetails} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">View</Button>

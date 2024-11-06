@@ -42,7 +42,7 @@ export async function withdraw(
 
     contractOutput.addTokens({
         tokenId: project.token_id,
-        amount: project.total_amount.toString()
+        amount: project.current_amount.toString()
     }, {sum: true});
 
     // Set additional registers in the output box
