@@ -1,4 +1,6 @@
-- [ ] Rebalance tokens.
-- [ ] Refund ERG
+- [X] Submit new project.
+- [X] Contribute.
+- [X] Refund ERG.
 - [ ] Withdraw ERG.
 - [ ] Project link.
+- [ ] Rebalance tokens.
