@@ -34,7 +34,7 @@ export async function is_ended(project: Project): Promise<boolean> {
 }
 
 export async function min_raised(project: Project): Promise<boolean> {
-    return project.amount_sold > project.minimum_amount
+    return project.amount_sold >= project.minimum_amount
 }
 
 export function getProjectContent(id: string, value: string): ProjectContent {

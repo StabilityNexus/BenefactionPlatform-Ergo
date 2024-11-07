@@ -3,17 +3,11 @@ import {
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
-    SInt,
-    SByte,
-    SColl,
-    SConstant
+    SInt
 } from '@fleet-sdk/core';
 import { ergo_tree_address } from './envs';
 import { SString } from './utils';
-import { sha256 } from '$lib/common/utils';
 import { type Project } from '../common/project';
-import { get } from 'svelte/store';
-import { address, balance } from '../common/store';
 
 // Function to submit a project to the blockchain
 export async function withdraw(
@@ -21,6 +15,7 @@ export async function withdraw(
     amount: number
 ): Promise<string|null> {
     
+    amount = amount * 1000000000
     console.log("wants withdraw ", amount)
 
     // Get the wallet address (will be the project address)
@@ -43,7 +38,7 @@ export async function withdraw(
     contractOutput.addTokens({
         tokenId: project.token_id,
         amount: project.current_amount.toString()
-    }, {sum: true});
+    });
 
     // Set additional registers in the output box
     contractOutput.setAdditionalRegisters({
@@ -51,22 +46,16 @@ export async function withdraw(
         R5: SLong(BigInt(project.minimum_amount)).toHex(),         // Minimum sold
         R6: SLong(BigInt(project.amount_sold)).toHex(),            // Tokens sold counter
         R7: SLong(BigInt(project.exchange_rate)).toHex(),          // Exchange rate ERG/Token
-        R8: SConstant(SColl(SByte, project.owner)),                // Withdrawal address (hash of walletPk)
+        R8: SString(project.owner),                // Withdrawal address (hash of walletPk)
         R9: SString(project.content.raw)                           // Project content
     });
     outputs.push(contractOutput);
 
-    const userOutput = new OutputBuilder(
-        BigInt(Number(get(balance))  + amount - devAmount),
-        get(address) ?? ""
-    );
-    outputs.push(userOutput);
-
-    const devOutput = new OutputBuilder(
+   /* const devOutput = new OutputBuilder(
         BigInt(devAmount),
         devAddress
     )
-    outputs.push(devOutput);
+    outputs.push(devOutput); */
     
 
     // Building the unsigned transaction

@@ -115,8 +115,8 @@
   val projectAddress = OUTPUTS(1)
   
   val isToProjectAddress = {
-    val addrHash: Coll[Byte] = SELF.R8[Coll[Byte]].get
-    val isSamePropBytes: Boolean = addrHash == sha256(projectAddress.propositionBytes.slice(1, 34))
+    val addr: sigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs") //  PK(SELF.R8[Coll[Byte]].get)
+    val isSamePropBytes: Boolean = addr.propBytes == projectAddress.propositionBytes
 
     isSamePropBytes
   }
@@ -125,7 +125,7 @@
   val isWithdrawFunds = {
 
     // ERG extracted amount considering that the contract could not be replicated.
-    val extractedValue: Long = {
+    /* val extractedValue: Long = {
       if (INPUTS.size > 1) {
         // In case where the project owners uses multiple boxes
         projectAddress.value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc: Long, box: Box) => acc + box.value })
@@ -133,21 +133,21 @@
       else {
         projectAddress.value
       }
-    }
+    } */
 
-    // val correctDevFee = {
+    /* val correctDevFee = {
       // Could be a dev prop bytes: https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
-      // val devFee = 5
-      // val devAddress = fromBase64("0xabcdefghijklmnñoqrstuvwxyz")
+      val devFee = 5
+      val devAddress = fromBase64("0xabcdefghijklmnñoqrstuvwxyz")
 
-      // val isToDevAddress = {
-      //   devAddress == OUTPUTS(2).propositionBytes
-      // }
+       val isToDevAddress = {
+        devAddress == OUTPUTS(2).propositionBytes
+      }
 
-      // val devAmount = extractedValue * devFee / 100
+      val devAmount = extractedValue * devFee / 100
 
-      // devAmount == OUTPUTS(2).value && isToDevAddress
-    // }
+      devAmount == OUTPUTS(2).value && isToDevAddress
+    } */
 
     // Replicate the contract in case of partial withdraw
     val endOrReplicate = {
@@ -161,10 +161,10 @@
       val minimumSalesThreshold = SELF.R5[Long].get
       val soldCounter = SELF.R6[Long].get
 
-      soldCounter > minimumSalesThreshold
+      soldCounter >= minimumSalesThreshold
     }
     
-    endOrReplicate && soldCounterRemainsConstant && isToProjectAddress && minimumReached // && correctDevFee
+    endOrReplicate && soldCounterRemainsConstant && minimumReached // && isToProjectAddress && correctDevFee
   }
 
   // Can't withdraw ERG

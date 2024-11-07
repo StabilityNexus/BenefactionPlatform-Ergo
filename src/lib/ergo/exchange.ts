@@ -48,7 +48,7 @@ export async function exchange(
                 BigInt(token_amount > 0 ? project.amount_sold + token_amount : project.amount_sold)
             ).toHex(),                                                                                      // Tokens sold counter
             R7: SLong(BigInt(project.exchange_rate)).toHex(),                                               // Exchange rate ERG/Token
-            R8: SConstant(SColl(SByte, project.owner)),                                                     // Withdrawal address (hash of walletPk)
+            R8: SString(project.owner),                                                     // Withdrawal address (hash of walletPk)
             R9: SString(project.content.raw)                                                                // Project content
         })
     ];

@@ -113,8 +113,8 @@ let contract = `
   val projectAddress = OUTPUTS(1)
   
   val isToProjectAddress = {
-    val addrHash: Coll[Byte] = SELF.R8[Coll[Byte]].get
-    val isSamePropBytes: Boolean = addrHash == sha256(projectAddress.propositionBytes.slice(1, 34))
+    val addr: sigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs")  // How to use SELF.R8[Coll[Byte]].get
+    val isSamePropBytes: Boolean = addr.propBytes == projectAddress.propositionBytes
 
     isSamePropBytes
   }
@@ -149,9 +149,9 @@ let contract = `
 
     // Replicate the contract in case of partial withdraw
     val endOrReplicate = {
-      val allFundsWithdrawn = extractedValue == SELF.value
+      // val allFundsWithdrawn = extractedValue == SELF.value
 
-      isSelfReplication || allFundsWithdrawn
+      isSelfReplication // || allFundsWithdrawn
     }
 
     // > Project owners are allowed to withdraw ERGs if and only if the minimum number of tokens has been sold. (The deadline plays no role here.)
@@ -159,10 +159,10 @@ let contract = `
       val minimumSalesThreshold = SELF.R5[Long].get
       val soldCounter = SELF.R6[Long].get
 
-      soldCounter > minimumSalesThreshold
+      soldCounter >= minimumSalesThreshold
     }
     
-    endOrReplicate && soldCounterRemainsConstant && isToProjectAddress && minimumReached // && correctDevFee
+    endOrReplicate && soldCounterRemainsConstant && minimumReached // && isToProjectAddress && correctDevFee
   }
 
   // Can't withdraw ERG

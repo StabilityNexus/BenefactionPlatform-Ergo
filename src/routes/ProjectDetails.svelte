@@ -155,7 +155,7 @@
 
     let is_owner = false;
     async function checkIfIsOwner() {
-        is_owner = $connected && await sha256($address ?? "") === project.owner;
+        is_owner = $connected && await $address === project.owner;
     }
     checkIfIsOwner();
 

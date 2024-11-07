@@ -125,7 +125,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                                 token_id.slice(0, 8), 
                                 hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ""
                             ),
-                            owner: e.additionalRegisters.R8.renderedValue,
+                            owner: "9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs", //  e.additionalRegisters.R8.renderedValue,
                             value: e.value,
                             collected_value: collected_value,
                             current_value: current_value

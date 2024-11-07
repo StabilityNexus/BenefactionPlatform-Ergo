@@ -22,7 +22,6 @@ export async function submit_project(
     minimumSold: number     // Minimum amount sold to allow withdrawal
 ): Promise<string|null> {
 
-
     // Get the wallet address (will be the project address)
     const walletPk = await ergo.get_change_address();
     
@@ -57,7 +56,7 @@ export async function submit_project(
        R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
        R6: SLong(BigInt(0)).toHex(),                              // Tokens sold counter
        R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
-       R8: SConstant(SColl(SByte, await sha256(walletPk))),       // Withdrawal address (hash of walletPk)
+       R8: SString(walletPk),                                     // Withdrawal address (hash of walletPk)
        R9: SString(projectContent)                                // Link or hash with project info
     });
 
