@@ -162,7 +162,7 @@ let contract = `
       soldCounter >= minimumSalesThreshold
     }
     
-    endOrReplicate && soldCounterRemainsConstant && minimumReached // && isToProjectAddress && correctDevFee
+    endOrReplicate && soldCounterRemainsConstant && minimumReached && isToProjectAddress // && correctDevFee
   }
 
   // Can't withdraw ERG
