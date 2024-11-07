@@ -113,7 +113,7 @@ let contract = `
   val projectAddress = OUTPUTS(1)
   
   val isToProjectAddress = {
-    val addr: sigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs")  // How to use SELF.R8[Coll[Byte]].get
+    val addr: sigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs") //  PK(SELF.R8[Coll[Byte]].get)
     val isSamePropBytes: Boolean = addr.propBytes == projectAddress.propositionBytes
 
     isSamePropBytes
@@ -129,29 +129,29 @@ let contract = `
         projectAddress.value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc: Long, box: Box) => acc + box.value })
       }
       else {
-        projectAddress.value
+        projectAddress.value  // TODO not correct
       }
     }
 
-    // val correctDevFee = {
+    /* val correctDevFee = {
       // Could be a dev prop bytes: https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
-      // val devFee = 5
-      // val devAddress = fromBase64("0xabcdefghijklmnñoqrstuvwxyz")
+      val devFee = 5
+      val devAddress = fromBase64("0xabcdefghijklmnñoqrstuvwxyz")
 
-      // val isToDevAddress = {
-      //   devAddress == OUTPUTS(2).propositionBytes
-      // }
+       val isToDevAddress = {
+        devAddress == OUTPUTS(2).propositionBytes
+      }
 
-      // val devAmount = extractedValue * devFee / 100
+      val devAmount = extractedValue * devFee / 100
 
-      // devAmount == OUTPUTS(2).value && isToDevAddress
-    // }
+      devAmount == OUTPUTS(2).value && isToDevAddress
+    } */
 
     // Replicate the contract in case of partial withdraw
     val endOrReplicate = {
-      // val allFundsWithdrawn = extractedValue == SELF.value
+      val allFundsWithdrawn = extractedValue == SELF.value
 
-      isSelfReplication // || allFundsWithdrawn
+      isSelfReplication || allFundsWithdrawn
     }
 
     // > Project owners are allowed to withdraw ERGs if and only if the minimum number of tokens has been sold. (The deadline plays no role here.)

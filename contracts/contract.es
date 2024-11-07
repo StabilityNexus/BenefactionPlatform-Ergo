@@ -125,15 +125,15 @@
   val isWithdrawFunds = {
 
     // ERG extracted amount considering that the contract could not be replicated.
-    /* val extractedValue: Long = {
+    val extractedValue: Long = {
       if (INPUTS.size > 1) {
         // In case where the project owners uses multiple boxes
         projectAddress.value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc: Long, box: Box) => acc + box.value })
       }
       else {
-        projectAddress.value
+        projectAddress.value  // TODO not correct
       }
-    } */
+    }
 
     /* val correctDevFee = {
       // Could be a dev prop bytes: https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
