@@ -189,8 +189,8 @@
     }
 
     val isFromProjectAddress = {
-      val addrHash: Coll[Byte] = SELF.R8[Coll[Byte]].get
-      val isSamePropBytes: Boolean = (addrHash == sha256(INPUTS(1).propositionBytes))
+      val addr: SigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs") //  PK(SELF.R8[Coll[Byte]].get)
+      val isSamePropBytes: Boolean = addr.propBytes == INPUTS(1).propositionBytes
       
       isSamePropBytes
     }
