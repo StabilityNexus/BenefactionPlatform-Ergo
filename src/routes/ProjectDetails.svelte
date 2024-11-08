@@ -51,10 +51,19 @@
         submit_amount_label = "tokens";
     }
 
-    function add_tokens() {
+    async function add_tokens() {
         console.log("Adding tokens:", value_submit);
-        rebalance(project, value_submit);
-        show_submit = false;
+        isSubmitting = true;
+
+        try {
+            const result = await rebalance(project, value_submit);
+            transactionId = result;
+            show_submit = false;
+        } catch (error) {
+            errorMessage = error.message || "Error occurred while adding tokens";
+        } finally {
+            isSubmitting = false;
+        }
     }
 
     function setupWithdrawTokens() {
@@ -66,10 +75,19 @@
         submit_amount_label = "tokens";
     }
 
-    function withdraw_tokens() {
+    async function withdraw_tokens() {
         console.log("Withdrawing tokens:", value_submit);
-        rebalance(project, (-1) * value_submit);
-        show_submit = false;
+        isSubmitting = true;
+
+        try {
+            const result = await rebalance(project, (-1) * value_submit);
+            transactionId = result;
+            show_submit = false;
+        } catch (error) {
+            errorMessage = error.message || "Error occurred while withdrawing tokens";
+        } finally {
+            isSubmitting = false;
+        }
     }
 
     function setupWithdrawErg() {
@@ -81,10 +99,19 @@
         submit_amount_label = "ERGs";
     }
 
-    function withdraw_erg() {
+    async function withdraw_erg() {
         console.log("Withdrawing ERGs:", value_submit);
-        withdraw(project, value_submit);
-        show_submit = false;
+        isSubmitting = true;
+
+        try {
+            const result = await withdraw(project, value_submit);
+            transactionId = result;
+            show_submit = false;
+        } catch (error) {
+            errorMessage = error.message || "Error occurred while withdrawing ERGs";
+        } finally {
+            isSubmitting = false;
+        }
     }
 
     // User actions
@@ -99,14 +126,14 @@
 
     async function buy() {
         console.log("Buying tokens:", value_submit);
-
         isSubmitting = true;
 
         try {
             const result = await platform.exchange(project, value_submit);
             transactionId = result;
+            show_submit = false;
         } catch (error) {
-            errorMessage = error.message || "Error occurred while buying some tokens";
+            errorMessage = error.message || "Error occurred while buying tokens";
         } finally {
             isSubmitting = false;
         }
@@ -121,10 +148,19 @@
         submit_amount_label = "tokens";
     }
 
-    function refund() {
+    async function refund() {
         console.log("Refunding tokens:", value_submit);
-        exchange(project, (-1)* value_submit);
-        show_submit = false;
+        isSubmitting = true;
+
+        try {
+            const result = await exchange(project, (-1) * value_submit);
+            transactionId = result;
+            show_submit = false;
+        } catch (error) {
+            errorMessage = error.message || "Error occurred while refunding tokens";
+        } finally {
+            isSubmitting = false;
+        }
     }
 
     // Function to handle sharing the project
