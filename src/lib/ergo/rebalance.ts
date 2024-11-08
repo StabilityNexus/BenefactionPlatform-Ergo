@@ -4,15 +4,11 @@ import {
     TransactionBuilder,
     SLong,
     SInt,
-    SAFE_MIN_BOX_VALUE,
-    SByte,
-    SColl,
-    SConstant,
+    SAFE_MIN_BOX_VALUE
 } from '@fleet-sdk/core';
 
 import { ergo_tree_address } from './envs';
 import { SString } from './utils';
-import { sha256 } from '$lib/common/utils';
 import { type Project } from '../common/project';
 
 // Function to submit a project to the blockchain
@@ -47,7 +43,7 @@ export async function rebalance(
             R5: SLong(BigInt(project.minimum_amount)).toHex(),            // Minimum sold
             R6: SLong(BigInt(project.amount_sold)).toHex(),               // Tokens sold counter
             R7: SLong(BigInt(project.exchange_rate)).toHex(),             // Exchange rate ERG/Token
-            R8: SConstant(SColl(SByte, project.owner)),                   // Withdrawal address (hash of walletPk)
+            R8: SString(project.owner),                   // Withdrawal address (hash of walletPk)
             R9: SString(project.content.raw)                              // Project content
         })
     ];
