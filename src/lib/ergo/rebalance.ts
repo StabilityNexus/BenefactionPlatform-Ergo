@@ -7,9 +7,9 @@ import {
     SAFE_MIN_BOX_VALUE
 } from '@fleet-sdk/core';
 
-import { ergo_tree_address } from './envs';
 import { SString } from './utils';
 import { type Project } from '../common/project';
+import { get_address } from './contract';
 
 // Function to submit a project to the blockchain
 export async function rebalance(
@@ -32,7 +32,7 @@ export async function rebalance(
     let outputs: OutputBuilder[] = [
         new OutputBuilder(
             BigInt(project.value),
-            ergo_tree_address
+            get_address(project.owner)
         )
         .addTokens({
             tokenId: project.token_id,

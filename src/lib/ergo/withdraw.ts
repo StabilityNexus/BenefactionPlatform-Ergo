@@ -6,11 +6,9 @@ import {
     SInt,
     SAFE_MIN_BOX_VALUE
 } from '@fleet-sdk/core';
-import { balance } from '$lib/common/store';
-import { ergo_tree_address } from './envs';
 import { SString } from './utils';
 import { type Project } from '../common/project';
-import { get } from 'svelte/store';
+import { get_address } from './contract';
 
 // Function to submit a project to the blockchain
 export async function withdraw(
@@ -31,7 +29,7 @@ export async function withdraw(
     let outputs: OutputBuilder[] = [];
     const contractOutput = new OutputBuilder(
         BigInt(project.value - amount),
-        ergo_tree_address    // Address of the project contract
+        get_address(project.owner)    // Address of the project contract
     );
 
     const devAddress = "0xabcdefghijklmnñoqrstuvwxyz";

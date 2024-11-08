@@ -6,11 +6,9 @@ import {
     SLong,
     SConstant
 } from '@fleet-sdk/core';
-import { SByte, SColl, SInt } from '@fleet-sdk/serializer';
-import { ergo_tree_address } from './envs';
+import { SInt } from '@fleet-sdk/serializer';
 import { SString } from './utils';
-import { blake2b256 } from "@fleet-sdk/crypto";
-import { sha256 } from '$lib/common/utils';
+import { get_address } from './contract';
 
 // Function to submit a project to the blockchain
 export async function submit_project(
@@ -32,7 +30,7 @@ export async function submit_project(
     let outputs: OutputBuilder[] = [];
     const projectOutput = new OutputBuilder(
         SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-        ergo_tree_address    // Address of the project contract
+        get_address(walletPk)    // Address of the project contract
     );
 
 

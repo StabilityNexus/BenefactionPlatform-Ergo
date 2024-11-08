@@ -4,15 +4,12 @@ import {
     TransactionBuilder,
     SLong,
     SInt,
-    SAFE_MIN_BOX_VALUE,
-    SByte,
-    SColl,
-    SConstant
+    SAFE_MIN_BOX_VALUE
 } from '@fleet-sdk/core';
 
-import { ergo_tree_address } from './envs';
 import { SString } from './utils';
 import { type Project } from '../common/project';
+import { get_address } from './contract';
 
 // Function to submit a project to the blockchain
 export async function exchange(
@@ -35,7 +32,7 @@ export async function exchange(
     let outputs: OutputBuilder[] = [
         new OutputBuilder(
             BigInt(project.value + ergo_amount).toString(),
-            ergo_tree_address    // Address of the project contract
+            get_address(project.owner)    // Address of the project contract
         )
         .addTokens({
             tokenId: project.token_id,
