@@ -37,6 +37,7 @@
     let value_submit = 0;
     let submit_info = "";
     let hide_submit_info = false;
+    let submit_amount_label = "";
 
     $: submit_info = Number(value_submit*project.exchange_rate/1000000000).toString() + "ERGs in total."
 
@@ -47,6 +48,7 @@
         value_submit = 0;
         show_submit = true;
         hide_submit_info = false;
+        submit_amount_label = "tokens";
     }
 
     function add_tokens() {
@@ -61,6 +63,7 @@
         value_submit = 0;
         show_submit = true;
         hide_submit_info = false;
+        submit_amount_label = "tokens";
     }
 
     function withdraw_tokens() {
@@ -75,6 +78,7 @@
         value_submit = 0;
         show_submit = true;
         hide_submit_info = true;
+        submit_amount_label = "ERGs";
     }
 
     function withdraw_erg() {
@@ -89,7 +93,8 @@
         function_submit = buy;
         value_submit = 0;
         show_submit = true;
-        hide_submit_info = true;
+        hide_submit_info = false;
+        submit_amount_label = "tokens";
     }
 
     async function buy() {
@@ -112,7 +117,8 @@
         function_submit = refund;
         value_submit = 0;
         show_submit = true;
-        hide_submit_info = true;
+        hide_submit_info = false;
+        submit_amount_label = "tokens";
     }
 
     function refund() {
@@ -332,9 +338,9 @@
                                 step="1"
                                 style="margin-left: 5px;"
                             />
-                            <span style="margin-left: 15px;">tokens</span>
+                            <span style="margin-left: 15px;">{submit_amount_label}</span>
                         </div>
-                        {#if hide_submit_info}
+                        {#if ! hide_submit_info}
                             <Badge type="primary" rounded>{submit_info}</Badge>
                         {/if}
                         <Button on:click={function_submit} disabled={isSubmitting} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">
