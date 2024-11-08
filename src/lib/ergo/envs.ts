@@ -109,12 +109,17 @@ let contract = `
     isSelfReplication && soldCounterRemainsConstant && canBeRefund && correctExchange
   }
 
-  val projectAddress = OUTPUTS(1)
+  val projectAddr: SigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs") //  PK(SELF.R8[Coll[Byte]].get)
   
   val isToProjectAddress = {
-    val addr: SigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs") //  PK(SELF.R8[Coll[Byte]].get)
-    val isSamePropBytes: Boolean = addr.propBytes == projectAddress.propositionBytes
+    val isSamePropBytes: Boolean = projectAddr.propBytes == OUTPUTS(1).propositionBytes
 
+    isSamePropBytes
+  }
+
+  val isFromProjectAddress = {
+    val isSamePropBytes: Boolean = projectAddr.propBytes == INPUTS(1).propositionBytes
+      
     isSamePropBytes
   }
 
@@ -125,10 +130,10 @@ let contract = `
     val extractedValue: Long = {
       if (INPUTS.size > 1) {
         // In case where the project owners uses multiple boxes
-        projectAddress.value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc: Long, box: Box) => acc + box.value })
+        OUTPUTS(1).value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc: Long, box: Box) => acc + box.value })
       }
       else {
-        projectAddress.value  // TODO not correct
+        OUTPUTS(1).value  // TODO not correct
       }
     }
 
@@ -184,15 +189,6 @@ let contract = `
 
       noAddsMoreTokens && noWithdraw
     }
-
-    val isFromProjectAddress = {
-      val addr: SigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs") //  PK(SELF.R8[Coll[Byte]].get)
-      val isSamePropBytes: Boolean = addr.propBytes == INPUTS(1).propositionBytes
-      
-      isSamePropBytes
-    }
-
-    // TODO: Not working with and without isFromProjectAddress, so needs to check other { soldCounterRemainsConstant && mantainValue && addsCorrectly }
 
     isSelfReplication && soldCounterRemainsConstant && mantainValue && isFromProjectAddress && addsCorrectly
   }
