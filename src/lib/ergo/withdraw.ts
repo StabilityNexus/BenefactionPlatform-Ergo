@@ -3,11 +3,14 @@ import {
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
-    SInt
+    SInt,
+    SAFE_MIN_BOX_VALUE
 } from '@fleet-sdk/core';
+import { balance } from '$lib/common/store';
 import { ergo_tree_address } from './envs';
 import { SString } from './utils';
 import { type Project } from '../common/project';
+import { get } from 'svelte/store';
 
 // Function to submit a project to the blockchain
 export async function withdraw(
@@ -51,12 +54,18 @@ export async function withdraw(
     });
     outputs.push(contractOutput);
 
-   /* const devOutput = new OutputBuilder(
+    outputs.push(
+        new OutputBuilder(
+            SAFE_MIN_BOX_VALUE + BigInt(amount),
+            walletPk
+        )
+    )
+
+    /* const devOutput = new OutputBuilder(
         BigInt(devAmount),
         devAddress
     )
     outputs.push(devOutput); */
-    
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())

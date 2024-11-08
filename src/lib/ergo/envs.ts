@@ -113,7 +113,7 @@ let contract = `
   val projectAddress = OUTPUTS(1)
   
   val isToProjectAddress = {
-    val addr: sigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs") //  PK(SELF.R8[Coll[Byte]].get)
+    val addr: SigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs") //  PK(SELF.R8[Coll[Byte]].get)
     val isSamePropBytes: Boolean = addr.propBytes == projectAddress.propositionBytes
 
     isSamePropBytes
