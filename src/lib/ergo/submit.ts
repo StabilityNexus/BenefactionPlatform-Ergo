@@ -8,6 +8,7 @@ import {
 import { SInt } from '@fleet-sdk/serializer';
 import { SString } from './utils';
 import { get_address } from './contract';
+import { type ConstantContent } from '$lib/common/project';
 
 // Function to submit a project to the blockchain
 export async function submit_project(
@@ -25,13 +26,18 @@ export async function submit_project(
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = await ergo.get_utxos();
 
+    let addressContent: ConstantContent = {
+        "owner": walletPk,
+        "dev": "9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T",
+        "dev_fee": 5
+    };
+
     // Building the project output
     let outputs: OutputBuilder[] = [];
     const projectOutput = new OutputBuilder(
         SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-        get_address(walletPk)    // Address of the project contract
+        get_address(addressContent)    // Address of the project contract
     );
-
 
     if (token_id === null) {
         projectOutput.mintToken({
@@ -43,12 +49,6 @@ export async function submit_project(
             amount: token_amount.toString()
           }, {sum: false})
     }
-
-    const addressContent = JSON.stringify({
-        "owner": walletPk,
-        "dev": "9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T",
-        "fee": 5
-    });
     
     // Set additional registers in the output box
     projectOutput.setAdditionalRegisters({
@@ -56,7 +56,7 @@ export async function submit_project(
        R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
        R6: SLong(BigInt(0)).toHex(),                              // Tokens sold counter
        R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
-       R8: SString(addressContent),                               // Owner address, dev address and dev fee.
+       R8: SString(JSON.stringify(addressContent)),                               // Owner address, dev address and dev fee.
        R9: SString(projectContent)                                // Project content
     });
 

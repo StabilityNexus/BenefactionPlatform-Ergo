@@ -10,7 +10,7 @@ export interface ProjectContent {
 }
 
 export interface ConstantContent {
-    raw: string,
+    raw?: string,
     owner: string
     dev: string,
     dev_fee: number
