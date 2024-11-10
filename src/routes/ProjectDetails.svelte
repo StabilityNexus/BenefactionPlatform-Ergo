@@ -165,7 +165,7 @@
 
     // Function to handle sharing the project
     function shareProject() {
-        console.log("Sharing project link:", project.link);
+        // 
     }
 
     // Function to close the detail page
@@ -197,7 +197,7 @@
 
     let is_owner = false;
     async function checkIfIsOwner() {
-        is_owner = $connected && await $address === project.owner;
+        is_owner = $connected && await $address === project.constants.owner;
     }
     checkIfIsOwner();
 

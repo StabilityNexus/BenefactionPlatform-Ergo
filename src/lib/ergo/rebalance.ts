@@ -32,7 +32,7 @@ export async function rebalance(
     let outputs: OutputBuilder[] = [
         new OutputBuilder(
             BigInt(project.value),
-            get_address(project.owner)
+            get_address(project.constants)
         )
         .addTokens({
             tokenId: project.token_id,
@@ -43,7 +43,7 @@ export async function rebalance(
             R5: SLong(BigInt(project.minimum_amount)).toHex(),            // Minimum sold
             R6: SLong(BigInt(project.amount_sold)).toHex(),               // Tokens sold counter
             R7: SLong(BigInt(project.exchange_rate)).toHex(),             // Exchange rate ERG/Token
-            R8: SString(project.owner),                   // Withdrawal address (hash of walletPk)
+            R8: SString(project.constants.raw),                   // Withdrawal address (hash of walletPk)
             R9: SString(project.content.raw)                              // Project content
         })
     ];

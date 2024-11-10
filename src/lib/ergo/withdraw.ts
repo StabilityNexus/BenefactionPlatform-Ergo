@@ -29,11 +29,11 @@ export async function withdraw(
     let outputs: OutputBuilder[] = [];
     const contractOutput = new OutputBuilder(
         BigInt(project.value - amount),
-        get_address(project.owner)    // Address of the project contract
+        get_address(project.constants)    // Address of the project contract
     );
 
-    const devAddress = "0xabcdefghijklmnñoqrstuvwxyz";
-    const devFeePercentage = 5;
+    const devAddress = project.constants.dev;
+    const devFeePercentage = project.constants.dev_fee;
     let devAmount = amount * devFeePercentage/100;
 
     contractOutput.addTokens({
@@ -47,7 +47,7 @@ export async function withdraw(
         R5: SLong(BigInt(project.minimum_amount)).toHex(),         // Minimum sold
         R6: SLong(BigInt(project.amount_sold)).toHex(),            // Tokens sold counter
         R7: SLong(BigInt(project.exchange_rate)).toHex(),          // Exchange rate ERG/Token
-        R8: SString(project.owner),                // Withdrawal address (hash of walletPk)
+        R8: SString(project.constants.raw),                              // Dev content
         R9: SString(project.content.raw)                           // Project content
     });
     outputs.push(contractOutput);
@@ -59,11 +59,11 @@ export async function withdraw(
         )
     )
 
-    /* const devOutput = new OutputBuilder(
+    const devOutput = new OutputBuilder(
         BigInt(devAmount),
         devAddress
     )
-    outputs.push(devOutput); */
+    outputs.push(devOutput);
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())

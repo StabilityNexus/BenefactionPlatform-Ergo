@@ -44,8 +44,11 @@ export async function submit_project(
           }, {sum: false})
     }
 
-    const devAddress = "0xabcdefghijklmnñoqrstuvwxyz"
-    const devFeePercentage = 5
+    const addressContent = JSON.stringify({
+        "owner": walletPk,
+        "dev": "9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T",
+        "fee": 5
+    });
     
     // Set additional registers in the output box
     projectOutput.setAdditionalRegisters({
@@ -53,8 +56,8 @@ export async function submit_project(
        R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
        R6: SLong(BigInt(0)).toHex(),                              // Tokens sold counter
        R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
-       R8: SString(walletPk),                                     // Withdrawal address (hash of walletPk)
-       R9: SString(projectContent)                                // Link or hash with project info
+       R8: SString(addressContent),                               // Owner address, dev address and dev fee.
+       R9: SString(projectContent)                                // Project content
     });
 
     // Add the project box to the outputs list

@@ -9,6 +9,13 @@ export interface ProjectContent {
     image: string | null
 }
 
+export interface ConstantContent {
+    raw: string,
+    owner: string
+    dev: string,
+    dev_fee: number
+}
+
 export interface Project {
     platform: Platform,
     box: Box<Amount>,
@@ -24,7 +31,7 @@ export interface Project {
     refunded_amount: number,
     exchange_rate: number, 
     content: ProjectContent,
-    owner: string
+    constants: ConstantContent
 }
 
 export async function is_ended(project: Project): Promise<boolean> {
@@ -55,5 +62,15 @@ export function getProjectContent(id: string, value: string): ProjectContent {
             link: null,
             image: null
         };
+    }
+}
+
+export function getConstantContent(value: string): ConstantContent {
+    const parsed = JSON.parse(value);
+    return {
+        raw: value,
+        owner: parsed.owner,
+        dev: parsed.dev,
+        dev_fee: parsed.dev_fee
     }
 }

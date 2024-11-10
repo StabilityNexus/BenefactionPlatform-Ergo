@@ -5,12 +5,14 @@
 * R5     -> The minimum amount of tokens that need to be sold.
 * R6     -> The amount of tokens that have already been sold.
 * R7     -> ERG/Token exchange rate
-* R8     -> Contract owner base58 address
+* R8     -> Contract owner, dev base58 address and dev fee on strig formated JSON.  (only for allow build the contract with constants again)
 * R9     -> Project content (title, description ...) on string formated JSON.
 *
 * Constants
 * owner_addr -> Contract owner base58 address
-*
+* dev_addr   -> Dev base58 address
+* dev_fee    -> % number, ex: 5 for 5% fee.
+* 
 */
 {
   // Validation of the box replication process
@@ -25,17 +27,17 @@
     // The ERG/Token exchange rate must be same
     val sameExchangeRate = SELF.R7[Long].get == OUTPUTS(0).R7[Long].get
 
-    // The project address must remain the same
-    val sameProjectAddress = SELF.R8[Coll[Byte]].get == OUTPUTS(0).R8[Coll[Byte]].get
+    // The constants must be the same
+    val sameConstants = SELF.R8[Coll[Byte]].get == OUTPUTS(0).R8[Coll[Byte]].get
 
-    // The project link must be the same
-    val sameProjectLink = SELF.R9[Coll[Byte]].get == OUTPUTS(0).R9[Coll[Byte]].get
+    // The project content must be the same
+    val sameProjectContent = SELF.R9[Coll[Byte]].get == OUTPUTS(0).R9[Coll[Byte]].get
 
     // The script must be the same to ensure replication
     val sameScript = SELF.propositionBytes == OUTPUTS(0).propositionBytes
 
     // Verify that the output box is a valid copy of the input box
-    sameBlockLimit && sameMinimumSold && sameExchangeRate && sameProjectAddress && sameProjectLink && sameScript
+    sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript
   }
 
   // Validation for purchasing Tokens
@@ -115,7 +117,7 @@
     isSelfReplication && soldCounterRemainsConstant && canBeRefund && correctExchange
   }
 
-  val projectAddr: SigmaProp = PK("`+owner_addr+`") //  owner_addr should be equal to SELF.R8[Coll[Byte]].get
+  val projectAddr: SigmaProp = PK("`+owner_addr+`")
   
   val isToProjectAddress = {
     val isSamePropBytes: Boolean = projectAddr.propBytes == OUTPUTS(1).propositionBytes
@@ -137,19 +139,22 @@
       OUTPUTS(1).value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc: Long, box: Box) => acc + box.value })
     }
 
-    /* val correctDevFee = {
-    // Could be a dev prop bytes: https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
-    val devFee = 5
-    val devAddress = fromBase64("0xabcdefghijklmnñoqrstuvwxyz")
+    val correctDevFee = {
+      // Could be: https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
+      val devFee = `+dev_fee+`
+      val devAddr: SigmaProp = PK("`+dev_addr+`")
 
-    val isToDevAddress = {
-        devAddress == OUTPUTS(2).propositionBytes
+      val isToDevAddress = {
+          val isSamePropBytes: Boolean = devAddr.propBytes == INPUTS(1).propositionBytes
+      }
+
+      val isCorrectDevAmount = {
+        val devAmount = extractedValue * devFee / 100
+        OUTPUTS(2).value == devAmount
+      }
+
+      isCorrectDevAmount && isToDevAddress
     }
-
-    val devAmount = extractedValue * devFee / 100
-
-    devAmount == OUTPUTS(2).value && isToDevAddress
-    } */
 
     // Replicate the contract in case of partial withdraw
     val endOrReplicate = {
@@ -166,7 +171,7 @@
       soldCounter >= minimumSalesThreshold
     }
     
-    endOrReplicate && soldCounterRemainsConstant && minimumReached && isToProjectAddress // && correctDevFee
+    endOrReplicate && soldCounterRemainsConstant && minimumReached && isToProjectAddress && correctDevFee
   }
 
   // Can't withdraw ERG

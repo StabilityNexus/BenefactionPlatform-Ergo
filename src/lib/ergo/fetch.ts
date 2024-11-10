@@ -4,7 +4,7 @@
     https://api.ergoplatform.com/api/v1/docs/#operation/postApiV1BoxesUnspentSearch
 */
 
-import { type Project, getProjectContent } from "../common/project";
+import { type Project, getConstantContent, getProjectContent } from "../common/project";
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
 
@@ -125,7 +125,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                                 token_id.slice(0, 8), 
                                 hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ""
                             ),
-                            owner: hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "",
+                            constants: getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? ""),
                             value: e.value,
                             collected_value: collected_value,
                             current_value: current_value
