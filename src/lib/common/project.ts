@@ -65,12 +65,16 @@ export function getProjectContent(id: string, value: string): ProjectContent {
     }
 }
 
-export function getConstantContent(value: string): ConstantContent {
-    const parsed = JSON.parse(value);
-    return {
-        raw: value,
-        owner: parsed.owner,
-        dev: parsed.dev,
-        dev_fee: parsed.dev_fee
+export function getConstantContent(value: string): ConstantContent | null {
+    try {
+        const parsed = JSON.parse(value);
+        return {
+            raw: value,
+            owner: parsed.owner,
+            dev: parsed.dev,
+            dev_fee: parsed.dev_fee
+        }
+    } catch(error) {
+        return null;
     }
 }
