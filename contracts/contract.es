@@ -1,12 +1,16 @@
 /*
 *
-* Benefaction Platform
+* Registers
 * R4     -> Block limit until allowed withdrawal or refund
 * R5     -> The minimum amount of tokens that need to be sold.
 * R6     -> The amount of tokens that have already been sold.
 * R7     -> ERG/Token exchange rate
-* R8     -> Sha256 of the contract proposition bytes where the funds can be withdrawn
+* R8     -> Contract owner base58 address
 * R9     -> Project content (title, description ...) on string formated JSON.
+*
+* Constants
+* owner_addr -> Contract owner base58 address
+*
 */
 {
   // Validation of the box replication process
@@ -130,13 +134,7 @@
 
     // ERG extracted amount considering that the contract could not be replicated.
     val extractedValue: Long = {
-      if (INPUTS.size > 1) {
-          // In case where the project owners uses multiple boxes
-          OUTPUTS(1).value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc: Long, box: Box) => acc + box.value })
-      }
-      else {
-          OUTPUTS(1).value  // TODO not correct
-      }
+      OUTPUTS(1).value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc: Long, box: Box) => acc + box.value })
     }
 
     /* val correctDevFee = {
