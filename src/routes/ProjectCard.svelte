@@ -26,7 +26,7 @@
 
 <div class="card">
     <div class="card-body">
-        <h3 class="card-title">Project: {project.content.title}</h3>
+        <h3 class="card-title">{project.content.title}</h3>
         <p>{project.content.description.length > 48 ? project.content.description.slice(0, 48) + " ...." : project.content.description}</p>
         <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>ERGs collected:</strong> {project.collected_value/1000000000} ERG</p>
