@@ -6,8 +6,9 @@ import { submit_project } from './submit';
 import { withdraw } from './withdraw';
 import { exchange } from './exchange';
 import { rebalance } from './rebalance';
-import { explorer_uri, ergo_tree_template_hash } from './envs';
+import { explorer_uri } from './envs';
 import { address, connected, network, balance } from "../common/store";
+import { ergo_tree_template_hash } from './contract';
 
 export class ErgoPlatform implements Platform {
 

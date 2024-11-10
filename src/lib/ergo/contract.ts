@@ -221,7 +221,10 @@ export function get_address(constants: ConstantContent) {
     return ergoTree.toAddress(Network.Mainnet).toString();
 }
 
-function get_template_hash() {
-    let contract = generate_contract("", "", 1);  //  Needs a base58 address
-    hex.encode(sha256(compile(contract, {version: 1}).template.toBytes()))
+function get_template_hash(): string {
+  const random_addr = "9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs";
+  let contract = generate_contract(random_addr, random_addr, 5);
+  return hex.encode(sha256(compile(contract, {version: 1}).template.toBytes()))
 }
+
+export const ergo_tree_template_hash = get_template_hash()
