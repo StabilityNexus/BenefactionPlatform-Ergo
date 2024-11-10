@@ -3,8 +3,7 @@ import {
     SAFE_MIN_BOX_VALUE,
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
-    SLong,
-    SConstant
+    SLong
 } from '@fleet-sdk/core';
 import { SInt } from '@fleet-sdk/serializer';
 import { SString } from './utils';
