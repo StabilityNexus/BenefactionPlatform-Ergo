@@ -9,10 +9,9 @@
 * R9     -> Project content (title, description ...) on string formated JSON.
 */
 {
-
   // Validation of the box replication process
   val isSelfReplication = {
-  
+
     // The block limit must be the same
     val sameBlockLimit = SELF.R4[Int].get == OUTPUTS(0).R4[Int].get
 
@@ -55,11 +54,11 @@
 
       // Calculate how much the sold counter is incremented.
       val counterIncrement = {
-        // Obtain the current and the next "tokens sold counter"
-        val selfAlreadySoldCounter = SELF.R6[Long].get
-        val outputAlreadySoldCounter = OUTPUTS(0).R6[Long].get
+          // Obtain the current and the next "tokens sold counter"
+          val selfAlreadySoldCounter = SELF.R6[Long].get
+          val outputAlreadySoldCounter = OUTPUTS(0).R6[Long].get
 
-        outputAlreadySoldCounter - selfAlreadySoldCounter
+          outputAlreadySoldCounter - selfAlreadySoldCounter
       }
 
       // Calculate the extracted number of tokens from the contract
@@ -78,46 +77,51 @@
 
     // > People should be allowed to exchange tokens for ERGs if and only if the deadline has passed and the minimum number of tokens has not been sold.
     val canBeRefund = {
-      // The minimum number of tokens has not been sold.
-      val minimumNotReached = {
+    // The minimum number of tokens has not been sold.
+    val minimumNotReached = {
         val minimumSalesThreshold = SELF.R5[Long].get
         val soldCounter = SELF.R6[Long].get
 
         soldCounter < minimumSalesThreshold
-      }
+    }
 
-      // Condition to check if the current height is beyond the block limit
-      val afterBlockLimit = HEIGHT > SELF.R4[Int].get
-      
-      afterBlockLimit && minimumNotReached
+    // Condition to check if the current height is beyond the block limit
+    val afterBlockLimit = HEIGHT > SELF.R4[Int].get
+    
+    afterBlockLimit && minimumNotReached
     }
 
     // Verify if the ERG amount matches the required exchange rate for the returned token quantity
     val correctExchange = {
-      // Calculate the value returned from the contract to the user
-      val retiredValueFromTheContract = SELF.value - OUTPUTS(0).value
+    // Calculate the value returned from the contract to the user
+    val retiredValueFromTheContract = SELF.value - OUTPUTS(0).value
 
-      // Calculate the value of the tokens added on the contract by the user
-      val addedTokensValue = {
+    // Calculate the value of the tokens added on the contract by the user
+    val addedTokensValue = {
         // Calculate the amount of tokens that the user adds to the contract.
         val addedTokensOnTheContract = OUTPUTS(0).tokens(0)._2 - SELF.tokens(0)._2
 
         addedTokensOnTheContract * SELF.R7[Long].get
-      }
+    }
 
-      retiredValueFromTheContract == addedTokensValue && OUTPUTS(0).tokens(0)._1 == SELF.tokens(0)._1
+    retiredValueFromTheContract == addedTokensValue && OUTPUTS(0).tokens(0)._1 == SELF.tokens(0)._1
     }
 
     // The contract returns the equivalent ERG value for the returned tokens
     isSelfReplication && soldCounterRemainsConstant && canBeRefund && correctExchange
   }
 
-  val projectAddress = OUTPUTS(1)
+  val projectAddr: SigmaProp = PK("`+owner_addr+`") //  owner_addr should be equal to SELF.R8[Coll[Byte]].get
   
   val isToProjectAddress = {
-    val addr: SigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs") //  PK(SELF.R8[Coll[Byte]].get)
-    val isSamePropBytes: Boolean = addr.propBytes == projectAddress.propositionBytes
+    val isSamePropBytes: Boolean = projectAddr.propBytes == OUTPUTS(1).propositionBytes
 
+    isSamePropBytes
+  }
+
+  val isFromProjectAddress = {
+    val isSamePropBytes: Boolean = projectAddr.propBytes == INPUTS(1).propositionBytes
+    
     isSamePropBytes
   }
 
@@ -127,26 +131,26 @@
     // ERG extracted amount considering that the contract could not be replicated.
     val extractedValue: Long = {
       if (INPUTS.size > 1) {
-        // In case where the project owners uses multiple boxes
-        projectAddress.value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc: Long, box: Box) => acc + box.value })
+          // In case where the project owners uses multiple boxes
+          OUTPUTS(1).value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc: Long, box: Box) => acc + box.value })
       }
       else {
-        projectAddress.value  // TODO not correct
+          OUTPUTS(1).value  // TODO not correct
       }
     }
 
     /* val correctDevFee = {
-      // Could be a dev prop bytes: https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
-      val devFee = 5
-      val devAddress = fromBase64("0xabcdefghijklmnñoqrstuvwxyz")
+    // Could be a dev prop bytes: https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
+    val devFee = 5
+    val devAddress = fromBase64("0xabcdefghijklmnñoqrstuvwxyz")
 
-       val isToDevAddress = {
+    val isToDevAddress = {
         devAddress == OUTPUTS(2).propositionBytes
-      }
+    }
 
-      val devAmount = extractedValue * devFee / 100
+    val devAmount = extractedValue * devFee / 100
 
-      devAmount == OUTPUTS(2).value && isToDevAddress
+    devAmount == OUTPUTS(2).value && isToDevAddress
     } */
 
     // Replicate the contract in case of partial withdraw
@@ -187,15 +191,6 @@
 
       noAddsMoreTokens && noWithdraw
     }
-
-    val isFromProjectAddress = {
-      val addr: SigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs") //  PK(SELF.R8[Coll[Byte]].get)
-      val isSamePropBytes: Boolean = addr.propBytes == INPUTS(1).propositionBytes
-      
-      isSamePropBytes
-    }
-
-    // TODO: Not working with and without isFromProjectAddress, so needs to check other { soldCounterRemainsConstant && mantainValue && addsCorrectly }
 
     isSelfReplication && soldCounterRemainsConstant && mantainValue && isFromProjectAddress && addsCorrectly
   }
