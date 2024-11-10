@@ -146,6 +146,8 @@
 
       val isToDevAddress = {
           val isSamePropBytes: Boolean = devAddr.propBytes == INPUTS(1).propositionBytes
+          
+          isSamePropBytes
       }
 
       val isCorrectDevAmount = {

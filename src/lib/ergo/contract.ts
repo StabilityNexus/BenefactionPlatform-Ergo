@@ -154,6 +154,8 @@ export function generate_contract(owner_addr: string, dev_addr: string, dev_fee:
 
       val isToDevAddress = {
           val isSamePropBytes: Boolean = devAddr.propBytes == INPUTS(1).propositionBytes
+          
+          isSamePropBytes
       }
 
       val isCorrectDevAmount = {
