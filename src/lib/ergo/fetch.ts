@@ -96,7 +96,6 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                         let ergs_refunded = collected_value - current_value;
                         let refunded_amount = ergs_refunded / exchange_rate;
                         
-                        console.log(e)
                         projects.set(token_id, {
                             platform: new ErgoPlatform(),
                             box: {
