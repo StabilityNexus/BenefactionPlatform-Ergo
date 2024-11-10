@@ -261,7 +261,7 @@
         <p><strong>Current ERG balance:</strong> {project.current_value/1000000000} ERG</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
-        <p><strong>Owner hash:</strong> {project.owner.slice(0, 15)}</p>
+        <p><strong>Owner:</strong> {project.owner.slice(0, 15)}</p>
 
         <!-- Action Buttons -->
         <div class="actions">
