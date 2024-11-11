@@ -1,11 +1,10 @@
 <script lang="ts">
     import { type Project, is_ended, min_raised } from "$lib/common/project";
-    import { sha256 } from "$lib/common/utils";
     import { exchange } from "$lib/ergo/exchange";
     import { withdraw } from "$lib/ergo/withdraw";
     import { rebalance } from "$lib/ergo/rebalance";
     import { address, connected, project_detail } from "$lib/common/store";
-    import { Button, Progress, NumberInput, Badge } from "spaper";
+    import { Button, Progress, Badge } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { web_explorer_uri } from '$lib/ergo/envs';
@@ -58,7 +57,6 @@
         try {
             const result = await rebalance(project, value_submit);
             transactionId = result;
-            show_submit = false;
         } catch (error) {
             errorMessage = error.message || "Error occurred while adding tokens";
         } finally {
@@ -82,7 +80,6 @@
         try {
             const result = await rebalance(project, (-1) * value_submit);
             transactionId = result;
-            show_submit = false;
         } catch (error) {
             errorMessage = error.message || "Error occurred while withdrawing tokens";
         } finally {
@@ -106,7 +103,6 @@
         try {
             const result = await withdraw(project, value_submit);
             transactionId = result;
-            show_submit = false;
         } catch (error) {
             errorMessage = error.message || "Error occurred while withdrawing ERGs";
         } finally {
@@ -131,7 +127,6 @@
         try {
             const result = await platform.exchange(project, value_submit);
             transactionId = result;
-            show_submit = false;
         } catch (error) {
             errorMessage = error.message || "Error occurred while buying tokens";
         } finally {
@@ -155,7 +150,6 @@
         try {
             const result = await exchange(project, (-1) * value_submit);
             transactionId = result;
-            show_submit = false;
         } catch (error) {
             errorMessage = error.message || "Error occurred while refunding tokens";
         } finally {
@@ -261,7 +255,7 @@
         <p><strong>Current ERG balance:</strong> {project.current_value/1000000000} ERG</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
-        <p><strong>Owner:</strong> {project.owner.slice(0, 15)}</p>
+        <p><strong>Owner:</strong> {project.constants.owner.slice(0, 15)}</p>
 
         <!-- Action Buttons -->
         <div class="actions">
