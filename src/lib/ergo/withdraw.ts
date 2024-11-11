@@ -47,7 +47,7 @@ export async function withdraw(
         R5: SLong(BigInt(project.minimum_amount)).toHex(),         // Minimum sold
         R6: SLong(BigInt(project.amount_sold)).toHex(),            // Tokens sold counter
         R7: SLong(BigInt(project.exchange_rate)).toHex(),          // Exchange rate ERG/Token
-        R8: SString(project.constants.raw),                              // Dev content
+        R8: SString(project.constants.raw ?? ""),                              // Dev content
         R9: SString(project.content.raw)                           // Project content
     });
     outputs.push(contractOutput);
