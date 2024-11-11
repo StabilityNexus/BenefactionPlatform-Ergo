@@ -140,19 +140,21 @@
     }
 
     val correctDevFee = {
+      val OUT = OUTPUTS(2)
+
       // Could be: https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
       val devFee = `+dev_fee+`
       val devAddr: SigmaProp = PK("`+dev_addr+`")
 
       val isToDevAddress = {
-          val isSamePropBytes: Boolean = devAddr.propBytes == INPUTS(1).propositionBytes
+          val isSamePropBytes: Boolean = devAddr.propBytes == OUT.propositionBytes
           
           isSamePropBytes
       }
 
       val isCorrectDevAmount = {
         val devAmount = extractedValue * devFee / 100
-        OUTPUTS(2).value == devAmount
+        OUT.value == devAmount
       }
 
       isCorrectDevAmount && isToDevAddress
