@@ -250,7 +250,7 @@
         <p><strong>Current Amount:</strong> {project.current_amount} tokens</p>
         <p><strong>Tokens sold:</strong> {project.amount_sold} tokens</p>
         <p><strong>Tokens refunded:</strong> {project.refunded_amount} tokens</p>
-        <p><strong>Exchange Rate:</strong> {project.exchange_rate/1000000000} ERG/tokens</p>
+        <p><strong>Exchange Rate:</strong> {project.exchange_rate/1000000000} ERGs/token</p>
        <!-- <p><strong>ERGs collected (included refuned or withdraw):</strong> {project.collected_value/1000000000} ERG</p>  -->
         <p><strong>Current ERG balance:</strong> {project.current_value/1000000000} ERG</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
