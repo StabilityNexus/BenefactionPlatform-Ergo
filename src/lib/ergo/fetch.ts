@@ -4,6 +4,7 @@
     https://api.ergoplatform.com/api/v1/docs/#operation/postApiV1BoxesUnspentSearch
 */
 
+import { SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
 import { type Project, getConstantContent, getProjectContent } from "../common/project";
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
@@ -86,15 +87,15 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                 for (const e of json_data.items) {
                     if (hasValidSigmaTypes(e.additionalRegisters)) {
                         let token_id = e.assets[0].tokenId;
-                        let amount_sold = parseInt(e.additionalRegisters.R6.renderedValue);
+                        let token_amount_sold = parseInt(e.additionalRegisters.R6.renderedValue);
                         let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
-                        let current_amount = e.assets[0].amount;
-                        let current_value = e.value - 1000000;
+                        let current_token_amount = e.assets[0].amount;
+                        let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
 
                         // Refunded amount
-                        let collected_value = (amount_sold * exchange_rate) - 1000000;
-                        let ergs_refunded = collected_value - current_value;
-                        let refunded_amount = ergs_refunded / exchange_rate;
+                        let collected_value = (token_amount_sold * exchange_rate);
+                        let ergs_refunded = collected_value - current_erg_value;
+                        let refunded_token_amount = ergs_refunded / exchange_rate;
 
                         const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "")
                         if (constants == null) { continue; }
@@ -119,10 +120,10 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                             token_id: e.assets[0].tokenId,
                             block_limit: parseInt(e.additionalRegisters.R4.renderedValue),
                             minimum_amount: parseInt(e.additionalRegisters.R5.renderedValue),
-                            total_amount: current_amount + amount_sold - refunded_amount,
-                            current_amount: current_amount,
-                            refunded_amount: refunded_amount,
-                            amount_sold: amount_sold,
+                            total_amount: current_token_amount + token_amount_sold - refunded_token_amount,
+                            current_amount: current_token_amount,
+                            refunded_amount: refunded_token_amount,
+                            amount_sold: token_amount_sold,
                             exchange_rate: exchange_rate,
                             content: getProjectContent(
                                 token_id.slice(0, 8), 
@@ -130,8 +131,8 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                             ),
                             constants: constants,
                             value: e.value,
-                            collected_value: collected_value,
-                            current_value: current_value
+                            collected_value: collected_value  - Number(SAFE_MIN_BOX_VALUE),
+                            current_value: current_erg_value
                         })
                     }
                 }                
