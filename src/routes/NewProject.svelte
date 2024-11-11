@@ -49,8 +49,8 @@
         transactionId = null;
 
         let target_date = new Date();
-        // target_date.setDate(target_date.getDate() + daysLimit);
-        target_date.setTime(target_date.getTime() + 10 * 60 * 1000);
+        target_date.setDate(target_date.getDate() + daysLimit);
+        // target_date.setTime(target_date.getTime() + 10 * 60 * 1000);
         let blockLimit = await time_to_block(target_date.getTime(), platform);
 
         let maxValueNano = maxValue * 1000000000;
