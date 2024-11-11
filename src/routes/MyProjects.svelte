@@ -4,7 +4,7 @@
     import { sha256 } from "$lib/common/utils";
     import ProjectList from "./ProjectList.svelte";
 
-    const filter = async (project: Project) => project.constants.owner == await sha256($address ?? "")
+    const filter = async (project: Project) => project.constants.owner == $address
 </script>
 <ProjectList filterProject={filter}>
     My Projects
