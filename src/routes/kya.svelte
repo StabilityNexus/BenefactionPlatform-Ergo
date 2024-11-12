@@ -43,9 +43,11 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<Button type="primary" size="small" on:click={() => (showModal = true)}>
-    KYA
-</Button>
+<!-- svelte-ignore a11y-click-events-have-key-events -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
+<span style="color: gray; cursor: pointer;" on:click={() => (showModal = true)}>
+  KYA
+</span>
 
 {#if showModal}
 <div class="modal" class:active={showModal}>
@@ -100,19 +102,19 @@
 {/if}
 
 <style>
-    .modal.active {
-        opacity: 1;
-        visibility: visible;
-    }
+  .modal.active {
+      opacity: 1;
+      visibility: visible;
+  }
 
-    .modal-body {
-        top: 50%;
-        max-width: 800;
-        width: 40%;
-        margin: auto;
-        background-color: white;
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
+  .modal-body {
+      top: 50%;
+      max-width: 800;
+      width: 40%;
+      margin: auto;
+      background-color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
 </style>
