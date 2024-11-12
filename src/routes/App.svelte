@@ -12,6 +12,7 @@
     import { loadProjectById } from '$lib/common/load_by_id';
     import { page } from '$app/stores';
     import { type Project } from '$lib/common/project';
+    import Kya from './kya.svelte';
 
 
     let activeTab = 'acquireTokens'; // Default tab is "My Donations"
@@ -139,6 +140,10 @@
     {:else}
         <ProjectDetails />
     {/if}
+
+    <div class="bottom">
+        <Kya />
+    </div>
 </div>
 
 <style>
@@ -161,4 +166,16 @@
         font-size: 0.8em;
         z-index: 1000;
     }
+
+    .bottom {
+        position: fixed;       /* Keeps the element fixed on the screen */
+        bottom: 20px;          /* Adds some space from the bottom */
+        left: 10px;            /* Adds a little space from the left */
+        width: 150px;          /* Sets a smaller width for the bar */
+        height: 40px;          /* Sets a smaller height for the bar */
+        text-align: center;    /* Centers the text inside the bar */
+        padding: 5px;          /* Adds a smaller padding */
+        border-radius: 8px;    /* Adds rounded corners */
+    }
+
 </style>
