@@ -1,7 +1,8 @@
 <script lang="ts">
     import { time_to_block } from '$lib/common/countdown';
-    import { web_explorer_uri } from '$lib/ergo/envs';
+    import { explorer_uri, web_explorer_uri } from '$lib/ergo/envs';
     import { ErgoPlatform } from '$lib/ergo/platform';
+    import { json } from '@sveltejs/kit';
     import { Button, NumberInput } from 'spaper';
 
     let platform = new ErgoPlatform();
@@ -92,16 +93,38 @@
     }
     getCurrentHeight();
 
+    async function getTokenName(id: string) {
+        let params = {
+            offset: 0,
+            limit: 500,
+        };
+
+        const url = explorer_uri+'/api/v1/tokens/'+id;
+            const response = await fetch(url, {
+                method: 'GET',
+            });
+
+            if (response.ok) {
+                let json_data = await response.json();
+                if (json_data['name'] !== null){
+                    return json_data['name'];
+                }
+            }
+            return id.slice(0, 6) + id.slice(-4);
+    }
+
     async function getUserTokens() {
         try {
             const tokens = await platform.get_balance();
-            user_tokens = Array.from(tokens.entries())
-                .filter(([tokenId, _]) => tokenId !== "ERG")
-                .map(([tokenId, balance]) => ({
-                    tokenId: tokenId,
-                    title: tokenId.slice(0, 6) + tokenId.slice(-4),
-                    balance: balance,
-                }));
+            user_tokens = await Promise.all(
+                Array.from(tokens.entries())
+                    .filter(([tokenId, _]) => tokenId !== "ERG")
+                    .map(async ([tokenId, balance]) => ({
+                        tokenId: tokenId,
+                        title: await getTokenName(tokenId),
+                        balance: balance,
+                    }))
+            );
         } catch (error) {
             console.error("Error fetching user tokens:", error);
         }
