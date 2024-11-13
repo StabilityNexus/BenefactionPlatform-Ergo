@@ -62,16 +62,15 @@
       <p>This website is an open-source UI for interacting with the Ergo blockchain. It directly interfaces with smart contracts on the Ergo blockchain, enabling project owners to raise funds for their initiatives and allowing users to contribute to these projects.</p>
       <p><strong>Please note:</strong></p>
       <ul>
-        <li>In the case of a successful project, meaning the minimum funding threshold has been met, there is no guarantee that the project developers will fulfill their stated goals. This website is solely a tool to connect projects with contributors.</li>
+        <li>In the case of a successful project, meaning the minimum funding threshold has been met, there is no guarantee that the project owners will fulfill their stated goals. This website is solely a tool to connect projects with contributors.</li>
         <li>A contribution can only be refunded if both of the following conditions are met:
           <ul>
             <li>The set deadline has passed.</li>
             <li>The fundraising target has not been reached.</li>
           </ul>
         </li>
-        <li>Project funds can only be withdrawn by the project team if both of the following conditions are met:
+        <li>Project funds can only be withdrawn by the project owners if the following condition is met:
           <ul>
-            <li>The set deadline has passed.</li>
             <li>The fundraising target has been reached.</li>
           </ul>
         </li>
@@ -80,7 +79,7 @@
       <ul>
         <li>This website does not log, collect, profile, share, or sell your data.</li>
         <li>Bene Fundraising Platform operates on a blockchain. Therefore, transactions are final and irreversible once they achieve "confirmed" status.</li>
-        <li>All transactions are viewable through Ergo's Explorer.</li>
+        <li>All transactions are viewable through Ergo's Explorers.</li>
       </ul>
       <p>There is no guarantee against bugs or errors.</p>
       <p>No assistance can be provided if a user is hacked or loses access to their passwords, recovery phrases, private keys, or assets.</p>
