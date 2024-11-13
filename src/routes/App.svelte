@@ -15,7 +15,7 @@
     import Kya from './kya.svelte';
 
 
-    let activeTab = 'acquireTokens'; // Default tab is "My Donations"
+    let activeTab = 'acquireTokens';
     let showMessage = false;
 
     let platform = new ErgoPlatform();
@@ -61,7 +61,7 @@
             console.error("Error fetching current height:", error);
         }
     }
-    getCurrentHeight();
+    $: if ($connected) getCurrentHeight();
 
     async function changeUrl(project: Project|null)
     {

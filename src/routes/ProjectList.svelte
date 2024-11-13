@@ -3,6 +3,7 @@
     import ProjectCard from './ProjectCard.svelte';
     import {type Project } from '$lib/common/project';
     import { ErgoPlatform } from '$lib/ergo/platform';
+    import { connected } from '$lib/common/store';
 
     let platform = new ErgoPlatform();
 
@@ -52,10 +53,8 @@
         }
     }
 
-    // Fetch the projects when the component is mounted
-    onMount(() => {
-        loadProjects();
-    });
+    // Fetch the projects when the component is mounted and $connected is true.
+    $: if ($connected) loadProjects();
 </script>
 
 <div class="container">
