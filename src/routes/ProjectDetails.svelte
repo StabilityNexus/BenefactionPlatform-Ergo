@@ -47,7 +47,7 @@
         value_submit = 0;
         show_submit = true;
         hide_submit_info = false;
-        submit_amount_label = "tokens";
+        submit_amount_label = project.token_details.name
     }
 
     async function add_tokens() {
@@ -70,7 +70,7 @@
         value_submit = 0;
         show_submit = true;
         hide_submit_info = false;
-        submit_amount_label = "tokens";
+        submit_amount_label = project.token_details.name
     }
 
     async function withdraw_tokens() {
@@ -117,7 +117,7 @@
         value_submit = 0;
         show_submit = true;
         hide_submit_info = false;
-        submit_amount_label = "tokens";
+        submit_amount_label = project.token_details.name
     }
 
     async function buy() {
@@ -140,7 +140,7 @@
         value_submit = 0;
         show_submit = true;
         hide_submit_info = false;
-        submit_amount_label = "tokens";
+        submit_amount_label = project.token_details.name
     }
 
     async function refund() {
@@ -249,10 +249,10 @@
         <p>{project.content.description.length > 300 ? project.content.description.slice(0, 300) + "..." : project.content.description}</p>
         <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>Block Limit:</strong> {project.block_limit}</p>
-        <p><strong>Current Amount:</strong> {project.current_amount} tokens</p>
-        <p><strong>Tokens sold:</strong> {project.amount_sold} tokens</p>
-        <p><strong>Tokens refunded:</strong> {project.refunded_amount} tokens</p>
-        <p><strong>Exchange Rate:</strong> {project.exchange_rate/1000000000} ERGs/token</p>
+        <p><strong>Current Amount:</strong> {project.current_amount} {project.token_details.name}</p>
+        <p><strong>Tokens sold:</strong> {project.amount_sold} {project.token_details.name}</p>
+        <p><strong>Tokens refunded:</strong> {project.refunded_amount} {project.token_details.name}</p>
+        <p><strong>Exchange Rate:</strong> {project.exchange_rate/1000000000} ERGs/{project.token_details.name}</p>
        <!-- <p><strong>ERGs collected (included refuned or withdraw):</strong> {project.collected_value/1000000000} ERG</p>  -->
         <p><strong>Current ERG balance:</strong> {project.current_value/1000000000} ERG</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>

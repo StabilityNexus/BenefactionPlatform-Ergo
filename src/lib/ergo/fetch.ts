@@ -5,9 +5,10 @@
 */
 
 import { SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
-import { type Project, getConstantContent, getProjectContent } from "../common/project";
+import { type Project, type TokenEIP4, getConstantContent, getProjectContent } from "../common/project";
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
+import { explorer_uri } from "./envs";
 
 type RegisterValue = {
     renderedValue: string;
@@ -48,6 +49,32 @@ function hasValidSigmaTypes(additionalRegisters: any): boolean {
         }
     }
     return true;
+}
+
+
+async function fetch_token_details(id: string): Promise<TokenEIP4> {
+    const url = explorer_uri+'/api/v1/tokens/'+id;
+        const response = await fetch(url, {
+            method: 'GET',
+        });
+
+        try{
+            if (response.ok) {
+                let json_data = await response.json();
+                if (json_data['type'] == 'EIP-004') {
+                    return {
+                        "name": json_data['name'],
+                        "description": json_data['description'],
+                        "decimals": json_data['decimals']
+                    }
+                }
+            }
+        } catch {}
+        return {
+            'name': 'tokens',
+            'description': "",
+            'decimals': 0
+        };
 }
 
 export async function fetch_projects(explorer_uri: string, ergo_tree_template_hash: string, ergo: any): Promise<Map<string, Project>> {
@@ -132,7 +159,8 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                             constants: constants,
                             value: e.value,
                             collected_value: collected_value  - Number(SAFE_MIN_BOX_VALUE),
-                            current_value: current_erg_value
+                            current_value: current_erg_value,
+                            token_details: await fetch_token_details(e.assets[0].tokenId)
                         })
                     }
                 }                

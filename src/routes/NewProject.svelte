@@ -81,9 +81,6 @@
             link: projectLink
         });
 
-        console.log(tokenAmountRaw);
-        console.log(exchangeRateRaw)
-
         try {
             const result = await platform.submit(
                 tokenId, 
@@ -134,6 +131,7 @@
 
             if (response.ok) {
                 let json_data = await response.json();
+                console.log(json_data)
                 if (json_data['decimals'] !== null){
                     return json_data['decimals'];
                 }

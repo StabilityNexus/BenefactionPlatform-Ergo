@@ -1,6 +1,12 @@
 import { type Platform } from "./platform";
 import type { Amount, Box } from "@fleet-sdk/core";
 
+export interface TokenEIP4 {
+    name: string,
+    description: string,
+    decimals: number
+}
+
 export interface ProjectContent {
     raw: string,
     title: string,
@@ -30,6 +36,7 @@ export interface Project {
     current_amount: number,
     refunded_amount: number,
     exchange_rate: number, 
+    token_details: TokenEIP4,
     content: ProjectContent,
     constants: ConstantContent
 }
