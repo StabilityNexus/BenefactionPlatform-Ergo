@@ -17,6 +17,8 @@ export async function exchange(
     token_amount: number
 ): Promise<string|null> {
 
+    token_amount = token_amount * Math.pow(10, project.token_details.decimals);
+
     let ergo_amount = token_amount * project.exchange_rate
 
     // Get the wallet address (will be the user address)

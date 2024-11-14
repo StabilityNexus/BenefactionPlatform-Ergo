@@ -16,7 +16,8 @@ export async function withdraw(
     amount: number
 ): Promise<string|null> {
     
-    amount = amount * 1000000000
+    amount = amount * Math.pow(10, 9);
+    
     console.log("wants withdraw ", amount)
 
     // Get the wallet address (will be the project address)
