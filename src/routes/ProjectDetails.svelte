@@ -4,7 +4,7 @@
     import { withdraw } from "$lib/ergo/withdraw";
     import { rebalance } from "$lib/ergo/rebalance";
     import { address, connected, project_detail } from "$lib/common/store";
-    import { Button, Progress, Badge } from "spaper";
+    import { Button, Progress, Badge, Hero } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { web_explorer_uri } from '$lib/ergo/envs';
@@ -232,6 +232,8 @@
     }
 
     var countdownInterval = setInterval(updateCountdown, 1000);
+
+    alert("It is still necessary to implement the use of decimals of the token on this page.")
 
 </script>
 
