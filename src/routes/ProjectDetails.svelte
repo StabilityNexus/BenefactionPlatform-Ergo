@@ -249,12 +249,12 @@
         <p>{project.content.description.length > 300 ? project.content.description.slice(0, 300) + "..." : project.content.description}</p>
         <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>Block Limit:</strong> {project.block_limit}</p>
-        <p><strong>Current Amount:</strong> {project.current_amount} {project.token_details.name}</p>
-        <p><strong>Tokens sold:</strong> {project.amount_sold} {project.token_details.name}</p>
-        <p><strong>Tokens refunded:</strong> {project.refunded_amount} {project.token_details.name}</p>
-        <p><strong>Exchange Rate:</strong> {project.exchange_rate/1000000000} ERGs/{project.token_details.name}</p>
+        <p><strong>Current Amount:</strong> {project.current_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
+        <p><strong>Tokens sold:</strong> {project.amount_sold / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
+        <p><strong>Tokens refunded:</strong> {project.refunded_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
+        <p><strong>Exchange Rate:</strong> {project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)} ERGs/{project.token_details.name}</p>
        <!-- <p><strong>ERGs collected (included refuned or withdraw):</strong> {project.collected_value/1000000000} ERG</p>  -->
-        <p><strong>Current ERG balance:</strong> {project.current_value/1000000000} ERG</p>
+        <p><strong>Current ERG balance:</strong> {project.current_value  / Math.pow(10, 9)} ERG</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
         <p><strong>Owner:</strong> {project.constants.owner.slice(0, 15)}</p>
@@ -331,9 +331,9 @@
         </div>
         
         <div style="display: flex; justify-content: space-between; color: white;">
-            <span style="flex: 1; text-align: left;">Minimum Amount: {min}</span>
-            <span style="flex: 1; text-align: center;">Current Amount Sold: {currentVal}</span>
-            <span style="flex: 1; text-align: right;">Maximum Amount: {max}</span>
+            <span style="flex: 1; text-align: left;">Minimum Amount: {min  / Math.pow(10, project.token_details.decimals)}</span>
+            <span style="flex: 1; text-align: center;">Current Amount Sold: {currentVal / Math.pow(10, project.token_details.decimals)}</span>
+            <span style="flex: 1; text-align: right;">Maximum Amount: {max / Math.pow(10, project.token_details.decimals)}</span>
         </div>
 
         <!-- Input field and submit button for actions -->
