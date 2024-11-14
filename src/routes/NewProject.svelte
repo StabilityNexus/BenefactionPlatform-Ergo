@@ -2,18 +2,24 @@
     import { time_to_block } from '$lib/common/countdown';
     import { explorer_uri, web_explorer_uri } from '$lib/ergo/envs';
     import { ErgoPlatform } from '$lib/ergo/platform';
-    import { json } from '@sveltejs/kit';
     import { Button, NumberInput } from 'spaper';
 
     let platform = new ErgoPlatform();
 
-    let token_id: string;
-    let token_amount: number = 1000;
+    let tokenId: string;
+    let tokenDecimals: number = 0;
+
+    let tokenAmountRaw: number = 1;
+    let tokenAmountPrecise: number = 1;
+    let maxTokenAmountRaw: number = 1;
+    
     let daysLimit: number = 5;
-    let exchangeRate: number; // Este sigue siendo en nanoERGs internamente
-    let exchangeRateERG: number; // Nuevo campo para mostrar en ERGs
-    let maxValue: number = 0;
-    let minValue: number = 0;
+    
+    let exchangeRateRaw: number;
+    let exchangeRatePrecise: number;
+    
+    let maxValuePrecise: number = 0;
+    let minValuePrecise: number = 0;
 
     let projectTitle: string = "";
     let projectDescription: string = "";
@@ -24,23 +30,33 @@
     let errorMessage: string | null = null;
     let isSubmitting: boolean = false;
 
-    let current_height: number | null = null;
-    let user_tokens: Array<{ tokenId: string, title: string, balance: number }> = [];
+    let currentHeight: number | null = null;
+    let userTokens: Array<{ tokenId: string, title: string, balance: number, decimals: number }> = [];
 
-    // Actualiza exchangeRate (nanoERGs) y exchangeRateERG cuando cambia maxValue o token_amount
+    $: tokenDecimals = userTokens.find(t => t.tokenId === tokenId)?.decimals || 0;
+
     $: {
-        if (maxValue && token_amount) {
-            exchangeRate = (maxValue * 1000000000) / token_amount;
-            exchangeRateERG = exchangeRate / 1000000000;
+        const token = userTokens.find(t => t.tokenId === tokenId);
+        maxTokenAmountRaw = token ? Number(token.balance) / Math.pow(10, token.decimals) : 0;
+    }
+
+    $: {
+        tokenAmountRaw = tokenAmountPrecise * Math.pow(10, tokenDecimals);
+    }
+
+    $: {
+        exchangeRateRaw = exchangeRatePrecise * Math.pow(10, 9-tokenDecimals);
+    }
+
+    function updateExchangeRate() {
+        if (maxValuePrecise && tokenAmountPrecise) {
+            exchangeRatePrecise = maxValuePrecise / tokenAmountPrecise
         }
     }
     
-    // Actualiza maxValue cuando cambia exchangeRateERG
     function updateMaxValue() {
-        if (exchangeRateERG && token_amount) {
-            // Convertimos ERG a nanoERG para los cálculos internos
-            exchangeRate = exchangeRateERG * 1000000000;
-            maxValue = (exchangeRate * token_amount) / 1000000000;
+        if (tokenAmountPrecise && exchangeRatePrecise) {
+            maxValuePrecise = exchangeRatePrecise * tokenAmountPrecise;
         }
     }
 
@@ -54,10 +70,9 @@
         // target_date.setTime(target_date.getTime() + 10 * 60 * 1000);
         let blockLimit = await time_to_block(target_date.getTime(), platform);
 
-        let maxValueNano = maxValue * 1000000000;
-        let minValueNano = minValue * 1000000000;
+        let minValueNano = minValuePrecise * 1000000000;
 
-        let minimumTokenSold = minValueNano / exchangeRate;
+        let minimumTokenSold = minValueNano / exchangeRateRaw;
 
         let projectContent = JSON.stringify({
             title: projectTitle,
@@ -66,12 +81,15 @@
             link: projectLink
         });
 
+        console.log(tokenAmountRaw);
+        console.log(exchangeRateRaw)
+
         try {
             const result = await platform.submit(
-                token_id, 
-                token_amount, 
+                tokenId, 
+                tokenAmountRaw, 
                 blockLimit, 
-                exchangeRate,
+                exchangeRateRaw,
                 projectContent, 
                 minimumTokenSold
             );
@@ -86,7 +104,7 @@
 
     async function getCurrentHeight() {
         try {
-            current_height = await platform.get_current_height();
+            currentHeight = await platform.get_current_height();
         } catch (error) {
             console.error("Error fetching current height:", error);
         }
@@ -94,11 +112,6 @@
     getCurrentHeight();
 
     async function getTokenName(id: string) {
-        let params = {
-            offset: 0,
-            limit: 500,
-        };
-
         const url = explorer_uri+'/api/v1/tokens/'+id;
             const response = await fetch(url, {
                 method: 'GET',
@@ -113,16 +126,32 @@
             return id.slice(0, 6) + id.slice(-4);
     }
 
+    async function getTokenDecimals(id: string) {
+        const url = explorer_uri+'/api/v1/tokens/'+id;
+            const response = await fetch(url, {
+                method: 'GET',
+            });
+
+            if (response.ok) {
+                let json_data = await response.json();
+                if (json_data['decimals'] !== null){
+                    return json_data['decimals'];
+                }
+            }
+            return 0;
+    }
+
     async function getUserTokens() {
         try {
             const tokens = await platform.get_balance();
-            user_tokens = await Promise.all(
+            userTokens = await Promise.all(
                 Array.from(tokens.entries())
                     .filter(([tokenId, _]) => tokenId !== "ERG")
                     .map(async ([tokenId, balance]) => ({
                         tokenId: tokenId,
                         title: await getTokenName(tokenId),
                         balance: balance,
+                        decimals: await getTokenDecimals(tokenId)
                     }))
             );
         } catch (error) {
@@ -143,11 +172,11 @@
         <div class="form-grid">
             <div class="form-group">
                 <label for="tokenId">Token</label>
-                <select id="tokenId" bind:value={token_id} required>
+                <select id="tokenId" bind:value={tokenId} required>
                     <option value="" disabled>Select a token</option>
-                    <option value={null}>-- None (Deselect) --</option>
-                    {#each user_tokens as token}
-                        <option value={token.tokenId}>{token.title} (Balance: {token.balance})</option>
+                  <!--  <option value={null}>-- None (Deselect) --</option>  -->
+                    {#each userTokens as token}
+                        <option value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</option>
                     {/each}
                 </select>
             </div>
@@ -157,12 +186,14 @@
                 <input 
                     type="number" 
                     id="tokenAmount" 
-                    bind:value={token_amount} 
-                    max={user_tokens.find(t => t.tokenId === token_id)?.balance || 0}
+                    bind:value={tokenAmountPrecise} 
+                    max={maxTokenAmountRaw}
+                    step={1 / Math.pow(10, tokenDecimals)}
                     min={0}
                     placeholder="Max amount token"
                     on:input={() => {
-                        if (exchangeRateERG) updateMaxValue();
+                        // updateMaxValue();  // Could change this instead.
+                        updateExchangeRate();
                     }}
                 />
             </div>
@@ -172,7 +203,7 @@
                 <input 
                     type="number" 
                     id="exchangeRate" 
-                    bind:value={exchangeRateERG}
+                    bind:value={exchangeRatePrecise}
                     min={0}
                     step="0.000000001"
                     placeholder="Exchange rate in ERG"
@@ -185,9 +216,10 @@
                 <input 
                     type="number" 
                     id="maxValue" 
-                    bind:value={maxValue}
-                    min={minValue}
-                    placeholder="Max amount token"  
+                    bind:value={maxValuePrecise}
+                    min={minValuePrecise}
+                    placeholder="Max amount token"
+                    on:input={updateExchangeRate}
                 />
             </div>
 
@@ -196,8 +228,8 @@
                 <input 
                     type="number" 
                     id="minValue" 
-                    bind:value={minValue} 
-                    max={maxValue}
+                    bind:value={minValuePrecise} 
+                    max={maxValuePrecise}
                     min={0}
                     placeholder="Max amount token"  
                 />
@@ -239,7 +271,10 @@
                 </p>
             </div>
         {:else}
-            <Button on:click={handleSubmit} disabled={isSubmitting} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">
+            <Button on:click={handleSubmit} 
+                disabled={isSubmitting || !tokenId || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle} 
+                style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
+                >
                 {isSubmitting ? 'Submitting...' : 'Submit'}
             </Button>  
         {/if}
