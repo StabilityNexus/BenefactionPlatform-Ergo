@@ -75,8 +75,8 @@
 
       // Calculate the extracted number of tokens from the contract
       val numberOfTokensBuyed = {
-        val selfAlreadyTokens = { if (SELF.tokens.size > 0) { SELF.tokens(0)._2 } else { 0 } }
-        val outputAlreadyTokens = { if (OUTPUTS(0).tokens.size > 0) { OUTPUTS(0).tokens(0)._2 } else { 0 } }
+        val selfAlreadyTokens = if (SELF.tokens.size == 0) 0.toLong else SELF.tokens(0)._2
+        val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 0) 0.toLong else OUTPUTS(0).tokens(0)._2
 
         selfAlreadyTokens - outputAlreadyTokens
       }
