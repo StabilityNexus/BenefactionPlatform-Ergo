@@ -233,8 +233,6 @@
 
     var countdownInterval = setInterval(updateCountdown, 1000);
 
-    alert("It is still necessary to implement the use of decimals of the token on this page.")
-
 </script>
 
 <div class="back">
