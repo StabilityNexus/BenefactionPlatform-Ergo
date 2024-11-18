@@ -2,7 +2,7 @@
     import { time_to_block } from '$lib/common/countdown';
     import { explorer_uri, web_explorer_uri } from '$lib/ergo/envs';
     import { ErgoPlatform } from '$lib/ergo/platform';
-    import { Button, NumberInput } from 'spaper';
+    import { Button } from 'spaper';
 
     let platform = new ErgoPlatform();
 
