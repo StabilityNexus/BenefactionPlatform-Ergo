@@ -43,17 +43,23 @@
   // Validation for purchasing Tokens
   // > People should be allowed to exchange ERGs for tokens until there are no more tokens left (even if the deadline has passed).
   val isBuyTokens = {
-    val userBox = OUTPUTS(1)
-    val contractHasTokens = SELF.tokens.size > 0
+    val userBox = OUTPUTS(1)  // The box can't contain other tokens or previous user amounts of the same token.
 
     // Verify that the user has been assigned the contract token.
     val userHasTokens = userBox.tokens.size > 0 && userBox.tokens(0)._1 == SELF.tokens(0)._1
-    
-    // Calculate the added value from the user's ERG payment
-    val addedValueToTheContract = OUTPUTS(0).value - SELF.value
 
     // Verify if the ERG amount matches the required exchange rate for the given token quantity
-    val correctExchange = addedValueToTheContract == userBox.tokens(0)._2 * SELF.R7[Long].get
+    val correctExchange = {
+      // Calculate the added value from the user's ERG payment
+      val addedValueToTheContract = OUTPUTS(0).value - SELF.value
+      
+      // ERG / Token exchange rate
+      val exchangeRate = SELF.R7[Long].get
+
+      val userTokenAmount = userBox.tokens(0)._2
+
+      addedValueToTheContract == userTokenAmount * exchangeRate
+    }
 
     // Verify if the token sold counter (second element of R5) is increased in proportion of the tokens sold.
     val incrementSoldCounterCorrectly = {
@@ -68,7 +74,12 @@
       }
 
       // Calculate the extracted number of tokens from the contract
-      val numberOfTokensBuyed = SELF.tokens(0)._2 - OUTPUTS(0).tokens(0)._2
+      val numberOfTokensBuyed = {
+        val selfAlreadyTokens = { if (SELF.tokens.size > 0) { SELF.tokens(0)._2 } else { 0 } }
+        val outputAlreadyTokens = { if (OUTPUTS(0).tokens.size > 0) { OUTPUTS(0).tokens(0)._2 } else { 0 } }
+
+        selfAlreadyTokens - outputAlreadyTokens
+      }
 
       numberOfTokensBuyed == counterIncrement
     }
