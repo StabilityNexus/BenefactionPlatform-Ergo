@@ -158,9 +158,6 @@
     }
     getUserTokens();
 
-    function formatToDays(value: number) {
-        return `${value} days until user refund or project withdraw`;
-    }
 </script>
 
 <div>
@@ -235,7 +232,15 @@
 
             <div class="form-group">
                 <label for="blockLimit">Days limit</label>
-                <NumberInput id="blockLimit" format={formatToDays} controlsType="primary" bind:value={daysLimit} min={1} style="width: 20rem; align-self:center;" placeholder="Enter days limit" />
+                <input
+                    id="blockLimit"
+                    type="number"
+                    bind:value={daysLimit}
+                    min="1"
+                    style="width: 20rem; align-self:center;"
+                    placeholder="Enter days limit"
+                    aria-label="Enter the limit in days"
+                />
             </div>
 
             <div class="form-group">
