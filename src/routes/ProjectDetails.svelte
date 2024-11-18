@@ -255,7 +255,7 @@
         <p><strong>Current ERG balance:</strong> {project.current_value  / Math.pow(10, 9)} ERG</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
-        <p><strong>Owner:</strong> {project.constants.owner.slice(0, 15)}</p>
+        <p><strong>Owner:</strong> {project.constants.owner.slice(0, 6)}...{project.constants.owner.slice(-4)}</p>
 
         <!-- Action Buttons -->
         <div class="actions">
