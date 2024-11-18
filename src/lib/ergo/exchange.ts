@@ -27,9 +27,6 @@ export async function exchange(
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = [project.box, ...(await ergo.get_utxos())];
 
-    const devAddress = "0xabcdefghijklmnñoqrstuvwxyz";
-    const devFeePercentage = 5;
-
     // Building the project output
     let outputs: OutputBuilder[] = [
         new OutputBuilder(
