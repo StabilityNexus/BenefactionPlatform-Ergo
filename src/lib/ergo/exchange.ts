@@ -28,16 +28,19 @@ export async function exchange(
     const inputs = [project.box, ...(await ergo.get_utxos())];
 
     // Building the project output
-    let outputs: OutputBuilder[] = [
-        new OutputBuilder(
-            BigInt(project.value + ergo_amount).toString(),
-            get_address(project.constants)    // Address of the project contract
-        )
-        .addTokens({
+    let output = new OutputBuilder(
+        BigInt(project.value + ergo_amount).toString(),
+        get_address(project.constants)    // Address of the project contract
+    );
+
+    if (project.current_amount != token_amount) {
+        output.addTokens({
             tokenId: project.token_id,
             amount: (project.current_amount - token_amount).toString()
-        })
-        .setAdditionalRegisters({
+        });
+    }
+
+    output.setAdditionalRegisters({
             R4: SInt(project.block_limit).toHex(),                                                          // Block limit for withdrawals/refunds
             R5: SLong(BigInt(project.minimum_amount)).toHex(),                                              // Minimum sold
             R6: SLong(
@@ -46,8 +49,9 @@ export async function exchange(
             R7: SLong(BigInt(project.exchange_rate)).toHex(),                                               // Exchange rate ERG/Token
             R8: SString(project.constants.raw ?? ""),                                                     // Withdrawal address (hash of walletPk)
             R9: SString(project.content.raw)                                                                // Project content
-        })
-    ];
+        });
+    
+    let outputs = [output];
 
     if (token_amount > 0) {
         outputs.push(
@@ -71,12 +75,16 @@ export async function exchange(
         .build()                               // Build the transaction
         .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
     
-    // Sign the transaction
-    const signedTransaction = await ergo.sign_tx(unsignedTransaction);
+    try {
+        // Sign the transaction
+        const signedTransaction = await ergo.sign_tx(unsignedTransaction);
 
-    // Send the transaction to the Ergo network
-    const transactionId = await ergo.submit_tx(signedTransaction);
+        // Send the transaction to the Ergo network
+        const transactionId = await ergo.submit_tx(signedTransaction);
 
-    console.log("Transaction id -> ", transactionId);
-    return transactionId;
+        console.log("Transaction id -> ", transactionId);
+        return transactionId;
+    } catch (e) {
+        console.log(e)
+    }
 }
