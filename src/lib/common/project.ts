@@ -19,7 +19,8 @@ export interface ConstantContent {
     raw?: string,
     owner: string
     dev: string,
-    dev_fee: number
+    dev_fee: number,
+    token_id: string
 }
 
 export interface Project {
@@ -79,7 +80,8 @@ export function getConstantContent(value: string): ConstantContent | null {
             raw: value,
             owner: parsed.owner,
             dev: parsed.dev,
-            dev_fee: parsed.dev_fee
+            dev_fee: parsed.dev_fee,
+            token_id: parsed.token_id
         }
     } catch(error) {
         return null;

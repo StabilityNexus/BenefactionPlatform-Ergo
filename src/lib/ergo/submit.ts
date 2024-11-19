@@ -30,7 +30,8 @@ export async function submit_project(
     let addressContent: ConstantContent = {
         "owner": walletPk,
         "dev": dev_address,
-        "dev_fee": dev_fee
+        "dev_fee": dev_fee,
+        "token_id": token_id ?? "" // TODO
     };
 
     // Building the project output
@@ -41,8 +42,10 @@ export async function submit_project(
     );
 
     if (token_id === null) {
+        alert("Token minting not allowed.")
+        return "";
         projectOutput.mintToken({
-            amount: token_amount?.toString() ?? "1000000000"
+            amount: token_amount.toString()
         });
     } else {
         projectOutput.addTokens({

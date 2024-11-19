@@ -12,6 +12,7 @@
 * owner_addr -> Contract owner base58 address
 * dev_addr   -> Dev base58 address
 * dev_fee    -> % number, ex: 5 for 5% fee.
+* token_id   -> token id string
 * 
 */
 {
@@ -110,18 +111,30 @@
 
     // Verify if the ERG amount matches the required exchange rate for the returned token quantity
     val correctExchange = {
-    // Calculate the value returned from the contract to the user
-    val retiredValueFromTheContract = SELF.value - OUTPUTS(0).value
+      // Calculate the value returned from the contract to the user
+      val retiredValueFromTheContract = SELF.value - OUTPUTS(0).value
 
-    // Calculate the value of the tokens added on the contract by the user
-    val addedTokensValue = {
-        // Calculate the amount of tokens that the user adds to the contract.
-        val addedTokensOnTheContract = OUTPUTS(0).tokens(0)._2 - SELF.tokens(0)._2
+      // Calculate the value of the tokens added on the contract by the user
+      val addedTokensValue = {
+          // Calculate the amount of tokens that the user adds to the contract.
+          val addedTokensOnTheContract = {
+            val selfAlreadyTokens = if (SELF.tokens.size == 0) 0.toLong else SELF.tokens(0)._2
+            val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 0) 0.toLong else OUTPUTS(0).tokens(0)._2
 
-        addedTokensOnTheContract * SELF.R7[Long].get
-    }
+            outputAlreadyTokens - selfAlreadyTokens
+          }
 
-    retiredValueFromTheContract == addedTokensValue && OUTPUTS(0).tokens(0)._1 == SELF.tokens(0)._1
+          addedTokensOnTheContract * SELF.R7[Long].get
+      }
+
+      val sameToken = {
+        val selfAlreadyToken = if (SELF.tokens.size == 0) Coll[Byte]() else SELF.tokens(0)._1
+        val outputAlreadyToken = if (OUTPUTS(0).tokens.size == 0) Coll[Byte]() else OUTPUTS(0).tokens(0)._1
+
+        selfAlreadyToken == outputAlreadyToken
+      }
+
+      retiredValueFromTheContract == addedTokensValue && sameToken
     }
 
     // The contract returns the equivalent ERG value for the returned tokens
@@ -192,26 +205,30 @@
   // Can't withdraw ERG
   val mantainValue = SELF.value == OUTPUTS(0).value
 
-  // Validation for withdrawing unsold tokens after the block limit
-  // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens = isSelfReplication && soldCounterRemainsConstant && isToProjectAddress && mantainValue
+  val rebalanceTokenAmountCorrectly = {
 
-  
-  // > Project owners may add more tokens to the contract at any time.
-  val isAddTokens = {
+    val noAddsOtherTokens = OUTPUTS(0).tokens.size < 2
 
-    val addsCorrectly = {
+    val correctToken = true // if (OUTPUTS(0).tokens.size == 0) true else OUTPUTS(0).tokens(0)._1 == "`+token_id+`"
 
-      val noAddsMoreTokens = OUTPUTS(0).tokens.size == 1
-      val noWithdraw = SELF.tokens.size == 0 || SELF.tokens(0)._1 == OUTPUTS(0).tokens(0)._1 && SELF.tokens(0)._2 < OUTPUTS(0).tokens(0)._2
-
-      // TODO: In case of SELF.tokens.size == 0, how to check if OUTPUTS(0).tokens(0)._1 is the initial token?
-
-      noAddsMoreTokens && noWithdraw
-    }
-
-    isSelfReplication && soldCounterRemainsConstant && mantainValue && isFromProjectAddress && addsCorrectly
+    noAddsOtherTokens && correctToken
   }
 
-  sigmaProp(isBuyTokens || isRefundTokens || isWithdrawFunds || isWithdrawUnsoldTokens || isAddTokens)
+  // > Project owners may withdraw unsold tokens from the contract at any time.
+  val isWithdrawUnsoldTokens = isSelfReplication && soldCounterRemainsConstant && isToProjectAddress && mantainValue && rebalanceTokenAmountCorrectly
+  
+  // > Project owners may add more tokens to the contract at any time.
+  val isAddTokens = isSelfReplication && soldCounterRemainsConstant && isFromProjectAddress && mantainValue && rebalanceTokenAmountCorrectly
+
+  // Validates that the contract was build correctly. Otherwise, it cannot be used.
+  val correctBuild = {
+    val correctTokenId = true //  if (SELF.tokens.size == 0) true else SELF.tokens(0)._1 == "`token_id`"
+    val onlyOneOrAnyToken = SELF.tokens.size < 2
+
+    correctTokenId && onlyOneOrAnyToken
+  }
+
+  val actions = isBuyTokens || isRefundTokens || isWithdrawFunds || isWithdrawUnsoldTokens || isAddTokens
+
+  sigmaProp(correctBuild && actions)
 }
