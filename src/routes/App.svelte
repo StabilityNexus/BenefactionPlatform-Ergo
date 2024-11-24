@@ -10,6 +10,7 @@
     import ProjectDetails from './ProjectDetails.svelte';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import { loadProjectById } from '$lib/common/load_by_id';
+    import { browser } from '$app/environment';
     import { page } from '$app/stores';
     import { type Project } from '$lib/common/project';
     import Kya from './kya.svelte';
@@ -21,14 +22,14 @@
     let platform = new ErgoPlatform();
 
     onMount(async () => {
-        platform.connect();
+        if (!browser) return;
+        await platform.connect();
 
-        const params = new URLSearchParams(window.location.search);
-        const projectId = params.get('project');
-        const platformId = params.get('platform');
+        const projectId = $page.url.searchParams.get('project');
+        const platformId = $page.url.searchParams.get('platform');
 
         if (projectId && platformId == platform.id) {
-            loadProjectById(platformId, platform);
+            await loadProjectById(projectId, platform);
         }
     });
 
@@ -65,7 +66,7 @@
 
     async function changeUrl(project: Project|null) {
         if (typeof window === 'undefined') return;
-        
+
         const url = new URL(window.location.href);
         
         if (project !== null) {
