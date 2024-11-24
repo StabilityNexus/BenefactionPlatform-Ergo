@@ -63,16 +63,20 @@
     }
     $: if ($connected) getCurrentHeight();
 
-    async function changeUrl(project: Project|null)
-    {
+    async function changeUrl(project: Project|null) {
+        if (typeof window === 'undefined') return;
+        
+        const url = new URL(window.location.href);
+        
         if (project !== null) {
-            $page.url.searchParams.set("platform", platform.id);
-            $page.url.searchParams.set("project", project.token_id);
+            url.searchParams.set("platform", platform.id);
+            url.searchParams.set("project", project.token_id);
+        } else {
+            url.searchParams.delete("platform");
+            url.searchParams.delete("project");
         }
-        else {
-            $page.url.searchParams.delete("platform");
-            $page.url.searchParams.delete("project");
-        }
+        
+        window.history.pushState({}, '', url);
     }
 
     $: ergInErgs = $balance ? ($balance / 1_000_000_000).toFixed(4) : 0;
