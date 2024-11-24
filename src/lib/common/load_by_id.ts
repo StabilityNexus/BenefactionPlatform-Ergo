@@ -3,15 +3,16 @@ import { type Project } from "./project";
 import { project_detail } from "./store";
 
 export async function loadProjectById(projectId: string, platform: Platform) {
-    const projects: Map<string, Project> = await platform.fetch();
-    if (projectId in projects.keys()) {
+    try {
+        const projects: Map<string, Project> = await platform.fetch();
         const project = projects.get(projectId);
-        if (project) {
-            project_detail.set(project);
-        } else {
-            console.error(`Project with ID ${projectId} is undefined.`);
+        
+        if (!project) {
+            throw new Error(`Project with ID ${projectId} not found.`);
         }
-    } else {
-        console.error(`Project with ID ${projectId} not found.`);
+        
+        project_detail.set(project);
+    } catch (error) {
+        console.error(`Failed to load project: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 }
