@@ -74,6 +74,7 @@
             <li>The fundraising target has been reached.</li>
           </ul>
         </li>
+        <li>A 5% developer fee is applied to all successfully funded projects. This fee is automatically sent to a designated developer address.</li>
       </ul>
       <p>Additionally:</p>
       <ul>
