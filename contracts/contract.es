@@ -209,7 +209,7 @@
 
     val noAddsOtherTokens = OUTPUTS(0).tokens.size < 2
 
-    val correctToken = true // if (OUTPUTS(0).tokens.size == 0) true else OUTPUTS(0).tokens(0)._1 == "`+token_id+`"
+    val correctToken = if (OUTPUTS(0).tokens.size == 0) true else OUTPUTS(0).tokens(0)._1 == fromBase16("`+token_id+`")
 
     noAddsOtherTokens && correctToken
   }
@@ -222,7 +222,7 @@
 
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {
-    val correctTokenId = true //  if (SELF.tokens.size == 0) true else SELF.tokens(0)._1 == "`token_id`"
+    val correctTokenId = if (SELF.tokens.size == 0) true else SELF.tokens(0)._1 == fromBase16("`+token_id+`")
     val onlyOneOrAnyToken = SELF.tokens.size < 2
 
     correctTokenId && onlyOneOrAnyToken
