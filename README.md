@@ -10,21 +10,23 @@ Bene: Fundraising Platform is a decentralized application (DApp) that enables pr
 - The main box is self-replicating, meaning that anyone can spend the box as long as they re-create it with the same parameters and add ERGs in exchange for a specified amount of tokens.
 
 ## Parameters of a Box
-A box created by a project will have the following parameters:
 
-- **Amount of Tokens**: Represents the number of participation tokens available.
-- **Block Limit (R4)**: The block height limit until which withdrawal or refund is allowed.
-- **Minimum Tokens Sold (R5)**: The minimum amount of tokens that must be sold as required by the contract to enable withdrawals.
-- **Token sold counter (R6)**: Token sale counter.
-- **ERGs / Token (R7)**: The exchange rate of ERG per token.
-- **Withdrawal Address (R8)**: The address where the funds can be withdrawn if the conditions are met, specified by the SHA-256 hash of the proposition bytes.
-- **Project Content (R9)**: JSON content with title, description and other information.
+- **Block Limit (R4)**: The block height limit until withdrawal or refund is allowed.
+- **Minimum Tokens Sold (R5)**: The minimum number of tokens that need to be sold to enable withdrawals or refunds.
+- **Token Sold Counter (R6)**: The amount of tokens that have already been sold.
+- **ERG/Token Exchange Rate (R7)**: The exchange rate of ERGs per token.
+- **Contract Metadata (R8)**: Contains a JSON-formatted string with the contract owner's base58 address, the developer's base58 address, and the developer fee as a percentage. This information is included to allow rebuilding the contract with constants.
+- **Project Content (R9)**: Contains a JSON-formatted string with details about the project, such as its title, description, and other related information.
 
-These parameters ensure that the box remains consistent throughout the funding process and allows for transparency in the exchange process.
+### Constants
 
-In addition, the following constants are added:
-- **Developer Fee**: The percentage fee for the developers 
-- **Developer address**: The address to which it will be sent, specified by its proposition bytes.
+The following constants are defined in the contract:
+
+- **Owner Address** (`owner_addr`): The base58 address of the contract owner.
+- **Developer Address** (`dev_addr`): The base58 address of the developer.
+- **Developer Fee** (`dev_fee`): The percentage fee taken by the developer (e.g., `5` for 5%).
+- **Token ID** (`token_id`): The unique identifier string for the token being distributed.
+
 
 ## Processes
 The Bene: Fundraising Platform supports six main processes:
@@ -44,19 +46,22 @@ The Bene: Fundraising Platform supports six main processes:
 
 4. **Withdraw ERGs**: 
    - Project owners are allowed to withdraw ERGs if and only if the minimum number of tokens has been sold.
-   - Project owners can only withdraw to the address specified in R8.
+   - Project owners can only withdraw to the address specified in owner_addr.
 
 5. **Withdraw Unsold Tokens**:
    - Project owners may withdraw unsold tokens from the contract at any time.
-   - Project owners can only withdraw to the address specified in R8.
+   - Project owners can only withdraw to the address specified in owner_addr.
 
 6. **Add Tokens**:
    - Project owners may add more tokens to the contract at any time.
 
-
-The current client implementation only supports the creation of a new project and contributions to a project. The contract implementation is complete, although it may undergo corrections.
-
 In addition to the current functionality, a more advanced implementation could include support for other assets beyond ERG. For example, projects could request **GAU** or other tokens on Ergo. This would provide even more flexibility in terms of the types of contributions a project can receive and enable a broader range of funding options for projects and participants.
+
+## Usage
+
+You can interact with the platform using the following webpage:
+
+[BenefactionPlatform-Ergo](https://stabilitynexus.github.io/BenefactionPlatform-Ergo/)
 
 ## Installation Steps
 
