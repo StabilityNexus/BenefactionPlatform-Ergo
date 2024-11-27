@@ -91,18 +91,34 @@
         <h3 slot="brand">Bene <br/> Fundraising Platform</h3>
         {#if $project_detail === null}
             <ul class="inline">
-                <li><a href="#" on:click={() => changeTab('acquireTokens')} 
-                    style="color: orange; {activeTab === 'acquireTokens' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
-                    Contribute to a Project</a></li>
-                <li><a href="#" on:click={() => changeTab('myContributions')} 
-                    style="color: orange; {activeTab === 'myContributions' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
-                    My Contributions</a></li>
-                <li><a href="#" on:click={() => changeTab('myProjects')} 
-                    style="color: orange; {activeTab === 'myProjects' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
-                    My Projects</a></li>
-                <li><a href="#" on:click={() => changeTab('submitProject')} 
-                    style="color: orange; {activeTab === 'submitProject' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
-                    New Project</a></li>
+                <li>
+                    <a href="#" on:click={() => changeTab('acquireTokens')} 
+                    class="tab-link"
+                    style="{activeTab === 'acquireTokens' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
+                    Contribute to a Project
+                    </a>
+                </li>
+                <li>
+                    <a href="#" on:click={() => changeTab('myContributions')} 
+                    class="tab-link"
+                    style="{activeTab === 'myContributions' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
+                    My Contributions
+                    </a>
+                </li>
+                <li>
+                    <a href="#" on:click={() => changeTab('myProjects')} 
+                    class="tab-link"
+                    style="{activeTab === 'myProjects' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
+                    My Projects
+                    </a>
+                </li>
+                <li>
+                    <a href="#" on:click={() => changeTab('submitProject')} 
+                    class="tab-link"
+                    style="{activeTab === 'submitProject' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
+                    New Project
+                    </a>
+                </li>
             </ul>
         {:else}
             <ul class="inline">
@@ -218,5 +234,31 @@
         padding: 5px;          /* Adds a smaller padding */
         border-radius: 8px;    /* Adds rounded corners */
     }
+
+    .inline {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 0;
+        margin: 0;
+        list-style: none;
+    }
+
+    .inline li {
+        margin-bottom: 10px; 
+    }
+
+    .tab-link {
+        padding: 5px 10px; 
+        color: orange;
+        text-decoration: none;
+        border-bottom: 3px solid transparent; 
+        box-sizing: border-box; 
+        transition: border-bottom-color 0.3s ease;
+    }
+
+    .tab-link:hover {
+        border-bottom-color: orange;
+    }
+
 
 </style>
