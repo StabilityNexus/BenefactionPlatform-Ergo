@@ -89,6 +89,6 @@ export class ErgoPlatform implements Platform {
     }
 
     async fetch(): Promise<Map<string, Project>> {
-        return await fetch_projects(explorer_uri, ergo_tree_template_hash, await ergo);
+        return await fetch_projects(explorer_uri, ergo_tree_template_hash);
     }
 }

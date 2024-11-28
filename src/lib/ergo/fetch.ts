@@ -77,7 +77,7 @@ async function fetch_token_details(id: string): Promise<TokenEIP4> {
         };
 }
 
-export async function fetch_projects(explorer_uri: string, ergo_tree_template_hash: string, ergo: any): Promise<Map<string, Project>> {
+export async function fetch_projects(explorer_uri: string, ergo_tree_template_hash: string): Promise<Map<string, Project>> {
     try {
         let params = {
             offset: 0,
