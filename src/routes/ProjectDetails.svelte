@@ -18,6 +18,8 @@
     let errorMessage: string | null = null;
     let isSubmitting: boolean = false;
 
+    let showCopyMessage = false;
+
     let currentVal = project.amount_sold;
     let min = project.minimum_amount;
     let max = project.total_amount;
@@ -159,7 +161,16 @@
 
     // Function to handle sharing the project
     function shareProject() {
-        // 
+        navigator.clipboard.writeText(window.location.href)
+            .then(() => {
+                showCopyMessage = true;
+                show_submit = true;
+                setTimeout(() => {
+                    showCopyMessage = false;
+                    show_submit = false;
+                }, 2000);
+            })
+            .catch(err => console.error('Failed to copy text: ', err));
     }
 
     // Function to close the detail page
@@ -361,6 +372,10 @@
                         <div class="error">
                             <p>{errorMessage}</p>
                         </div>
+                    {:else if showCopyMessage}
+                        <div class="copy-msg">
+                            Project page url copied to clipboard!
+                        </div>
                     {:else}
                         <!-- svelte-ignore a11y-label-has-associated-control -->
                         <label>{label_submit}</label>
@@ -396,6 +411,10 @@
 
     .error {
         color: red;
+    }
+
+    .copy-msg {
+        color: #28a745;
     }
 
     .back {
