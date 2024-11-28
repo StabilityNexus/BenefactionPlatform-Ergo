@@ -257,50 +257,11 @@
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
         <p><strong>Owner:</strong> {project.constants.owner.slice(0, 6)}...{project.constants.owner.slice(-4)}</p>
 
-        <!-- Action Buttons -->
-        <div class="actions">
-            <!-- Project owner actions -->
-            {#if is_owner}
-                <div class="action-group">
-                    <span class="group-label">Owner:</span>
-                    <div class="action-buttons">
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupAddTokens}>
-                            Add tokens
-                        </Button>
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawTokens}>
-                            Withdraw tokens
-                        </Button>
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawErg} disabled={!(deadline_passed && is_min_raised)}>
-                            Withdraw ERGs
-                        </Button>
-                    </div>
-                </div>
-            {/if}
-
-            <!-- User actions -->
-            {#if $connected}
-                <div class="action-group">
-                    <span class="group-label">User:</span>
-                    <div class="action-buttons">
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy} disabled={!(project.total_amount !== project.amount_sold)}>
-                            Contribute
-                        </Button>
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund} disabled={!(deadline_passed && !is_min_raised)}>
-                            Refund
-                        </Button>
-                        <Button style="background-color: orange; color: black; border: none;" on:click={shareProject}>
-                            Share
-                        </Button>
-                    </div>
-                </div>
-            {/if}
-        </div>
-
     </div>
 
     <div class="extra">
         <div class="timeleft">
-            <span>TIME LEFT:</span>
+            <span class="timeleft-label">TIME LEFT</span>
             <div class="responsive1">
                 <div class="item">
                     <div id="days"></div>
@@ -332,6 +293,49 @@
             <span style="flex: 1; text-align: left;">Minimum Amount: {min  / Math.pow(10, project.token_details.decimals)}</span>
             <span style="flex: 1; text-align: center;">Current Amount Sold: {currentVal / Math.pow(10, project.token_details.decimals)}</span>
             <span style="flex: 1; text-align: right;">Maximum Amount: {max / Math.pow(10, project.token_details.decimals)}</span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="actions">
+
+            <!-- User actions -->
+            {#if $connected}
+                <div class="action-group">
+                    {#if is_owner}
+                        <span class="group-label">As a user:</span>
+                    {/if}
+                    <div class="action-buttons">
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy} disabled={!(project.total_amount !== project.amount_sold)}>
+                            Contribute
+                        </Button>
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund} disabled={!(deadline_passed && !is_min_raised)}>
+                            Refund
+                        </Button>
+                        <Button style="background-color: orange; color: black; border: none;" on:click={shareProject}>
+                            Share
+                        </Button>
+                    </div>
+                </div>
+            {/if}
+
+            <!-- Project owner actions -->
+            {#if is_owner}
+                <div class="action-group">
+                    <span class="group-label">Owner:</span>
+                    <div class="action-buttons">
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupAddTokens}>
+                            Add tokens
+                        </Button>
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawTokens}>
+                            Withdraw tokens
+                        </Button>
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawErg} disabled={!(deadline_passed && is_min_raised)}>
+                            Withdraw ERGs
+                        </Button>
+                    </div>
+                </div>
+            {/if}
+
         </div>
 
         <!-- Input field and submit button for actions -->
@@ -423,15 +427,17 @@
     }
 
     .actions {
-        margin-top: 3rem;
+        margin-top: 2rem;
         display: flex;
         flex-direction: column;
+        align-items: center;
         gap: 0.5rem;
     }
 
     .action-group {
         padding: 0.5rem;
-        border-left: 2px solid rgba(255, 255, 255, 0.2);
+        border-bottom: 2px solid rgba(255, 255, 255, 0.055);
+        flex: 1;
     }
 
     .group-label {
@@ -455,7 +461,7 @@
 
     .actions-form {
         position: relative;
-        margin-top: 8rem;
+        margin-top: 1rem;
         padding: 1rem;
         background: rgba(255, 255, 255, 0.05);
         border-radius: 16px;
@@ -486,6 +492,15 @@
 
     .timeleft {
         margin-bottom: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .timeleft-label {
+        font-size: 30px;
+        text-align: center;
+        margin-bottom: 1rem;
     }
 
     .timeleft > span {
