@@ -17,7 +17,7 @@
     const dispatch = createEventDispatcher();
 
     onMount(() => {
-      showModal = true;
+      showModal = localStorage.getItem('acceptedKYA') !== 'true';
     });
 
     // Function to check if user has scrolled to the bottom of the content
@@ -29,6 +29,7 @@
 
     function close() {
       showModal = false;
+      localStorage.setItem('acceptedKYA', 'true');
       dispatch('close');
     }
 
