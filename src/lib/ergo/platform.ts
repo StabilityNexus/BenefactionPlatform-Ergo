@@ -39,7 +39,24 @@ export class ErgoPlatform implements Platform {
     }
 
     async get_current_height(): Promise<number> {
-        return await ergo.get_current_height();
+        try {
+            // If connected to the Ergo wallet, get the current height directly
+            return await ergo.get_current_height();
+        } catch {
+            // Fallback to fetching the current height from the Ergo API
+            try {
+                const response = await fetch('https://api.ergoplatform.com/api/v1/networkState');
+                if (!response.ok) {
+                    throw new Error(`API request failed with status: ${response.status}`);
+                }
+    
+                const data = await response.json();
+                return data.height; // Extract and return the height
+            } catch (error) {
+                console.error("Failed to fetch network height from API:", error);
+                throw new Error("Unable to get current height.");
+            }
+        }
     }
 
     async get_balance(id?: string): Promise<Map<string, number>> {

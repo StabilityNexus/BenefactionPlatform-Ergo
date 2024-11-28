@@ -63,7 +63,7 @@
             console.error("Error fetching current height:", error);
         }
     }
-    $: if ($connected) getCurrentHeight();
+    getCurrentHeight();
 
     async function changeUrl(project: Project|null) {
         if (typeof window === 'undefined') return;

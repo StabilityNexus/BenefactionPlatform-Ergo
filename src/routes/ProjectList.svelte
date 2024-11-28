@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import ProjectCard from './ProjectCard.svelte';
     import {type Project } from '$lib/common/project';
     import { ErgoPlatform } from '$lib/ergo/platform';
@@ -53,8 +52,7 @@
         }
     }
 
-    // Fetch the projects when the component is mounted and $connected is true.
-    $: if ($connected) loadProjects();
+    loadProjects();
 </script>
 
 <div class="container">
