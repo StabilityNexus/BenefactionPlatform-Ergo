@@ -6,7 +6,7 @@
     import NewProject from './NewProject.svelte';
     import TokenAcquisition from './TokenAcquisition.svelte';
     import 'papercss/dist/paper.min.css'
-    import { Navbar, Badge } from 'spaper';
+    import { Navbar, Badge, Button } from 'spaper';
     import ProjectDetails from './ProjectDetails.svelte';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import { loadProjectById } from '$lib/common/load_by_id';
@@ -18,6 +18,7 @@
 
     let activeTab = 'acquireTokens';
     let showMessage = false;
+    let showWalletInfo = false;
 
     let platform = new ErgoPlatform();
 
@@ -132,19 +133,36 @@
         {#if $address}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div class="identifier" id="walletIdentifier" on:click={copyToClipboard}>
-                <Badge style="background-color: orange; color: black; font-size: 0.9em; margin-bottom: 5px;">Wallet: {($address.slice(0, 6) + '...' + $address.slice(-4))}</Badge>
+            <div class="identifier flex items-center space-x-2" id="walletIdentifier" on:click={() => showWalletInfo = true}>
+                <Badge style="background-color: orange; color: black; font-size: 0.9em;">{ergInErgs} {platform.main_token}</Badge>
+                <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$address.slice(0, 6) + '...' + $address.slice(-4)}</Badge>
             </div>
         {/if}
-        <Badge style="background-color: orange; color: black; font-size: 0.9em;">Balance: {ergInErgs} {platform.main_token}</Badge>
     </div>
 
-    {#if showMessage}
-        <div class="message">
-            Wallet address copied to clipboard!
+    {#if $address}
+        <div class="modal" class:active={showWalletInfo}>
+            <div class="modal-body">
+                <p>Total balance: {ergInErgs} {platform.main_token}</p>
+
+                <a on:click={copyToClipboard}>Active address: {$address.slice(0, 19) + '...' + $address.slice(-8)}</a>
+
+                {#if showMessage}
+                    <div class="message">
+                        Wallet address copied to clipboard!
+                    </div>
+                {/if}
+                <footer>
+                    <Button on:click={() => {
+                        showWalletInfo = false;
+                        console.log("nautilus wallet disconnect.")
+                        }}>
+                        Disconnect
+                    </Button>
+                </footer>
+            </div>
         </div>
     {/if}
-
     
     {#if $project_detail === null}
         {#if activeTab === 'acquireTokens'}
@@ -185,7 +203,8 @@
         position: absolute;
         top: 20px;
         right: 20px;
-        padding: 15px;
+        display: flex;
+        align-items: center;
     }
 
     .message {
@@ -198,6 +217,22 @@
         border-radius: 5px;
         font-size: 0.8em;
         z-index: 1000;
+    }
+
+    .modal.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-body {
+        top: 50%;
+        max-width: 800;
+        width: 40%;
+        margin: auto;
+        background-color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
 
     .bottom-left {
