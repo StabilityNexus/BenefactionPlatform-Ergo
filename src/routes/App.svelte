@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { address, connected, balance, project_detail } from "$lib/common/store";
+    import { address, connected, balance, project_detail, network } from "$lib/common/store";
     import MyProjects from './MyProjects.svelte';
     import MyContributions from './MyContributions.svelte';
     import NewProject from './NewProject.svelte';
@@ -153,9 +153,10 @@
                     </div>
                 {/if}
                 <footer>
-                    <Button on:click={() => {
-                        showWalletInfo = false;
-                        console.log("nautilus wallet disconnect.")
+                    <Button on:click={async () => {
+                            showWalletInfo = false;
+                            // window.ergo = null;  This don't work.
+                            alert("Please delete this page from the connected dApps settings in the Nautilus extension. Then reload the page.");
                         }}>
                         Disconnect
                     </Button>
