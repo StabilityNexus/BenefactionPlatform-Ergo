@@ -44,6 +44,15 @@
   // Validation for purchasing Tokens
   // > People should be allowed to exchange ERGs for tokens until there are no more tokens left (even if the deadline has passed).
   val isBuyTokens = {
+
+    /*
+
+    Check the delta of tokens removed from the box (i.e. d1 = SELF.tokes(0)._2 – output(0).tokens(0)._2) and the delta 
+    of erg added into the box (i.e. d2 = output(0).value – SELF.value) and check that d2 = d1 * exchange_rate.
+
+    */
+
+
     val userBox = OUTPUTS(1)  // The box can't contain other tokens or previous user amounts of the same token.
 
     // Verify that the user has been assigned the contract token.
@@ -141,16 +150,40 @@
     isSelfReplication && soldCounterRemainsConstant && canBeRefund && correctExchange
   }
 
-  val projectAddr: SigmaProp = PK("`+owner_addr+`")
+  def isSigmaPropEqualToBoxProp(propAndBox: (SigmaProp, Box)): Boolean = {
+
+    val prop: SigmaProp = propAndBox._1
+    val box: Box = propAndBox._2
+
+    val propBytes: Coll[Byte] = prop.propBytes
+    val treeBytes: Coll[Byte] = box.propositionBytes
+
+    if (treeBytes(0) == 0) {
+
+        (treeBytes == propBytes)
+
+    } else {
+
+        // offset = 1 + <number of VLQ encoded bytes to store propositionBytes.size>
+        val offset = if (treeBytes.size > 127) 3 else 2
+        (propBytes.slice(1, propBytes.size) == treeBytes.slice(offset, treeBytes.size))
+
+    }
+
+  }
+
+  val projectAddr: SigmaProp = PK("`+owner_addr+`") // TODO 1 if devAddress is a splitting contract you cannot do PK(“...”). 
   
   val isToProjectAddress = {
-    val isSamePropBytes: Boolean = projectAddr.propBytes == OUTPUTS(1).propositionBytes
+    val propAndBox: (SigmaProp, Box) = (projectAddr, OUTPUTS(1))
+    val isSamePropBytes: Boolean = isSigmaPropEqualToBoxProp(propAndBox)
 
     isSamePropBytes
   }
 
   val isFromProjectAddress = {
-    val isSamePropBytes: Boolean = projectAddr.propBytes == INPUTS(1).propositionBytes
+    val propAndBox: (SigmaProp, Box) = (projectAddr, INPUTS(1))
+    val isSamePropBytes: Boolean = isSigmaPropEqualToBoxProp(propAndBox)
     
     isSamePropBytes
   }
@@ -215,10 +248,10 @@
   }
 
   // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens = isSelfReplication && soldCounterRemainsConstant && isToProjectAddress && mantainValue && rebalanceTokenAmountCorrectly
+  val isWithdrawUnsoldTokens = isSelfReplication && soldCounterRemainsConstant && isToProjectAddress && mantainValue && rebalanceTokenAmountCorrectly  // TODO verify that delta < 0
   
   // > Project owners may add more tokens to the contract at any time.
-  val isAddTokens = isSelfReplication && soldCounterRemainsConstant && isFromProjectAddress && mantainValue && rebalanceTokenAmountCorrectly
+  val isAddTokens = isSelfReplication && soldCounterRemainsConstant && isFromProjectAddress && mantainValue && rebalanceTokenAmountCorrectly  // TODO verify that delta > 0
 
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {
