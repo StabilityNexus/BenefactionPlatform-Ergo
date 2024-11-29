@@ -227,7 +227,7 @@
   // Can't withdraw ERG
   val mantainValue = SELF.value == OUTPUTS(0).value
 
-  val rebalanceTokenAmountCorrectly = {
+  val verifyToken = {
 
     val noAddsOtherTokens = OUTPUTS(0).tokens.size < 2
 
@@ -236,11 +236,15 @@
     noAddsOtherTokens && correctToken
   }
 
+  val deltaAddedTokens = SELF.tokes(0)._2 - OUTPUTS(0).tokens(0)._2
+
+  val correctRebalanceTokens = isSelfReplication && soldCounterRemainsConstant && mantainValue && verifyToken
+
   // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens = isSelfReplication && soldCounterRemainsConstant && isToProjectAddress && mantainValue && rebalanceTokenAmountCorrectly  // TODO verify that delta < 0
+  val isWithdrawUnsoldTokens = correctRebalanceTokens && isToProjectAddress && deltaToken < 0
   
   // > Project owners may add more tokens to the contract at any time.
-  val isAddTokens = isSelfReplication && soldCounterRemainsConstant && isFromProjectAddress && mantainValue && rebalanceTokenAmountCorrectly  // TODO verify that delta > 0
+  val isAddTokens = correctRebalanceTokens && isFromProjectAddress && deltaToken > 0
 
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {
