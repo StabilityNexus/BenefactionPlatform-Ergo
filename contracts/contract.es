@@ -49,7 +49,7 @@
     val correctExchange = {
 
       // Delta of tokens removed from the box
-      val deltaTokenRemoved = SELF.tokes(0)._2 - OUTPUTS(0).tokens(0)._2
+      val deltaTokenRemoved = SELF.tokens(0)._2 - OUTPUTS(0).tokens(0)._2
 
       // Delta of ergs added value from the user's ERG payment
       val deltaValueAdded = OUTPUTS(0).value - SELF.value
@@ -83,7 +83,7 @@
       numberOfTokensBuyed == counterIncrement
     }
 
-    isSelfReplication && userHasTokens && correctExchange && incrementSoldCounterCorrectly
+    isSelfReplication && correctExchange && incrementSoldCounterCorrectly
   }
 
   val soldCounterRemainsConstant = SELF.R6[Long].get == OUTPUTS(0).R6[Long].get
@@ -236,15 +236,15 @@
     noAddsOtherTokens && correctToken
   }
 
-  val deltaAddedTokens = SELF.tokes(0)._2 - OUTPUTS(0).tokens(0)._2
+  val deltaAddedTokens = SELF.tokens(0)._2 - OUTPUTS(0).tokens(0)._2
 
   val correctRebalanceTokens = isSelfReplication && soldCounterRemainsConstant && mantainValue && verifyToken
 
   // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens = correctRebalanceTokens && isToProjectAddress && deltaToken < 0
+  val isWithdrawUnsoldTokens = correctRebalanceTokens && isToProjectAddress && deltaAddedTokens < 0
   
   // > Project owners may add more tokens to the contract at any time.
-  val isAddTokens = correctRebalanceTokens && isFromProjectAddress && deltaToken > 0
+  val isAddTokens = correctRebalanceTokens && isFromProjectAddress && deltaAddedTokens > 0
 
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {

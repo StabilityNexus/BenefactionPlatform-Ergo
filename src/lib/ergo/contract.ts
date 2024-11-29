@@ -52,22 +52,20 @@ export function generate_contract(owner_addr: string, dev_addr: string, dev_fee:
   // Validation for purchasing Tokens
   // > People should be allowed to exchange ERGs for tokens until there are no more tokens left (even if the deadline has passed).
   val isBuyTokens = {
-    val userBox = OUTPUTS(1)  // The box can't contain other tokens or previous user amounts of the same token.
-
-    // Verify that the user has been assigned the contract token.
-    val userHasTokens = userBox.tokens.size > 0 && userBox.tokens(0)._1 == SELF.tokens(0)._1
 
     // Verify if the ERG amount matches the required exchange rate for the given token quantity
     val correctExchange = {
-      // Calculate the added value from the user's ERG payment
-      val addedValueToTheContract = OUTPUTS(0).value - SELF.value
+
+      // Delta of tokens removed from the box
+      val deltaTokenRemoved = SELF.tokens(0)._2 - OUTPUTS(0).tokens(0)._2
+
+      // Delta of ergs added value from the user's ERG payment
+      val deltaValueAdded = OUTPUTS(0).value - SELF.value
       
       // ERG / Token exchange rate
       val exchangeRate = SELF.R7[Long].get
 
-      val userTokenAmount = userBox.tokens(0)._2
-
-      addedValueToTheContract == userTokenAmount * exchangeRate
+      deltaValueAdded == deltaTokenRemoved * exchangeRate
     }
 
     // Verify if the token sold counter (second element of R5) is increased in proportion of the tokens sold.
@@ -93,7 +91,7 @@ export function generate_contract(owner_addr: string, dev_addr: string, dev_fee:
       numberOfTokensBuyed == counterIncrement
     }
 
-    isSelfReplication && userHasTokens && correctExchange && incrementSoldCounterCorrectly
+    isSelfReplication && correctExchange && incrementSoldCounterCorrectly
   }
 
   val soldCounterRemainsConstant = SELF.R6[Long].get == OUTPUTS(0).R6[Long].get
@@ -149,16 +147,40 @@ export function generate_contract(owner_addr: string, dev_addr: string, dev_fee:
     isSelfReplication && soldCounterRemainsConstant && canBeRefund && correctExchange
   }
 
-  val projectAddr: SigmaProp = PK("`+owner_addr+`")
+  def isSigmaPropEqualToBoxProp(propAndBox: (SigmaProp, Box)): Boolean = {
+
+    val prop: SigmaProp = propAndBox._1
+    val box: Box = propAndBox._2
+
+    val propBytes: Coll[Byte] = prop.propBytes
+    val treeBytes: Coll[Byte] = box.propositionBytes
+
+    if (treeBytes(0) == 0) {
+
+        (treeBytes == propBytes)
+
+    } else {
+
+        // offset = 1 + <number of VLQ encoded bytes to store propositionBytes.size>
+        val offset = if (treeBytes.size > 127) 3 else 2
+        (propBytes.slice(1, propBytes.size) == treeBytes.slice(offset, treeBytes.size))
+
+    }
+
+  }
+
+  val projectAddr: SigmaProp = PK("`+owner_addr+`") // TODO 1 if devAddress is a splitting contract you cannot do PK(“...”). 
   
   val isToProjectAddress = {
-    val isSamePropBytes: Boolean = projectAddr.propBytes == OUTPUTS(1).propositionBytes
+    val propAndBox: (SigmaProp, Box) = (projectAddr, OUTPUTS(1))
+    val isSamePropBytes: Boolean = isSigmaPropEqualToBoxProp(propAndBox)
 
     isSamePropBytes
   }
 
   val isFromProjectAddress = {
-    val isSamePropBytes: Boolean = projectAddr.propBytes == INPUTS(1).propositionBytes
+    val propAndBox: (SigmaProp, Box) = (projectAddr, INPUTS(1))
+    val isSamePropBytes: Boolean = isSigmaPropEqualToBoxProp(propAndBox)
     
     isSamePropBytes
   }
@@ -213,7 +235,7 @@ export function generate_contract(owner_addr: string, dev_addr: string, dev_fee:
   // Can't withdraw ERG
   val mantainValue = SELF.value == OUTPUTS(0).value
 
-  val rebalanceTokenAmountCorrectly = {
+  val verifyToken = {
 
     val noAddsOtherTokens = OUTPUTS(0).tokens.size < 2
 
@@ -222,11 +244,15 @@ export function generate_contract(owner_addr: string, dev_addr: string, dev_fee:
     noAddsOtherTokens && correctToken
   }
 
+  val deltaAddedTokens = SELF.tokens(0)._2 - OUTPUTS(0).tokens(0)._2
+
+  val correctRebalanceTokens = isSelfReplication && soldCounterRemainsConstant && mantainValue && verifyToken
+
   // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens = isSelfReplication && soldCounterRemainsConstant && isToProjectAddress && mantainValue && rebalanceTokenAmountCorrectly
+  val isWithdrawUnsoldTokens = correctRebalanceTokens && isToProjectAddress && deltaAddedTokens < 0
   
   // > Project owners may add more tokens to the contract at any time.
-  val isAddTokens = isSelfReplication && soldCounterRemainsConstant && isFromProjectAddress && mantainValue && rebalanceTokenAmountCorrectly
+  val isAddTokens = correctRebalanceTokens && isFromProjectAddress && deltaAddedTokens > 0
 
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {
