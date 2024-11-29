@@ -45,30 +45,19 @@
   // > People should be allowed to exchange ERGs for tokens until there are no more tokens left (even if the deadline has passed).
   val isBuyTokens = {
 
-    /*
-
-    Check the delta of tokens removed from the box (i.e. d1 = SELF.tokes(0)._2 – output(0).tokens(0)._2) and the delta 
-    of erg added into the box (i.e. d2 = output(0).value – SELF.value) and check that d2 = d1 * exchange_rate.
-
-    */
-
-
-    val userBox = OUTPUTS(1)  // The box can't contain other tokens or previous user amounts of the same token.
-
-    // Verify that the user has been assigned the contract token.
-    val userHasTokens = userBox.tokens.size > 0 && userBox.tokens(0)._1 == SELF.tokens(0)._1
-
     // Verify if the ERG amount matches the required exchange rate for the given token quantity
     val correctExchange = {
-      // Calculate the added value from the user's ERG payment
-      val addedValueToTheContract = OUTPUTS(0).value - SELF.value
+
+      // Delta of tokens removed from the box
+      val deltaTokenRemoved = SELF.tokes(0)._2 - OUTPUTS(0).tokens(0)._2
+
+      // Delta of ergs added value from the user's ERG payment
+      val deltaValueAdded = OUTPUTS(0).value - SELF.value
       
       // ERG / Token exchange rate
       val exchangeRate = SELF.R7[Long].get
 
-      val userTokenAmount = userBox.tokens(0)._2
-
-      addedValueToTheContract == userTokenAmount * exchangeRate
+      deltaValueAdded == deltaTokenRemoved * exchangeRate
     }
 
     // Verify if the token sold counter (second element of R5) is increased in proportion of the tokens sold.
