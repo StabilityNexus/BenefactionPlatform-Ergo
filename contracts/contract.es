@@ -161,7 +161,7 @@
 
   }
 
-  val projectAddr: SigmaProp = PK("`+owner_addr+`") // TODO 1 if devAddress is a splitting contract you cannot do PK(“...”). 
+  val projectAddr: SigmaProp = PK("`+owner_addr+`")
   
   val isToProjectAddress = {
     val propAndBox: (SigmaProp, Box) = (projectAddr, OUTPUTS(1))
@@ -190,7 +190,7 @@
 
       // Could be: https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
       val devFee = `+dev_fee+`
-      val devAddr: SigmaProp = PK("`+dev_addr+`")
+      val devAddr: SigmaProp = PK("`+dev_addr+`")  // TODO 1 if devAddress is a splitting contract you cannot do PK(“...”). 
 
       val isToDevAddress = {
           val isSamePropBytes: Boolean = devAddr.propBytes == OUT.propositionBytes
