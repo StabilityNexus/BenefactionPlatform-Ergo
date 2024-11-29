@@ -431,6 +431,7 @@
         display: flex;
         flex-direction: row;
         gap: 2rem;
+        height: 85vh;
     }
 
     .details {
@@ -442,7 +443,9 @@
         width: 50vw;
         display: flex;
         flex-direction: column;
-        gap: 2rem;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
     }
 
     .actions {
@@ -528,6 +531,7 @@
 
     .progress {
         margin-bottom: 1rem;
+        min-height: 1rem;
     }
 
     .item {
