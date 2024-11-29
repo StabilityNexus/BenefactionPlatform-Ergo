@@ -244,7 +244,7 @@ export function generate_contract(owner_addr: string, dev_addr: string, dev_fee:
     noAddsOtherTokens && correctToken
   }
 
-  val deltaAddedTokens = SELF.tokens(0)._2 - OUTPUTS(0).tokens(0)._2
+  val deltaAddedTokens = OUTPUTS(0).tokens(0)._2 - SELF.tokens(0)._2
 
   val correctRebalanceTokens = isSelfReplication && soldCounterRemainsConstant && mantainValue && verifyToken
 
