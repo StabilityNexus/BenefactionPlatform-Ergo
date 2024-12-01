@@ -23,7 +23,7 @@
 
 5. General contract things.
 
-    [ ] You can define SELF values as global variables instead of always accessing them from registers, make contract easier to understand while reading.
+    [x] You can define SELF values as global variables instead of always accessing them from registers, make contract easier to understand while reading.
     [x] L147 and L153 when comparing SigmaProp.propBytes to Box.propositionBytes you need to implement it the correct way following the LangSpec, please include this as a function similar to here: https://github.com/ergonames/ergonames-contracts/blob/main/contracts/v1/ergonames_v1_reveal.es#L44
     [ ] L171 if devAddress is a splitting contract you cannot do PK(“...”).
     [x] L218 and L221, if there is token you should check if delta is positive or negative since current way it is written, tokens can be added or removed in either case. Pretty sure tokens can be added from any input box and can be sent to any output box, you did not enforce that tokens come from the project box or go to the project box because you never check the contents of the project box in each case.
