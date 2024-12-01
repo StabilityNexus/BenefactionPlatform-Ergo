@@ -28,8 +28,6 @@
 // Outputs:
 //   - Updated Project Bene Contract
 //   - User box containing purchased tokens
-// Context Variables: 
-//   - Action: _action = 1 (Buy Tokens)
 // Constraints:
 //   - Ensure accurate ERG-to-token exchange based on the exchange rate.
 //   - Update the token sold counter correctly.
@@ -43,8 +41,6 @@
 // Outputs:
 //   - Updated Project Bene Contract
 //   - User box containing refunded ERG
-// Context Variables: 
-//   - Action: _action = 2 (Refund Tokens)
 // Constraints:
 //   - Ensure the block height has surpassed the specified block limit (R4).
 //   - Ensure the minimum token sales threshold (R5) has not been reached.
@@ -58,8 +54,6 @@
 //   - Updated Project Bene Contract (if partially withdrawn; otherwise, contract depletes funds completely)
 //   - Box containing ERG for the project address (100% - dev_fee).
 //   - Box containing ERG for the developer address (dev_fee).
-// Context Variables: 
-//   - Action: _action = 3 (Withdraw Funds)
 // Constraints:
 //   - Ensure the minimum token sales threshold (R5) has been reached.
 //   - Verify the correctness of the developer fee calculation.
@@ -71,8 +65,6 @@
 // Outputs:
 //   - Updated Project Bene Contract
 //   - Box containing unsold tokens sent to the project address
-// Context Variables: 
-//   - Action: _action = 4 (Withdraw Unsold Tokens)
 // Constraints:
 //   - Validate proper replication of the contract.
 //   - Ensure no ERG value changes during the transaction.
@@ -84,8 +76,6 @@
 //   - Box containing tokens sent from the project address
 // Outputs:
 //   - Updated Project Bene Contract
-// Context Variables: 
-//   - Action: _action = 5 (Add Tokens)
 // Constraints:
 //   - Validate proper replication of the contract.
 //   - Ensure no ERG value changes during the transaction.
@@ -98,12 +88,7 @@
 // $token_id: Unique string identifier for the project token.
 
 // ===== Context Variables ===== //
-// _action: Int representing the specific action being performed. The value corresponds to the following:
-//          1 = Buy Tokens
-//          2 = Refund Tokens
-//          3 = Withdraw Funds
-//          4 = Withdraw Unsold Tokens
-//          5 = Add Tokens
+// None
 
 // ===== Helper Functions ===== //
 // None
