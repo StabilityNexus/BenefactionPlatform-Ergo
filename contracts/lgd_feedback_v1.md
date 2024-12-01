@@ -1,4 +1,4 @@
-1. [ ] Check out the structure of how I write contracts, here is example: https://github.com/4EYESConsulting/sigmanauts-token-lock-contracts/blob/main/contracts/sigmanauts_v1_token_lock.es
+1. [X] Check out the structure of how I write contracts, here is example: https://github.com/4EYESConsulting/sigmanauts-token-lock-contracts/blob/main/contracts/sigmanauts_v1_token_lock.es
 
     Think of each action we do as a transaction.
     The way you wrote current conditions, each action will need to execute/be checked.
