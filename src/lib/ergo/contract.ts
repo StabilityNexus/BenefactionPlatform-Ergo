@@ -4,7 +4,7 @@ import { compile } from "@fleet-sdk/compiler";
 import { Network } from "@fleet-sdk/core";
 import { sha256, hex } from "@fleet-sdk/crypto";
 
-export function generate_contract(owner_addr: string, dev_addr: string, dev_fee: number, token_id: string) {
+export function generate_contract(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
     return `
 {
   val selfTokens = if (SELF.tokens.size == 0) 0L else SELF.tokens(0)._2
@@ -190,17 +190,14 @@ export function generate_contract(owner_addr: string, dev_addr: string, dev_fee:
     val correctDevFee = {
       val OUT = OUTPUTS(2)
 
-      // Could be: https://github.com/PhoenixErgo/phoenix-hodlcoin-contracts/blob/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es
-      val devFee = `+dev_fee+`
-      val devAddr: SigmaProp = PK("`+dev_addr+`")
-
       val isToDevAddress = {
-          val isSamePropBytes: Boolean = devAddr.propBytes == OUT.propositionBytes
+          val isSamePropBytes: Boolean = PK("`+dev_fee_contract_bytes_hash+`") == blake2b256(OUT.propositionBytes)
           
           isSamePropBytes
       }
 
       val isCorrectDevAmount = {
+        val devFee = `+dev_fee+`
         val devAmount = extractedValue * devFee / 100
         OUT.value == devAmount
       }
