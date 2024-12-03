@@ -183,10 +183,15 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
   // Validation for withdrawing funds by project owners
   val isWithdrawFunds = {
 
-    // ERG extracted amount considering that the contract could not be replicated.
-    val extractedValue: Long = {
-      OUTPUTS(1).value - INPUTS.slice(1, INPUTS.size).fold(0L, { (acc: Long, box: Box) => acc + box.value })
-    }
+    // TODO: Actually, anyone can withdraw the funds to the project address. Is that correct, or should it only be an action possible by the project owners themselves?
+
+    val minnerFeeAmount = 1100000  // Pay minner fee with the extracted value allows to withdraw when project address does not have ergs.
+    val devFee = `+dev_fee+`
+    val extractedValue: Long = if (selfScript == OUTPUTS(0).propositionBytes) { selfValue - OUTPUTS(0).value } else { selfValue }
+    val devFeeAmount = extractedValue * devFee / 100
+    val projectAmount = extractedValue - devFeeAmount - minnerFeeAmount
+
+    val correctProjectAmount = OUTPUTS(1).value == projectAmount
 
     val correctDevFee = {
       val OUT = OUTPUTS(2)
@@ -197,11 +202,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
           isSamePropBytes
       }
 
-      val isCorrectDevAmount = {
-        val devFee = `+dev_fee+`
-        val devAmount = extractedValue * devFee / 100
-        OUT.value == devAmount
-      }
+      val isCorrectDevAmount = OUT.value == devFeeAmount
 
       isCorrectDevAmount && isToDevAddress
     }
@@ -221,7 +222,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       soldCounter >= minimumSalesThreshold
     }
     
-    endOrReplicate && soldCounterRemainsConstant && minimumReached && isToProjectAddress && correctDevFee
+    endOrReplicate && soldCounterRemainsConstant && minimumReached && isToProjectAddress && correctDevFee && correctProjectAmount
   }
 
   // Can't withdraw ERG
