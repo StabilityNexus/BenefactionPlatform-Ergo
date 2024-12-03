@@ -340,7 +340,7 @@
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawTokens}>
                             Withdraw tokens
                         </Button>
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawErg} disabled={!(deadline_passed && is_min_raised)}>
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawErg} disabled={!is_min_raised}>
                             Withdraw ERGs
                         </Button>
                     </div>
