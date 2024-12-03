@@ -5,6 +5,33 @@ import { uint8ArrayToHex } from "./utils";
 function generate_contract(): string {
     return `
 {
+
+    // ===== Contract Information ===== //
+    // Name: Bene Fundraising Platform  Dev Fee Contract
+    // Description: Contract guarding the fee box for the Bene Fundraising Platform.
+    // Version: 1.0.0
+    // Based on: Phoenix HodlERG Fee (https://raw.githubusercontent.com/PhoenixErgo/phoenix-hodlcoin-contracts/refs/heads/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es)
+
+    // ===== Box Contents ===== //
+    // Tokens
+    // None
+    // Registers
+    // None
+
+    // ===== Relevant Transactions ===== //
+    // 1. Fee Distribution Tx
+    // Inputs: BeneFee1, ... , BeneFeeM
+    // DataInputs: None
+    // Outputs: Bruno, Lgd, Jm, MinerFee
+    // Context Variables: None
+
+    // ===== Compile Time Constants ($) ===== //
+    //
+
+    // ===== Context Variables (_) ===== //
+    // None
+
+    // ===== Relevant Variables ===== //
     val minerFee = 1100000
     val minerFeeErgoTreeBytesHash: Coll[Byte] = fromBase16("e540cceffd3b8dd0f401193576cc413467039695969427df94454193dddfb375")
     
@@ -13,8 +40,8 @@ function generate_contract(): string {
     val lgdNum: Long = 25L
     val jmNum: Long = 25L
     
-    val brunoAddress: SigmaProp   = PK("9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD")
-    val lgdAddress: SigmaProp = PK("9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD")
+    val brunoAddress: SigmaProp   = PK("9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T")
+    val lgdAddress: SigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs")
     val jmAddress: SigmaProp = PK("9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD")
 
     // ===== Fee Distribution Tx ===== //
@@ -23,7 +50,7 @@ function generate_contract(): string {
         // Outputs
         val brunoBoxOUT: Box    = OUTPUTS(0)
         val lgdBoxOUT: Box  = OUTPUTS(1)
-        val jmBoxOut: Box  = OUTPUTS(2)
+        val jmBoxOUT: Box  = OUTPUTS(2)
         val minerFeeBoxOUT: Box = OUTPUTS(3)
 
         val outputAmount: Long = OUTPUTS.map({ (output: Box) => output.value }).fold(0L, { (acc: Long, curr: Long) => acc + curr })
@@ -39,7 +66,7 @@ function generate_contract(): string {
 
             val validBruno: Boolean   = (brunoBoxOUT.value == brunoAmount) && (brunoBoxOUT.propositionBytes == brunoAddress.propBytes)
             val validLgd: Boolean = (lgdBoxOUT.value == lgdAmount) && (lgdBoxOUT.propositionBytes == lgdAddress.propBytes)
-            val validJm: Boolean = (jmBoxOut.value == jmAmount) && (jmBoxOut.propositionBytes == jmAddress.propBytes)
+            val validJm: Boolean = (jmBoxOUT.value == jmAmount) && (jmBoxOUT.propositionBytes == jmAddress.propBytes)
 
             allOf(Coll(
                 validBruno,

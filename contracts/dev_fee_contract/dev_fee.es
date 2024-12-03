@@ -20,12 +20,13 @@
     // Context Variables: None
 
     // ===== Compile Time Constants ($) ===== //
-    // $minerFee: Long
+    //
 
     // ===== Context Variables (_) ===== //
     // None
 
     // ===== Relevant Variables ===== //
+    val minerFee = 1100000
     val minerFeeErgoTreeBytesHash: Coll[Byte] = fromBase16("e540cceffd3b8dd0f401193576cc413467039695969427df94454193dddfb375")
     
     val feeDenom: Long   = 75L
@@ -33,9 +34,9 @@
     val lgdNum: Long = 25L
     val jmNum: Long = 25L
     
-    val brunoAddress: SigmaProp   = PK("")
-    val lgdAddress: SigmaProp = PK("")
-    val jmAddress: SigmaProp = PK("")
+    val brunoAddress: SigmaProp   = PK("9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T")
+    val lgdAddress: SigmaProp = PK("9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs")
+    val jmAddress: SigmaProp = PK("9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD")
 
     // ===== Fee Distribution Tx ===== //
     val validFeeDistributionTx: Boolean = {                         
@@ -43,7 +44,7 @@
         // Outputs
         val brunoBoxOUT: Box    = OUTPUTS(0)
         val lgdBoxOUT: Box  = OUTPUTS(1)
-        val jmBoxOut: Box  = OUTPUTS(2)
+        val jmBoxOUT: Box  = OUTPUTS(2)
         val minerFeeBoxOUT: Box = OUTPUTS(3)
 
         val outputAmount: Long = OUTPUTS.map({ (output: Box) => output.value }).fold(0L, { (acc: Long, curr: Long) => acc + curr })
@@ -59,7 +60,7 @@
 
             val validBruno: Boolean   = (brunoBoxOUT.value == brunoAmount) && (brunoBoxOUT.propositionBytes == brunoAddress.propBytes)
             val validLgd: Boolean = (lgdBoxOUT.value == lgdAmount) && (lgdBoxOUT.propositionBytes == lgdAddress.propBytes)
-            val validJm: Boolean = (jmBoxOut.value == jmAmount) && (jmBoxOut.propositionBytes == jmAddress.propBytes)
+            val validJm: Boolean = (jmBoxOUT.value == jmAmount) && (jmBoxOUT.propositionBytes == jmAddress.propBytes)
 
             allOf(Coll(
                 validBruno,
@@ -72,7 +73,7 @@
         val validMinerFee: Boolean = {
 
             allOf(Coll(
-                (minerFeeBoxOUT.value >= $minerFee), // In case the miner fee increases in the future
+                (minerFeeBoxOUT.value >= minerFee), // In case the miner fee increases in the future
                 (blake2b256(minerFeeBoxOUT.propositionBytes) == minerFeeErgoTreeBytesHash)
             ))
 
