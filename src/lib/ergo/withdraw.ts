@@ -9,6 +9,7 @@ import {
 import { SString } from './utils';
 import { type Project } from '../common/project';
 import { get_address } from './contract';
+import { get_dev_contract_address } from './dev_contract';
 
 // Function to submit a project to the blockchain
 export async function withdraw(
@@ -33,7 +34,7 @@ export async function withdraw(
         get_address(project.constants)    // Address of the project contract
     );
 
-    const devAddress = project.constants.dev;
+    const devAddress = project.constants.dev_addr ?? get_dev_contract_address();  // If the constants do not contain the address and the development contract on the code base has changed, the transaction cannot be executed. In that case it is necessary to run the application from the commit with which the contract was created.
     const devFeePercentage = project.constants.dev_fee;
     let devAmount = amount * devFeePercentage/100;
 

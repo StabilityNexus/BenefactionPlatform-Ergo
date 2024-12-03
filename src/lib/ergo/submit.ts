@@ -8,8 +8,8 @@ import {
 import { SInt } from '@fleet-sdk/serializer';
 import { SString } from './utils';
 import { get_address } from './contract';
-import { dev_contract_hash, dev_fee } from './envs';
 import { type ConstantContent } from '$lib/common/project';
+import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from './dev_contract';
 
 // Function to submit a project to the blockchain
 export async function submit_project(
@@ -29,8 +29,9 @@ export async function submit_project(
 
     let addressContent: ConstantContent = {
         "owner": walletPk,
-        "dev": dev_contract_hash,
-        "dev_fee": dev_fee,
+        "dev_addr": get_dev_contract_address(),
+        "dev_hash": get_dev_contract_hash(),
+        "dev_fee": get_dev_fee(),
         "token_id": token_id ?? "" // TODO
     };
 

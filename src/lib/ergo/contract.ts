@@ -263,7 +263,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
 
 export function get_address(constants: ConstantContent) {
 
-    let contract = generate_contract(constants.owner, constants.dev, constants.dev_fee, constants.token_id);
+    let contract = generate_contract(constants.owner, constants.dev_hash, constants.dev_fee, constants.token_id);
     let ergoTree = compile(contract, {version: 1})
 
     return ergoTree.toAddress(Network.Mainnet).toString();

@@ -1,6 +1,7 @@
 import { compile } from "@fleet-sdk/compiler";
 import { blake2b256 } from "@fleet-sdk/crypto";
 import { uint8ArrayToHex } from "./utils";
+import { Network } from "@fleet-sdk/core";
 
 function generate_contract(): string {
     return `
@@ -102,10 +103,18 @@ function generate_contract(): string {
     `;
 }
 
-export function get_dev_contract_bytes(): string {
+export function get_dev_contract_hash(): string {
     return uint8ArrayToHex(
         blake2b256(
             compile(generate_contract(), {version: 1}).toBytes()  // Compile contract to ergo tree
         )                                                         // Blake2b256 hash of contract bytes
     );
+}
+
+export function get_dev_contract_address(): string {
+    return compile(generate_contract(), {version: 1}).toAddress(Network.Mainnet).toString()
+}
+
+export function get_dev_fee(): number {
+    return 5;
 }
