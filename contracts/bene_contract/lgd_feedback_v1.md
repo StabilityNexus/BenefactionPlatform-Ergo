@@ -21,7 +21,7 @@
     { key: value } object can be represented as: Coll[(Coll[Byte], Coll[Byte])] where Coll[Byte] is UTF-8 encoded text.
     Since we get rid of R8, move R9 to R8, we cannot have gaps in register sequence.
 
-5. General contract things.
+5. [x] General contract things.
 
     [x] You can define SELF values as global variables instead of always accessing them from registers, make contract easier to understand while reading.
     [x] L147 and L153 when comparing SigmaProp.propBytes to Box.propositionBytes you need to implement it the correct way following the LangSpec, please include this as a function similar to here: https://github.com/ergonames/ergonames-contracts/blob/main/contracts/v1/ergonames_v1_reveal.es#L44
