@@ -5,6 +5,7 @@ import { uint8ArrayToHex } from "./utils";
 function generate_contract(): string {
     return `
 {
+    val minerFee = 1100000
     val minerFeeErgoTreeBytesHash: Coll[Byte] = fromBase16("e540cceffd3b8dd0f401193576cc413467039695969427df94454193dddfb375")
     
     val feeDenom: Long   = 75L
@@ -12,9 +13,9 @@ function generate_contract(): string {
     val lgdNum: Long = 25L
     val jmNum: Long = 25L
     
-    val brunoAddress: SigmaProp   = PK("")
-    val lgdAddress: SigmaProp = PK("")
-    val jmAddress: SigmaProp = PK("")
+    val brunoAddress: SigmaProp   = PK("9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD")
+    val lgdAddress: SigmaProp = PK("9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD")
+    val jmAddress: SigmaProp = PK("9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD")
 
     // ===== Fee Distribution Tx ===== //
     val validFeeDistributionTx: Boolean = {                         
@@ -51,7 +52,7 @@ function generate_contract(): string {
         val validMinerFee: Boolean = {
 
             allOf(Coll(
-                (minerFeeBoxOUT.value >= $minerFee), // In case the miner fee increases in the future
+                (minerFeeBoxOUT.value >= minerFee), // In case the miner fee increases in the future
                 (blake2b256(minerFeeBoxOUT.propositionBytes) == minerFeeErgoTreeBytesHash)
             ))
 
