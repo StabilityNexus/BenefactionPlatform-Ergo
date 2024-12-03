@@ -2,7 +2,8 @@
 import { type ConstantContent } from "$lib/common/project";
 import { compile } from "@fleet-sdk/compiler";
 import { Network } from "@fleet-sdk/core";
-import { sha256, hex } from "@fleet-sdk/crypto";
+import { sha256, hex, blake2b256 } from "@fleet-sdk/crypto";
+import { uint8ArrayToHex } from "./utils";
 
 export function generate_contract(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
     return `
@@ -262,7 +263,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
 
 export function get_address(constants: ConstantContent) {
 
-    let contract = generate_contract(constants.owner, constants.dev, constants.dev_fee, constants.token_id);
+    let contract = generate_contract(constants.owner, uint8ArrayToHex(blake2b256(constants.dev)), constants.dev_fee, constants.token_id);
     let ergoTree = compile(contract, {version: 1})
 
     return ergoTree.toAddress(Network.Mainnet).toString();
@@ -271,7 +272,7 @@ export function get_address(constants: ConstantContent) {
 function get_template_hash(): string {
   // If the same address is used for both constants the template changes.
   const random_addr = "9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs";
-  const random_addr2 = "9gGZp7HRAFxgGWSwvS4hCbxM2RpkYr6pHvwpU4GPrpvxY7Y2nQo";
+  const random_addr2 = uint8ArrayToHex(blake2b256("9a3d2f6b"));
   let contract = generate_contract(random_addr, random_addr2, 5, "");
   return hex.encode(sha256(compile(contract, {version: 1}).template.toBytes()))
 }

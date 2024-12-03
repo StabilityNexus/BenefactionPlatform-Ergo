@@ -52,3 +52,9 @@ export async function is_local_addr(value: string): Promise<boolean> {
     if (!get(connected)) return false;
     return stringToRendered(generate_pk_proposition((await ergo.get_change_address()))).substring(4,) === stringToRendered(value);
 }
+
+export function uint8ArrayToHex(array: Uint8Array): string { 
+    return [...new Uint8Array(array)]
+        .map(x => x.toString(16).padStart(2, '0'))
+        .join('');
+  }
