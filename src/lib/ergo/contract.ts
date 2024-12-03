@@ -191,7 +191,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       val OUT = OUTPUTS(2)
 
       val isToDevAddress = {
-          val isSamePropBytes: Boolean = PK("`+dev_fee_contract_bytes_hash+`") == blake2b256(OUT.propositionBytes)
+          val isSamePropBytes: Boolean = fromBase16("`+dev_fee_contract_bytes_hash+`") == blake2b256(OUT.propositionBytes)
           
           isSamePropBytes
       }

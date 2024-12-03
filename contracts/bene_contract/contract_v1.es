@@ -83,7 +83,7 @@
 
 // ===== Compile Time Constants ===== //
 // $owner_addr: Base58 address of the contract owner.
-// $dev_fee_contract_bytes_hash: Blake2b-256 hash of the dev fee contract proposition bytes.
+// $dev_fee_contract_bytes_hash: Blake2b-256 base16 string hash of the dev fee contract proposition bytes.
 // $dev_fee: Percentage fee allocated to the developer (e.g., 5 for 5%).
 // $token_id: Unique string identifier for the project token.
 
@@ -278,7 +278,7 @@
       val OUT = OUTPUTS(2)
 
       val isToDevAddress = {
-          val isSamePropBytes: Boolean = PK("`+dev_fee_contract_bytes_hash+`") == blake2b256(OUT.propositionBytes)
+          val isSamePropBytes: Boolean = fromBase16("`+dev_fee_contract_bytes_hash+`") == blake2b256(OUT.propositionBytes)
           
           isSamePropBytes
       }
