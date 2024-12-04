@@ -39,7 +39,8 @@ export async function withdraw(
     let devAmount = amount * devFeePercentage/100;
     let projectAmount = BigInt(amount) - BigInt(devAmount) - RECOMMENDED_MIN_FEE_VALUE;
 
-    if (projectAmount < SAFE_MIN_BOX_VALUE || devAmount < SAFE_MIN_BOX_VALUE) {
+    let number_of_dev_holders = BigInt(4);  // Should be variable.
+    if (projectAmount < SAFE_MIN_BOX_VALUE || devAmount < SAFE_MIN_BOX_VALUE * number_of_dev_holders) {
         alert("The amount must be greater.")  // TODO improve the message.
     }
 
