@@ -6,7 +6,7 @@ import { submit_project } from './submit';
 import { withdraw } from './withdraw';
 import { exchange } from './exchange';
 import { rebalance } from './rebalance';
-import { explorer_uri } from './envs';
+import { explorer_uri, network_id } from './envs';
 import { address, connected, network, balance } from "../common/store";
 import { ergo_tree_template_hash } from './contract';
 
@@ -24,7 +24,7 @@ export class ErgoPlatform implements Platform {
                 if (await nautilus.connect()) {
                     console.log('Connected!');
                     address.set(await ergo.get_change_address());
-                    network.set("ergo-mainnet");
+                    network.set((network_id == "main") ? "ergo-mainnet" : "ergo-testnet");
                     balance.set(await ergo.get_balance("ERG"));
                     connected.set(true);
                 } else {

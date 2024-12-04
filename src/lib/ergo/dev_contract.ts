@@ -2,6 +2,7 @@ import { compile } from "@fleet-sdk/compiler";
 import { blake2b256 } from "@fleet-sdk/crypto";
 import { uint8ArrayToHex } from "./utils";
 import { Network } from "@fleet-sdk/core";
+import { network_id } from "./envs";
 
 function generate_contract(): string {
     return `
@@ -112,7 +113,8 @@ export function get_dev_contract_hash(): string {
 }
 
 export function get_dev_contract_address(): string {
-    return compile(generate_contract(), {version: 1}).toAddress(Network.Mainnet).toString()
+    let network = (network_id == "main") ? Network.Mainnet : Network.Testnet;
+    return compile(generate_contract(), {version: 1}).toAddress(network).toString()
 }
 
 export function get_dev_fee(): number {
