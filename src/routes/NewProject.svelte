@@ -9,17 +9,17 @@
     let tokenId: string;
     let tokenDecimals: number = 0;
 
-    let tokenAmountRaw: number = 1;
-    let tokenAmountPrecise: number = 1;
-    let maxTokenAmountRaw: number = 1;
+    let tokenAmountRaw: number;
+    let tokenAmountPrecise: number;
+    let maxTokenAmountRaw: number;
     
-    let daysLimit: number = 5;
+    let daysLimit: number;
     
     let exchangeRateRaw: number;
     let exchangeRatePrecise: number;
     
-    let maxValuePrecise: number = 0;
-    let minValuePrecise: number = 0;
+    let maxValuePrecise: number;
+    let minValuePrecise: number;
 
     let projectTitle: string = "";
     let projectDescription: string = "";
@@ -70,6 +70,7 @@
         // target_date.setTime(target_date.getTime() + 10 * 60 * 1000);
         let blockLimit = await time_to_block(target_date.getTime(), platform);
 
+        if (minValuePrecise === undefined) {minValuePrecise = 0;}
         let minValueNano = minValuePrecise * 1000000000;
 
         let minimumTokenSold = minValueNano / exchangeRateRaw;
@@ -275,7 +276,7 @@
             </div>
         {:else}
             <Button on:click={handleSubmit} 
-                disabled={isSubmitting || !tokenId || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle} 
+                disabled={isSubmitting || !tokenId || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle || !daysLimit} 
                 style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
                 >
                 {isSubmitting ? 'Submitting...' : 'Submit'}
