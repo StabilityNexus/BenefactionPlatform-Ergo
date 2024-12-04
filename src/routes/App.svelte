@@ -18,7 +18,8 @@
 
 
     let activeTab = 'acquireTokens';
-    let showMessage = false;
+    let showCopyMessage = false;
+    let showDisconnectMessage = false;
     let showWalletInfo = false;
 
     let platform = new ErgoPlatform();
@@ -48,10 +49,20 @@
         if ($address) {
             navigator.clipboard.writeText($address)
                 .then(() => {
-                    showMessage = true;
-                    setTimeout(() => showMessage = false, 2000); // Hide message after 2 seconds
+                    showCopyMessage = true;
+                    setTimeout(() => showCopyMessage = false, 2000); // Hide message after 2 seconds
                 })
                 .catch(err => console.error('Failed to copy text: ', err));
+        }
+    }
+
+    function disconnect() {
+        if ($address) {
+            showDisconnectMessage = true;
+            setTimeout(() => {
+                showDisconnectMessage = false;
+                showWalletInfo = false;
+            }, 10000); // Hide message after 10 seconds
         }
     }
 
@@ -157,9 +168,15 @@
                     🔍
                 </a>
 
-                {#if showMessage}
+                {#if showCopyMessage}
                     <div class="message">
                         Wallet address copied to clipboard!
+                    </div>
+                {/if}
+
+                {#if showDisconnectMessage}
+                    <div class="message">
+                        Please delete this page from the connected dApps settings in the Nautilus extension. Then reload the page.
                     </div>
                 {/if}
 
@@ -169,11 +186,7 @@
                     <Button
                         size="small"
                         outline="primary" 
-                        on:click={async () => {
-                            showWalletInfo = false;
-                            // window.ergo = null;  This don't work.
-                            alert("Please delete this page from the connected dApps settings in the Nautilus extension. Then reload the page.");
-                        }}>
+                        on:click={async () => disconnect()}>
                         Disconnect
                     </Button>
                 </footer>
