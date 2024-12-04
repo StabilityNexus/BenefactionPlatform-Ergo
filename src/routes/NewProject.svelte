@@ -1,6 +1,6 @@
 <script lang="ts">
     import { time_to_block } from '$lib/common/countdown';
-    import { explorer_uri, web_explorer_uri } from '$lib/ergo/envs';
+    import { explorer_uri, web_explorer_uri_tx } from '$lib/ergo/envs';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import { Button } from 'spaper';
 
@@ -268,7 +268,7 @@
             <div class="result">
                 <p>
                     <strong>Transaction ID:</strong>
-                    <a href="{web_explorer_uri + transactionId}" target="_blank" rel="noopener noreferrer" style="color: #ffa500;">
+                    <a href="{web_explorer_uri_tx + transactionId}" target="_blank" rel="noopener noreferrer" style="color: #ffa500;">
                         {transactionId}
                     </a>
                 </p>

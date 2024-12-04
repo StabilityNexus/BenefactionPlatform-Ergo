@@ -7,7 +7,7 @@
     import { Button, Progress, Badge } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
-    import { web_explorer_uri } from '$lib/ergo/envs';
+    import { web_explorer_uri_tx } from '$lib/ergo/envs';
 
     // Define 'project' as a prop of type Project
     let project: Project = $project_detail;
@@ -363,7 +363,7 @@
                         <div class="result">
                             <p>
                                 <strong>Transaction ID:</strong>
-                                <a href="{web_explorer_uri + transactionId}" target="_blank" rel="noopener noreferrer" style="color: #ffa500;">
+                                <a href="{web_explorer_uri_tx + transactionId}" target="_blank" rel="noopener noreferrer" style="color: #ffa500;">
                                     {transactionId.slice(0,16)}
                                 </a>
                             </p>
