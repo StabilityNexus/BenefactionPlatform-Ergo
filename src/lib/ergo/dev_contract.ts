@@ -73,7 +73,7 @@ function generate_contract(): string {
             val validBruno: Boolean   = (brunoBoxOUT.value == brunoAmount) && (brunoBoxOUT.propositionBytes == brunoAddress.propBytes)
             val validLgd: Boolean = (lgdBoxOUT.value == lgdAmount) && (lgdBoxOUT.propositionBytes == lgdAddress.propBytes)
             val validJm: Boolean = (jmBoxOUT.value == jmAmount) && (jmBoxOUT.propositionBytes == jmAddress.propBytes)
-            val validOrder: Boolean = (orderBoxOUT.value == orderAmount) && (orderBoxOUT.propositionBytes = orderAddress.propBytes)
+            val validOrder: Boolean = (orderBoxOUT.value == orderAmount) && (orderBoxOUT.propositionBytes == orderAddress.propBytes)
 
             allOf(Coll(
                 validBruno,
@@ -104,7 +104,7 @@ function generate_contract(): string {
 
     }
 
-    sigmaProp(validFeeDistributionTx) && atLeast(1, Coll(brunoAddress, lgdAddress, jmAddress, validOrder)) // Done so we are incentivized to not spam the miner fee.
+    sigmaProp(validFeeDistributionTx) && atLeast(1, Coll(brunoAddress, lgdAddress, jmAddress, orderAddress)) // Done so we are incentivized to not spam the miner fee.
 
 }
     `;

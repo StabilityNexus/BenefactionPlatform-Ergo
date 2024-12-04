@@ -65,7 +65,7 @@
             val validBruno: Boolean   = (brunoBoxOUT.value == brunoAmount) && (brunoBoxOUT.propositionBytes == brunoAddress.propBytes)
             val validLgd: Boolean = (lgdBoxOUT.value == lgdAmount) && (lgdBoxOUT.propositionBytes == lgdAddress.propBytes)
             val validJm: Boolean = (jmBoxOUT.value == jmAmount) && (jmBoxOUT.propositionBytes == jmAddress.propBytes)
-            val validOrder: Boolean = (orderBoxOUT.value == orderAmount) && (orderBoxOUT.propositionBytes = orderAddress.propBytes)
+            val validOrder: Boolean = (orderBoxOUT.value == orderAmount) && (orderBoxOUT.propositionBytes == orderAddress.propBytes)
 
             allOf(Coll(
                 validBruno,
