@@ -45,7 +45,7 @@ export class ErgoPlatform implements Platform {
         } catch {
             // Fallback to fetching the current height from the Ergo API
             try {
-                const response = await fetch('https://api.ergoplatform.com/api/v1/networkState');
+                const response = await fetch(explorer_uri+'/api/v1/networkState');
                 if (!response.ok) {
                     throw new Error(`API request failed with status: ${response.status}`);
                 }
