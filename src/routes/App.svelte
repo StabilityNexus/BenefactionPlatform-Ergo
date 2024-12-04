@@ -14,6 +14,7 @@
     import { page } from '$app/stores';
     import { type Project } from '$lib/common/project';
     import Kya from './kya.svelte';
+    import { web_explorer_uri_addr } from '$lib/ergo/envs';
 
 
     let activeTab = 'acquireTokens';
@@ -142,18 +143,33 @@
 
     {#if $address}
         <div class="modal" class:active={showWalletInfo}>
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
+            <!-- svelte-ignore a11y-missing-attribute -->
             <div class="modal-body">
-                <p>Total balance: {ergInErgs} {platform.main_token}</p>
-
-                <a on:click={copyToClipboard}>Active address: {$address.slice(0, 19) + '...' + $address.slice(-8)}</a>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <a>Address: {$address.slice(0, 19) + '...' + $address.slice(-8)}</a>
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <a on:click={copyToClipboard}>
+                    🔗
+                </a>
+                <a href="{web_explorer_uri_addr+$address}" target="_blank">
+                    🔍
+                </a>
 
                 {#if showMessage}
                     <div class="message">
                         Wallet address copied to clipboard!
                     </div>
                 {/if}
+
+                <p>Total balance: {ergInErgs} {platform.main_token}</p>
+
                 <footer>
-                    <Button on:click={async () => {
+                    <Button
+                        size="small"
+                        outline="primary" 
+                        on:click={async () => {
                             showWalletInfo = false;
                             // window.ergo = null;  This don't work.
                             alert("Please delete this page from the connected dApps settings in the Nautilus extension. Then reload the page.");
@@ -228,12 +244,21 @@
     .modal-body {
         top: 50%;
         max-width: 800;
-        width: 40%;
+        width: 50%;
         margin: auto;
         background-color: white;
         padding: 1rem;
         border-radius: 8px;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-body a {
+        color: #41403e;
+        background-image: none;
+    }
+
+    .modal-body a svg {
+        text-decoration: none;
     }
 
     .bottom-left {
