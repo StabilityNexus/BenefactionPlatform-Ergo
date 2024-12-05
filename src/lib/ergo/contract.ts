@@ -5,6 +5,7 @@ import { Network } from "@fleet-sdk/core";
 import { sha256, hex, blake2b256 } from "@fleet-sdk/crypto";
 import { uint8ArrayToHex } from "./utils";
 import { network_id } from "./envs";
+import { get_dev_contract_hash } from "./dev_contract";
 
 export function generate_contract(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
     return `
@@ -265,7 +266,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
 
 export function get_address(constants: ConstantContent) {
 
-    let contract = generate_contract(constants.owner, constants.dev_hash, constants.dev_fee, constants.token_id);
+    let contract = generate_contract(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id);
     let ergoTree = compile(contract, {version: 1, network: network_id})
 
     let network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
