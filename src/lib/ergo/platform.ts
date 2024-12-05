@@ -24,7 +24,7 @@ export class ErgoPlatform implements Platform {
                 if (await nautilus.connect()) {
                     console.log('Connected!');
                     address.set(await ergo.get_change_address());
-                    network.set((network_id == "main") ? "ergo-mainnet" : "ergo-testnet");
+                    network.set((network_id == "mainnet") ? "ergo-mainnet" : "ergo-testnet");
                     balance.set(await ergo.get_balance("ERG"));
                     connected.set(true);
                 } else {

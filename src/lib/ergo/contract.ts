@@ -266,19 +266,19 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
 export function get_address(constants: ConstantContent) {
 
     let contract = generate_contract(constants.owner, constants.dev_hash, constants.dev_fee, constants.token_id);
-    let ergoTree = compile(contract, {version: 1})
+    let ergoTree = compile(contract, {version: 1, network: network_id})
 
-    let network = (network_id == "main") ? Network.Mainnet : Network.Testnet;
+    let network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
     return ergoTree.toAddress(network).toString();
 }
 
 function get_template_hash(): string {
-  // If the same address is used for both constants the template changes.
-  const random_addr = "9fwQGg6pPjibqhEZDVopd9deAHXNsWU4fjAHFYLAKexdVCDhYEs";
-  const random_addr2 = uint8ArrayToHex(blake2b256("9a3d2f6b"));
-  let contract = generate_contract(random_addr, random_addr2, 5, "");
-  return hex.encode(sha256(compile(contract, {version: 1}).template.toBytes()))
+  const mainnet_addr = "9f3iPJTiciBYA6DnTeGy98CvrwyEhiP7wNrhDrQ1QeKPRhTmaqQ";
+  const testnet_addr = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
+  let random_addr = network_id == "mainnet" ? mainnet_addr : testnet_addr;
+  const dev_contract = uint8ArrayToHex(blake2b256("9a3d2f6b"));
+  let contract = generate_contract(random_addr, dev_contract, 5, "");
+  return hex.encode(sha256(compile(contract, {version: 1, network: network_id}).template.toBytes()))
 }
 
 export const ergo_tree_template_hash = get_template_hash()
-console.log(ergo_tree_template_hash)

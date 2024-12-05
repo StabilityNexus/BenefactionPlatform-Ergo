@@ -5,6 +5,26 @@ import { Network } from "@fleet-sdk/core";
 import { network_id } from "./envs";
 
 function generate_contract(): string {
+    let bruno;
+    let lgd;
+    let jm;
+    let order;
+
+    if (network_id == "mainnet")
+    {
+        bruno = "9fBF4dceTsqdhsYUNVZHjsv4jqoKVzVv3KywFCycbkEXEq5j6bp";
+        lgd   = "9gkRrMRdSstibAsVzCtYumUGbXDPQZHkfuAaqmA49FNH3tN4XDg";
+        jm    = "9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD";
+        order = "9h9hjN2KC3jEyCa6KEYKBotPRESdo9oa29yyKcoSLWwtaX2VvhM";
+    }
+    else 
+    {
+        bruno = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
+        lgd   = "3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S";
+        jm    = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
+        order = "3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S";
+    }
+
     return `
 {
 
@@ -43,10 +63,10 @@ function generate_contract(): string {
     val jmNum: Long = 32L     // Jossemi
     val orderNum: Long = 4L  // The Stable Order
     
-    val brunoAddress: SigmaProp   = PK("9fBF4dceTsqdhsYUNVZHjsv4jqoKVzVv3KywFCycbkEXEq5j6bp")
-    val lgdAddress: SigmaProp = PK("9gkRrMRdSstibAsVzCtYumUGbXDPQZHkfuAaqmA49FNH3tN4XDg")
-    val jmAddress: SigmaProp = PK("9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD")
-    val orderAddress: SigmaProp = PK("9h9hjN2KC3jEyCa6KEYKBotPRESdo9oa29yyKcoSLWwtaX2VvhM")
+    val brunoAddress: SigmaProp   = PK("`+bruno+`")
+    val lgdAddress: SigmaProp = PK("`+lgd+`")
+    val jmAddress: SigmaProp = PK("`+jm+`")
+    val orderAddress: SigmaProp = PK("`+order+`")
 
     // ===== Fee Distribution Tx ===== //
     val validFeeDistributionTx: Boolean = {                         
@@ -113,14 +133,14 @@ function generate_contract(): string {
 export function get_dev_contract_hash(): string {
     return uint8ArrayToHex(
         blake2b256(
-            compile(generate_contract(), {version: 1}).toBytes()  // Compile contract to ergo tree
+            compile(generate_contract(), {version: 1, network: network_id}).toBytes()  // Compile contract to ergo tree
         )                                                         // Blake2b256 hash of contract bytes
     );
 }
 
 export function get_dev_contract_address(): string {
-    let network = (network_id == "main") ? Network.Mainnet : Network.Testnet;
-    return compile(generate_contract(), {version: 1}).toAddress(network).toString()
+    let network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
+    return compile(generate_contract(), {version: 1, network: network_id}).toAddress(network).toString()
 }
 
 export function get_dev_fee(): number {
