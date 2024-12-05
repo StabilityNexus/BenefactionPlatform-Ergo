@@ -266,6 +266,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
 
 export function get_address(constants: ConstantContent) {
 
+    // In case that dev_hash is undefined, we try to use the current contract hash. But the tx will fail if the hash is different.
     let contract = generate_contract(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id);
     let ergoTree = compile(contract, {version: 1, network: network_id})
 
