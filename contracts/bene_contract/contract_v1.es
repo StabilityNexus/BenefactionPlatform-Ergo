@@ -149,7 +149,7 @@
       deltaValueAdded == deltaTokenRemoved * exchangeRate
     }
 
-    // Verify if the token sold counter (second element of R5) is increased in proportion of the tokens sold.
+    // Verify if the token sold counter (R6) is increased in proportion of the tokens sold.
     val incrementSoldCounterCorrectly = {
 
       // Calculate how much the sold counter is incremented.
