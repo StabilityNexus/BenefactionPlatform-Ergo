@@ -170,7 +170,7 @@
                 <label for="tokenId">Token</label>
                 <select id="tokenId" bind:value={tokenId} required>
                     <option value="" disabled>Select a token</option>
-                  <!--  <option value={null}>-- None (Deselect) --</option>  -->
+                    <option value={null}>-- Mint one --</option>
                     {#each userTokens as token}
                         <option value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</option>
                     {/each}
@@ -276,7 +276,7 @@
             </div>
         {:else}
             <Button on:click={handleSubmit} 
-                disabled={isSubmitting || !tokenId || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle || !daysLimit} 
+                disabled={isSubmitting || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle || !daysLimit} 
                 style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
                 >
                 {isSubmitting ? 'Submitting...' : 'Submit'}
