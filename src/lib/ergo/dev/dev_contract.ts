@@ -3,7 +3,7 @@ import { blake2b256, hex, sha256 } from "@fleet-sdk/crypto";
 import { uint8ArrayToHex } from "../utils";
 import { Network } from "@fleet-sdk/core";
 import { explorer_uri, network_id } from "../envs";
-import { distributeFunds } from "./execute_dev_tx";
+import { distributeFunds } from "./distribute_funds";
 
 function generate_contract(): string {
     let bruno;
