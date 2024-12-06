@@ -9,7 +9,7 @@ import { SInt } from '@fleet-sdk/serializer';
 import { SString } from './utils';
 import { get_address } from './contract';
 import { type ConstantContent } from '$lib/common/project';
-import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from './dev_contract';
+import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from './dev/dev_contract';
 
 // Function to submit a project to the blockchain
 export async function submit_project(

@@ -1,8 +1,9 @@
 import { compile } from "@fleet-sdk/compiler";
-import { blake2b256 } from "@fleet-sdk/crypto";
-import { uint8ArrayToHex } from "./utils";
+import { blake2b256, hex, sha256 } from "@fleet-sdk/crypto";
+import { uint8ArrayToHex } from "../utils";
 import { Network } from "@fleet-sdk/core";
-import { network_id } from "./envs";
+import { explorer_uri, network_id } from "../envs";
+import { distributeFunds } from "./tx";
 
 function generate_contract(): string {
     let bruno;
@@ -145,4 +146,60 @@ export function get_dev_contract_address(): string {
 
 export function get_dev_fee(): number {
     return 5;
+}
+
+function get_template_hash(): string {
+    let contract = generate_contract();
+    return hex.encode(sha256(compile(contract, {version: 1, network: network_id}).template.toBytes()))
+  }
+
+export async function download_dev() {
+    try {
+        let params = {
+            offset: 0,
+            limit: 500,
+        };
+        let moreDataAvailable = true;
+
+        while (moreDataAvailable) {
+            const url = explorer_uri+'/api/v1/boxes/unspent/search';
+            const response = await fetch(url + '?' + new URLSearchParams({
+                offset: params.offset.toString(),
+                limit: params.limit.toString(),
+            }), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                    "ergoTreeTemplateHash": get_template_hash(),
+                    "registers": {},
+                    "constants": {},
+                    "assets": []
+                }),
+            });
+
+            if (response.ok) {
+                let json_data = await response.json();
+                return json_data.items.map(({ value, boxId }) => ({ value, boxId }));
+            } else {
+                console.log(response)
+            }
+        }
+    } catch (error) {
+        console.error('Error while making the POST request:', error);
+    }
+    return []
+}
+
+export async function execute_dev(boxId, value) {
+    try {
+        console.log(`Executing action with Box ID: ${boxId} and Value: ${value}`);
+
+        // Take box by boxId
+
+        distributeFunds(box);
+    } catch (e) {
+        console.error("Error executing action:", e.message);
+    }
 }

@@ -9,7 +9,7 @@ import {
 import { SString } from './utils';
 import { type Project } from '../common/project';
 import { get_address } from './contract';
-import { get_dev_contract_address } from './dev_contract';
+import { get_dev_contract_address } from './dev/dev_contract';
 
 // Function to submit a project to the blockchain
 export async function withdraw(
