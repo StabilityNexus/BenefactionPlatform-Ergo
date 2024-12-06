@@ -50,11 +50,16 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
   // > People should be allowed to exchange ERGs for tokens until there are no more tokens left (even if the deadline has passed).
   val isBuyTokens = {
 
+    // Delta of tokens removed from the box
+    val deltaTokenRemoved = {
+        val selfAlreadyTokens = selfTokens
+        val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 0) 0.toLong else OUTPUTS(0).tokens(0)._2
+
+        selfAlreadyTokens - outputAlreadyTokens
+      }
+
     // Verify if the ERG amount matches the required exchange rate for the given token quantity
     val correctExchange = {
-
-      // Delta of tokens removed from the box
-      val deltaTokenRemoved = selfTokens - OUTPUTS(0).tokens(0)._2
 
       // Delta of ergs added value from the user's ERG payment
       val deltaValueAdded = OUTPUTS(0).value - selfValue
@@ -65,7 +70,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       deltaValueAdded == deltaTokenRemoved * exchangeRate
     }
 
-    // Verify if the token sold counter (second element of R5) is increased in proportion of the tokens sold.
+    // Verify if the token sold counter (R6) is increased in proportion of the tokens sold.
     val incrementSoldCounterCorrectly = {
 
       // Calculate how much the sold counter is incremented.
@@ -77,15 +82,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
           outputAlreadySoldCounter - selfAlreadySoldCounter
       }
 
-      // Calculate the extracted number of tokens from the contract
-      val numberOfTokensBuyed = {
-        val selfAlreadyTokens = selfTokens
-        val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 0) 0.toLong else OUTPUTS(0).tokens(0)._2
-
-        selfAlreadyTokens - outputAlreadyTokens
-      }
-
-      numberOfTokensBuyed == counterIncrement
+      deltaTokenRemoved == counterIncrement
     }
 
     isSelfReplication && correctExchange && incrementSoldCounterCorrectly
