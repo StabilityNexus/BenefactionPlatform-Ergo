@@ -32,7 +32,7 @@ export async function submit_project(
         "dev_addr": get_dev_contract_address(),
         "dev_hash": get_dev_contract_hash(),
         "dev_fee": get_dev_fee(),
-        "token_id": token_id ?? "" // TODO
+        "token_id": token_id ?? inputs[0].boxId
     };
 
     // Building the project output
@@ -43,8 +43,6 @@ export async function submit_project(
     );
 
     if (token_id === null) {
-        alert("Token minting not allowed.")
-        return "";
         projectOutput.mintToken({
             amount: token_amount.toString()
         });

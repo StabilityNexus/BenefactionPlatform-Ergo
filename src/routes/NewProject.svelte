@@ -170,7 +170,7 @@
                 <label for="tokenId">Token</label>
                 <select id="tokenId" bind:value={tokenId} required>
                     <option value="" disabled>Select a token</option>
-                   <!--- <option value={null}>-- Mint one --</option> -->
+                    <option value={null}>-- Mint one --</option>
                     {#each userTokens as token}
                         <option value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</option>
                     {/each}
