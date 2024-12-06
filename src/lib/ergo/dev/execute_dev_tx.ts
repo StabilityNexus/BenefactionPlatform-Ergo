@@ -1,12 +1,10 @@
 import {
     OutputBuilder,
-    TransactionBuilder,
-    SAFE_MIN_BOX_VALUE,
-    RECOMMENDED_MIN_FEE_VALUE
+    TransactionBuilder
 } from '@fleet-sdk/core';
 import { get_dev_contract_address } from './dev_contract';
+import { ErgoPlatform } from '../platform';
 
-// Simplified function to send funds to specified addresses
 export async function distributeFunds(
     box: any,
     brunoAddress: string,
@@ -20,7 +18,14 @@ export async function distributeFunds(
     totalAmount: number
 ): Promise<string | null> {
     try {
+        await (new ErgoPlatform).connect();
+
         let inputs = [box];
+
+        const devAmount = 1100000;
+        const devAddress = "e540cceffd3b8dd0f401193576cc413467039695969427df94454193dddfb375";
+
+        totalAmount -= devAmount;
 
         // Calculate individual shares
         const brunoAmount = Math.floor((brunoShare / 100) * totalAmount);
@@ -28,8 +33,12 @@ export async function distributeFunds(
         const jmAmount = Math.floor((jmShare / 100) * totalAmount);
         const orderAmount = Math.floor((orderShare / 100) * totalAmount);
         
-        if (totalAmount == brunoAmount + lgdAmount + jmAmount + orderAmount) {
-            throw new Error("Invalid shares.");
+        const calculatedTotal = brunoAmount + lgdAmount + jmAmount + orderAmount;
+
+        if (totalAmount !== calculatedTotal) {
+            throw new Error(
+                `Invalid shares: The total amount (${totalAmount}) does not match the sum of calculated shares (${calculatedTotal}). Details: Bruno (${brunoAmount}), LGD (${lgdAmount}), JM (${jmAmount}), Order (${orderAmount}).`
+            );
         }
 
         // Ensure valid distribution
@@ -39,10 +48,11 @@ export async function distributeFunds(
 
         // Build outputs for each recipient
         const outputs = [
-            new OutputBuilder(SAFE_MIN_BOX_VALUE + brunoAmount, brunoAddress),
-            new OutputBuilder(SAFE_MIN_BOX_VALUE + lgdAmount, lgdAddress),
-            new OutputBuilder(SAFE_MIN_BOX_VALUE + jmAmount, jmAddress),
-            new OutputBuilder(SAFE_MIN_BOX_VALUE + orderAmount, orderAddress)
+            new OutputBuilder(BigInt(brunoAmount), brunoAddress),
+            new OutputBuilder(BigInt(lgdAmount), lgdAddress),
+            new OutputBuilder(BigInt(jmAmount), jmAddress),
+            new OutputBuilder(BigInt(orderAmount), orderAddress),
+            new OutputBuilder(BigInt(devAmount), devAddress)
         ];
 
         // Build and sign the transaction
@@ -50,7 +60,6 @@ export async function distributeFunds(
             .from(inputs)
             .to(outputs)
             .sendChangeTo(get_dev_contract_address())
-            .payFee(RECOMMENDED_MIN_FEE_VALUE)
             .build()
             .toEIP12Object();
 

@@ -3,7 +3,7 @@ import { blake2b256, hex, sha256 } from "@fleet-sdk/crypto";
 import { uint8ArrayToHex } from "../utils";
 import { Network } from "@fleet-sdk/core";
 import { explorer_uri, network_id } from "../envs";
-import { distributeFunds } from "./tx";
+import { distributeFunds } from "./execute_dev_tx";
 
 function generate_contract(): string {
     let bruno;
@@ -181,7 +181,19 @@ export async function download_dev() {
 
             if (response.ok) {
                 let json_data = await response.json();
-                return json_data.items.map(({ value, boxId }) => ({ value, boxId }));
+                return json_data.items.map(e => ({
+                    boxId: e.boxId,
+                    value: e.value,
+                    assets: e.assets,
+                    ergoTree: e.ergoTree,
+                    creationHeight: e.creationHeight,
+                    additionalRegisters: Object.entries(e.additionalRegisters).reduce((acc, [key, value]) => {
+                        acc[key] = value.serializedValue;
+                        return acc;
+                    }, {}),
+                    index: e.index,
+                    transactionId: e.transactionId
+                }));
             } else {
                 console.log(response)
             }
@@ -192,13 +204,31 @@ export async function download_dev() {
     return []
 }
 
-export async function execute_dev(boxId, value) {
+export async function execute_dev(box) {
     try {
-        console.log(`Executing action with Box ID: ${boxId} and Value: ${value}`);
+        console.log(`Executing action with Box ID: ${box.boxId} and Value: ${box.value}`);
 
-        // Take box by boxId
+        let bruno;
+        let lgd;
+        let jm;
+        let order;
+    
+        if (network_id == "mainnet")
+        {
+            bruno = "9fBF4dceTsqdhsYUNVZHjsv4jqoKVzVv3KywFCycbkEXEq5j6bp";
+            lgd   = "9gkRrMRdSstibAsVzCtYumUGbXDPQZHkfuAaqmA49FNH3tN4XDg";
+            jm    = "9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD";
+            order = "9h9hjN2KC3jEyCa6KEYKBotPRESdo9oa29yyKcoSLWwtaX2VvhM";
+        }
+        else 
+        {
+            bruno = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
+            lgd   = "3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S";
+            jm    = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
+            order = "3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S";
+        }
 
-        distributeFunds(box);
+        distributeFunds(box, bruno, lgd, jm, order, 32, 32, 32, 4, box.value);
     } catch (e) {
         console.error("Error executing action:", e.message);
     }

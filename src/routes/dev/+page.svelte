@@ -96,11 +96,11 @@
         <p class="loading">Loading data...</p>
     {:else}
         <ul>
-            {#each items as { value, boxId }}
+            {#each items as box}
                 <li>
-                    <div><span class="box-id">Box ID:</span> {boxId}</div>
-                    <div><span class="value">Value:</span> {value / Math.pow(10, 9)} ERG</div>
-                    <Button on:click={() => execute_dev(boxId, value)}>Execute</Button>
+                    <div><span class="box-id">Box ID:</span> {box.boxId}</div>
+                    <div><span class="value">Value:</span> {box.value / Math.pow(10, 9)} ERG</div>
+                    <Button on:click={() => execute_dev(box)}>Execute</Button>
                 </li>
             {/each}
         </ul>
