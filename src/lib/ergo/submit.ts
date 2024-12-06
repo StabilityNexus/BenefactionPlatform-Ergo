@@ -43,8 +43,8 @@ export async function submit_project(
     );
 
     if (token_id === null) {
-        // alert("Token minting not allowed.")
-        // return "";
+        alert("Token minting not allowed.")
+        return "";
         projectOutput.mintToken({
             amount: token_amount.toString()
         });
