@@ -125,7 +125,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
 
                         // Refunded amount
                         let collected_value = (token_amount_sold * exchange_rate);
-                        let ergs_refunded = collected_value - current_erg_value;
+                        let ergs_refunded = collected_value - current_erg_value;   // TODO.
                         let refunded_token_amount = ergs_refunded / exchange_rate;
 
                         projects.set(token_id, {
