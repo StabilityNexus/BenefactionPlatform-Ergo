@@ -78,15 +78,12 @@ export async function withdraw(
     )
     outputs.push(devOutput);
 
-    console.log(inputs)
-    console.log(outputs)
-
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
         .from(inputs)                          // Inputs coming from the user's UTXOs
         .to(outputs)                           // Outputs (the new project box)
         .sendChangeTo(walletPk)                // Send change back to the wallet
-        .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
+        .payFee(BigInt(1100000))     // Pay the recommended minimum fee
         .build()                               // Build the transaction
         .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
 
