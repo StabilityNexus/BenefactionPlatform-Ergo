@@ -29,10 +29,6 @@ export async function withdraw(
 
     // Building the project output
     let outputs: OutputBuilder[] = [];
-    const contractOutput = new OutputBuilder(
-        BigInt(project.value - amount),
-        get_address(project.constants)    // Address of the project contract
-    );
 
     const devAddress = project.constants.dev_addr ?? get_dev_contract_address();  // If the constants do not contain the address and the development contract on the code base has changed, the transaction cannot be executed. In that case it is necessary to run the application from the commit with which the contract was created.
     const devFeePercentage = project.constants.dev_fee;
@@ -44,21 +40,28 @@ export async function withdraw(
         alert("The amount must be greater.")  // TODO improve the message.
     }
 
-    contractOutput.addTokens({
-        tokenId: project.token_id,
-        amount: project.current_amount.toString()
-    });
-
-    // Set additional registers in the output box
-    contractOutput.setAdditionalRegisters({
-        R4: SInt(project.block_limit).toHex(),                     // Block limit for withdrawals/refunds
-        R5: SLong(BigInt(project.minimum_amount)).toHex(),         // Minimum sold
-        R6: SLong(BigInt(project.amount_sold)).toHex(),            // Tokens sold counter
-        R7: SLong(BigInt(project.exchange_rate)).toHex(),          // Exchange rate ERG/Token
-        R8: SString(project.constants.raw ?? ""),                              // Dev content
-        R9: SString(project.content.raw)                           // Project content
-    });
-    outputs.push(contractOutput);
+    if (project.value > amount) {
+        const contractOutput = new OutputBuilder(
+            BigInt(project.value - amount),
+            get_address(project.constants)    // Address of the project contract
+        );
+    
+        contractOutput.addTokens({
+            tokenId: project.token_id,
+            amount: project.current_amount.toString()
+        });
+    
+        // Set additional registers in the output box
+        contractOutput.setAdditionalRegisters({
+            R4: SInt(project.block_limit).toHex(),                     // Block limit for withdrawals/refunds
+            R5: SLong(BigInt(project.minimum_amount)).toHex(),         // Minimum sold
+            R6: SLong(BigInt(project.amount_sold)).toHex(),            // Tokens sold counter
+            R7: SLong(BigInt(project.exchange_rate)).toHex(),          // Exchange rate ERG/Token
+            R8: SString(project.constants.raw ?? ""),                              // Dev content
+            R9: SString(project.content.raw)                           // Project content
+        });
+        outputs.push(contractOutput);
+    }
 
     outputs.push(
         new OutputBuilder(
@@ -72,6 +75,9 @@ export async function withdraw(
         devAddress
     )
     outputs.push(devOutput);
+
+    console.log(inputs)
+    console.log(outputs)
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
