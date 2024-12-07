@@ -33,7 +33,7 @@ export async function withdraw(
     const devAddress = project.constants.dev_addr ?? get_dev_contract_address();  // If the constants do not contain the address and the development contract on the code base has changed, the transaction cannot be executed. In that case it is necessary to run the application from the commit with which the contract was created.
     const devFeePercentage = project.constants.dev_fee;
     let devAmount = amount * devFeePercentage/100;
-    let projectAmount = BigInt(amount) - BigInt(devAmount) - RECOMMENDED_MIN_FEE_VALUE;
+    let projectAmount = BigInt(amount) - BigInt(devAmount) - BigInt(1100000);
 
     let number_of_dev_holders = BigInt(4);  // Should be variable.
     if (projectAmount < SAFE_MIN_BOX_VALUE || devAmount < SAFE_MIN_BOX_VALUE * number_of_dev_holders) {
