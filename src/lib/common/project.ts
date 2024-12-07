@@ -80,7 +80,8 @@ export function getConstantContent(value: string): ConstantContent | null {
         return {
             raw: value,
             owner: parsed.owner,
-            dev_hash: parsed.dev,
+            dev_addr: parsed.dev_addr,
+            dev_hash: parsed.dev_hash,
             dev_fee: parsed.dev_fee,
             token_id: parsed.token_id
         }
