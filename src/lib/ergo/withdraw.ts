@@ -90,12 +90,16 @@ export async function withdraw(
         .build()                               // Build the transaction
         .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
 
-    // Sign the transaction
-    const signedTransaction = await ergo.sign_tx(unsignedTransaction);
+    try {
+        // Sign the transaction
+        const signedTransaction = await ergo.sign_tx(unsignedTransaction);
 
-    // Send the transaction to the Ergo network
-    const transactionId = await ergo.submit_tx(signedTransaction);
+        // Send the transaction to the Ergo network
+        const transactionId = await ergo.submit_tx(signedTransaction);
 
-    console.log("Transaction id -> ", transactionId);
-    return transactionId;
+        console.log("Transaction id -> ", transactionId);
+        return transactionId;
+    } catch (e) {
+        console.log(e)
+    }
 }
