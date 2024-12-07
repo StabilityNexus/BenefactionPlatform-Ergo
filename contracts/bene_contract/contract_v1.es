@@ -266,8 +266,8 @@
   // Validation for withdrawing funds by project owners
   val isWithdrawFunds = {
 
-    // TODO: Actually, anyone can withdraw the funds to the project address. Is that correct, or should it only be an action possible by the project owners themselves?
-
+    // Anyone can withdraw the funds to the project address.
+    
     val minnerFeeAmount = 1100000  // Pay minner fee with the extracted value allows to withdraw when project address does not have ergs.
     val devFee = `+dev_fee+`
     val extractedValue: Long = if (selfScript == OUTPUTS(0).propositionBytes) { selfValue - OUTPUTS(0).value } else { selfValue }
