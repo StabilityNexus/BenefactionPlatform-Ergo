@@ -40,7 +40,7 @@ export async function withdraw(
         alert("The amount must be greater.")  // TODO improve the message.
     }
 
-    if (project.value > amount) {
+    if (project.value > amount) {  // project.value represents the current ERG balance plus the minimum box value. Therefore, the maximum probable amount is likely equal to project.value minus the minimum box value (managed through the interface).
         const contractOutput = new OutputBuilder(
             BigInt(project.value - amount),
             get_address(project.constants)    // Address of the project contract
