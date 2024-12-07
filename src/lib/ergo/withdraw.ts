@@ -46,10 +46,12 @@ export async function withdraw(
             get_address(project.constants)    // Address of the project contract
         );
     
-        contractOutput.addTokens({
-            tokenId: project.token_id,
-            amount: project.current_amount.toString()
-        });
+        if (project.current_amount > 0) {
+            contractOutput.addTokens({
+                tokenId: project.token_id,
+                amount: project.current_amount.toString()
+            });
+        }
     
         // Set additional registers in the output box
         contractOutput.setAdditionalRegisters({
