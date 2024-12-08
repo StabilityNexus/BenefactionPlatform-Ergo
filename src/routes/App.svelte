@@ -29,7 +29,7 @@
         await platform.connect();
 
         const projectId = $page.url.searchParams.get('project');
-        const platformId = $page.url.searchParams.get('platform');
+        const platformId = $page.url.searchParams.get('chain');
 
         if (projectId && platformId == platform.id) {
             await loadProjectById(projectId, platform);
@@ -83,10 +83,10 @@
         const url = new URL(window.location.href);
         
         if (project !== null) {
-            url.searchParams.set("platform", platform.id);
-            url.searchParams.set("project", project.token_id);
+            url.searchParams.set("chain", platform.id);
+            url.searchParams.set("project", project.project_id);
         } else {
-            url.searchParams.delete("platform");
+            url.searchParams.delete("chain");
             url.searchParams.delete("project");
         }
         

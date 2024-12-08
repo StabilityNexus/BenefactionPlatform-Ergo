@@ -114,7 +114,9 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                 for (const e of json_data.items) {
                     if (hasValidSigmaTypes(e.additionalRegisters)) {
                         const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "")
-                        if (constants == null) { continue; }
+
+                        if (constants === null) { continue; }
+                        if (constants.project_id === undefined) { continue; }
                         if (e.assets.length > 0 && e.assets[0].tokenId !== constants.token_id) { console.log("Constant token error with "+e); continue; }
 
                         let token_id = constants.token_id;
@@ -149,7 +151,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                         The solution is to introduce a refund token counter (stored in the same register as the sold token counter).
                         */
 
-                        projects.set(token_id, {
+                        projects.set(constants.project_id, {
                             platform: new ErgoPlatform(),
                             box: {
                                 boxId: e.boxId,
@@ -166,6 +168,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                                 index: e.index,
                                 transactionId: e.transactionId
                             },
+                            project_id: constants.project_id,
                             token_id: constants.token_id,
                             block_limit: block_limit,
                             minimum_amount: minimum_token_amount,
