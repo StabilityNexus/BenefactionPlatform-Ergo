@@ -112,7 +112,6 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                     break;
                 }
                 for (const e of json_data.items) {
-                    console.log(e)
                     if (hasValidSigmaTypes(e.additionalRegisters)) {
                         const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "")
 
@@ -128,8 +127,6 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                         let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
                         let block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
                         let collected_value = (token_amount_sold * exchange_rate);
-
-                        console.log("set")
 
                         projects.set(constants.project_id, {
                             platform: new ErgoPlatform(),
