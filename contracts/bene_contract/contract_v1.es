@@ -335,7 +335,7 @@
 
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {
-    val correctTokenId = selfTokenId == fromBase16("`+token_id+`")
+    val correctTokenId = if (SELF.tokens.size == 0) true else selfTokenId == fromBase16("`+token_id+`")
     val onlyOneOrAnyToken = SELF.tokens.size < 2
 
     correctTokenId && onlyOneOrAnyToken

@@ -9,6 +9,101 @@ import { get_dev_contract_hash } from "./dev/dev_contract";
 
 export function generate_contract(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
     return `
+// ===== Contract Description ===== //
+// Name: Bene Fundraising Platform Contract
+// Description: Enables a project to receive funding in exchange for participation tokens.
+// Version: 1.0.0
+// Author: The Stable Order
+
+// ===== Box Contents ===== //
+// Tokens
+// 1. (id, amount)
+//    where:
+//       id      The project token identifier.
+//       amount  The number of tokens equivalent to the maximum amount of ERG the project aims to raise.
+//
+// Registers
+// R4: Int       The block height until which withdrawals or refunds are disallowed. After this height, they are permitted.
+// R5: Long      The minimum number of tokens that must be sold to trigger certain actions (e.g., withdrawals).
+// R6: Long      The total number of tokens sold so far.
+// R7: Long      The ERG-to-token exchange rate (ERG per token).
+// R8: Coll[Byte] Base58-encoded JSON string containing the contract owner's details.
+// R9: Coll[Byte] Base58-encoded JSON string containing project metadata, including "title" and "description".
+
+// ===== Transactions ===== //
+// 1. Buy Tokens
+// Inputs:
+//   - Project Bene Contract
+//   - User box containing ERG
+// Data Inputs: None
+// Outputs:
+//   - Updated Project Bene Contract
+//   - User box containing purchased tokens
+// Constraints:
+//   - Ensure accurate ERG-to-token exchange based on the exchange rate.
+//   - Update the token sold counter correctly.
+//   - Transfer the correct number of tokens to the user.
+//   - Validate that the contract is replicated correctly.
+
+// 2. Refund Tokens
+// Inputs:
+//   - Project Bene Contract
+//   - User box containing project tokens
+// Outputs:
+//   - Updated Project Bene Contract
+//   - User box containing refunded ERG
+// Constraints:
+//   - Ensure the block height has surpassed the specified block limit (R4).
+//   - Ensure the minimum token sales threshold (R5) has not been reached.
+//   - Validate the ERG-to-token refund exchange.
+//   - Ensure the contract is replicated correctly.
+
+// 3. Withdraw Funds
+// Inputs:
+//   - Project Bene Contract
+// Outputs:
+//   - Updated Project Bene Contract (if partially withdrawn; otherwise, contract depletes funds completely)
+//   - Box containing ERG for the project address (100% - dev_fee).
+//   - Box containing ERG for the developer address (dev_fee).
+// Constraints:
+//   - Ensure the minimum token sales threshold (R5) has been reached.
+//   - Verify the correctness of the developer fee calculation.
+//   - Ensure either complete withdrawal or proper replication of the contract.
+
+// 4. Withdraw Unsold Tokens
+// Inputs:
+//   - Project Bene Contract
+// Outputs:
+//   - Updated Project Bene Contract
+//   - Box containing unsold tokens sent to the project address
+// Constraints:
+//   - Validate proper replication of the contract.
+//   - Ensure no ERG value changes during the transaction.
+//   - Handle unsold tokens correctly.
+
+// 5. Add Tokens
+// Inputs:
+//   - Project Bene Contract
+//   - Box containing tokens sent from the project address
+// Outputs:
+//   - Updated Project Bene Contract
+// Constraints:
+//   - Validate proper replication of the contract.
+//   - Ensure no ERG value changes during the transaction.
+//   - Handle the added tokens correctly.
+
+// ===== Compile Time Constants ===== //
+// $owner_addr: Base58 address of the contract owner.
+// $dev_fee_contract_bytes_hash: Blake2b-256 base16 string hash of the dev fee contract proposition bytes.
+// $dev_fee: Percentage fee allocated to the developer (e.g., 5 for 5%).
+// $token_id: Unique string identifier for the project token.
+
+// ===== Context Variables ===== //
+// None
+
+// ===== Helper Functions ===== //
+// None
+
 {
   val selfTokens = if (SELF.tokens.size == 0) 0L else SELF.tokens(0)._2
   val selfTokenId = if (SELF.tokens.size == 0) Coll[Byte]() else SELF.tokens(0)._1
@@ -182,8 +277,8 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
   // Validation for withdrawing funds by project owners
   val isWithdrawFunds = {
 
-    // TODO: Actually, anyone can withdraw the funds to the project address. Is that correct, or should it only be an action possible by the project owners themselves?
-
+    // Anyone can withdraw the funds to the project address.
+    
     val minnerFeeAmount = 1100000  // Pay minner fee with the extracted value allows to withdraw when project address does not have ergs.
     val devFee = `+dev_fee+`
     val extractedValue: Long = if (selfScript == OUTPUTS(0).propositionBytes) { selfValue - OUTPUTS(0).value } else { selfValue }
@@ -251,7 +346,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
 
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {
-    val correctTokenId = selfTokenId == fromBase16("`+token_id+`")
+    val correctTokenId = if (SELF.tokens.size == 0) true else selfTokenId == fromBase16("`+token_id+`")
     val onlyOneOrAnyToken = SELF.tokens.size < 2
 
     correctTokenId && onlyOneOrAnyToken
