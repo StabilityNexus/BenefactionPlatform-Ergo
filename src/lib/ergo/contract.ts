@@ -144,7 +144,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
   }
 
   val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[(Long, Long)].get._1
-  val refundCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[(Long, Long)].get._2
+  val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[(Long, Long)].get._2
 
   // Validation for purchasing Tokens
   // > People should be allowed to exchange ERGs for tokens until there are no more tokens left (even if the deadline has passed).
