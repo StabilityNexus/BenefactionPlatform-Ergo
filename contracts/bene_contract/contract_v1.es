@@ -12,12 +12,12 @@
 //       amount  The number of tokens equivalent to the maximum amount of ERG the project aims to raise.
 //
 // Registers
-// R4: Int       The block height until which withdrawals or refunds are disallowed. After this height, they are permitted.
-// R5: Long      The minimum number of tokens that must be sold to trigger certain actions (e.g., withdrawals).
-// R6: Long      The total number of tokens sold so far.
-// R7: Long      The ERG-to-token exchange rate (ERG per token).
-// R8: Coll[Byte] Base58-encoded JSON string containing the contract owner's details.
-// R9: Coll[Byte] Base58-encoded JSON string containing project metadata, including "title" and "description".
+// R4: Int                   The block height until which withdrawals or refunds are disallowed. After this height, they are permitted.
+// R5: Long                  The minimum number of tokens that must be sold to trigger certain actions (e.g., withdrawals).
+// R6: Pair(Long, Long)      The total number of tokens sold and total number of tokens refunded so far.
+// R7: Long                  The ERG-to-token exchange rate (ERG per token).
+// R8: Coll[Byte]            Base58-encoded JSON string containing the contract owner's details.
+// R9: Coll[Byte]            Base58-encoded JSON string containing project metadata, including "title" and "description".
 
 // ===== Transactions ===== //
 // 1. Buy Tokens
@@ -44,6 +44,7 @@
 // Constraints:
 //   - Ensure the block height has surpassed the specified block limit (R4).
 //   - Ensure the minimum token sales threshold (R5) has not been reached.
+//   - Update the token refunded counter correctly.
 //   - Validate the ERG-to-token refund exchange.
 //   - Ensure the contract is replicated correctly.
 
@@ -99,7 +100,8 @@
   val selfValue = SELF.value
   val selfBlockLimit = SELF.R4[Int].get
   val selfMinimumTokensSold = SELF.R5[Long].get
-  val selfSoldCounter = SELF.R6[Long].get
+  val selfSoldCounter = SELF.R6[(Long, Long)].get._1
+  val selfRefundCounter = SELF.R6[(Long, Long)].get._2
   val selfExchangeRate = SELF.R7[Long].get
   val selfOwnerDetails = SELF.R8[Coll[Byte]].get
   val selfProjectMetadata = SELF.R9[Coll[Byte]].get
@@ -130,6 +132,9 @@
     sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript
   }
 
+  val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[(Long, Long)].get._1
+  val refundCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[(Long, Long)].get._2
+
   // Validation for purchasing Tokens
   // > People should be allowed to exchange ERGs for tokens until there are no more tokens left (even if the deadline has passed).
   val isBuyTokens = {
@@ -154,14 +159,14 @@
       deltaValueAdded == deltaTokenRemoved * exchangeRate
     }
 
-    // Verify if the token sold counter (R6) is increased in proportion of the tokens sold.
+    // Verify if the token sold counter (R6)._1 is increased in proportion of the tokens sold.
     val incrementSoldCounterCorrectly = {
 
       // Calculate how much the sold counter is incremented.
       val counterIncrement = {
           // Obtain the current and the next "tokens sold counter"
           val selfAlreadySoldCounter = selfSoldCounter
-          val outputAlreadySoldCounter = OUTPUTS(0).R6[Long].get
+          val outputAlreadySoldCounter = OUTPUTS(0).R6[(Long, Long)].get._1
 
           outputAlreadySoldCounter - selfAlreadySoldCounter
       }
@@ -169,10 +174,8 @@
       deltaTokenRemoved == counterIncrement
     }
 
-    isSelfReplication && correctExchange && incrementSoldCounterCorrectly
+    isSelfReplication && refundCounterRemainsConstant && correctExchange && incrementSoldCounterCorrectly
   }
-
-  val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[Long].get
 
   // Validation for refunding tokens
   val isRefundTokens = {
@@ -193,23 +196,21 @@
     afterBlockLimit && minimumNotReached
     }
 
+    // Calculate the amount of tokens that the user adds to the contract.
+    val deltaTokenAdded = {
+      val selfAlreadyTokens = selfTokens
+      val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 0) 0.toLong else OUTPUTS(0).tokens(0)._2
+
+      outputAlreadyTokens - selfAlreadyTokens
+    }
+
     // Verify if the ERG amount matches the required exchange rate for the returned token quantity
     val correctExchange = {
       // Calculate the value returned from the contract to the user
       val retiredValueFromTheContract = selfValue - OUTPUTS(0).value
 
       // Calculate the value of the tokens added on the contract by the user
-      val addedTokensValue = {
-          // Calculate the amount of tokens that the user adds to the contract.
-          val addedTokensOnTheContract = {
-            val selfAlreadyTokens = selfTokens
-            val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 0) 0.toLong else OUTPUTS(0).tokens(0)._2
-
-            outputAlreadyTokens - selfAlreadyTokens
-          }
-
-          addedTokensOnTheContract * selfExchangeRate
-      }
+      val addedTokensValue = deltaTokenAdded * selfExchangeRate
 
       val sameToken = {
         val selfAlreadyToken = selfTokenId
@@ -221,8 +222,23 @@
       retiredValueFromTheContract == addedTokensValue && sameToken
     }
 
+    // Verify if the token refund counter (R6)._2 is increased in proportion of the tokens refunded.
+    val incrementRefundCounterCorrectly = {
+
+      // Calculate how much the refund counter is incremented.
+      val counterIncrement = {
+          // Obtain the current and the next "tokens refund counter"
+          val selfAlreadyRefundCounter = selfRefundCounter
+          val outputAlreadyRefundCounter = OUTPUTS(0).R6[(Long, Long)].get._2
+
+          outputAlreadyRefundCounter - selfAlreadyRefundCounter
+      }
+
+      deltaTokenAdded == counterIncrement
+    }
+
     // The contract returns the equivalent ERG value for the returned tokens
-    isSelfReplication && soldCounterRemainsConstant && canBeRefund && correctExchange
+    isSelfReplication && soldCounterRemainsConstant && incrementRefundCounterCorrectly && canBeRefund && correctExchange
   }
 
   def isSigmaPropEqualToBoxProp(propAndBox: (SigmaProp, Box)): Boolean = {
@@ -305,7 +321,7 @@
       soldCounter >= minimumSalesThreshold
     }
     
-    endOrReplicate && soldCounterRemainsConstant && minimumReached && isToProjectAddress && correctDevFee && correctProjectAmount
+    endOrReplicate && soldCounterRemainsConstant && refundCounterRemainsConstant && minimumReached && isToProjectAddress && correctDevFee && correctProjectAmount
   }
 
   // Can't withdraw ERG
@@ -325,7 +341,7 @@
     outTokens - selfTokens
   }
 
-  val correctRebalanceTokens = isSelfReplication && soldCounterRemainsConstant && mantainValue && verifyToken
+  val correctRebalanceTokens = isSelfReplication && soldCounterRemainsConstant && refundCounterRemainsConstant && mantainValue && verifyToken
 
   // > Project owners may withdraw unsold tokens from the contract at any time.
   val isWithdrawUnsoldTokens = correctRebalanceTokens && isToProjectAddress && deltaAddedTokens < 0

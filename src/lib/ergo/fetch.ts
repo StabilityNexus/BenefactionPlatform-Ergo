@@ -36,7 +36,7 @@ type ApiBox = {
 const expectedSigmaTypes = {
     R4: 'SInt',
     R5: 'SLong',
-    R6: 'SLong',
+    R6: '(SLong, SLong)',
     R7: 'SLong',
     R8: 'Coll[SByte]',
     R9: 'Coll[SByte]'
@@ -112,44 +112,24 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                     break;
                 }
                 for (const e of json_data.items) {
+                    console.log(e)
                     if (hasValidSigmaTypes(e.additionalRegisters)) {
                         const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "")
 
-                        if (constants === null) { continue; }
-                        if (constants.project_id === undefined) { continue; }
+                        if (constants === null) { console.log("constants null"); continue; }
+                        if (constants.project_id === undefined) { console.log("constants project id"); continue; }
                         if (e.assets.length > 0 && e.assets[0].tokenId !== constants.token_id) { console.log("Constant token error with "+e); continue; }
 
                         let token_id = constants.token_id;
-                        let token_amount_sold = parseInt(e.additionalRegisters.R6.renderedValue);
+                        let [token_amount_sold, refunded_token_amount] = e.additionalRegisters.R6.renderedValue.match(/\d+/g)?.map(Number);
                         let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
                         let current_token_amount = e.assets.length > 0 ? e.assets[0].amount : 0;
                         let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
-
                         let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
-
                         let block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
-                        let current_height = await (new ErgoPlatform).get_current_height();
-
-                        // Refunded amount
                         let collected_value = (token_amount_sold * exchange_rate);
-                        let refunded_value = 0;
-                        let refunded_token_amount = 0;
 
-                        let is_ended = block_limit < current_height;
-                        let min_raised = token_amount_sold >= minimum_token_amount;
-                        if (is_ended && !min_raised) {
-                            refunded_value = collected_value - current_erg_value;
-                            refunded_token_amount = refunded_value / exchange_rate;
-                        }
-
-                        /*
-                        This approach fixes the bug where all withdrawals are treated as refunds. However, there is still one scenario where it fails:
-                        "When a refund was possible at some point, but some contributors helped raise the minimum amount, allowing the project owners to withdraw."
-
-                        In this scenario, with the current code, the refund_token_amount will be zero, even though it shouldn't be.
-
-                        The solution is to introduce a refund token counter (stored in the same register as the sold token counter).
-                        */
+                        console.log("set")
 
                         projects.set(constants.project_id, {
                             platform: new ErgoPlatform(),

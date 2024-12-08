@@ -5,7 +5,7 @@ import {
     TransactionBuilder,
     SLong
 } from '@fleet-sdk/core';
-import { SInt } from '@fleet-sdk/serializer';
+import { SInt, SPair } from '@fleet-sdk/serializer';
 import { SString } from './utils';
 import { get_address } from './contract';
 import { type ConstantContent } from '$lib/common/project';
@@ -61,9 +61,9 @@ export async function submit_project(
     projectOutput.setAdditionalRegisters({
        R4: SInt(blockLimit).toHex(),                              // Block limit for withdrawals/refunds
        R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
-       R6: SLong(BigInt(0)).toHex(),                              // Tokens sold counter
+       R6: SPair(SLong(BigInt(0)), SLong(BigInt(0))).toHex(),     // Pair [Tokens sold counter, Tokens refunded counter]
        R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
-       R8: SString(JSON.stringify(addressContent)),                               // Owner address, dev address and dev fee.
+       R8: SString(JSON.stringify(addressContent)),               // Owner address, dev address and dev fee.
        R9: SString(projectContent)                                // Project content
     });
 
