@@ -123,10 +123,31 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                         let current_token_amount = e.assets.length > 0 ? e.assets[0].amount : 0;
                         let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
 
+                        let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
+
+                        let block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
+                        let current_height = await (new ErgoPlatform).get_current_height();
+
                         // Refunded amount
                         let collected_value = (token_amount_sold * exchange_rate);
-                        let ergs_refunded = collected_value - current_erg_value;   // TODO.
-                        let refunded_token_amount = ergs_refunded / exchange_rate;
+                        let refunded_value = 0;
+                        let refunded_token_amount = 0;
+
+                        let is_ended = block_limit < current_height;
+                        let min_raised = token_amount_sold >= minimum_token_amount;
+                        if (is_ended && !min_raised) {
+                            refunded_value = collected_value - current_erg_value;
+                            refunded_token_amount = refunded_value / exchange_rate;
+                        }
+
+                        /*
+                        This approach fixes the bug where all withdrawals are treated as refunds. However, there is still one scenario where it fails:
+                        "When a refund was possible at some point, but some contributors helped raise the minimum amount, allowing the project owners to withdraw."
+
+                        In this scenario, with the current code, the refund_token_amount will be zero, even though it shouldn't be.
+
+                        The solution is to introduce a refund token counter (stored in the same register as the sold token counter).
+                        */
 
                         projects.set(token_id, {
                             platform: new ErgoPlatform(),
@@ -146,8 +167,8 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                                 transactionId: e.transactionId
                             },
                             token_id: constants.token_id,
-                            block_limit: parseInt(e.additionalRegisters.R4.renderedValue),
-                            minimum_amount: parseInt(e.additionalRegisters.R5.renderedValue),
+                            block_limit: block_limit,
+                            minimum_amount: minimum_token_amount,
                             total_amount: current_token_amount + token_amount_sold - refunded_token_amount,
                             current_amount: current_token_amount,
                             refunded_amount: refunded_token_amount,
