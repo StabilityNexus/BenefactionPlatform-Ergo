@@ -298,6 +298,11 @@
         max-width: 1200px;
         margin: 0 auto;
         padding: 10px;
+        height: 85vh;
+        flex-direction: column;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
     }
     .title {
         font-size: 3em;
