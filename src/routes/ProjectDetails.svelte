@@ -3,7 +3,7 @@
     import { exchange } from "$lib/ergo/exchange";
     import { withdraw } from "$lib/ergo/withdraw";
     import { rebalance } from "$lib/ergo/rebalance";
-    import { address, connected, project_detail } from "$lib/common/store";
+    import { address, balance, connected, project_detail } from "$lib/common/store";
     import { Button, Progress, Badge } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
@@ -245,6 +245,12 @@
 
     var countdownInterval = setInterval(updateCountdown, 1000);
 
+    var user_project_tokens = 0;
+    async function get_user_project_tokens(){
+        user_project_tokens = (await platform.get_balance(project.token_id)).get(project.token_id) ?? 0;
+    }
+    get_user_project_tokens()
+
 </script>
 
 <div class="back">
@@ -256,7 +262,10 @@
 <!-- Main Project Detail Page -->
 <div class="project-detail">
     <div class="details">
-        <p>{project.content.description.length > 300 ? project.content.description.slice(0, 300) + "..." : project.content.description}</p>
+        <p>{project.content.description.length > 300 ? project.content.description.slice(0, 500) + "..." : project.content.description}</p>
+        {#if project.content.link !== null}
+            <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer">here</a>.</p>
+        {/if}
         <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>Block Limit:</strong> {project.block_limit}</p>
         <p><strong>Current Amount:</strong> {project.current_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
@@ -267,7 +276,8 @@
         <p><strong>Current ERG balance:</strong> {project.current_value  / Math.pow(10, 9)} ERG</p>
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
-        <p><strong>Owner:</strong> {project.constants.owner.slice(0, 6)}...{project.constants.owner.slice(-4)}</p>
+        <!-- <p><strong>Owner:</strong> {project.constants.owner.slice(0, 6)}...{project.constants.owner.slice(-4)}</p> -->
+        <p><strong>You have:</strong> {user_project_tokens} {project.token_details.name}</p>
 
     </div>
 
