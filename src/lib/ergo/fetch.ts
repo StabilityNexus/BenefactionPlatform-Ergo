@@ -112,18 +112,17 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                     break;
                 }
                 for (const e of json_data.items) {
-                    console.log(e)
                     if (hasValidSigmaTypes(e.additionalRegisters)) {
                         const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "")
 
                         if (constants === null) { console.log("constants null"); continue; }
-                        if (e.assets.length > 0 && e.assets[0].tokenId !== constants.token_id) { console.log("Constant token error with "+e); continue; }
+                        if (e.assets.length > 1 && e.assets[1].tokenId !== constants.token_id) { console.log("Constant token error with "+e); continue; }
 
-                        let project_id = e.tokens[0].tokenId;
+                        let project_id = e.assets[0].tokenId;
                         let token_id = constants.token_id;
                         let [token_amount_sold, refunded_token_amount] = e.additionalRegisters.R6.renderedValue.match(/\d+/g)?.map(Number);
                         let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
-                        let current_token_amount = e.assets.length > 0 ? e.assets[0].amount : 0;
+                        let current_token_amount = e.assets.length > 1 ? e.assets[1].amount : 0;
                         let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
                         let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
                         let block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
