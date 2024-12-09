@@ -13,7 +13,7 @@ Bene: Fundraising Platform is a decentralized application (DApp) that enables pr
 
 - **Block Limit (R4)**: The block height limit until withdrawal or refund is allowed.
 - **Minimum Tokens Sold (R5)**: The minimum number of tokens that need to be sold to enable withdrawals or refunds.
-- **Token Sold Counter (R6)**: The amount of tokens that have already been sold.
+- **Token Sold Counter (R6)**: Pair with: the amount of tokens that have already been sold and the amount of that have already been refunded.
 - **ERG/Token Exchange Rate (R7)**: The exchange rate of ERGs per token.
 - **Contract Metadata (R8)**: Contains a JSON-formatted string with the contract owner's base58 address, the developer's base58 address, and the developer fee as a percentage. This information is included to allow rebuilding the contract with constants.
 - **Project Content (R9)**: Contains a JSON-formatted string with details about the project, such as its title, description, and other related information.
