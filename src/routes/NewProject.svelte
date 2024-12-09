@@ -166,15 +166,17 @@
         <h1 class="title">Raise Funds for a new Project</h1>
 
         <div class="form-grid">
-            <div class="form-group">
+            <div class="form-group" style="margin-bottom: 0.5rem;">
                 <label for="tokenId">Token</label>
                 <select id="tokenId" bind:value={tokenId} required>
                     <option value="" disabled>Select a token</option>
-                    <option value={null}>-- Mint one --</option>
                     {#each userTokens as token}
                         <option value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</option>
                     {/each}
                 </select>
+                <p>
+                    Don't have a token? <a href="https://ergoutils.org/#/token" target="_blank" rel="noopener noreferrer">Mint one here</a>.
+                </p>
             </div>
 
             <div class="form-group">
@@ -326,7 +328,7 @@
     }
 
     .form-group {
-        margin-bottom: 1.5rem;
+        margin-bottom: 2.5rem;
     }
     label {
         font-weight: bold;
