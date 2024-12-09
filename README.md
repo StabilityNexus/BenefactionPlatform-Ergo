@@ -4,6 +4,9 @@
 Bene: Fundraising Platform is a decentralized application (DApp) that enables projects to receive funding in exchange for participation tokens. This DApp allows projects to request ERGs (the native cryptocurrency of the Ergo blockchain) in exchange for participation tokens.
 
 ### How it Works
+- Each project contains two tokens:
+   1. **NFT Token**: This token is minted on the project creation transaction and serves as the project identifier. The contract ensures that this NFT cannot be sent outside of the contract.
+   2. **Project Token**: If the project already has this token, it is distributed to contributors.
 - Project owners can create a box that holds an amount of tokens, which may vary, setting a **block limit** as a deadline.
 - A minimum amount of tokens must be sold before the project can withdraw funds. This ensures that the project receives sufficient backing.
 - If the block limit is reached before minimum amount of tokens are sold, users have the option to exchange their tokens back for the corresponding ERGs, provided the minimum has not been reached.
