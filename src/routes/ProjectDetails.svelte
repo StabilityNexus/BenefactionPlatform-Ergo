@@ -83,6 +83,7 @@
             const result = await rebalance(project, (-1) * value_submit);
             transactionId = result;
         } catch (error) {
+            console.log(error)
             errorMessage = error.message || "Error occurred while withdrawing tokens";
         } finally {
             isSubmitting = false;

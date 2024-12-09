@@ -32,25 +32,30 @@ export async function rebalance(
     const devFeePercentage = 5;
 
     // Building the project output
-    let outputs: OutputBuilder[] = [
-        new OutputBuilder(
-            BigInt(project.value),
-            get_address(project.constants)
-        )
-        .addTokens({
+    let contract_output = new OutputBuilder(
+        BigInt(project.value),
+        get_address(project.constants)
+    );
+
+    let contract_token_amount = project.current_amount + token_amount;
+    if (contract_token_amount > 0) {
+        contract_output.addTokens({
             tokenId: project.token_id,
-            amount: (project.current_amount + token_amount).toString()
-        })
-        .setAdditionalRegisters({
-            R4: SInt(project.block_limit).toHex(),                        // Block limit for withdrawals/refunds
-            R5: SLong(BigInt(project.minimum_amount)).toHex(),            // Minimum sold
-            R6: SPair(SLong(BigInt(project.amount_sold)), SLong(BigInt(project.refunded_amount))).toHex(),
-            R7: SLong(BigInt(project.exchange_rate)).toHex(),             // Exchange rate ERG/Token
-            R8: SString(project.constants.raw ?? ""),                   // Withdrawal address (hash of walletPk)
-            R9: SString(project.content.raw)                              // Project content
-        })
-    ];
+            amount: (contract_token_amount).toString()
+        });
+    }
+
+    contract_output.setAdditionalRegisters({
+        R4: SInt(project.block_limit).toHex(),                        // Block limit for withdrawals/refunds
+        R5: SLong(BigInt(project.minimum_amount)).toHex(),            // Minimum sold
+        R6: SPair(SLong(BigInt(project.amount_sold)), SLong(BigInt(project.refunded_amount))).toHex(),
+        R7: SLong(BigInt(project.exchange_rate)).toHex(),             // Exchange rate ERG/Token
+        R8: SString(project.constants.raw ?? ""),                   // Withdrawal address (hash of walletPk)
+        R9: SString(project.content.raw)                              // Project content
+    });
+    let outputs: OutputBuilder[] = [contract_output];
     
+    // Building withdraw to address output
     if (token_amount < 0) {
         outputs.push(
             new OutputBuilder(
