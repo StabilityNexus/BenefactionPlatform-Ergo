@@ -262,22 +262,48 @@
 <!-- Main Project Detail Page -->
 <div class="project-detail">
     <div class="details">
-        <p>{project.content.description.length > 300 ? project.content.description.slice(0, 500) + "..." : project.content.description}</p>
+
+        <!-- =============================== -->
+        <!-- Project Description Section -->
+        <!-- =============================== -->
+        <p><em style="font-size: 1.2em; font-weight: bold;">Project Description</em></p>
+        <p>{project.content.description}</p>
         {#if project.content.link !== null}
             <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer">here</a>.</p>
         {/if}
+
+        <!-- =============================== -->
+        <!-- Key Project Details Section -->
+        <!-- =============================== -->
+        <p><em style="font-size: 1.2em; font-weight: bold;">Key Project Details</em></p>
         <p><strong>Limit date:</strong> {limit_date}</p>
         <p><strong>Block Limit:</strong> {project.block_limit}</p>
+        <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
+        <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
+
+        <!-- =============================== -->
+        <!-- Financial Information Section -->
+        <!-- =============================== -->
+        <p><em style="font-size: 1.2em; font-weight: bold;">Financial Information</em></p>
         <p><strong>Current Amount:</strong> {project.current_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
         <p><strong>Tokens sold:</strong> {project.amount_sold / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
         <p><strong>Tokens refunded:</strong> {project.refunded_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
         <p><strong>Exchange Rate:</strong> {project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)} ERGs/{project.token_details.name}</p>
-       <!-- <p><strong>ERGs collected (included refuned or withdraw):</strong> {project.collected_value/1000000000} ERG</p>  -->
-        <p><strong>Current ERG balance:</strong> {project.current_value  / Math.pow(10, 9)} ERG</p>
-        <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
-        <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
-        <!-- <p><strong>Owner:</strong> {project.constants.owner.slice(0, 6)}...{project.constants.owner.slice(-4)}</p> -->
+        <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} ERG</p>
+        <p><strong>Token ID:</strong> {project.token_id.slice(0, 6) + '...' + project.token_id.slice(-4)}</p>
+
+        <!-- =============================== -->
+        <!-- User Information Section -->
+        <!-- =============================== -->
+        <p><em style="font-size: 1.2em; font-weight: bold;">Your Information</em></p>
         <p><strong>You have:</strong> {user_project_tokens} {project.token_details.name}</p>
+
+        <!-- =============================== -->
+        <!-- Additional Comments Section -->
+        <!-- =============================== -->
+        <!-- <p><em style="font-size: 1.2em; font-weight: bold;">Additional Comments</em></p> -->
+        <!-- <p><strong>ERGs collected (included refunded or withdrawn):</strong> {project.collected_value / 1000000000} ERG</p> -->
+        <!-- <p><strong>Owner:</strong> {project.constants.owner.slice(0, 6)}...{project.constants.owner.slice(-4)}</p> -->
 
     </div>
 
@@ -447,7 +473,11 @@
 
     .details {
         width: 30vw;
-        height: max-content;
+        margin-bottom: 1.5rem;
+        flex-direction: column;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
     }
 
     .extra {
