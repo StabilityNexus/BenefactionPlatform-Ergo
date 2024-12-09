@@ -1,6 +1,5 @@
 import {
     OutputBuilder,
-    RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
     SInt,
@@ -45,7 +44,10 @@ export async function withdraw(
         const contractOutput = new OutputBuilder(
             BigInt(project.value - amount),
             get_address(project.constants)    // Address of the project contract
-        );
+        ).addTokens({
+            tokenId: project.project_id,
+            amount: BigInt(1)
+        });
     
         if (project.current_amount > 0) {
             contractOutput.addTokens({

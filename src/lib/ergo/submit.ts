@@ -9,7 +9,6 @@ import { SInt, SPair } from '@fleet-sdk/serializer';
 import { SString } from './utils';
 import { get_address } from './contract';
 import { type ConstantContent } from '$lib/common/project';
-import { blake2b256, hex } from "@fleet-sdk/crypto";
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from './dev/dev_contract';
 
 // Function to submit a project to the blockchain
@@ -28,15 +27,12 @@ export async function submit_project(
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = await ergo.get_utxos();
 
-    let project_id: string = inputs.reduce((acc: string, item: any) => acc + String(item.boxId), "");
-
     let addressContent: ConstantContent = {
         "owner": walletPk,
         "dev_addr": get_dev_contract_address(),
         "dev_hash": get_dev_contract_hash(),
         "dev_fee": get_dev_fee(),
-        "token_id": token_id ?? inputs[0].boxId,
-        "project_id": hex.encode(blake2b256(project_id))
+        "token_id": token_id ?? inputs[0].boxId
     };
 
     // Building the project output
@@ -47,15 +43,17 @@ export async function submit_project(
     );
 
     if (token_id === null) {
-        projectOutput.mintToken({
-            amount: token_amount.toString()
-        });
-    } else {
-        projectOutput.addTokens({
-            tokenId: token_id,
-            amount: token_amount.toString()
-          }, {sum: false})
+        alert("Don't have a token? Mint one.")
     }
+
+    projectOutput.mintToken({
+        amount: BigInt(1)
+    });
+
+    projectOutput.addTokens({
+        tokenId: token_id ?? "",
+        amount: token_amount.toString()
+    }, {sum: false})
     
     // Set additional registers in the output box
     projectOutput.setAdditionalRegisters({

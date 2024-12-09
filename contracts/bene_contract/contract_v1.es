@@ -6,7 +6,10 @@
 
 // ===== Box Contents ===== //
 // Tokens
-// 1. (id, amount)
+// 1. (id, 1)
+//    where:
+//       id      The project nft identifier.
+// 2. (id, amount)
 //    where:
 //       id      The project token identifier.
 //       amount  The number of tokens equivalent to the maximum amount of ERG the project aims to raise.
@@ -95,8 +98,9 @@
 // None
 
 {
-  val selfTokens = if (SELF.tokens.size == 0) 0L else SELF.tokens(0)._2
-  val selfTokenId = if (SELF.tokens.size == 0) Coll[Byte]() else SELF.tokens(0)._1
+  val selfId = SELF.tokens(0)._1
+  val selfTokens = if (SELF.tokens.size == 1) 0L else SELF.tokens(1)._2
+  val selfTokenId = if (SELF.tokens.size == 1) Coll[Byte]() else SELF.tokens(1)._1
   val selfValue = SELF.value
   val selfBlockLimit = SELF.R4[Int].get
   val selfMinimumTokensSold = SELF.R5[Long].get
@@ -109,6 +113,9 @@
 
   // Validation of the box replication process
   val isSelfReplication = {
+
+    // The nft id must be the same
+    val sameId = selfId == OUTPUTS(0).tokens(0)._1
 
     // The block limit must be the same
     val sameBlockLimit = selfBlockLimit == OUTPUTS(0).R4[Int].get
@@ -129,7 +136,7 @@
     val sameScript = selfScript == OUTPUTS(0).propositionBytes
 
     // Verify that the output box is a valid copy of the input box
-    sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript
+    sameId && sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript
   }
 
   val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[(Long, Long)].get._1
@@ -142,7 +149,7 @@
     // Delta of tokens removed from the box
     val deltaTokenRemoved = {
         val selfAlreadyTokens = selfTokens
-        val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 0) 0.toLong else OUTPUTS(0).tokens(0)._2
+        val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 1) 0.toLong else OUTPUTS(0).tokens(1)._2
 
         selfAlreadyTokens - outputAlreadyTokens
       }
@@ -199,7 +206,7 @@
     // Calculate the amount of tokens that the user adds to the contract.
     val deltaTokenAdded = {
       val selfAlreadyTokens = selfTokens
-      val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 0) 0.toLong else OUTPUTS(0).tokens(0)._2
+      val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 1) 0.toLong else OUTPUTS(0).tokens(1)._2
 
       outputAlreadyTokens - selfAlreadyTokens
     }
@@ -214,7 +221,7 @@
 
       val sameToken = {
         val selfAlreadyToken = selfTokenId
-        val outputAlreadyToken = if (OUTPUTS(0).tokens.size == 0) Coll[Byte]() else OUTPUTS(0).tokens(0)._1
+        val outputAlreadyToken = if (OUTPUTS(0).tokens.size == 1) Coll[Byte]() else OUTPUTS(0).tokens(1)._1
 
         selfAlreadyToken == outputAlreadyToken
       }
@@ -329,15 +336,15 @@
 
   val verifyToken = {
 
-    val noAddsOtherTokens = OUTPUTS(0).tokens.size < 2
+    val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
 
-    val correctToken = if (OUTPUTS(0).tokens.size == 0) true else OUTPUTS(0).tokens(0)._1 == fromBase16("`+token_id+`")
+    val correctToken = if (OUTPUTS(0).tokens.size == 1) true else OUTPUTS(0).tokens(1)._1 == fromBase16("`+token_id+`")
 
     noAddsOtherTokens && correctToken
   }
 
   val deltaAddedTokens = {
-    val outTokens = if (OUTPUTS(0).tokens.size == 0) 0.toLong else OUTPUTS(0).tokens(0)._2
+    val outTokens = if (OUTPUTS(0).tokens.size == 1) 0.toLong else OUTPUTS(0).tokens(1)._2
     outTokens - selfTokens
   }
 
@@ -351,8 +358,8 @@
 
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {
-    val correctTokenId = if (SELF.tokens.size == 0) true else selfTokenId == fromBase16("`+token_id+`")
-    val onlyOneOrAnyToken = SELF.tokens.size < 2
+    val correctTokenId = if (SELF.tokens.size == 1) true else selfTokenId == fromBase16("`+token_id+`")
+    val onlyOneOrAnyToken = SELF.tokens.size == 1 || SELF.tokens.size == 2
 
     correctTokenId && onlyOneOrAnyToken
   }

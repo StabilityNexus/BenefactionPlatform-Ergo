@@ -21,8 +21,7 @@ export interface ConstantContent {
     dev_addr?: string,
     dev_hash: string,
     dev_fee: number,
-    token_id: string,
-    project_id: string
+    token_id: string
 }
 
 export interface Project {
@@ -85,8 +84,7 @@ export function getConstantContent(value: string): ConstantContent | null {
             dev_addr: parsed.dev_addr,
             dev_hash: parsed.dev_hash,
             dev_fee: parsed.dev_fee,
-            token_id: parsed.token_id,
-            project_id: parsed.project_id
+            token_id: parsed.token_id
         }
     } catch(error) {
         return null;

@@ -35,7 +35,10 @@ export async function rebalance(
     let contract_output = new OutputBuilder(
         BigInt(project.value),
         get_address(project.constants)
-    );
+    ).addTokens({
+        tokenId: project.project_id,
+        amount: BigInt(1)
+    });
 
     let contract_token_amount = project.current_amount + token_amount;
     if (contract_token_amount > 0) {

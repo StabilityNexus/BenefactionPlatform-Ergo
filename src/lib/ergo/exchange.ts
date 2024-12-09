@@ -32,7 +32,10 @@ export async function exchange(
     let output = new OutputBuilder(
         BigInt(project.value + ergo_amount).toString(),
         get_address(project.constants)    // Address of the project contract
-    );
+    ).addTokens({
+        tokenId: project.project_id,
+        amount: BigInt(1)
+    });
 
     if (project.current_amount != token_amount) {
         output.addTokens({
