@@ -209,18 +209,6 @@
                 />
             </div>
 
-            <div class="form-group">
-                <label for="maxValue">Max ERGs collected</label>
-                <input 
-                    type="number" 
-                    id="maxValue" 
-                    bind:value={maxValuePrecise}
-                    min={minValuePrecise}
-                    placeholder="Max ERGs collected"
-                    on:input={updateExchangeRate}
-                />
-            </div>
-
             <div class="form-group">  
                 <label for="minValue">Min ERGs collected</label>
                 <input 
@@ -230,6 +218,18 @@
                     max={maxValuePrecise}
                     min={0}
                     placeholder="Min ERGs collected"  
+                />
+            </div>
+
+            <div class="form-group">
+                <label for="maxValue">Max ERGs collected</label>
+                <input 
+                    type="number" 
+                    id="maxValue" 
+                    bind:value={maxValuePrecise}
+                    min={minValuePrecise}
+                    placeholder="Max ERGs collected"
+                    on:input={updateExchangeRate}
                 />
             </div>
 
