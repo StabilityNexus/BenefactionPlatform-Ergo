@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { address, connected, balance, project_detail, network } from "$lib/common/store";
+    import { address, connected, balance, project_detail, network, project_token_amount } from "$lib/common/store";
     import MyProjects from './MyProjects.svelte';
     import MyContributions from './MyContributions.svelte';
     import NewProject from './NewProject.svelte';
@@ -100,8 +100,8 @@
 
 <div>
 
-    <Navbar border={false} split={false} style="background-color: black; width: 80%">
-        <h3 slot="brand">Bene <br/> Fundraising Platform</h3>
+    <Navbar border={false} split={true} style="background-color: black; width: 80%">
+        <h3 slot="brand">Bene</h3>
         {#if $project_detail === null}
             <ul class="inline">
                 <li>
@@ -136,7 +136,7 @@
         {:else}
             <ul class="inline">
                 <!-- svelte-ignore a11y-missing-attribute -->
-                <li><a style="color: orange; border-bottom-color: orange; margin-left: 8rem; font-size: 2rem">{$project_detail.content.title}</a></li>
+                <li><a style="color: orange; border-bottom-color: orange; font-size: 2rem">{$project_detail.content.title}</a></li>
             </ul>
         {/if}
     </Navbar>
@@ -146,6 +146,9 @@
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div class="identifier flex items-center space-x-2" id="walletIdentifier" on:click={() => showWalletInfo = true}>
+                {#if $project_token_amount}
+                    <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount}</Badge>
+                {/if}
                 <Badge style="background-color: orange; color: black; font-size: 0.9em;">{ergInErgs} {platform.main_token}</Badge>
                 <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$address.slice(0, 6) + '...' + $address.slice(-4)}</Badge>
             </div>
@@ -315,6 +318,7 @@
         padding: 0;
         margin: 0;
         list-style: none;
+        margin-right: 10rem;
     }
 
     .inline li {

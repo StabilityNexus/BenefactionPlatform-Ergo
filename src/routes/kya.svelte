@@ -80,7 +80,7 @@
       <p>Additionally:</p>
       <ul>
         <li>This website does not log, collect, profile, share, or sell your data.</li>
-        <li>Bene Fundraising Platform operates on a blockchain. Therefore, transactions are final and irreversible once they achieve "confirmed" status.</li>
+        <li>Bene operates on a blockchain. Therefore, transactions are final and irreversible once they achieve "confirmed" status.</li>
         <li>All transactions are viewable through Ergo's Explorers.</li>
       </ul>
       <p>There is no guarantee against bugs or errors.</p>

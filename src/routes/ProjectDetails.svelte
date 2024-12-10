@@ -3,11 +3,12 @@
     import { exchange } from "$lib/ergo/exchange";
     import { withdraw } from "$lib/ergo/withdraw";
     import { rebalance } from "$lib/ergo/rebalance";
-    import { address, balance, connected, project_detail } from "$lib/common/store";
+    import { address, balance, connected, project_detail, project_token_amount } from "$lib/common/store";
     import { Button, Progress, Badge } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { web_explorer_uri_tx } from '$lib/ergo/envs';
+    import { str } from "@scure/base";
 
     // Define 'project' as a prop of type Project
     let project: Project = $project_detail;
@@ -179,6 +180,7 @@
         targetDate = 0;
         clearInterval(countdownInterval);
         project_detail.set(null);
+        project_token_amount.set(null);
     }
 
     function close_submit_form() {
@@ -248,6 +250,7 @@
     var user_project_tokens = 0;
     async function get_user_project_tokens(){
         user_project_tokens = (await platform.get_balance(project.token_id)).get(project.token_id) ?? 0;
+        project_token_amount.set(user_project_tokens.toString()+" "+project.token_details.name);
     }
     get_user_project_tokens()
 
@@ -266,7 +269,7 @@
         <!-- =============================== -->
         <!-- Project Description Section -->
         <!-- =============================== -->
-        <p><em style="font-size: 1.2em; font-weight: bold;">Project Description</em></p>
+        <p><em style="font-size: 1.2em; font-weight: bold;">Description</em></p>
         <p>{project.content.description}</p>
         {#if project.content.link !== null}
             <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer">here</a>.</p>
@@ -275,33 +278,18 @@
         <!-- =============================== -->
         <!-- Key Project Details Section -->
         <!-- =============================== -->
-        <p><em style="font-size: 1.2em; font-weight: bold;">Key Project Details</em></p>
-        <p><strong>Limit date:</strong> {limit_date}</p>
-        <p><strong>Block Limit:</strong> {project.block_limit}</p>
-        <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
-        <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
-
-        <!-- =============================== -->
-        <!-- Financial Information Section -->
-        <!-- =============================== -->
-        <p><em style="font-size: 1.2em; font-weight: bold;">Financial Information</em></p>
-        <p><strong>Current Amount:</strong> {project.current_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
-        <p><strong>Tokens sold:</strong> {project.amount_sold / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
-        <p><strong>Tokens refunded:</strong> {project.refunded_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
-        <p><strong>Exchange Rate:</strong> {project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)} ERGs/{project.token_details.name}</p>
+        <p><em style="font-size: 1.2em; font-weight: bold;">Details</em></p>
+        <p><strong>Exchange Rate:</strong> {project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)} ERG/{project.token_details.name}</p>
         <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} ERG</p>
-        <p><strong>Token ID:</strong> {project.token_id.slice(0, 6) + '...' + project.token_id.slice(-4)}</p>
-
-        <!-- =============================== -->
-        <!-- User Information Section -->
-        <!-- =============================== -->
-        <p><em style="font-size: 1.2em; font-weight: bold;">Your Information</em></p>
-        <p><strong>You have:</strong> {user_project_tokens} {project.token_details.name}</p>
+        <p><strong>Token:</strong> {project.token_id.slice(0, 6) + '...' + project.token_id.slice(-4)}</p>
+        <p><strong>Deadline Date:</strong> {limit_date}</p>
+        <p><strong>Deadline Block:</strong> {project.block_limit}</p>
 
         <!-- =============================== -->
         <!-- Additional Comments Section -->
         <!-- =============================== -->
         <!-- <p><em style="font-size: 1.2em; font-weight: bold;">Additional Comments</em></p> -->
+         <!---<p><strong>Tokens refunded:</strong> {project.refunded_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>-->
         <!-- <p><strong>ERGs collected (included refunded or withdrawn):</strong> {project.collected_value / 1000000000} ERG</p> -->
         <!-- <p><strong>Owner:</strong> {project.constants.owner.slice(0, 6)}...{project.constants.owner.slice(-4)}</p> -->
 
