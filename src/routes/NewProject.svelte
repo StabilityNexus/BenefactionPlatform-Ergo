@@ -216,7 +216,7 @@
                     id="maxValue" 
                     bind:value={maxValuePrecise}
                     min={minValuePrecise}
-                    placeholder="Max amount token"
+                    placeholder="Max ERGs collected"
                     on:input={updateExchangeRate}
                 />
             </div>
@@ -229,7 +229,7 @@
                     bind:value={minValuePrecise} 
                     max={maxValuePrecise}
                     min={0}
-                    placeholder="Max amount token"  
+                    placeholder="Min ERGs collected"  
                 />
             </div>
 
