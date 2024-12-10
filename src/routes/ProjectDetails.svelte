@@ -219,18 +219,24 @@
         var currentDate = new Date().getTime();
         var diff = targetDate - currentDate;
 
-        var days = Math.floor(diff / (1000 * 60 * 60 * 24));
-        var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        if (diff > 0) {
+            var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        } 
+        else {
+            var days = 0;
+            var hours = 0
+            var minutes = 0;
+            var seconds = 0;
+        }
 
-        // Asignamos los valores a los elementos del DOM
         const daysElement = document.getElementById('days');
         const hoursElement = document.getElementById('hours');
         const minutesElement = document.getElementById('minutes');
         const secondsElement = document.getElementById('seconds');
 
-        // Verificamos que los elementos existen antes de asignarles valores
         if (daysElement) {
             daysElement.innerHTML = days.toString();
         }
