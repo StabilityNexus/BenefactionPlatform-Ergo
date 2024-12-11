@@ -260,6 +260,10 @@
     }
     get_user_project_tokens()
 
+    console.log(project.token_details)
+    console.log(project.exchange_rate)
+    console.log(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9))
+
 </script>
 
 <div class="back">
@@ -285,7 +289,7 @@
         <!-- Key Project Details Section -->
         <!-- =============================== -->
         <p><em style="font-size: 1.2em; font-weight: bold;">Details</em></p>
-        <p><strong>Exchange Rate:</strong> {project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)} ERG/{project.token_details.name}</p>
+        <p><strong>Exchange Rate:</strong> {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} ERG/{project.token_details.name}</p>
         <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} ERG</p>
         <p><strong>Token:</strong> {project.token_id.slice(0, 6) + '...' + project.token_id.slice(-4)}</p>
         <p><strong>Deadline Date:</strong> {limit_date}</p>
