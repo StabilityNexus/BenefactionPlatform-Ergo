@@ -1,5 +1,4 @@
 {
-
     // ===== Contract Information ===== //
     // Name: Bene Fundraising Platform  Dev Fee Contract
     // Description: Contract guarding the fee box for the Bene Fundraising Platform.
@@ -20,7 +19,10 @@
     // Context Variables: None
 
     // ===== Compile Time Constants ($) ===== //
-    //
+    // bruno: reciver address
+    // lgd:   reciver address
+    // jm:    reciver address
+    // order: rediver address
 
     // ===== Context Variables (_) ===== //
     // None
@@ -35,10 +37,10 @@
     val jmNum: Long = 32L     // Jossemi
     val orderNum: Long = 4L  // The Stable Order
     
-    val brunoAddress: SigmaProp   = PK("9fBF4dceTsqdhsYUNVZHjsv4jqoKVzVv3KywFCycbkEXEq5j6bp")
-    val lgdAddress: SigmaProp = PK("9gkRrMRdSstibAsVzCtYumUGbXDPQZHkfuAaqmA49FNH3tN4XDg")
-    val jmAddress: SigmaProp = PK("9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD")
-    val orderAddress: SigmaProp = PK("9h9hjN2KC3jEyCa6KEYKBotPRESdo9oa29yyKcoSLWwtaX2VvhM")
+    val brunoAddress: SigmaProp   = PK("`+bruno+`")
+    val lgdAddress: SigmaProp = PK("`+lgd+`")
+    val jmAddress: SigmaProp = PK("`+jm+`")
+    val orderAddress: SigmaProp = PK("`+order+`")
 
     // ===== Fee Distribution Tx ===== //
     val validFeeDistributionTx: Boolean = {                         
@@ -96,6 +98,6 @@
 
     }
 
-    sigmaProp(validFeeDistributionTx) && atLeast(1, Coll(brunoAddress, lgdAddress, jmAddress, validOrder)) // Done so we are incentivized to not spam the miner fee.
+    sigmaProp(validFeeDistributionTx) && atLeast(1, Coll(brunoAddress, lgdAddress, jmAddress, orderAddress)) // Done so we are incentivized to not spam the miner fee.
 
 }

@@ -22,13 +22,12 @@ function generate_contract(): string {
     {
         bruno = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
         lgd   = "3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S";
-        jm    = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
-        order = "3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S";
+        jm    = "3WxgdiVK5kwchdWgifEiywhUwvsDZk85bPRqBeUHPsw1KsSJrdvW";
+        order = "3WyS9EoJJ4zhJf2Eit5m836F6iYNya5SssKFAYH8crwwbSSLHxri";
     }
 
     return `
 {
-
     // ===== Contract Information ===== //
     // Name: Bene Fundraising Platform  Dev Fee Contract
     // Description: Contract guarding the fee box for the Bene Fundraising Platform.
@@ -49,7 +48,10 @@ function generate_contract(): string {
     // Context Variables: None
 
     // ===== Compile Time Constants ($) ===== //
-    //
+    // bruno: reciver address
+    // lgd:   reciver address
+    // jm:    reciver address
+    // order: rediver address
 
     // ===== Context Variables (_) ===== //
     // None
