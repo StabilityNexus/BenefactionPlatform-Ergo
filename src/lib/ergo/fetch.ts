@@ -71,7 +71,7 @@ async function fetch_token_details(id: string): Promise<TokenEIP4> {
             }
         } catch {}
         return {
-            'name': 'tokens',
+            'name': 'token',
             'description': "",
             'decimals': 0
         };

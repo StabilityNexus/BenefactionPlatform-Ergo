@@ -344,7 +344,7 @@
             {#if $connected}
                 <div class="action-group">
                     {#if is_owner}
-                        <span class="group-label">As a user:</span>
+                        <!-- <span class="group-label">As a user:</span> -->
                     {/if}
                     <div class="action-buttons">
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy} disabled={!(project.total_amount !== project.amount_sold)}>
@@ -363,7 +363,7 @@
             <!-- Project owner actions -->
             {#if is_owner}
                 <div class="action-group">
-                    <span class="group-label">Owner:</span>
+                    <!-- <span class="group-label">Owner:</span> -->
                     <div class="action-buttons">
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupAddTokens}>
                             Add tokens
