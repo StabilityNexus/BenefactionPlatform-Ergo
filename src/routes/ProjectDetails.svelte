@@ -8,7 +8,6 @@
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { web_explorer_uri_tx } from '$lib/ergo/envs';
-    import { str } from "@scure/base";
 
     // Define 'project' as a prop of type Project
     let project: Project = $project_detail;
@@ -256,7 +255,7 @@
     var user_project_tokens = 0;
     async function get_user_project_tokens(){
         user_project_tokens = (await platform.get_balance(project.token_id)).get(project.token_id) ?? 0;
-        project_token_amount.set(user_project_tokens.toString()+" "+project.token_details.name);
+        project_token_amount.set((user_project_tokens/Math.pow(10, project.token_details.decimals)).toString()+" "+project.token_details.name);
     }
     get_user_project_tokens()
 
