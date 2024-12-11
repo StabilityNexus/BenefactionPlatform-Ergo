@@ -175,7 +175,7 @@
                     {/each}
                 </select>
                 <p>
-                    Don't have a token? <a href="https://ergoutils.org/#/token" target="_blank" rel="noopener noreferrer">Mint one here</a>.
+                    Don't have a token? <a href="https://tools.mewfinance.com/mint" target="_blank" rel="noopener noreferrer">Mint one here</a>.
                 </p>
             </div>
 
