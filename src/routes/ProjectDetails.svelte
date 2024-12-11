@@ -3,7 +3,7 @@
     import { exchange } from "$lib/ergo/exchange";
     import { withdraw } from "$lib/ergo/withdraw";
     import { rebalance } from "$lib/ergo/rebalance";
-    import { address, balance, connected, project_detail, project_token_amount } from "$lib/common/store";
+    import { address, connected, project_detail, project_token_amount } from "$lib/common/store";
     import { Button, Progress, Badge } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
@@ -41,7 +41,7 @@
     let hide_submit_info = false;
     let submit_amount_label = "";
 
-    $: submit_info = Number(value_submit*project.exchange_rate/1000000000).toString() + "ERGs in total."
+    $: submit_info = Number(value_submit * project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '') + "ERGs in total."
 
     // Project owner actions
     function setupAddTokens() {
