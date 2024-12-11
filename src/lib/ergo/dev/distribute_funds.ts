@@ -22,10 +22,9 @@ export async function distributeFunds(
 
         let inputs = [box];
 
-        const devAmount = 1100000;
-        const devAddress = "e540cceffd3b8dd0f401193576cc413467039695969427df94454193dddfb375";
+        const minerFeeAmount = 1100000;
 
-        totalAmount -= devAmount;
+        totalAmount -= minerFeeAmount;
 
         // Calculate individual shares
         const brunoAmount = Math.floor((brunoShare / 100) * totalAmount);
@@ -51,14 +50,14 @@ export async function distributeFunds(
             new OutputBuilder(BigInt(brunoAmount), brunoAddress),
             new OutputBuilder(BigInt(lgdAmount), lgdAddress),
             new OutputBuilder(BigInt(jmAmount), jmAddress),
-            new OutputBuilder(BigInt(orderAmount), orderAddress),
-            new OutputBuilder(BigInt(devAmount), devAddress)
+            new OutputBuilder(BigInt(orderAmount), orderAddress)
         ];
 
         // Build and sign the transaction
         const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
             .from(inputs)
             .to(outputs)
+            .payFee(BigInt(minerFeeAmount))
             .sendChangeTo(get_dev_contract_address())
             .build()
             .toEIP12Object();
