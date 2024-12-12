@@ -1,5 +1,6 @@
 <script>
     import { download_dev, execute_dev } from "$lib/ergo/dev/dev_contract";
+    import { submit_test } from "$lib/ergo/dev/submit_test";
     import { Button } from "spaper";
 
     let message = "Developer fees not yet taken"; 
@@ -105,4 +106,8 @@
             {/each}
         </ul>
     {/if}
+
+    <div>
+        <Button on:click={() => submit_test()}>Add to test</Button>
+    </div>
 </div>
