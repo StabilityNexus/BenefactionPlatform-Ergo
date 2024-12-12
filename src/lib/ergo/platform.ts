@@ -61,17 +61,33 @@ export class ErgoPlatform implements Platform {
 
     async get_balance(id?: string): Promise<Map<string, number>> {
         const balanceMap = new Map<string, number>();
+        const addr = await ergo.get_change_address();
 
-        if (id) {
-            const balanceString = await ergo.get_balance(id);
-            balanceMap.set(id, Number(balanceString));
+        if (addr) {
+            try {
+                // Fetch balance for the specific address from the API
+                const response = await fetch(explorer_uri+`/api/v1/addresses/${addr}/balance/confirmed`);
+                if (!response.ok) {
+                    throw new Error(`API request failed with status: ${response.status}`);
+                }
+    
+                const data = await response.json();
+    
+                // Add nanoErgs balance to the map
+                balanceMap.set("ERG", data.nanoErgs);
+    
+                // Add tokens balances to the map
+                data.tokens.forEach((token: { tokenId: string; amount: number }) => {
+                    balanceMap.set(token.tokenId, token.amount);
+                });
+            } catch (error) {
+                console.error(`Failed to fetch balance for address ${addr} from API:`, error);
+                throw new Error("Unable to fetch balance.");
+            }
         } else {
-            const balancesArray = await ergo.get_balance("all");
-            balancesArray.forEach(asset => {
-                balanceMap.set(asset.tokenId, Number(asset.balance));
-            });
+            throw new Error("Address is required to fetch balance.");
         }
-
+    
         return balanceMap;
     }
 
