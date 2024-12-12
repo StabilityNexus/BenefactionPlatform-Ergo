@@ -333,7 +333,7 @@
     }
 
     .form-group {
-        margin-bottom: 2.5rem;
+        margin-bottom: 1.8rem;
     }
     label {
         font-weight: bold;
