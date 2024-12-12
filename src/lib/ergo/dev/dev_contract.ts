@@ -142,7 +142,7 @@ function generate_contract(): string {
 
     }
 
-    sigmaProp(validFeeDistributionTx) && atLeast(1, Coll(brunoAddress, lgdAddress, jmAddress, orderAddress)) // Done so we are incentivized to not spam the miner fee.
+    sigmaProp(validFeeDistributionTx) // && atLeast(1, Coll(brunoAddress, lgdAddress, jmAddress, orderAddress)) // Done so we are incentivized to not spam the miner fee.
 
 }
     `;
