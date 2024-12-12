@@ -87,7 +87,7 @@
 
         }
 
-        val validOutputSize: Boolean = (OUTPUTS.size == 6)
+        val validOutputSize: Boolean = (OUTPUTS.size == 5)
 
         allOf(Coll(
             validMinAmount,
