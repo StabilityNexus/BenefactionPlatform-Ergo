@@ -71,7 +71,7 @@
         let blockLimit = await time_to_block(target_date.getTime(), platform);
 
         if (minValuePrecise === undefined) {minValuePrecise = 0;}
-        let minValueNano = minValuePrecise * 1000000000;
+        let minValueNano = minValuePrecise * Math.pow(10, 9);
 
         let minimumTokenSold = minValueNano / exchangeRateRaw;
 
@@ -87,9 +87,9 @@
                 tokenId, 
                 tokenAmountRaw, 
                 blockLimit, 
-                exchangeRateRaw,
+                Math.round(exchangeRateRaw),
                 projectContent, 
-                minimumTokenSold
+                Math.round(minimumTokenSold)
             );
 
             transactionId = result;
