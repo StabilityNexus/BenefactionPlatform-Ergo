@@ -25,7 +25,7 @@ export class ErgoPlatform implements Platform {
                     console.log('Connected!');
                     address.set(await ergo.get_change_address());
                     network.set((network_id == "mainnet") ? "ergo-mainnet" : "ergo-testnet");
-                    balance.set(await ergo.get_balance("ERG"));
+                    await this.get_balance();
                     connected.set(true);
                 } else {
                     alert('Not connected!');
@@ -75,6 +75,7 @@ export class ErgoPlatform implements Platform {
     
                 // Add nanoErgs balance to the map
                 balanceMap.set("ERG", data.nanoErgs);
+                balance.set(data.nanoErgs)
     
                 // Add tokens balances to the map
                 data.tokens.forEach((token: { tokenId: string; amount: number }) => {
