@@ -13,7 +13,7 @@ import { get_address } from './contract';
 import { SPair } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
-export async function exchange(
+export async function bug_refund(
     project: Project,
     token_amount: number
 ): Promise<string|null> {
@@ -34,7 +34,7 @@ export async function exchange(
         get_address(project.constants)    // Address of the project contract
     ).addTokens({
         tokenId: project.project_id,
-        amount: BigInt(1)
+        amount: BigInt(project.idt_amount)
     });
 
     if (project.current_amount != token_amount) {
@@ -49,9 +49,9 @@ export async function exchange(
     output.setAdditionalRegisters({
             R4: SInt(project.block_limit).toHex(),                                                          // Block limit for withdrawals/refunds
             R5: SLong(BigInt(project.minimum_amount)).toHex(),                                              // Minimum sold
-            R6: SPair(SLong(sold_counter), SLong(refund_counter)).toHex(),                                                                                      // Tokens sold counter
+            R6: SPair(SLong(sold_counter), SLong(refund_counter)).toHex(),                                  // Tokens sold counter
             R7: SLong(BigInt(project.exchange_rate)).toHex(),                                               // Exchange rate ERG/Token
-            R8: SString(project.constants.raw ?? ""),                                                     // Withdrawal address (hash of walletPk)
+            R8: SString(project.constants.raw ?? ""),                                                       // Withdrawal address (hash of walletPk)
             R9: SString(project.content.raw)                                                                // Project content
         });
     

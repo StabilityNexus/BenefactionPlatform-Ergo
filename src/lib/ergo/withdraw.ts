@@ -46,7 +46,7 @@ export async function withdraw(
             get_address(project.constants)    // Address of the project contract
         ).addTokens({
             tokenId: project.project_id,
-            amount: BigInt(1)
+            amount: BigInt(project.idt_amount)
         });
     
         if (project.current_amount > 0) {

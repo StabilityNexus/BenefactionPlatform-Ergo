@@ -6,14 +6,18 @@
 
 // ===== Box Contents ===== //
 // Tokens
-// 1. (id, 1)
+// 1. (id, amount)
+//    IDT; Identifies the project and ensures which users have contributed to the project.
 //    where:
 //       id      The project nft identifier.
+//       amount  PFT total amount + 1, where PFT total amount refers to the total existance amount of the PFT.
+
 // 2. (id, amount)
+//    PFT; Proof of funding token
 //    where:
 //       id      The project token identifier.
-//       amount  The number of tokens equivalent to the maximum amount of ERG the project aims to raise.
-//
+//       amount  The number of tokens equivalent to the maximum amount of ERG the project aims to raise. Could a partial proportion of the total existance of the token.
+
 // Registers
 // R4: Int                   The block height until which withdrawals or refunds are disallowed. After this height, they are permitted.
 // R5: Long                  The minimum number of tokens that must be sold to trigger certain actions (e.g., withdrawals).
@@ -23,24 +27,24 @@
 // R9: Coll[Byte]            Base58-encoded JSON string containing project metadata, including "title" and "description".
 
 // ===== Transactions ===== //
-// 1. Buy Tokens
+// 1. Buy IDT Tokens
 // Inputs:
 //   - Project Bene Contract
 //   - User box containing ERG
 // Data Inputs: None
 // Outputs:
 //   - Updated Project Bene Contract
-//   - User box containing purchased tokens
+//   - User box containing IDT purchased tokens
 // Constraints:
 //   - Ensure accurate ERG-to-token exchange based on the exchange rate.
 //   - Update the token sold counter correctly.
 //   - Transfer the correct number of tokens to the user.
 //   - Validate that the contract is replicated correctly.
 
-// 2. Refund Tokens
+// 2. Refund IDT Tokens
 // Inputs:
 //   - Project Bene Contract
-//   - User box containing project tokens
+//   - User box containing IDT project tokens
 // Outputs:
 //   - Updated Project Bene Contract
 //   - User box containing refunded ERG
@@ -85,11 +89,19 @@
 //   - Ensure no ERG value changes during the transaction.
 //   - Handle the added tokens correctly.
 
+// 6. Exchange Funding Tokens
+// Inputs:
+//
+// Outputs:
+// 
+// Constraints
+//
+
 // ===== Compile Time Constants ===== //
 // $owner_addr: Base58 address of the contract owner.
 // $dev_fee_contract_bytes_hash: Blake2b-256 base16 string hash of the dev fee contract proposition bytes.
 // $dev_fee: Percentage fee allocated to the developer (e.g., 5 for 5%).
-// $token_id: Unique string identifier for the project token.
+// $token_id: Unique string identifier for the proof-of-funding token.
 
 // ===== Context Variables ===== //
 // None
@@ -98,9 +110,41 @@
 // None
 
 {
+
+  def temporaryFundingTokenAmountOnContract(contract: Box): Long {
+    // IDT amount that serves as temporary funding token that is currently on the contract available to exchange.
+
+    val proof_funding_token_amount = contract.tokens(1).get._2
+    val sold                       = contract.R6[(Long, Long)].get._1
+    val refunded                   = contract.R6[(Long, Long)].get._2
+
+    proof_funding_token_amount - sold + refunded 
+  }
+
+  def isSigmaPropEqualToBoxProp(propAndBox: (SigmaProp, Box)): Boolean = {
+
+    val prop: SigmaProp = propAndBox._1
+    val box: Box = propAndBox._2
+
+    val propBytes: Coll[Byte] = prop.propBytes
+    val treeBytes: Coll[Byte] = box.propositionBytes
+
+    if (treeBytes(0) == 0) {
+
+        (treeBytes == propBytes)
+
+    } else {
+
+        // offset = 1 + <number of VLQ encoded bytes to store propositionBytes.size>
+        val offset = if (treeBytes.size > 127) 3 else 2
+        (propBytes.slice(1, propBytes.size) == treeBytes.slice(offset, treeBytes.size))
+
+    }
+
+  }
+
   val selfId = SELF.tokens(0)._1
-  val selfTokens = if (SELF.tokens.size == 1) 0L else SELF.tokens(1)._2
-  val selfTokenId = if (SELF.tokens.size == 1) Coll[Byte]() else SELF.tokens(1)._1
+  val selfIDT = SELF.tokens(0)._2
   val selfValue = SELF.value
   val selfBlockLimit = SELF.R4[Int].get
   val selfMinimumTokensSold = SELF.R5[Long].get
@@ -135,12 +179,73 @@
     // The script must be the same to ensure replication
     val sameScript = selfScript == OUTPUTS(0).propositionBytes
 
+    // In case that the contract was created with more than two tokens, they doesn't should be added to the next contract box.
+    val onlyOneOrAnyToken = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
+
     // Verify that the output box is a valid copy of the input box
-    sameId && sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript
+    sameId && sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript && onlyOneOrAnyToken
   }
 
+  val IdTokenRemainsConstant = selfIDT == OUTPUTS(0).tokens(0)._2
+  val ProofFundingTokenRemainsConstant = SELF.tokens(1)._2 == OUTPUTS(0).tokens(1)._2
   val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[(Long, Long)].get._1
   val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[(Long, Long)].get._2
+  val mantainValue = selfValue == OUTPUTS(0).value
+  val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
+
+  val projectAddr: SigmaProp = PK("`+owner_addr+`")
+  
+  val isToProjectAddress = {
+    val propAndBox: (SigmaProp, Box) = (projectAddr, OUTPUTS(1))
+    val isSamePropBytes: Boolean = isSigmaPropEqualToBoxProp(propAndBox)
+
+    isSamePropBytes
+  }
+
+  val isFromProjectAddress = {
+    val propAndBox: (SigmaProp, Box) = (projectAddr, INPUTS(1))
+    val isSamePropBytes: Boolean = isSigmaPropEqualToBoxProp(propAndBox)
+    
+    isSamePropBytes
+  }
+
+  val deltaAddedProofTokens = {
+
+    // Verify the token requirements
+    val verifyToken = {
+
+      // Ensure the output has either 1 or 2 tokens
+      val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
+
+      // Verify if the second token matches the required token_id
+      val correctToken = 
+        if (OUTPUTS(0).tokens.size == 1) true 
+        else OUTPUTS(0).tokens(1)._1 == fromBase16("`+token_id+`")
+
+      noAddsOtherTokens && correctToken
+    }
+
+    // If verifyToken is false, return 0
+    if (!verifyToken) 0
+    else {
+      // Calculate the difference in token amounts
+      val selfTokens = SELF.tokens(1)._2
+      val outTokens = OUTPUTS(0).tokens(1)._2
+      
+      // Return the difference between output tokens and self tokens
+      outTokens - selfTokens
+    }
+  }
+
+  val minimumReached = {
+    val minimumSalesThreshold = selfMinimumTokensSold
+    val soldCounter = selfSoldCounter
+
+    soldCounter >= minimumSalesThreshold
+  }
+
+
+  //  ACTIONS
 
   // Validation for purchasing Tokens
   // > People should be allowed to exchange ERGs for tokens until there are no more tokens left (even if the deadline has passed).
@@ -148,10 +253,9 @@
 
     // Delta of tokens removed from the box
     val deltaTokenRemoved = {
-        val selfAlreadyTokens = selfTokens
-        val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 1) 0.toLong else OUTPUTS(0).tokens(1)._2
+        val outputAlreadyTokens = OUTPUTS(0).tokens(0)._2
 
-        selfAlreadyTokens - outputAlreadyTokens
+        selfIDT - outputAlreadyTokens
       }
 
     // Verify if the ERG amount matches the required exchange rate for the given token quantity
@@ -181,7 +285,7 @@
       deltaTokenRemoved == counterIncrement
     }
 
-    isSelfReplication && refundCounterRemainsConstant && correctExchange && incrementSoldCounterCorrectly
+    isSelfReplication && refundCounterRemainsConstant && correctExchange && incrementSoldCounterCorrectly && ProofFundingTokenRemainsConstant
   }
 
   // Validation for refunding tokens
@@ -189,26 +293,25 @@
 
     // > People should be allowed to exchange tokens for ERGs if and only if the deadline has passed and the minimum number of tokens has not been sold.
     val canBeRefund = {
-    // The minimum number of tokens has not been sold.
-    val minimumNotReached = {
-        val minimumSalesThreshold = selfMinimumTokensSold
-        val soldCounter = selfSoldCounter
+      // The minimum number of tokens has not been sold.
+      val minimumNotReached = {
+          val minimumSalesThreshold = selfMinimumTokensSold
+          val soldCounter = selfSoldCounter
 
-        soldCounter < minimumSalesThreshold
-    }
+          soldCounter < minimumSalesThreshold
+      }
 
-    // Condition to check if the current height is beyond the block limit
-    val afterBlockLimit = HEIGHT > selfBlockLimit
-    
-    afterBlockLimit && minimumNotReached
+      // Condition to check if the current height is beyond the block limit
+      val afterBlockLimit = HEIGHT > selfBlockLimit
+      
+      afterBlockLimit && minimumNotReached
     }
 
     // Calculate the amount of tokens that the user adds to the contract.
     val deltaTokenAdded = {
-      val selfAlreadyTokens = selfTokens
-      val outputAlreadyTokens = if (OUTPUTS(0).tokens.size == 1) 0.toLong else OUTPUTS(0).tokens(1)._2
+      val outputAlreadyTokens = OUTPUTS(0).tokens(0)._2
 
-      outputAlreadyTokens - selfAlreadyTokens
+      outputAlreadyTokens - selfIDT
     }
 
     // Verify if the ERG amount matches the required exchange rate for the returned token quantity
@@ -219,14 +322,7 @@
       // Calculate the value of the tokens added on the contract by the user
       val addedTokensValue = deltaTokenAdded * selfExchangeRate
 
-      val sameToken = {
-        val selfAlreadyToken = selfTokenId
-        val outputAlreadyToken = if (OUTPUTS(0).tokens.size == 1) Coll[Byte]() else OUTPUTS(0).tokens(1)._1
-
-        selfAlreadyToken == outputAlreadyToken
-      }
-
-      retiredValueFromTheContract == addedTokensValue && sameToken
+      retiredValueFromTheContract == addedTokensValue
     }
 
     // Verify if the token refund counter (R6)._2 is increased in proportion of the tokens refunded.
@@ -245,50 +341,11 @@
     }
 
     // The contract returns the equivalent ERG value for the returned tokens
-    isSelfReplication && soldCounterRemainsConstant && incrementRefundCounterCorrectly && canBeRefund && correctExchange
-  }
-
-  def isSigmaPropEqualToBoxProp(propAndBox: (SigmaProp, Box)): Boolean = {
-
-    val prop: SigmaProp = propAndBox._1
-    val box: Box = propAndBox._2
-
-    val propBytes: Coll[Byte] = prop.propBytes
-    val treeBytes: Coll[Byte] = box.propositionBytes
-
-    if (treeBytes(0) == 0) {
-
-        (treeBytes == propBytes)
-
-    } else {
-
-        // offset = 1 + <number of VLQ encoded bytes to store propositionBytes.size>
-        val offset = if (treeBytes.size > 127) 3 else 2
-        (propBytes.slice(1, propBytes.size) == treeBytes.slice(offset, treeBytes.size))
-
-    }
-
-  }
-
-  val projectAddr: SigmaProp = PK("`+owner_addr+`") // TODO 1 if devAddress is a splitting contract you cannot do PK(“...”). 
-  
-  val isToProjectAddress = {
-    val propAndBox: (SigmaProp, Box) = (projectAddr, OUTPUTS(1))
-    val isSamePropBytes: Boolean = isSigmaPropEqualToBoxProp(propAndBox)
-
-    isSamePropBytes
-  }
-
-  val isFromProjectAddress = {
-    val propAndBox: (SigmaProp, Box) = (projectAddr, INPUTS(1))
-    val isSamePropBytes: Boolean = isSigmaPropEqualToBoxProp(propAndBox)
-    
-    isSamePropBytes
+    isSelfReplication && soldCounterRemainsConstant && incrementRefundCounterCorrectly && ProofFundingTokenRemainsConstant && canBeRefund && correctExchange
   }
 
   // Validation for withdrawing funds by project owners
   val isWithdrawFunds = {
-
     // Anyone can withdraw the funds to the project address.
     
     val minnerFeeAmount = 1100000  // Pay minner fee with the extracted value allows to withdraw when project address does not have ergs.
@@ -313,58 +370,105 @@
       isCorrectDevAmount && isToDevAddress
     }
 
-    // Replicate the contract in case of partial withdraw
     val endOrReplicate = {
       val allFundsWithdrawn = extractedValue == selfValue
+      val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
 
-      isSelfReplication || allFundsWithdrawn
+      isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
     }
 
-    // > Project owners are allowed to withdraw ERGs if and only if the minimum number of tokens has been sold. (The deadline plays no role here.)
-    val minimumReached = {
-      val minimumSalesThreshold = selfMinimumTokensSold
-      val soldCounter = selfSoldCounter
-
-      soldCounter >= minimumSalesThreshold
-    }
-    
-    endOrReplicate && soldCounterRemainsConstant && refundCounterRemainsConstant && minimumReached && isToProjectAddress && correctDevFee && correctProjectAmount
+    allOf(Coll(
+      endOrReplicate,   // Replicate the contract in case of partial withdraw
+      soldCounterRemainsConstant,
+      refundCounterRemainsConstant,
+      minimumReached,   // > Project owners are allowed to withdraw ERGs if and only if the minimum number of tokens has been sold.
+      isToProjectAddress,
+      correctDevFee,
+      correctProjectAmount
+    ))
   }
-
-  // Can't withdraw ERG
-  val mantainValue = selfValue == OUTPUTS(0).value
-
-  val verifyToken = {
-
-    val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
-
-    val correctToken = if (OUTPUTS(0).tokens.size == 1) true else OUTPUTS(0).tokens(1)._1 == fromBase16("`+token_id+`")
-
-    noAddsOtherTokens && correctToken
-  }
-
-  val deltaAddedTokens = {
-    val outTokens = if (OUTPUTS(0).tokens.size == 1) 0.toLong else OUTPUTS(0).tokens(1)._2
-    outTokens - selfTokens
-  }
-
-  val correctRebalanceTokens = isSelfReplication && soldCounterRemainsConstant && refundCounterRemainsConstant && mantainValue && verifyToken
 
   // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens = correctRebalanceTokens && isToProjectAddress && deltaAddedTokens < 0
+  val isWithdrawUnsoldTokens = {
+    val onlyUnsold = deltaAddedProofTokens*-1 < temporaryFundingTokenAmountOnContract(SELF)
+
+    allOf(Coll(
+      isSelfReplication,
+      refundCounterRemainsConstant,
+      mantainValue,
+      noAddsOtherTokens,
+      IdTokenRemainsConstant,
+      isToProjectAddress,
+      deltaAddedProofTokens < 0,  // A negative value means that PFT are extracted.
+      onlyUnsold  // Ensures that only extracts the token amount that has not been buyed.
+    ))
+  }
   
   // > Project owners may add more tokens to the contract at any time.
-  val isAddTokens = correctRebalanceTokens && isFromProjectAddress && deltaAddedTokens > 0
+  val isAddTokens = {
+    allOf(Coll(
+      isSelfReplication,
+      refundCounterRemainsConstant,
+      mantainValue,
+      noAddsOtherTokens,
+      IdTokenRemainsConstant,
+      isFromProjectAddress,
+      deltaAddedProofTokens > 0
+    ))
+  }
+  
+  // Exchange IDT (token that identies the project used as temporary funding token) with PFT (proof-of-funding token)
+  val isExchangeFundingTokens = {
+    
+    val correctExchange = {
+      val deltaTemporaryFundingTokenAdded = {
+        val selfTFT = temporaryFundingTokenAmountOnContract(SELF)
+        val outTFT = temporaryFundingTokenAmountOnContract(OUTPUTS(0))
+
+        selfTFT - outTFT
+      }
+
+      val deltaProofFundingTokenExtracted = {
+        val selfProofFT = SELF.tokens(1)._2
+        val outProofFT = OUTPUTS.tokens(1)._2
+
+        outProofFT - selfProofFT     
+      }
+      
+      deltaTemporaryFundingTokenAdded == deltaProofFundingTokenExtracted
+    }
+
+    val endOrReplicate = {
+      val allFundsWithdrawn = selfValue == OUTPUTS(0).value
+      val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
+
+      isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
+    }
+
+    allOf(Coll(
+      endOrReplicate,
+      minimumReached,   // Only can exchange when the refund action is not, and will not be, possible
+      soldCounterRemainsConstant,
+      refundCounterRemainsConstant,
+      mantainValue,
+      noAddsOtherTokens,
+      correctExchange
+    ))
+  }
+
+  val actions = isBuyTokens || isRefundTokens || isWithdrawFunds || isWithdrawUnsoldTokens || isAddTokens || isExchangeFundingTokens
 
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {
-    val correctTokenId = if (SELF.tokens.size == 1) true else selfTokenId == fromBase16("`+token_id+`")
+
+    val correctTokenId = 
+      if (SELF.tokens.size == 1) true 
+      else SELF.tokens(1)._1 == fromBase16("`+token_id+`")
+    
     val onlyOneOrAnyToken = SELF.tokens.size == 1 || SELF.tokens.size == 2
 
     correctTokenId && onlyOneOrAnyToken
   }
-
-  val actions = isBuyTokens || isRefundTokens || isWithdrawFunds || isWithdrawUnsoldTokens || isAddTokens
 
   sigmaProp(correctBuild && actions)
 }

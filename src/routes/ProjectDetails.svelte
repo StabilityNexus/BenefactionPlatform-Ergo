@@ -128,7 +128,7 @@
         isSubmitting = true;
 
         try {
-            const result = await platform.exchange(project, value_submit);
+            const result = await platform.bug_refund(project, value_submit);
             transactionId = result;
         } catch (error) {
             errorMessage = error.message || "Error occurred while buying tokens";

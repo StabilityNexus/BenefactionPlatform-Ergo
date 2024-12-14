@@ -28,16 +28,14 @@ export async function rebalance(
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = [project.box, ...(await ergo.get_utxos())];
 
-    const devAddress = "0xabcdefghijklmnñoqrstuvwxyz";
-    const devFeePercentage = 5;
-
     // Building the project output
     let contract_output = new OutputBuilder(
         BigInt(project.value),
         get_address(project.constants)
-    ).addTokens({
+    )
+    .addTokens({
         tokenId: project.project_id,
-        amount: BigInt(1)
+        amount: BigInt(project.idt_amount)
     });
 
     let contract_token_amount = project.current_amount + token_amount;

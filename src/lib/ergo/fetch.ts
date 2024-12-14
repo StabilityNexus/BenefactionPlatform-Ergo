@@ -52,7 +52,7 @@ function hasValidSigmaTypes(additionalRegisters: any): boolean {
 }
 
 
-async function fetch_token_details(id: string): Promise<TokenEIP4> {
+export async function fetch_token_details(id: string): Promise<TokenEIP4> {
     const url = explorer_uri+'/api/v1/tokens/'+id;
         const response = await fetch(url, {
             method: 'GET',
@@ -65,7 +65,8 @@ async function fetch_token_details(id: string): Promise<TokenEIP4> {
                     return {
                         "name": json_data['name'],
                         "description": json_data['description'],
-                        "decimals": json_data['decimals']
+                        "decimals": json_data['decimals'],
+                        "emissionAmount": json_data['emissionAmount']
                     }
                 }
             }
@@ -73,7 +74,8 @@ async function fetch_token_details(id: string): Promise<TokenEIP4> {
         return {
             'name': 'token',
             'description': "",
-            'decimals': 0
+            'decimals': 0,
+            'emissionAmount': null
         };
 }
 
@@ -146,6 +148,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                                 transactionId: e.transactionId
                             },
                             project_id: project_id,
+                            idt_amount: e.assets[0].amount,
                             token_id: constants.token_id,
                             block_limit: block_limit,
                             minimum_amount: minimum_token_amount,

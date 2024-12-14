@@ -4,7 +4,8 @@ import type { Amount, Box } from "@fleet-sdk/core";
 export interface TokenEIP4 {
     name: string,
     description: string,
-    decimals: number
+    decimals: number,
+    emissionAmount: number | null
 }
 
 export interface ProjectContent {
@@ -28,6 +29,7 @@ export interface Project {
     platform: Platform,
     box: Box<Amount>,
     project_id: string,
+    idt_amount: number,
     token_id: string,
     block_limit: number,
     minimum_amount: number,

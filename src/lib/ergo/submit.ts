@@ -10,10 +10,11 @@ import { SString } from './utils';
 import { get_address } from './contract';
 import { type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from './dev/dev_contract';
+import { fetch_token_details } from './fetch';
 
 // Function to submit a project to the blockchain
 export async function submit_project(
-    token_id: string | null, 
+    token_id: string, 
     token_amount: number,
     blockLimit: number,     // Block height until withdrawal/refund is allowed
     exchangeRate: number,   // Exchange rate ERG/Token
@@ -32,7 +33,7 @@ export async function submit_project(
         "dev_addr": get_dev_contract_address(),
         "dev_hash": get_dev_contract_hash(),
         "dev_fee": get_dev_fee(),
-        "token_id": token_id ?? inputs[0].boxId
+        "token_id": token_id
     };
 
     // Building the project output
@@ -42,12 +43,12 @@ export async function submit_project(
         get_address(addressContent)    // Address of the project contract
     );
 
-    if (token_id === null) {
-        alert("Don't have a token? Mint one.")
-    }
+    let id_token = (await fetch_token_details(token_id))['emissionAmount'] ?? 0;
+    if (id_token === 0) { alert(token_id+" token emission amount is 0.") }
+    id_token += 1;
 
     projectOutput.mintToken({
-        amount: BigInt(1)
+        amount: BigInt(id_token)
     });
 
     projectOutput.addTokens({
