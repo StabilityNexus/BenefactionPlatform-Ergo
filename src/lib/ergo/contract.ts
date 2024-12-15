@@ -438,7 +438,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
 
       val deltaProofFundingTokenExtracted = {
         val selfProofFT = SELF.tokens(1)._2
-        val outProofFT = OUTPUTS.tokens(1)._2
+        val outProofFT = OUTPUTS(0).tokens(1)._2
 
         outProofFT - selfProofFT     
       }
