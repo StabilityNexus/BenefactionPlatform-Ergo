@@ -419,8 +419,8 @@
     
     val correctExchange = {
       val deltaTemporaryFundingTokenAdded = {
-        val selfTFT = temporaryFundingTokenAmountOnContract(SELF)
-        val outTFT = temporaryFundingTokenAmountOnContract(OUTPUTS(0))
+        val selfTFT = SELF.tokens(0)._2
+        val outTFT = OUTPUTS(0).tokens(0)._2
 
         selfTFT - outTFT
       }
