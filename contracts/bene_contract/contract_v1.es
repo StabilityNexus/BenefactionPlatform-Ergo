@@ -426,13 +426,16 @@
       }
 
       val deltaProofFundingTokenExtracted = {
-        val selfProofFT = SELF.tokens(1)._2
-        val outProofFT = OUTPUTS(0).tokens(1)._2
+        val selfPFT = SELF.tokens(1)._2
+        val outPFT = OUTPUTS(0).tokens(1)._2
 
-        outProofFT - selfProofFT     
+        outPFT - selfPFT     
       }
       
-      deltaTemporaryFundingTokenAdded == deltaProofFundingTokenExtracted
+      allOf(Coll(
+        deltaTemporaryFundingTokenAdded == deltaProofFundingTokenExtracted,
+        deltaTemporaryFundingTokenAdded > 0  // Ensures one way exchange (only send TFT and recive PFT)
+      ))
     }
 
     val endOrReplicate = {
