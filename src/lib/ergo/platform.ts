@@ -2,14 +2,14 @@
 import type { Platform } from '../common/platform';
 import type { Project } from '../common/project';
 import { fetch_projects } from './fetch';
-import { submit_project } from './submit';
-import { withdraw } from './withdraw';
-import { buy_refund } from './buy_refund';
-import { rebalance } from './rebalance';
+import { submit_project } from './actions/submit';
+import { withdraw } from './actions/withdraw';
+import { buy_refund } from './actions/buy_refund';
+import { rebalance } from './actions/rebalance';
 import { explorer_uri, network_id } from './envs';
 import { address, connected, network, balance } from "../common/store";
 import { ergo_tree_template_hash } from './contract';
-import { temp_exchange } from './temp_exchange';
+import { temp_exchange } from './actions/temp_exchange';
 
 export class ErgoPlatform implements Platform {
 

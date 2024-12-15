@@ -7,9 +7,9 @@ import {
     SAFE_MIN_BOX_VALUE
 } from '@fleet-sdk/core';
 
-import { SString } from './utils';
-import { type Project } from '../common/project';
-import { get_address } from './contract';
+import { SString } from '../utils';
+import { type Project } from '../../common/project';
+import { get_address } from '../contract';
 import { SPair } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
