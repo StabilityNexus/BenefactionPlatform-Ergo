@@ -3,7 +3,8 @@ import {
     SAFE_MIN_BOX_VALUE,
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
-    SLong
+    SLong,
+    type Box
 } from '@fleet-sdk/core';
 import { SInt, SPair } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
@@ -20,7 +21,7 @@ async function get_emission_amount(token_id: string): Promise<number> {
     return id_token_amount
 }
 
-async function mint_tx(constants: ConstantContent, amount: number): Promise<string> {
+async function mint_tx(constants: ConstantContent, amount: number): Promise<Box> {
     // Get the wallet address (will be the project address)
     const walletPk = await ergo.get_change_address();
 
@@ -57,13 +58,15 @@ async function mint_tx(constants: ConstantContent, amount: number): Promise<stri
 
     console.log("Mint tx id: "+transactionId);
 
-    if (! await wait_until_confirmation(transactionId)) {
+    let box = await wait_until_confirmation(transactionId);
+    if (box == null) {
         alert("Mint tx failed.")
         throw new Error("Mint tx failed.")
     }
 
     console.log("Token created "+ (await fetch_token_details(inputs[0].boxId)).name)
-    return inputs[0].boxId
+    console.log("Token minted id: "+inputs[0].boxId)
+    return box
 }
 
 // Function to submit a project to the blockchain
@@ -78,9 +81,6 @@ export async function submit_project(
 
     // Get the wallet address (will be the project address)
     const walletPk = await ergo.get_change_address();
-    
-    // Get the UTXOs from the current wallet to use as inputs
-    const inputs = await ergo.get_utxos();
 
     let addressContent: ConstantContent = {
         "owner": walletPk,
@@ -94,39 +94,37 @@ export async function submit_project(
     let id_token_amount = await get_emission_amount(token_id);
 
     // Build the mint tx.
-    let project_id = await mint_tx(addressContent, id_token_amount);
+    let mint_box = await mint_tx(addressContent, id_token_amount);
+    let project_id = mint_box.assets[0].tokenId;
 
     if (project_id === null) { alert("Token minting failed!"); return null; }
 
+    // Get the UTXOs from the current wallet to use as inputs
+    const inputs = [mint_box, ...await ergo.get_utxos()];
+
     // Building the project output
-    let outputs: OutputBuilder[] = [];
-    const projectOutput = new OutputBuilder(
-        SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-        get_address(addressContent)    // Address of the project contract
-    );
-
-    projectOutput.addTokens({
-        tokenId: project_id,
-        amount: BigInt(id_token_amount)  // The mint contract force to spend all the id_token_amount
-    });
-
-    projectOutput.addTokens({
-        tokenId: token_id ?? "",
-        amount: token_amount.toString()
-    }, {sum: false})
-    
-    // Set additional registers in the output box
-    projectOutput.setAdditionalRegisters({
-       R4: SInt(blockLimit).toHex(),                              // Block limit for withdrawals/refunds
-       R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
-       R6: SPair(SLong(BigInt(0)), SLong(BigInt(0))).toHex(),     // Pair [Tokens sold counter, Tokens refunded counter]
-       R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
-       R8: SString(JSON.stringify(addressContent)),               // Owner address, dev address and dev fee.
-       R9: SString(projectContent)                                // Project content
-    });
-
-    // Add the project box to the outputs list
-    outputs.push(projectOutput);
+    let outputs: OutputBuilder[] = [
+        new OutputBuilder(
+            SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
+            get_address(addressContent)    // Address of the project contract
+        )
+        .addTokens({
+            tokenId: project_id,
+            amount: BigInt(id_token_amount)  // The mint contract force to spend all the id_token_amount
+        })
+        .addTokens({
+            tokenId: token_id ?? "",
+            amount: token_amount.toString()
+        })
+        .setAdditionalRegisters({
+           R4: SInt(blockLimit).toHex(),                              // Block limit for withdrawals/refunds
+           R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
+           R6: SPair(SLong(BigInt(0)), SLong(BigInt(0))).toHex(),     // Pair [Tokens sold counter, Tokens refunded counter]
+           R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
+           R8: SString(JSON.stringify(addressContent)),               // Owner address, dev address and dev fee.
+           R9: SString(projectContent)                                // Project content
+        })
+    ];
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())

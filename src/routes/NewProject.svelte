@@ -94,6 +94,7 @@
 
             transactionId = result;
         } catch (error) {
+            console.log(error)
             errorMessage = error.message || "Error occurred while submitting the project";
         } finally {
             isSubmitting = false;

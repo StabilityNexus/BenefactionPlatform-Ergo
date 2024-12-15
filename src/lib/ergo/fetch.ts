@@ -4,7 +4,7 @@
     https://api.ergoplatform.com/api/v1/docs/#operation/postApiV1BoxesUnspentSearch
 */
 
-import { SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
+import { type Box, SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
 import { type Project, type TokenEIP4, getConstantContent, getProjectContent } from "../common/project";
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
@@ -87,7 +87,7 @@ export async function fetch_token_details(id: string): Promise<TokenEIP4> {
         };
 }
 
-export async function wait_until_confirmation(tx_id: string): Promise<boolean> {
+export async function wait_until_confirmation(tx_id: string): Promise<Box | null> {
     const url = explorer_uri + '/api/v1/transactions/' + tx_id;
 
     // Wait for 90 seconds before retrying
@@ -107,7 +107,22 @@ export async function wait_until_confirmation(tx_id: string): Promise<boolean> {
 
                 // Check if numConfirmations is greater than 0
                 if (json_data.numConfirmations > 0) {
-                    return true;
+                    let e = json_data['outputs'][0];
+                    return {
+                        boxId: e.boxId,
+                        value: e.value,
+                        assets: e.assets,
+                        ergoTree: e.ergoTree,
+                        creationHeight: e.creationHeight,
+                        additionalRegisters: Object.entries(e.additionalRegisters).reduce((acc, [key, value]) => {
+                            acc[key] = value.serializedValue;
+                            return acc;
+                        }, {} as {
+                            [key: string]: string;
+                        }),
+                        index: e.index,
+                        transactionId: e.transactionId
+                    };
                 }
             } else {
                //  console.log(`Error fetching transaction: ${response.statusText}`);
@@ -118,7 +133,7 @@ export async function wait_until_confirmation(tx_id: string): Promise<boolean> {
 
         // Check if 5 minutes have passed
         if (Date.now() - startTime > 5 * 60 * 1000) {
-            return false;
+            return null;
         }
 
         // Wait for 5 seconds before retrying
