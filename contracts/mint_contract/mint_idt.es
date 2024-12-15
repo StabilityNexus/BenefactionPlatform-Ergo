@@ -13,6 +13,8 @@
     val correctSpend = {
         val isIDT = SELF.tokens(0)._1 == contractBox.tokens(0)._1
         val spendAll = SELF.tokens(0)._2 == contractBox.tokens(0)._2
+
+        isIDT && spendAll
     }
 
     val correctContract = {
