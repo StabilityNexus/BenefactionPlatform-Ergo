@@ -10,7 +10,7 @@ import { SString } from '../utils';
 import { get_address, mint_contract_address } from '../contract';
 import { type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
-import { fetch_token_details } from '../fetch';
+import { fetch_token_details, wait_until_confirmation } from '../fetch';
 
 async function get_emission_amount(token_id: string): Promise<number> {
     let token_fetch = await fetch_token_details(token_id);
@@ -26,8 +26,6 @@ async function mint_tx(constants: ConstantContent, amount: number): Promise<stri
 
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = await ergo.get_utxos();
-
-    console.log("Project id will be "+ inputs[0].BoxId)
 
     let outputs: OutputBuilder[] = [
         new OutputBuilder(
@@ -59,9 +57,13 @@ async function mint_tx(constants: ConstantContent, amount: number): Promise<stri
 
     console.log("Mint tx id: "+transactionId);
 
-    // Sleep until tx is confirmed.
+    if (! await wait_until_confirmation(transactionId)) {
+        alert("Mint tx failed.")
+        throw new Error("Mint tx failed.")
+    }
 
-    return inputs[0].BoxId
+    console.log("Token created "+ (await fetch_token_details(inputs[0].boxId)).name)
+    return inputs[0].boxId
 }
 
 // Function to submit a project to the blockchain
@@ -94,7 +96,7 @@ export async function submit_project(
     // Build the mint tx.
     let project_id = await mint_tx(addressContent, id_token_amount);
 
-    if (project_id !== null) { alert("Token minting failed!"); return null; }
+    if (project_id === null) { alert("Token minting failed!"); return null; }
 
     // Building the project output
     let outputs: OutputBuilder[] = [];

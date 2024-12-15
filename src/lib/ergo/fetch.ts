@@ -87,6 +87,45 @@ export async function fetch_token_details(id: string): Promise<TokenEIP4> {
         };
 }
 
+export async function wait_until_confirmation(tx_id: string): Promise<boolean> {
+    const url = explorer_uri + '/api/v1/transactions/' + tx_id;
+
+    // Wait for 90 seconds before retrying
+    await new Promise(resolve => setTimeout(resolve, 90000));
+
+    const startTime = Date.now();
+
+    while (true) {
+        try {
+            // Perform GET request to fetch transaction details
+            const response = await fetch(url, {
+                method: 'GET',
+            });
+
+            if (response.ok) {
+                const json_data = await response.json();
+
+                // Check if numConfirmations is greater than 0
+                if (json_data.numConfirmations > 0) {
+                    return true;
+                }
+            } else {
+               //  console.log(`Error fetching transaction: ${response.statusText}`);
+            }
+        } catch (error) {
+           //  console.log(`Error during fetch: ${error}`);
+        }
+
+        // Check if 5 minutes have passed
+        if (Date.now() - startTime > 5 * 60 * 1000) {
+            return false;
+        }
+
+        // Wait for 5 seconds before retrying
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+}
+
 export async function fetch_projects(explorer_uri: string, ergo_tree_template_hash: string): Promise<Map<string, Project>> {
     try {
         let params = {
