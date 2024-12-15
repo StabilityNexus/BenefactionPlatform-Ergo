@@ -52,7 +52,7 @@ export async function withdraw(
         if (project.current_amount > 0) {
             contractOutput.addTokens({
                 tokenId: project.token_id,
-                amount: project.current_amount.toString()
+                amount: BigInt(project.current_amount)
             });
         }
     
@@ -60,7 +60,10 @@ export async function withdraw(
         contractOutput.setAdditionalRegisters({
             R4: SInt(project.block_limit).toHex(),                     // Block limit for withdrawals/refunds
             R5: SLong(BigInt(project.minimum_amount)).toHex(),         // Minimum sold
-            R6: SPair(SLong(BigInt(project.amount_sold)), SLong(BigInt(project.refunded_amount))).toHex(),
+            R6: SPair(
+                SLong(BigInt(project.amount_sold)), 
+                SLong(BigInt(project.refunded_amount))
+            ).toHex(),
             R7: SLong(BigInt(project.exchange_rate)).toHex(),          // Exchange rate ERG/Token
             R8: SString(project.constants.raw ?? ""),                  // Dev content
             R9: SString(project.content.raw)                           // Project content
@@ -73,20 +76,21 @@ export async function withdraw(
             projectAmount,
             walletPk
         )
-    )
+    );
 
-    const devOutput = new OutputBuilder(
-        BigInt(devAmount),
-        devAddress
-    )
-    outputs.push(devOutput);
+    outputs.push(
+        new OutputBuilder(
+            BigInt(devAmount),
+            devAddress
+        )
+    );
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
         .from(inputs)                          // Inputs coming from the user's UTXOs
         .to(outputs)                           // Outputs (the new project box)
         .sendChangeTo(walletPk)                // Send change back to the wallet
-        .payFee(BigInt(1100000))     // Pay the recommended minimum fee
+        .payFee(BigInt(1100000))               // Pay the recommended minimum fee
         .build()                               // Build the transaction
         .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
 

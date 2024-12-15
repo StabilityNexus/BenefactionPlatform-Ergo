@@ -111,7 +111,7 @@
 
 {
 
-  def temporaryFundingTokenAmountOnContract(contract: Box): Long {
+  def temporaryFundingTokenAmountOnContract(contract: Box): Long = {
     // IDT amount that serves as temporary funding token that is currently on the contract available to exchange.
 
     val proof_funding_token_amount = contract.tokens(1).get._2

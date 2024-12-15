@@ -1,8 +1,5 @@
 <script lang="ts">
     import { type Project, is_ended, min_raised } from "$lib/common/project";
-    import { exchange } from "$lib/ergo/exchange";
-    import { withdraw } from "$lib/ergo/withdraw";
-    import { rebalance } from "$lib/ergo/rebalance";
     import { address, connected, project_detail, project_token_amount } from "$lib/common/store";
     import { Button, Progress, Badge } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
@@ -57,7 +54,7 @@
         isSubmitting = true;
 
         try {
-            const result = await rebalance(project, value_submit);
+            const result = await platform.rebalance(project, value_submit);
             transactionId = result;
         } catch (error) {
             errorMessage = error.message || "Error occurred while adding tokens";
@@ -80,7 +77,7 @@
         isSubmitting = true;
 
         try {
-            const result = await rebalance(project, (-1) * value_submit);
+            const result = await platform.rebalance(project, (-1) * value_submit);
             transactionId = result;
         } catch (error) {
             console.log(error)
@@ -104,7 +101,7 @@
         isSubmitting = true;
 
         try {
-            const result = await withdraw(project, value_submit);
+            const result = await platform.withdraw(project, value_submit);
             transactionId = result;
         } catch (error) {
             errorMessage = error.message || "Error occurred while withdrawing ERGs";
@@ -128,7 +125,7 @@
         isSubmitting = true;
 
         try {
-            const result = await platform.bug_refund(project, value_submit);
+            const result = await platform.buy_refund(project, value_submit);
             transactionId = result;
         } catch (error) {
             errorMessage = error.message || "Error occurred while buying tokens";
@@ -151,10 +148,33 @@
         isSubmitting = true;
 
         try {
-            const result = await exchange(project, (-1) * value_submit);
+            const result = await platform.buy_refund(project, (-1) * value_submit);
             transactionId = result;
         } catch (error) {
             errorMessage = error.message || "Error occurred while refunding tokens";
+        } finally {
+            isSubmitting = false;
+        }
+    }
+
+    function setupTempExchange() {
+        label_submit = "Exchange Temporary-funding token per Proof-of-funding token";
+        function_submit = temp_exchange;
+        value_submit = 0;
+        show_submit = true;
+        hide_submit_info = false;
+        submit_amount_label = project.token_details.name
+    }
+
+    async function temp_exchange() {
+        console.log("Refunding tokens:", value_submit);
+        isSubmitting = true;
+
+        try {
+            const result = await platform.temp_exchange(project, value_submit);
+            transactionId = result;
+        } catch (error) {
+            errorMessage = error.message || "Error occurred while exchange TFT <-> PFT";
         } finally {
             isSubmitting = false;
         }
@@ -355,6 +375,9 @@
                         </Button>
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund} disabled={!(deadline_passed && !is_min_raised)}>
                             Refund
+                        </Button>
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupTempExchange} disabled={!(deadline_passed && is_min_raised)}>
+                            Withdraw Funding Token
                         </Button>
                         <Button style="background-color: orange; color: black; border: none;" on:click={shareProject}>
                             Share

@@ -13,10 +13,15 @@ import { get_address } from './contract';
 import { SPair } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
-export async function bug_refund(
+export async function buy_refund(
     project: Project,
     token_amount: number
 ): Promise<string|null> {
+
+    /*
+        Token amount positive means buy action.
+        Token amount negative means refund action.
+    */
 
     token_amount = token_amount * Math.pow(10, project.token_details.decimals);
 
@@ -30,22 +35,20 @@ export async function bug_refund(
 
     // Building the project output
     let output = new OutputBuilder(
-        BigInt(project.value + ergo_amount).toString(),
+        BigInt(project.value + ergo_amount).toString(),  // On buy action the ergo_amount is positive, we add ergs to the contract.    On refund action the ergo_amount is negative, we extract ergs from the contract.
         get_address(project.constants)    // Address of the project contract
-    ).addTokens({
+    )
+    .addTokens({
         tokenId: project.project_id,
-        amount: BigInt(project.idt_amount)
+        amount: BigInt(project.idt_amount - token_amount)  // On but action the token amount is positive, we extract it from the contract.   On refund action the token amount is negative, we add it to the contract.
+    })
+    .addTokens({
+        tokenId: project.token_id,
+        amount: BigInt(project.current_amount)  // PFT token maintains constant.
     });
 
-    if (project.current_amount != token_amount) {
-        output.addTokens({
-            tokenId: project.token_id,
-            amount: (project.current_amount - token_amount).toString()
-        });
-    }
-
-    let sold_counter =   BigInt(token_amount > 0 ? project.amount_sold + token_amount : project.amount_sold);
-    let refund_counter = BigInt(token_amount < 0 ? project.refunded_amount + token_amount : project.refunded_amount)
+    let sold_counter   = BigInt(token_amount > 0 ? project.amount_sold + token_amount : project.amount_sold);
+    let refund_counter = BigInt(token_amount < 0 ? project.refunded_amount + token_amount : project.refunded_amount);
     output.setAdditionalRegisters({
             R4: SInt(project.block_limit).toHex(),                                                          // Block limit for withdrawals/refunds
             R5: SLong(BigInt(project.minimum_amount)).toHex(),                                              // Minimum sold
@@ -64,7 +67,7 @@ export async function bug_refund(
                 walletPk
             )
             .addTokens({
-                tokenId: project.token_id,
+                tokenId: project.project_id,
                 amount: (token_amount).toString()
             })
         )

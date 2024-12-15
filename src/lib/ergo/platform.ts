@@ -4,11 +4,12 @@ import type { Project } from '../common/project';
 import { fetch_projects } from './fetch';
 import { submit_project } from './submit';
 import { withdraw } from './withdraw';
-import { bug_refund } from './buy_refund';
+import { buy_refund } from './buy_refund';
 import { rebalance } from './rebalance';
 import { explorer_uri, network_id } from './envs';
 import { address, connected, network, balance } from "../common/store";
 import { ergo_tree_template_hash } from './contract';
+import { temp_exchange } from './temp_exchange';
 
 export class ErgoPlatform implements Platform {
 
@@ -92,8 +93,8 @@ export class ErgoPlatform implements Platform {
         return balanceMap;
     }
 
-    async bug_refund(project: Project, token_amount: number): Promise<string | null> {
-        return await bug_refund(project, token_amount);
+    async buy_refund(project: Project, token_amount: number): Promise<string | null> {
+        return await buy_refund(project, token_amount);
     }
 
     async rebalance(project: Project, token_amount: number): Promise<string | null> {
@@ -120,6 +121,10 @@ export class ErgoPlatform implements Platform {
 
     async withdraw(project: Project, amount: number): Promise<string | null> {
         return await withdraw(project, amount);
+    }
+
+    async temp_exchange(project: Project, token_amount: number): Promise<string | null> {
+        return await temp_exchange(project, token_amount);
     }
 
     async fetch(): Promise<Map<string, Project>> {

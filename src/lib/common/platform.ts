@@ -10,8 +10,9 @@ export interface Platform {
     get_current_height(): Promise<number>;
     get_balance(id?: string): Promise<Map<string, number>>;
     withdraw(project: Project, amount: number): Promise<string | null>;
-    bug_refund(project: Project, token_amount: number): Promise<string | null>;
+    buy_refund(project: Project, token_amount: number): Promise<string | null>;
     rebalance(project: Project, token_amount: number): Promise<string | null>;
+    temp_exchange(project: Project, token_amount: number): Promise<string | null>;
     submit(
         token_id: string,
         token_amount: number,
