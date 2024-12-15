@@ -506,3 +506,42 @@ function get_template_hash(): string {
 }
 
 export const ergo_tree_template_hash = get_template_hash()
+
+function get_contract_hash(constants: ConstantContent): string {
+    return uint8ArrayToHex(
+        blake2b256(
+            compile(generate_contract(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id), 
+              {version: 1, network: network_id}
+          ).toBytes()  // Compile contract to ergo tree
+        ) // Blake2b256 hash of contract bytes
+    );
+}
+
+export function mint_contract_address(constants: ConstantContent) {
+  const contract_bytes_hash = get_contract_hash(constants);
+  let contract = `
+{
+  val contractBox = OUTPUTS(0)
+
+  val correctSpend = {
+      val isIDT = SELF.tokens(0)._1 == contractBox.tokens(0)._1
+      val spendAll = SELF.tokens(0)._2 == contractBox.tokens(0)._2
+  }
+
+  val correctContract = {
+      fromBase16("`+contract_bytes_hash+`") == blake2b256(contractBox.propositionBytes)
+  }
+
+  sigmaProp(allOf(Coll(
+      correctSpend,
+      correctContract
+  )))
+}
+`
+
+  let ergoTree = compile(contract, {version: 1, network: network_id})
+
+  let network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
+  return ergoTree.toAddress(network).toString();
+}
+
