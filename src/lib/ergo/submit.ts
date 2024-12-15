@@ -43,8 +43,9 @@ export async function submit_project(
         get_address(addressContent)    // Address of the project contract
     );
 
-    let id_token = (await fetch_token_details(token_id))['emissionAmount'] ?? 0;
-    if (id_token === 0) { alert(token_id+" token emission amount is 0.") }
+    let token_fetch = await fetch_token_details(token_id);
+    let id_token = token_fetch['emissionAmount'] ?? 0;
+    if (id_token === 0) { alert(token_id+" token emission amount is 0."); return null; }
     id_token += 1;
 
     projectOutput.mintToken({

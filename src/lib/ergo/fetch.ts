@@ -69,6 +69,14 @@ export async function fetch_token_details(id: string): Promise<TokenEIP4> {
                         "emissionAmount": json_data['emissionAmount']
                     }
                 }
+                else if (json_data['type'] == null) {
+                    return {
+                        "name": id.slice(0,6),
+                        "description": "",
+                        "decimals": 0,
+                        "emissionAmount": json_data['emissionAmount']
+                    }
+                }
             }
         } catch {}
         return {
