@@ -114,7 +114,7 @@
   def temporaryFundingTokenAmountOnContract(contract: Box): Long = {
     // IDT amount that serves as temporary funding token that is currently on the contract available to exchange.
 
-    val proof_funding_token_amount = contract.tokens(1).get._2
+    val proof_funding_token_amount = contract.tokens(1)._2
     val sold                       = contract.R6[(Long, Long)].get._1
     val refunded                   = contract.R6[(Long, Long)].get._2
 
@@ -214,9 +214,6 @@
     // Verify the token requirements
     val verifyToken = {
 
-      // Ensure the output has either 1 or 2 tokens
-      val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
-
       // Verify if the second token matches the required token_id
       val correctToken = 
         if (OUTPUTS(0).tokens.size == 1) true 
@@ -226,7 +223,7 @@
     }
 
     // If verifyToken is false, return 0
-    if (!verifyToken) 0
+    if (!verifyToken) 0L
     else {
       // Calculate the difference in token amounts
       val selfTokens = SELF.tokens(1)._2
@@ -390,7 +387,7 @@
 
   // > Project owners may withdraw unsold tokens from the contract at any time.
   val isWithdrawUnsoldTokens = {
-    val onlyUnsold = deltaAddedProofTokens*-1 < temporaryFundingTokenAmountOnContract(SELF)
+    val onlyUnsold = -deltaAddedProofTokens < temporaryFundingTokenAmountOnContract(SELF)
 
     allOf(Coll(
       isSelfReplication,
