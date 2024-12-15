@@ -89,7 +89,8 @@
                 blockLimit, 
                 Math.round(exchangeRateRaw),
                 projectContent, 
-                Math.round(minimumTokenSold)
+                Math.round(minimumTokenSold),
+                projectTitle
             );
 
             transactionId = result;

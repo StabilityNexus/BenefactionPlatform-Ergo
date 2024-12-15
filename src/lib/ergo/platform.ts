@@ -107,7 +107,8 @@ export class ErgoPlatform implements Platform {
         blockLimit: number,
         exchangeRate: number,
         projectContent: string,
-        minimumSold: number
+        minimumSold: number,
+        title: string
     ): Promise<string | null> {
         return await submit_project(
             token_id,
@@ -115,7 +116,8 @@ export class ErgoPlatform implements Platform {
             blockLimit,
             exchangeRate,
             projectContent,
-            minimumSold
+            minimumSold,
+            title
         );
     }
 
