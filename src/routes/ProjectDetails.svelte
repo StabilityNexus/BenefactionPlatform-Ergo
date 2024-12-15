@@ -1,6 +1,6 @@
 <script lang="ts">
     import { type Project, is_ended, min_raised } from "$lib/common/project";
-    import { address, connected, project_detail, project_token_amount } from "$lib/common/store";
+    import { address, connected, project_detail, project_token_amount, temporal_token_amount } from "$lib/common/store";
     import { Button, Progress, Badge } from "spaper";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
@@ -199,6 +199,7 @@
         targetDate = 0;
         clearInterval(countdownInterval);
         project_detail.set(null);
+        temporal_token_amount.set(null);
         project_token_amount.set(null);
     }
 
@@ -272,16 +273,16 @@
 
     var countdownInterval = setInterval(updateCountdown, 1000);
 
-    var user_project_tokens = 0;
     async function get_user_project_tokens(){
-        user_project_tokens = (await platform.get_balance(project.token_id)).get(project.token_id) ?? 0;
+        var user_project_tokens = (await platform.get_balance(project.token_id)).get(project.token_id) ?? 0;
         project_token_amount.set((user_project_tokens/Math.pow(10, project.token_details.decimals)).toString()+" "+project.token_details.name);
+        
+        var temporal_tokens = (await platform.get_balance(project.project_id)).get(project.project_id) ?? 0;
+        temporal_token_amount.set(temporal_tokens)
     }
     get_user_project_tokens()
 
-    console.log(project.token_details)
-    console.log(project.exchange_rate)
-    console.log(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9))
+    console.log(project)
 
 </script>
 

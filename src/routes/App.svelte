@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { address, connected, balance, project_detail, network, project_token_amount } from "$lib/common/store";
+    import { address, connected, balance, project_detail, network, project_token_amount, temporal_token_amount } from "$lib/common/store";
     import MyProjects from './MyProjects.svelte';
     import MyContributions from './MyContributions.svelte';
     import NewProject from './NewProject.svelte';
@@ -146,13 +146,23 @@
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div class="identifier flex items-center space-x-2" id="walletIdentifier" on:click={() => showWalletInfo = true}>
-                {#if $project_token_amount}
-                    <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount}</Badge>
-                {/if}
                 <Badge style="background-color: orange; color: black; font-size: 0.9em;">{ergInErgs} {platform.main_token}</Badge>
                 <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$address.slice(0, 6) + '...' + $address.slice(-4)}</Badge>
             </div>
         {/if}
+    </div>
+
+    <div class="token-info">
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="identifier flex items-center space-x-2">
+            {#if $temporal_token_amount}
+                <Badge style="background-color: #ffc04d; color: black; font-size: 0.9em;">{$temporal_token_amount} TFT</Badge>
+            {/if}
+            {#if $project_token_amount}
+                <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount}</Badge>
+            {/if}
+        </div>
     </div>
 
     {#if $address}
@@ -235,6 +245,14 @@
     .wallet-info {
         position: absolute;
         top: 20px;
+        right: 20px;
+        display: flex;
+        align-items: center;
+    }
+
+    .token-info {
+        position: absolute;
+        top: 60px;
         right: 20px;
         display: flex;
         align-items: center;
