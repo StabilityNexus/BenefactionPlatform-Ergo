@@ -10,29 +10,6 @@ import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
 import { explorer_uri } from "./envs";
 
-type RegisterValue = {
-    renderedValue: string;
-    serializedValue: string;
-  };
-
-type ApiBox = {
-    boxId: string;
-    value: string | bigint;
-    assets: { tokenId: string; amount: string | bigint }[];
-    ergoTree: string;
-    creationHeight: number;
-    additionalRegisters: {
-        R4?: RegisterValue;
-        R5?: RegisterValue;
-        R6?: RegisterValue;
-        R7?: RegisterValue;
-        R8?: RegisterValue;
-        R9?: RegisterValue;
-    };
-    index: number;
-    transactionId: string;
-};
-
 const expectedSigmaTypes = {
     R4: 'SInt',
     R5: 'SLong',
@@ -214,7 +191,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                             token_id: constants.token_id,
                             block_limit: block_limit,
                             minimum_amount: minimum_token_amount,
-                            total_amount: current_token_amount + token_amount_sold - refunded_token_amount,
+                            total_amount: current_token_amount, // + token_amount_sold - refunded_token_amount + withdraw_tft_amount <-- TODO
                             current_amount: current_token_amount,
                             refunded_amount: refunded_token_amount,
                             amount_sold: token_amount_sold,
