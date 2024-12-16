@@ -48,7 +48,7 @@ export async function buy_refund(
     });
 
     let sold_counter   = BigInt(token_amount > 0 ? project.amount_sold + token_amount : project.amount_sold);
-    let refund_counter = BigInt(token_amount < 0 ? project.refunded_amount + token_amount : project.refunded_amount);
+    let refund_counter = BigInt(token_amount < 0 ? project.refunded_amount - token_amount : project.refunded_amount);
     output.setAdditionalRegisters({
             R4: SInt(project.block_limit).toHex(),                                                          // Block limit for withdrawals/refunds
             R5: SLong(BigInt(project.minimum_amount)).toHex(),                                              // Minimum sold
