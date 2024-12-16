@@ -21,7 +21,7 @@
 // Registers
 // R4: Int                   The block height until which withdrawals or refunds are disallowed. After this height, they are permitted.
 // R5: Long                  The minimum number of tokens that must be sold to trigger certain actions (e.g., withdrawals).
-// R6: Pair((Long, Long), Long)      The total number of tokens sold, the total number of tokens refunded and the total number of APT changed per PFT so far.
+// R6: Coll[Long]      The total number of tokens sold, the total number of tokens refunded and the total number of APT changed per PFT so far.
 // R7: Long                  The ERG-to-token exchange rate (ERG per token).
 // R8: Coll[Byte]            Base58-encoded JSON string containing the contract owner's details.
 // R9: Coll[Byte]            Base58-encoded JSON string containing project metadata, including "title" and "description".
@@ -115,8 +115,8 @@
     // APT amount that serves as temporary funding token that is currently on the contract available to exchange.
 
     val proof_funding_token_amount = if (contract.tokens.size == 1) 0L else contract.tokens(1)._2
-    val sold                       = contract.R6[((Long, Long), Long)].get._1._1
-    val refunded                   = contract.R6[((Long, Long), Long)].get._1._2
+    val sold                       = contract.R6[Coll[Long]].get(0)
+    val refunded                   = contract.R6[Coll[Long]].get(1)
 
     proof_funding_token_amount - sold + refunded 
   }
@@ -148,9 +148,9 @@
   val selfValue = SELF.value
   val selfBlockLimit = SELF.R4[Int].get
   val selfMinimumTokensSold = SELF.R5[Long].get
-  val selfSoldCounter = SELF.R6[((Long, Long), Long)].get._1._1
-  val selfRefundCounter = SELF.R6[((Long, Long), Long)].get._1._2
-  val selfAuxiliarExchangeCounter = SELF.R6[((Long, Long), Long)].get._2
+  val selfSoldCounter = SELF.R6[Coll[Long]].get(0)
+  val selfRefundCounter = SELF.R6[Coll[Long]].get(1)
+  val selfAuxiliarExchangeCounter = SELF.R6[Coll[Long]].get(2)
   val selfExchangeRate = SELF.R7[Long].get
   val selfOwnerDetails = SELF.R8[Coll[Byte]].get
   val selfProjectMetadata = SELF.R9[Coll[Byte]].get
@@ -200,9 +200,9 @@
       
     selfAmount == outAmount
   }
-  val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[((Long, Long), Long)].get._1._1
-  val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[((Long, Long), Long)].get._1._2
-  val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[((Long, Long), Long)].get._2
+  val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[Coll[Long]].get(0)
+  val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[Coll[Long]].get(1)
+  val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2)
   val mantainValue = selfValue == OUTPUTS(0).value
   val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
 
@@ -292,7 +292,7 @@
       val counterIncrement = {
           // Obtain the current and the next "tokens sold counter"
           val selfAlreadySoldCounter = selfSoldCounter
-          val outputAlreadySoldCounter = OUTPUTS(0).R6[((Long, Long), Long)].get._1._1
+          val outputAlreadySoldCounter = OUTPUTS(0).R6[Coll[Long]].get(0)
 
           outputAlreadySoldCounter - selfAlreadySoldCounter
       }
@@ -347,7 +347,7 @@
       val counterIncrement = {
           // Obtain the current and the next "tokens refund counter"
           val selfAlreadyRefundCounter = selfRefundCounter
-          val outputAlreadyRefundCounter = OUTPUTS(0).R6[((Long, Long), Long)].get._1._2
+          val outputAlreadyRefundCounter = OUTPUTS(0).R6[Coll[Long]].get(1)
 
           outputAlreadyRefundCounter - selfAlreadyRefundCounter
       }
@@ -473,7 +473,7 @@
       // Calculate how much the counter is incremented.
       val counterIncrement = {
           val selfAlreadyCounter = selfAuxiliarExchangeCounter
-          val outputAlreadyRefundCounter = OUTPUTS(0).R6[((Long, Long), Long)].get._2
+          val outputAlreadyRefundCounter = OUTPUTS(0).R6[Coll[Long]].get(2)
 
           outputAlreadyRefundCounter - selfAlreadyCounter
       }

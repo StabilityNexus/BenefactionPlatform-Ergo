@@ -15,8 +15,8 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
     // APT amount that serves as temporary funding token that is currently on the contract available to exchange.
 
     val proof_funding_token_amount = if (contract.tokens.size == 1) 0L else contract.tokens(1)._2
-    val sold                       = contract.R6[((Long, Long), Long)].get._1._1
-    val refunded                   = contract.R6[((Long, Long), Long)].get._1._2
+    val sold                       = contract.R6[Coll[Long]].get(0)
+    val refunded                   = contract.R6[Coll[Long]].get(1)
 
     proof_funding_token_amount - sold + refunded 
   }
@@ -48,9 +48,9 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
   val selfValue = SELF.value
   val selfBlockLimit = SELF.R4[Int].get
   val selfMinimumTokensSold = SELF.R5[Long].get
-  val selfSoldCounter = SELF.R6[((Long, Long), Long)].get._1._1
-  val selfRefundCounter = SELF.R6[((Long, Long), Long)].get._1._2
-  val selfAuxiliarExchangeCounter = SELF.R6[((Long, Long), Long)].get._2
+  val selfSoldCounter = SELF.R6[Coll[Long]].get(0)
+  val selfRefundCounter = SELF.R6[Coll[Long]].get(1)
+  val selfAuxiliarExchangeCounter = SELF.R6[Coll[Long]].get(2)
   val selfExchangeRate = SELF.R7[Long].get
   val selfOwnerDetails = SELF.R8[Coll[Byte]].get
   val selfProjectMetadata = SELF.R9[Coll[Byte]].get
@@ -100,9 +100,9 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       
     selfAmount == outAmount
   }
-  val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[((Long, Long), Long)].get._1._1
-  val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[((Long, Long), Long)].get._1._2
-  val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[((Long, Long), Long)].get._2
+  val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[Coll[Long]].get(0)
+  val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[Coll[Long]].get(1)
+  val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2)
   val mantainValue = selfValue == OUTPUTS(0).value
   val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
 
@@ -192,7 +192,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       val counterIncrement = {
           // Obtain the current and the next "tokens sold counter"
           val selfAlreadySoldCounter = selfSoldCounter
-          val outputAlreadySoldCounter = OUTPUTS(0).R6[((Long, Long), Long)].get._1._1
+          val outputAlreadySoldCounter = OUTPUTS(0).R6[Coll[Long]].get(0)
 
           outputAlreadySoldCounter - selfAlreadySoldCounter
       }
@@ -247,7 +247,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       val counterIncrement = {
           // Obtain the current and the next "tokens refund counter"
           val selfAlreadyRefundCounter = selfRefundCounter
-          val outputAlreadyRefundCounter = OUTPUTS(0).R6[((Long, Long), Long)].get._1._2
+          val outputAlreadyRefundCounter = OUTPUTS(0).R6[Coll[Long]].get(1)
 
           outputAlreadyRefundCounter - selfAlreadyRefundCounter
       }
@@ -373,7 +373,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       // Calculate how much the counter is incremented.
       val counterIncrement = {
           val selfAlreadyCounter = selfAuxiliarExchangeCounter
-          val outputAlreadyRefundCounter = OUTPUTS(0).R6[((Long, Long), Long)].get._2
+          val outputAlreadyRefundCounter = OUTPUTS(0).R6[Coll[Long]].get(2)
 
           outputAlreadyRefundCounter - selfAlreadyCounter
       }

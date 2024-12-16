@@ -13,7 +13,7 @@ import { explorer_uri } from "./envs";
 const expectedSigmaTypes = {
     R4: 'SInt',
     R5: 'SLong',
-    R6: '(SLong, SLong)',
+    R6: 'Coll[SLong]',
     R7: 'SLong',
     R8: 'Coll[SByte]',
     R9: 'Coll[SByte]'
@@ -161,7 +161,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
 
                         let project_id = e.assets[0].tokenId;
                         let token_id = constants.token_id;
-                        let [token_amount_sold, refunded_token_amount] = e.additionalRegisters.R6.renderedValue.match(/\d+/g)?.map(Number);
+                        let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
                         let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
                         let current_token_amount = e.assets.length > 1 ? e.assets[1].amount : 0;
                         let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
@@ -191,7 +191,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                             token_id: constants.token_id,
                             block_limit: block_limit,
                             minimum_amount: minimum_token_amount,
-                            total_amount: current_token_amount, // + token_amount_sold - refunded_token_amount + withdraw_tft_amount <-- TODO
+                            total_amount: current_token_amount + token_amount_sold - refunded_token_amount + auxiliar_exchange_counter,
                             current_amount: current_token_amount,
                             refunded_amount: refunded_token_amount,
                             amount_sold: token_amount_sold,

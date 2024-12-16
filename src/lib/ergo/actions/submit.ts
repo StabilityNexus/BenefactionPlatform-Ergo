@@ -6,7 +6,7 @@ import {
     SLong,
     type Box
 } from '@fleet-sdk/core';
-import { SInt, SPair } from '@fleet-sdk/serializer';
+import { SColl, SInt, SPair } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
 import { get_address, mint_contract_address } from '../contract';
 import { type ConstantContent } from '$lib/common/project';
@@ -121,7 +121,7 @@ export async function submit_project(
         .setAdditionalRegisters({
            R4: SInt(blockLimit).toHex(),                              // Block limit for withdrawals/refunds
            R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
-           R6: SPair(SLong(BigInt(0)), SLong(BigInt(0))).toHex(),     // Pair [Tokens sold counter, Tokens refunded counter]
+           R6: SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex(),     // Pair [Tokens sold counter, Tokens refunded counter]
            R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
            R8: SString(JSON.stringify(addressContent)),               // Owner address, dev address and dev fee.
            R9: SString(projectContent)                                // Project content
