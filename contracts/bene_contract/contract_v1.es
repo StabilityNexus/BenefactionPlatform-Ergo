@@ -227,11 +227,11 @@
     else {
       // Calculate the difference in token amounts
       val selfTokens = 
-          if (SELF.tokens.size == 1) 0 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
+          if (SELF.tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
           else SELF.tokens(1)._2
       
       val outTokens = 
-          if (OUTPUTS(0).tokens.size == 1) 0 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
+          if (OUTPUTS(0).tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
           else OUTPUTS(0).tokens(1)._2
       
       // Return the difference between output tokens and self tokens
@@ -432,11 +432,11 @@
 
       val deltaProofFundingTokenExtracted = {
         val selfPFT = 
-          if (SELF.tokens.size == 1) 0 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
+          if (SELF.tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
           else SELF.tokens(1)._2
 
         val outPFT =
-          if (OUTPUTS(0).tokens.size == 1) 0 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
+          if (OUTPUTS(0).tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
           else OUTPUTS(0).tokens(1)._2
 
         outPFT - selfPFT     
