@@ -79,6 +79,7 @@
       </ul>
       <p>Additionally:</p>
       <ul>
+        <li>Each project operates with two tokens: "APT" (Auxiliary Project Token) and "PFT" (Proof-Funding Token). APT allows users to request refunds if applicable. When the deadline has passed and the minimum funding goal has been reached, users can exchange APT for PFT. This design accommodates cases where PFT may be used across multiple projects or held in reserves by project creators.</li>
         <li>This website does not log, collect, profile, share, or sell your data.</li>
         <li>Bene operates on a blockchain. Therefore, transactions are final and irreversible once they achieve "confirmed" status.</li>
         <li>All transactions are viewable through Ergo's Explorers.</li>
