@@ -14,7 +14,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
   def temporaryFundingTokenAmountOnContract(contract: Box): Long = {
     // IDT amount that serves as temporary funding token that is currently on the contract available to exchange.
 
-    val proof_funding_token_amount = contract.tokens(1)._2
+    val proof_funding_token_amount = if (contract.tokens.size == 1) 0L else contract.tokens(1)._2
     val sold                       = contract.R6[(Long, Long)].get._1
     val refunded                   = contract.R6[(Long, Long)].get._2
 
@@ -87,7 +87,18 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
   }
 
   val IdTokenRemainsConstant = selfIDT == OUTPUTS(0).tokens(0)._2
-  val ProofFundingTokenRemainsConstant = SELF.tokens(1)._2 == OUTPUTS(0).tokens(1)._2
+  val ProofFundingTokenRemainsConstant = {
+
+    val selfAmount = 
+      if (SELF.tokens.size == 1) 0L
+      else SELF.tokens(1)._2
+
+    val outAmount =
+      if (OUTPUTS(0).tokens.size == 1) 0L
+      else OUTPUTS(0).tokens(1)._2
+      
+    selfAmount == outAmount
+  }
   val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[(Long, Long)].get._1
   val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[(Long, Long)].get._2
   val mantainValue = selfValue == OUTPUTS(0).value
