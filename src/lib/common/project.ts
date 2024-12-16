@@ -33,13 +33,14 @@ export interface Project {
     token_id: string,
     block_limit: number,
     minimum_amount: number,
-    amount_sold: number,
     value: number,  // Real exact value
     collected_value: number,  // Value collected
     current_value: number,  // Current value - contract reserves (ex: min box value on ergo)
     total_amount: number,
     current_amount: number,
-    refunded_amount: number,
+    sold_counter: number,
+    refund_counter: number,
+    auxiliar_exchange_counter: number,
     exchange_rate: number, 
     token_details: TokenEIP4,
     content: ProjectContent,
@@ -53,7 +54,7 @@ export async function is_ended(project: Project): Promise<boolean> {
 }
 
 export async function min_raised(project: Project): Promise<boolean> {
-    return project.amount_sold >= project.minimum_amount
+    return project.sold_counter >= project.minimum_amount
 }
 
 export function getProjectContent(id: string, value: string): ProjectContent {

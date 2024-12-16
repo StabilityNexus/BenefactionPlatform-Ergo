@@ -6,7 +6,7 @@ import {
     SLong,
     type Box
 } from '@fleet-sdk/core';
-import { SColl, SInt, SPair } from '@fleet-sdk/serializer';
+import { SColl, SInt } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
 import { get_address, mint_contract_address } from '../contract';
 import { type ConstantContent } from '$lib/common/project';

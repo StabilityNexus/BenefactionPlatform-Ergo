@@ -17,7 +17,7 @@
 
     let showCopyMessage = false;
 
-    let currentVal = project.amount_sold;
+    let currentVal = project.sold_counter;
     let min = project.minimum_amount;
     let max = project.total_amount;
     let percentage =  parseInt(((currentVal/max)*100).toString())
@@ -348,7 +348,7 @@
             </div>
         </div>
         <div class="progress">
-            {#if project.amount_sold !== project.total_amount}
+            {#if project.sold_counter !== project.total_amount}
                 <Progress value="{percentage}" type="{typeProgress}" style="color: black;" />
             {:else}
                 <Progress infinite type="primary" />
@@ -371,7 +371,7 @@
                         <!-- <span class="group-label">As a user:</span> -->
                     {/if}
                     <div class="action-buttons">
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy} disabled={!(project.total_amount !== project.amount_sold)}>
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy} disabled={!(project.total_amount !== project.sold_counter)}>
                             Contribute
                         </Button>
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund} disabled={!(deadline_passed && !is_min_raised)}>

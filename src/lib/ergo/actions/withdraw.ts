@@ -9,7 +9,7 @@ import { SString } from '../utils';
 import { type Project } from '../../common/project';
 import { get_address } from '../contract';
 import { get_dev_contract_address } from '../dev/dev_contract';
-import { SPair } from '@fleet-sdk/serializer';
+import { SColl, SPair } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
 export async function withdraw(
@@ -60,10 +60,7 @@ export async function withdraw(
         contractOutput.setAdditionalRegisters({
             R4: SInt(project.block_limit).toHex(),                     // Block limit for withdrawals/refunds
             R5: SLong(BigInt(project.minimum_amount)).toHex(),         // Minimum sold
-            R6: SPair(
-                SLong(BigInt(project.amount_sold)), 
-                SLong(BigInt(project.refunded_amount))
-            ).toHex(),
+            R6: SColl(SLong, [BigInt(project.sold_counter), BigInt(project.refund_counter), BigInt(project.auxiliar_exchange_counter)]).toHex(),
             R7: SLong(BigInt(project.exchange_rate)).toHex(),          // Exchange rate ERG/Token
             R8: SString(project.constants.raw ?? ""),                  // Dev content
             R9: SString(project.content.raw)                           // Project content

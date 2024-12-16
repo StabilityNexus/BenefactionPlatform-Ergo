@@ -193,8 +193,9 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                             minimum_amount: minimum_token_amount,
                             total_amount: current_token_amount + token_amount_sold - refunded_token_amount + auxiliar_exchange_counter,
                             current_amount: current_token_amount,
-                            refunded_amount: refunded_token_amount,
-                            amount_sold: token_amount_sold,
+                            refund_counter: refunded_token_amount,
+                            sold_counter: token_amount_sold,
+                            auxiliar_exchange_counter: auxiliar_exchange_counter,
                             exchange_rate: exchange_rate,
                             content: getProjectContent(
                                 token_id.slice(0, 8), 
