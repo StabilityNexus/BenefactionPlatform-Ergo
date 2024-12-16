@@ -9,117 +9,6 @@ import { get_dev_contract_hash } from "./dev/dev_contract";
 
 export function generate_contract(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
     return `
-// ===== Contract Description ===== //
-// Name: Bene Fundraising Platform Contract
-// Description: Enables a project to receive funding in exchange for participation tokens.
-// Version: 1.0.0
-// Author: The Stable Order
-
-// ===== Box Contents ===== //
-// Tokens
-// 1. (id, amount)
-//    IDT; Identifies the project and ensures which users have contributed to the project.
-//    where:
-//       id      The project nft identifier.
-//       amount  PFT total amount + 1, where PFT total amount refers to the total existance amount of the PFT.
-
-// 2. (id, amount)
-//    PFT; Proof of funding token
-//    where:
-//       id      The project token identifier.
-//       amount  The number of tokens equivalent to the maximum amount of ERG the project aims to raise. Could a partial proportion of the total existance of the token.
-
-// Registers
-// R4: Int                   The block height until which withdrawals or refunds are disallowed. After this height, they are permitted.
-// R5: Long                  The minimum number of tokens that must be sold to trigger certain actions (e.g., withdrawals).
-// R6: Pair(Long, Long)      The total number of tokens sold and total number of tokens refunded so far.
-// R7: Long                  The ERG-to-token exchange rate (ERG per token).
-// R8: Coll[Byte]            Base58-encoded JSON string containing the contract owner's details.
-// R9: Coll[Byte]            Base58-encoded JSON string containing project metadata, including "title" and "description".
-
-// ===== Transactions ===== //
-// 1. Buy IDT Tokens
-// Inputs:
-//   - Project Bene Contract
-//   - User box containing ERG
-// Data Inputs: None
-// Outputs:
-//   - Updated Project Bene Contract
-//   - User box containing IDT purchased tokens
-// Constraints:
-//   - Ensure accurate ERG-to-token exchange based on the exchange rate.
-//   - Update the token sold counter correctly.
-//   - Transfer the correct number of tokens to the user.
-//   - Validate that the contract is replicated correctly.
-
-// 2. Refund IDT Tokens
-// Inputs:
-//   - Project Bene Contract
-//   - User box containing IDT project tokens
-// Outputs:
-//   - Updated Project Bene Contract
-//   - User box containing refunded ERG
-// Constraints:
-//   - Ensure the block height has surpassed the specified block limit (R4).
-//   - Ensure the minimum token sales threshold (R5) has not been reached.
-//   - Update the token refunded counter correctly.
-//   - Validate the ERG-to-token refund exchange.
-//   - Ensure the contract is replicated correctly.
-
-// 3. Withdraw Funds
-// Inputs:
-//   - Project Bene Contract
-// Outputs:
-//   - Updated Project Bene Contract (if partially withdrawn; otherwise, contract depletes funds completely)
-//   - Box containing ERG for the project address (100% - dev_fee).
-//   - Box containing ERG for the developer address (dev_fee).
-// Constraints:
-//   - Ensure the minimum token sales threshold (R5) has been reached.
-//   - Verify the correctness of the developer fee calculation.
-//   - Ensure either complete withdrawal or proper replication of the contract.
-
-// 4. Withdraw Unsold Tokens
-// Inputs:
-//   - Project Bene Contract
-// Outputs:
-//   - Updated Project Bene Contract
-//   - Box containing unsold tokens sent to the project address
-// Constraints:
-//   - Validate proper replication of the contract.
-//   - Ensure no ERG value changes during the transaction.
-//   - Handle unsold tokens correctly.
-
-// 5. Add Tokens
-// Inputs:
-//   - Project Bene Contract
-//   - Box containing tokens sent from the project address
-// Outputs:
-//   - Updated Project Bene Contract
-// Constraints:
-//   - Validate proper replication of the contract.
-//   - Ensure no ERG value changes during the transaction.
-//   - Handle the added tokens correctly.
-
-// 6. Exchange Funding Tokens
-// Inputs:
-//
-// Outputs:
-// 
-// Constraints
-//
-
-// ===== Compile Time Constants ===== //
-// $owner_addr: Base58 address of the contract owner.
-// $dev_fee_contract_bytes_hash: Blake2b-256 base16 string hash of the dev fee contract proposition bytes.
-// $dev_fee: Percentage fee allocated to the developer (e.g., 5 for 5%).
-// $token_id: Unique string identifier for the proof-of-funding token.
-
-// ===== Context Variables ===== //
-// None
-
-// ===== Helper Functions ===== //
-// None
-
 {
 
   def temporaryFundingTokenAmountOnContract(contract: Box): Long = {
@@ -445,7 +334,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       
       allOf(Coll(
         deltaTemporaryFundingTokenAdded == deltaProofFundingTokenExtracted,
-        deltaTemporaryFundingTokenAdded > 0  // Ensures one way exchange (only send TFT and recive PFT)
+        deltaTemporaryFundingTokenAdded < 0  // Ensures one way exchange (only send TFT and recive PFT)
       ))
     }
 

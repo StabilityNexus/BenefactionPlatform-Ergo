@@ -434,7 +434,7 @@
       
       allOf(Coll(
         deltaTemporaryFundingTokenAdded == deltaProofFundingTokenExtracted,
-        deltaTemporaryFundingTokenAdded > 0  // Ensures one way exchange (only send TFT and recive PFT)
+        deltaTemporaryFundingTokenAdded < 0  // Ensures one way exchange (only send TFT and recive PFT)
       ))
     }
 
