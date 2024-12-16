@@ -21,7 +21,7 @@
 // Registers
 // R4: Int                   The block height until which withdrawals or refunds are disallowed. After this height, they are permitted.
 // R5: Long                  The minimum number of tokens that must be sold to trigger certain actions (e.g., withdrawals).
-// R6: Pair(Long, Long)      The total number of tokens sold and total number of tokens refunded so far.
+// R6: Pair((Long, Long), Long)      The total number of tokens sold, the total number of tokens refunded and the total number of APT changed per PFT so far.
 // R7: Long                  The ERG-to-token exchange rate (ERG per token).
 // R8: Coll[Byte]            Base58-encoded JSON string containing the contract owner's details.
 // R9: Coll[Byte]            Base58-encoded JSON string containing project metadata, including "title" and "description".
@@ -112,11 +112,11 @@
 {
 
   def temporaryFundingTokenAmountOnContract(contract: Box): Long = {
-    // IDT amount that serves as temporary funding token that is currently on the contract available to exchange.
+    // APT amount that serves as temporary funding token that is currently on the contract available to exchange.
 
     val proof_funding_token_amount = if (contract.tokens.size == 1) 0L else contract.tokens(1)._2
-    val sold                       = contract.R6[(Long, Long)].get._1
-    val refunded                   = contract.R6[(Long, Long)].get._2
+    val sold                       = contract.R6[((Long, Long), Long)].get._1._1
+    val refunded                   = contract.R6[((Long, Long), Long)].get._1._2
 
     proof_funding_token_amount - sold + refunded 
   }
@@ -148,8 +148,9 @@
   val selfValue = SELF.value
   val selfBlockLimit = SELF.R4[Int].get
   val selfMinimumTokensSold = SELF.R5[Long].get
-  val selfSoldCounter = SELF.R6[(Long, Long)].get._1
-  val selfRefundCounter = SELF.R6[(Long, Long)].get._2
+  val selfSoldCounter = SELF.R6[((Long, Long), Long)].get._1._1
+  val selfRefundCounter = SELF.R6[((Long, Long), Long)].get._1._2
+  val selfAuxiliarExchangeCounter = SELF.R6[((Long, Long), Long)].get._2
   val selfExchangeRate = SELF.R7[Long].get
   val selfOwnerDetails = SELF.R8[Coll[Byte]].get
   val selfProjectMetadata = SELF.R9[Coll[Byte]].get
@@ -199,8 +200,9 @@
       
     selfAmount == outAmount
   }
-  val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[(Long, Long)].get._1
-  val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[(Long, Long)].get._2
+  val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[((Long, Long), Long)].get._1._1
+  val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[((Long, Long), Long)].get._1._2
+  val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[((Long, Long), Long)].get._2
   val mantainValue = selfValue == OUTPUTS(0).value
   val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
 
@@ -290,7 +292,7 @@
       val counterIncrement = {
           // Obtain the current and the next "tokens sold counter"
           val selfAlreadySoldCounter = selfSoldCounter
-          val outputAlreadySoldCounter = OUTPUTS(0).R6[(Long, Long)].get._1
+          val outputAlreadySoldCounter = OUTPUTS(0).R6[((Long, Long), Long)].get._1._1
 
           outputAlreadySoldCounter - selfAlreadySoldCounter
       }
@@ -298,7 +300,7 @@
       deltaTokenRemoved == counterIncrement
     }
 
-    isSelfReplication && refundCounterRemainsConstant && correctExchange && incrementSoldCounterCorrectly && ProofFundingTokenRemainsConstant
+    isSelfReplication && refundCounterRemainsConstant && auxiliarExchangeCounterRemainsConstant && correctExchange && incrementSoldCounterCorrectly && ProofFundingTokenRemainsConstant
   }
 
   // Validation for refunding tokens
@@ -345,7 +347,7 @@
       val counterIncrement = {
           // Obtain the current and the next "tokens refund counter"
           val selfAlreadyRefundCounter = selfRefundCounter
-          val outputAlreadyRefundCounter = OUTPUTS(0).R6[(Long, Long)].get._2
+          val outputAlreadyRefundCounter = OUTPUTS(0).R6[((Long, Long), Long)].get._1._2
 
           outputAlreadyRefundCounter - selfAlreadyRefundCounter
       }
@@ -354,7 +356,7 @@
     }
 
     // The contract returns the equivalent ERG value for the returned tokens
-    isSelfReplication && soldCounterRemainsConstant && incrementRefundCounterCorrectly && ProofFundingTokenRemainsConstant && canBeRefund && correctExchange
+    isSelfReplication && soldCounterRemainsConstant && auxiliarExchangeCounterRemainsConstant && incrementRefundCounterCorrectly && ProofFundingTokenRemainsConstant && canBeRefund && correctExchange
   }
 
   // Validation for withdrawing funds by project owners
@@ -394,6 +396,7 @@
       endOrReplicate,   // Replicate the contract in case of partial withdraw
       soldCounterRemainsConstant,
       refundCounterRemainsConstant,
+      auxiliarExchangeCounterRemainsConstant,
       minimumReached,   // > Project owners are allowed to withdraw ERGs if and only if the minimum number of tokens has been sold.
       isToProjectAddress,
       correctDevFee,
@@ -407,7 +410,9 @@
 
     allOf(Coll(
       isSelfReplication,
+      soldCounterRemainsConstant,
       refundCounterRemainsConstant,
+      auxiliarExchangeCounterRemainsConstant,
       mantainValue,
       noAddsOtherTokens,
       IdTokenRemainsConstant,
@@ -421,7 +426,9 @@
   val isAddTokens = {
     allOf(Coll(
       isSelfReplication,
+      soldCounterRemainsConstant,
       refundCounterRemainsConstant,
+      auxiliarExchangeCounterRemainsConstant,
       mantainValue,
       noAddsOtherTokens,
       IdTokenRemainsConstant,
@@ -432,14 +439,15 @@
   
   // Exchange IDT (token that identies the project used as temporary funding token) with PFT (proof-of-funding token)
   val isExchangeFundingTokens = {
-    
-    val correctExchange = {
-      val deltaTemporaryFundingTokenAdded = {
-        val selfTFT = SELF.tokens(0)._2
-        val outTFT = OUTPUTS(0).tokens(0)._2
 
-        selfTFT - outTFT
-      }
+    val deltaTemporaryFundingTokenAdded = {
+      val selfTFT = SELF.tokens(0)._2
+      val outTFT = OUTPUTS(0).tokens(0)._2
+
+      outTFT - selfTFT
+    }
+
+    val correctExchange = {
 
       val deltaProofFundingTokenExtracted = {
         val selfPFT = 
@@ -450,13 +458,27 @@
           if (OUTPUTS(0).tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
           else OUTPUTS(0).tokens(1)._2
 
-        outPFT - selfPFT     
+        selfPFT - outPFT     
       }
       
       allOf(Coll(
         deltaTemporaryFundingTokenAdded == deltaProofFundingTokenExtracted,
-        deltaTemporaryFundingTokenAdded < 0  // Ensures one way exchange (only send TFT and recive PFT)
+        deltaTemporaryFundingTokenAdded > 0  // Ensures one way exchange (only send TFT and recive PFT)
       ))
+    }
+
+      // Verify if the token auxiliar exchange counter (R6)._3 is increased in proportion of the tokens refunded.
+    val incrementExchangeCounterCorrectly = {
+
+      // Calculate how much the counter is incremented.
+      val counterIncrement = {
+          val selfAlreadyCounter = selfAuxiliarExchangeCounter
+          val outputAlreadyRefundCounter = OUTPUTS(0).R6[((Long, Long), Long)].get._2
+
+          outputAlreadyRefundCounter - selfAlreadyCounter
+      }
+
+      deltaTemporaryFundingTokenAdded == counterIncrement
     }
 
     val endOrReplicate = {
@@ -471,6 +493,7 @@
       minimumReached,   // Only can exchange when the refund action is not, and will not be, possible
       soldCounterRemainsConstant,
       refundCounterRemainsConstant,
+      incrementExchangeCounterCorrectly,
       mantainValue,
       noAddsOtherTokens,
       correctExchange
