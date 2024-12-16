@@ -44,7 +44,7 @@ export async function temp_exchange(
     contractOutput.setAdditionalRegisters({
         R4: SInt(project.block_limit).toHex(),                                                          // Block limit for withdrawals/refunds
         R5: SLong(BigInt(project.minimum_amount)).toHex(),                                              // Minimum sold
-        R6: SColl(SLong, [BigInt(project.sold_counter), BigInt(project.refund_counter), BigInt(project.auxiliar_exchange_counter)]).toHex(),                                 // Tokens sold counter
+        R6: SColl(SLong, [BigInt(project.sold_counter), BigInt(project.refund_counter), BigInt(project.auxiliar_exchange_counter + token_amount)]).toHex(),                                 // Tokens sold counter
         R7: SLong(BigInt(project.exchange_rate)).toHex(),                                               // Exchange rate ERG/Token
         R8: SString(project.constants.raw ?? ""),                                                       // Withdrawal address (hash of walletPk)
         R9: SString(project.content.raw)                                                                // Project content
