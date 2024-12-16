@@ -191,7 +191,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                             token_id: constants.token_id,
                             block_limit: block_limit,
                             minimum_amount: minimum_token_amount,
-                            total_amount: current_token_amount + token_amount_sold - refunded_token_amount + auxiliar_exchange_counter,
+                            total_amount: current_token_amount + auxiliar_exchange_counter,
                             current_amount: current_token_amount,
                             refund_counter: refunded_token_amount,
                             sold_counter: token_amount_sold,
