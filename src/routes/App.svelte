@@ -157,7 +157,7 @@
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div class="identifier flex items-center space-x-2">
             {#if $temporal_token_amount}
-                <Badge style="background-color: #ffc04d; color: black; font-size: 0.9em;">{$temporal_token_amount} TFT</Badge>
+                <Badge style="background-color: #ffc04d; color: black; font-size: 0.9em;">{$temporal_token_amount} APT</Badge>
             {/if}
             {#if $project_token_amount}
                 <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount}</Badge>
