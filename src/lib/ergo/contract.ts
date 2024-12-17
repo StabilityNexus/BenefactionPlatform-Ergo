@@ -44,7 +44,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
   }
 
   val selfId = SELF.tokens(0)._1
-  val selfIDT = SELF.tokens(0)._2
+  val selfAPT = SELF.tokens(0)._2
   val selfValue = SELF.value
   val selfBlockLimit = SELF.R4[Int].get
   val selfMinimumTokensSold = SELF.R5[Long].get
@@ -87,7 +87,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
     sameId && sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript && onlyOneOrAnyToken
   }
 
-  val IdTokenRemainsConstant = selfIDT == OUTPUTS(0).tokens(0)._2
+  val APTokenRemainsConstant = selfAPT == OUTPUTS(0).tokens(0)._2
   val ProofFundingTokenRemainsConstant = {
 
     val selfAmount = 
@@ -140,11 +140,11 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
     else {
       // Calculate the difference in token amounts
       val selfTokens = 
-          if (SELF.tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
+          if (SELF.tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
           else SELF.tokens(1)._2
       
       val outTokens = 
-          if (OUTPUTS(0).tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
+          if (OUTPUTS(0).tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
           else OUTPUTS(0).tokens(1)._2
       
       // Return the difference between output tokens and self tokens
@@ -170,7 +170,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
     val deltaTokenRemoved = {
         val outputAlreadyTokens = OUTPUTS(0).tokens(0)._2
 
-        selfIDT - outputAlreadyTokens
+        selfAPT - outputAlreadyTokens
       }
 
     // Verify if the ERG amount matches the required exchange rate for the given token quantity
@@ -226,7 +226,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
     val deltaTokenAdded = {
       val outputAlreadyTokens = OUTPUTS(0).tokens(0)._2
 
-      outputAlreadyTokens - selfIDT
+      outputAlreadyTokens - selfAPT
     }
 
     // Verify if the ERG amount matches the required exchange rate for the returned token quantity
@@ -255,8 +255,21 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       deltaTokenAdded == counterIncrement
     }
 
+    val constants = allOf(Coll(
+      isSelfReplication,
+      soldCounterRemainsConstant,
+      auxiliarExchangeCounterRemainsConstant,
+      incrementExchangeCounterCorrectly,
+      ProofFundingTokenRemainsConstant
+
+    ))
+
     // The contract returns the equivalent ERG value for the returned tokens
-    isSelfReplication && soldCounterRemainsConstant && auxiliarExchangeCounterRemainsConstant && incrementRefundCounterCorrectly && ProofFundingTokenRemainsConstant && canBeRefund && correctExchange
+    allOf(Coll(
+      constants,
+      canBeRefund,
+      correctExchange
+    ))
   }
 
   // Validation for withdrawing funds by project owners
@@ -287,16 +300,20 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
 
     val endOrReplicate = {
       val allFundsWithdrawn = extractedValue == selfValue
-      val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
+      val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
 
       isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
     }
 
-    allOf(Coll(
+    val constants = allOf(Coll(
       endOrReplicate,   // Replicate the contract in case of partial withdraw
       soldCounterRemainsConstant,
       refundCounterRemainsConstant,
-      auxiliarExchangeCounterRemainsConstant,
+      auxiliarExchangeCounterRemainsConstant
+    ))
+
+    allOf(Coll(
+      constants,
       minimumReached,   // > Project owners are allowed to withdraw ERGs if and only if the minimum number of tokens has been sold.
       isToProjectAddress,
       correctDevFee,
@@ -308,14 +325,18 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
   val isWithdrawUnsoldTokens = {
     val onlyUnsold = -deltaAddedProofTokens < temporaryFundingTokenAmountOnContract(SELF)
 
-    allOf(Coll(
+    val constants = allOf(Coll(
       isSelfReplication,
       soldCounterRemainsConstant,
       refundCounterRemainsConstant,
       auxiliarExchangeCounterRemainsConstant,
       mantainValue,
       noAddsOtherTokens,
-      IdTokenRemainsConstant,
+      APTokenRemainsConstant
+    ))
+
+    allOf(Coll(
+      constants,
       isToProjectAddress,
       deltaAddedProofTokens < 0,  // A negative value means that PFT are extracted.
       onlyUnsold  // Ensures that only extracts the token amount that has not been buyed.
@@ -324,20 +345,25 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
   
   // > Project owners may add more tokens to the contract at any time.
   val isAddTokens = {
-    allOf(Coll(
+
+    val constants = allOf(Coll(
       isSelfReplication,
       soldCounterRemainsConstant,
       refundCounterRemainsConstant,
       auxiliarExchangeCounterRemainsConstant,
       mantainValue,
       noAddsOtherTokens,
-      IdTokenRemainsConstant,
+      APTokenRemainsConstant
+    ))
+
+    allOf(Coll(
+      constants,
       isFromProjectAddress,
       deltaAddedProofTokens > 0
     ))
   }
   
-  // Exchange IDT (token that identies the project used as temporary funding token) with PFT (proof-of-funding token)
+  // Exchange APT (token that identies the project used as temporary funding token) with PFT (proof-of-funding token)
   val isExchangeFundingTokens = {
 
     val deltaTemporaryFundingTokenAdded = {
@@ -351,11 +377,11 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
 
       val deltaProofFundingTokenExtracted = {
         val selfPFT = 
-          if (SELF.tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
+          if (SELF.tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
           else SELF.tokens(1)._2
 
         val outPFT =
-          if (OUTPUTS(0).tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
+          if (OUTPUTS(0).tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
           else OUTPUTS(0).tokens(1)._2
 
         selfPFT - outPFT     
@@ -383,24 +409,35 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
 
     val endOrReplicate = {
       val allFundsWithdrawn = selfValue == OUTPUTS(0).value
-      val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective IDTs.
+      val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
 
       isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
     }
 
-    allOf(Coll(
+    val constants = allOf(Coll(
       endOrReplicate,
-      minimumReached,   // Only can exchange when the refund action is not, and will not be, possible
       soldCounterRemainsConstant,
       refundCounterRemainsConstant,
-      incrementExchangeCounterCorrectly,
       mantainValue,
-      noAddsOtherTokens,
+      noAddsOtherTokens
+    ))
+
+    allOf(Coll(
+      constants,
+      minimumReached,   // Only can exchange when the refund action is not, and will not be, possible
+      incrementExchangeCounterCorrectly,
       correctExchange
     ))
   }
 
-  val actions = isBuyTokens || isRefundTokens || isWithdrawFunds || isWithdrawUnsoldTokens || isAddTokens || isExchangeFundingTokens
+  val actions = anyOf(Coll(
+    isBuyTokens,
+    isRefundTokens,
+    isWithdrawFunds,
+    isWithdrawUnsoldTokens,
+    isAddTokens,
+    isExchangeFundingTokens
+  ))
 
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {
