@@ -185,10 +185,8 @@
         navigator.clipboard.writeText(window.location.href)
             .then(() => {
                 showCopyMessage = true;
-                show_submit = true;
                 setTimeout(() => {
                     showCopyMessage = false;
-                    show_submit = false;
                 }, 2000);
             })
             .catch(err => console.error('Failed to copy text: ', err));
@@ -282,8 +280,6 @@
     }
     get_user_project_tokens()
 
-    console.log(project)
-
 </script>
 
 <div class="back">
@@ -323,6 +319,14 @@
         <!-- <p><strong>ERGs collected (included refunded or withdrawn):</strong> {project.collected_value / 1000000000} ERG</p> -->
         <!-- <p><strong>Owner:</strong> {project.constants.owner.slice(0, 6)}...{project.constants.owner.slice(-4)}</p> -->
 
+        <Button style="background-color: gray; color: black; border: none; margin-top: 2rem;" on:click={shareProject}>
+            Share
+        </Button>
+        {#if showCopyMessage}
+            <div class="copy-msg" style="margin-top: 1rem;">
+                Project page url copied to clipboard!
+            </div>
+        {/if}
     </div>
 
     <div class="extra">
@@ -380,9 +384,6 @@
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupTempExchange} disabled={!(deadline_passed && is_min_raised)}>
                             Withdraw Funding Token
                         </Button>
-                        <Button style="background-color: orange; color: black; border: none;" on:click={shareProject}>
-                            Share
-                        </Button>
                     </div>
                 </div>
             {/if}
@@ -429,10 +430,6 @@
                     {:else if errorMessage}
                         <div class="error">
                             <p>{errorMessage}</p>
-                        </div>
-                    {:else if showCopyMessage}
-                        <div class="copy-msg">
-                            Project page url copied to clipboard!
                         </div>
                     {:else}
                         <!-- svelte-ignore a11y-label-has-associated-control -->
