@@ -305,8 +305,8 @@
         <!-- Key Project Details Section -->
         <!-- =============================== -->
         <p><em style="font-size: 1.2em; font-weight: bold;">Details</em></p>
-        <p><strong>Exchange Rate:</strong> {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} ERG/{project.token_details.name}</p>
-        <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} ERG</p>
+        <p><strong>Exchange Rate:</strong> {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} {platform.main_token}/{project.token_details.name}</p>
+        <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
         <p><strong>Token:</strong> {project.token_id.slice(0, 6) + '...' + project.token_id.slice(-4)}</p>
         <p><strong>Deadline Date:</strong> {limit_date}</p>
         <p><strong>Deadline Block:</strong> {project.block_limit}</p>
@@ -371,18 +371,15 @@
             <!-- User actions -->
             {#if $connected}
                 <div class="action-group">
-                    {#if is_owner}
-                        <!-- <span class="group-label">As a user:</span> -->
-                    {/if}
                     <div class="action-buttons">
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy} disabled={!(project.total_amount !== project.sold_counter)}>
+                        <Button style="background-color: orange; color: black; border: none; margin-right: 3rem;" on:click={setupBuy} disabled={!(project.total_amount !== project.sold_counter)}>
                             Contribute
                         </Button>
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund} disabled={!(deadline_passed && !is_min_raised)}>
-                            Refund
+                            Get a Refund
                         </Button>
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupTempExchange} disabled={!(deadline_passed && is_min_raised)}>
-                            Withdraw Funding Token
+                            Collect {project.token_details.name}
                         </Button>
                     </div>
                 </div>
@@ -391,16 +388,16 @@
             <!-- Project owner actions -->
             {#if is_owner}
                 <div class="action-group">
-                    <!-- <span class="group-label">Owner:</span> -->
                     <div class="action-buttons">
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupAddTokens}>
-                            Add tokens
+                            Add {project.token_details.name}
                         </Button>
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawTokens}>
-                            Withdraw tokens
+                            Withdraw {project.token_details.name}
                         </Button>
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawErg} disabled={!is_min_raised}>
-                            Withdraw ERGs
+  
+                        <Button style="background-color: orange; color: black; border: none; margin-left: 3rem;" on:click={setupWithdrawErg} disabled={!is_min_raised}>
+                            Collect {platform.main_token}
                         </Button>
                     </div>
                 </div>
@@ -516,16 +513,8 @@
     }
 
     .action-group {
-        padding: 0.5rem;
-        border-bottom: 2px solid rgba(255, 255, 255, 0.055);
+        padding: 0.1rem;
         flex: 1;
-    }
-
-    .group-label {
-        color: #ddd;
-        font-size: 0.9rem;
-        opacity: 0.8;
-        margin-left: 0.5rem;
     }
 
     .action-buttons {
