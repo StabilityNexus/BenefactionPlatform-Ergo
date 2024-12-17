@@ -158,11 +158,11 @@
     }
 
     function setupTempExchange() {
-        label_submit = "Exchange Temporary-funding token per Proof-of-funding token";
+        label_submit = "Exchange APT per "+project.token_details.name;
         function_submit = temp_exchange;
         value_submit = 0;
         show_submit = true;
-        hide_submit_info = false;
+        hide_submit_info = true;
         submit_amount_label = project.token_details.name
     }
 
