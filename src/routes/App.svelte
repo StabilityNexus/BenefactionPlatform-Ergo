@@ -19,7 +19,6 @@
 
     let activeTab = 'acquireTokens';
     let showCopyMessage = false;
-    let showDisconnectMessage = false;
     let showWalletInfo = false;
 
     let platform = new ErgoPlatform();
@@ -58,12 +57,13 @@
 
     function disconnect() {
         if ($address) {
-            showDisconnectMessage = true;
-            setTimeout(() => {
-                showDisconnectMessage = false;
-                showWalletInfo = false;
-            }, 10000); // Hide message after 10 seconds
+            
         }
+    }
+
+    // Close the modal if the user clicks outside of it
+    function handleOutsideClick(event) {
+        showWalletInfo = false;
     }
 
     let current_height: number | null = null;
@@ -165,11 +165,19 @@
         </div>
     </div>
 
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
     {#if $address}
-        <div class="modal" class:active={showWalletInfo}>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div
+            class="modal"
+            class:active={showWalletInfo}
+            on:click={handleOutsideClick}
+        >
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <!-- svelte-ignore a11y-missing-attribute -->
-            <div class="modal-body">
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <div class="modal-body" on:click|stopPropagation>
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
                 <a>Address: {$address.slice(0, 19) + '...' + $address.slice(-8)}</a>
@@ -187,16 +195,15 @@
                     </div>
                 {/if}
 
-                {#if showDisconnectMessage}
-                    <div class="message">
-                        Please delete this page from the connected dApps settings in the Nautilus extension. Then reload the page.
-                    </div>
-                {/if}
+                <div class="disconnect-message">
+                    To disconnect, please delete this webpage from the connected dApps settings in the Nautilus extension. Then reload the page.
+                </div>
 
                 <p>Total balance: {ergInErgs} {platform.main_token}</p>
 
                 <footer>
                     <Button
+                        disabled
                         size="small"
                         outline="primary" 
                         on:click={async () => disconnect()}>
@@ -267,6 +274,18 @@
         padding: 5px 10px;
         border-radius: 5px;
         font-size: 0.8em;
+        z-index: 1000;
+    }
+
+    .disconnect-message {
+        position: absolute;
+        top: 95px;
+        right: 75px;
+        background: #02070334;
+        color: #000000;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 0.80em;
         z-index: 1000;
     }
 
