@@ -259,7 +259,6 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       isSelfReplication,
       soldCounterRemainsConstant,
       auxiliarExchangeCounterRemainsConstant,
-      incrementExchangeCounterCorrectly,
       ProofFundingTokenRemainsConstant
 
     ))
@@ -268,6 +267,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
     allOf(Coll(
       constants,
       canBeRefund,
+      incrementRefundCounterCorrectly,
       correctExchange
     ))
   }

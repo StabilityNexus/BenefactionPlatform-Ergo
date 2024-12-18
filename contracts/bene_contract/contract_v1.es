@@ -358,7 +358,6 @@
       isSelfReplication,
       soldCounterRemainsConstant,
       auxiliarExchangeCounterRemainsConstant,
-      incrementExchangeCounterCorrectly,
       ProofFundingTokenRemainsConstant
 
     ))
@@ -367,6 +366,7 @@
     allOf(Coll(
       constants,
       canBeRefund,
+      incrementRefundCounterCorrectly,
       correctExchange
     ))
   }
