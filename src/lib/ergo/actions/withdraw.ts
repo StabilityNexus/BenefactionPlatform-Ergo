@@ -38,6 +38,7 @@ export async function withdraw(
     let number_of_dev_holders = BigInt(4);  // Should be variable.
     if (projectAmount < SAFE_MIN_BOX_VALUE || devAmount < SAFE_MIN_BOX_VALUE * number_of_dev_holders) {
         alert("The amount must be greater.")  // TODO improve the message.
+        return null;
     }
 
     if (project.value > amount) {  // project.value represents the current ERG balance plus the minimum box value. Therefore, the maximum probable amount is likely equal to project.value minus the minimum box value (managed through the interface).
