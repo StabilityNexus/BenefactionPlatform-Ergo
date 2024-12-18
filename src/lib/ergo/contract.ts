@@ -199,8 +199,19 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
 
       deltaTokenRemoved == counterIncrement
     }
+    
+    val constants = allOf(Coll(
+      isSelfReplication,
+      refundCounterRemainsConstant,
+      auxiliarExchangeCounterRemainsConstant,
+      ProofFundingTokenRemainsConstant
+    ))
 
-    isSelfReplication && refundCounterRemainsConstant && auxiliarExchangeCounterRemainsConstant && correctExchange && incrementSoldCounterCorrectly && ProofFundingTokenRemainsConstant
+    allOf(Coll(
+      constants,
+      correctExchange,
+      incrementSoldCounterCorrectly
+    ))
   }
 
   // Validation for refunding tokens

@@ -298,8 +298,19 @@
 
       deltaTokenRemoved == counterIncrement
     }
+    
+    val constants = allOf(Coll(
+      isSelfReplication,
+      refundCounterRemainsConstant,
+      auxiliarExchangeCounterRemainsConstant,
+      ProofFundingTokenRemainsConstant
+    ))
 
-    isSelfReplication && refundCounterRemainsConstant && auxiliarExchangeCounterRemainsConstant && correctExchange && incrementSoldCounterCorrectly && ProofFundingTokenRemainsConstant
+    allOf(Coll(
+      constants,
+      correctExchange,
+      incrementSoldCounterCorrectly
+    ))
   }
 
   // Validation for refunding tokens
