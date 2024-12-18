@@ -1,3 +1,5 @@
+{
+
 // ===== Contract Description ===== //
 // Name: Bene Fundraising Platform Contract
 // Description: Enables a project to receive funding in exchange for participation tokens.
@@ -108,7 +110,6 @@
 // ===== Helper Functions ===== //
 // None
 
-{
 
   def temporaryFundingTokenAmountOnContract(contract: Box): Long = {
     // APT amount that serves as temporary funding token that is currently on the contract available to exchange.
@@ -164,7 +165,7 @@
     // The block limit must be the same
     val sameBlockLimit = selfBlockLimit == OUTPUTS(0).R4[Int].get
 
-    // The minimum amount of tokens sold must be the same.
+    // The minimum amount of tokens sold must be the same
     val sameMinimumSold = selfMinimumTokensSold == OUTPUTS(0).R5[Long].get
 
     // The ERG/Token exchange rate must be same
@@ -176,14 +177,23 @@
     // The project content must be the same
     val sameProjectContent = selfProjectMetadata == OUTPUTS(0).R9[Coll[Byte]].get
 
-    // The script must be the same to ensure replication
+    // The script must be the same
     val sameScript = selfScript == OUTPUTS(0).propositionBytes
 
-    // In case that the contract was created with more than two tokens, they doesn't should be added to the next contract box.
-    val onlyOneOrAnyToken = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
+    // The PFT must be the same
+    val sameProofFundingToken = {
+      anyOf(Coll(
+        OUTPUTS(0).tokens.size == 1,
+        OUTPUTS(0).tokens(1)._1 == Coll[Byte](),
+        OUTPUTS(0).tokens(1)._1 == OUTPUTS(0).tokens(1)._1
+      ))
+    }
+
+    // Ensures that there are only one or two tokens in the contract (APT and PFT or only APT)
+    val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
 
     // Verify that the output box is a valid copy of the input box
-    sameId && sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript && onlyOneOrAnyToken
+    sameId && sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript && sameProofFundingToken && noAddsOtherTokens
   }
 
   val APTokenRemainsConstant = selfAPT == OUTPUTS(0).tokens(0)._2
@@ -203,7 +213,6 @@
   val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[Coll[Long]].get(1)
   val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2)
   val mantainValue = selfValue == OUTPUTS(0).value
-  val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
 
   val projectAddr: SigmaProp = PK("`+owner_addr+`")
   
@@ -221,34 +230,20 @@
     isSamePropBytes
   }
 
-  val deltaAddedProofTokens = {
+  // Amount of PFT tokens added to the contract. In case of negative value, means that the token have been extracted.
+  val deltaPFTokenAdded = {
 
-    // Verify the token requirements
-    val verifyToken = {
-
-      // Verify if the second token matches the required token_id
-      val correctToken = 
-        if (OUTPUTS(0).tokens.size == 1) true 
-        else OUTPUTS(0).tokens(1)._1 == fromBase16("`+token_id+`")
-
-      noAddsOtherTokens && correctToken
-    }
-
-    // If verifyToken is false, return 0
-    if (!verifyToken) 0L
-    else {
-      // Calculate the difference in token amounts
-      val selfTokens = 
-          if (SELF.tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
-          else SELF.tokens(1)._2
-      
-      val outTokens = 
-          if (OUTPUTS(0).tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
-          else OUTPUTS(0).tokens(1)._2
-      
-      // Return the difference between output tokens and self tokens
-      outTokens - selfTokens
-    }
+    // Calculate the difference in token amounts
+    val selfTokens = 
+        if (SELF.tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
+        else SELF.tokens(1)._2
+    
+    val outTokens = 
+        if (OUTPUTS(0).tokens.size == 1) 0L // There is going to be any PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
+        else OUTPUTS(0).tokens(1)._2
+    
+    // Return the difference between output tokens and self tokens
+    outTokens - selfTokens
   }
 
   val minimumReached = {
@@ -267,11 +262,12 @@
 
     // Delta of tokens removed from the box
     val deltaTokenRemoved = {
-        val outputAlreadyTokens = OUTPUTS(0).tokens(0)._2
+      val outputAlreadyTokens = OUTPUTS(0).tokens(0)._2
 
-        selfAPT - outputAlreadyTokens
-      }
+      selfAPT - outputAlreadyTokens
+    }
 
+    
     // Verify if the ERG amount matches the required exchange rate for the given token quantity
     val correctExchange = {
 
@@ -296,20 +292,27 @@
           outputAlreadySoldCounter - selfAlreadySoldCounter
       }
 
-      deltaTokenRemoved == counterIncrement
+      allOf(Coll(
+        deltaTokenRemoved == counterIncrement,
+        counterIncrement > 0 // This ensures that the increment is positive, if not, the buy action could be reversed.
+      ))
     }
-    
+
     val constants = allOf(Coll(
-      isSelfReplication,
-      refundCounterRemainsConstant,
-      auxiliarExchangeCounterRemainsConstant,
-      ProofFundingTokenRemainsConstant
+      isSelfReplication,                          // Replicate the contract will be needed always                
+      // endOrReplicate,                          // The contract can't end with this action
+      // soldCounterRemainsConstant,              // The sold counter needs to be incremented.
+      refundCounterRemainsConstant,               // The refund counter must be constant
+      auxiliarExchangeCounterRemainsConstant,     // The auxiliar exchange counter must be constant because there is no exchange between APT -> PFT.
+      // mantainValue,                            // Needs to add value to the contract                   
+      // APTokenRemainsConstant,                  // APT token is extracted from the contract.
+      ProofFundingTokenRemainsConstant           // PFT needs to be constant
     ))
 
     allOf(Coll(
       constants,
-      correctExchange,
-      incrementSoldCounterCorrectly
+      correctExchange,               // Ensures that the proportion between the APTs and value moved is the same following the R7 ratio.
+      incrementSoldCounterCorrectly  // Ensures that the R6 first value is incremented in proportion to the exchange value moved.
     ))
   }
 
@@ -362,23 +365,29 @@
           outputAlreadyRefundCounter - selfAlreadyRefundCounter
       }
 
-      deltaTokenAdded == counterIncrement
+      allOf(Coll(
+        deltaTokenAdded == counterIncrement,
+        counterIncrement > 0   // This ensures that the increment is positive, if not, the buy action could be reversed.
+      ))
     }
 
     val constants = allOf(Coll(
-      isSelfReplication,
-      soldCounterRemainsConstant,
-      auxiliarExchangeCounterRemainsConstant,
-      ProofFundingTokenRemainsConstant
-
+      isSelfReplication,                          // Replicate the contract will be needed always            
+      // endOrReplicate,                          // The contract can't end with this action
+      soldCounterRemainsConstant,                 // The sold counter needs to be constant.
+      // refundCounterRemainsConstant,            // Refund counter needs to be incremented.
+      auxiliarExchangeCounterRemainsConstant,     // Auxiliar counter needs to be constant.
+      // mantainValue,                            // Needs to extract value     
+      // APTokenRemainsConstant,                  // Needs to add Auxiliar tokens.
+      ProofFundingTokenRemainsConstant           // PFT needs to be constant.
     ))
 
     // The contract returns the equivalent ERG value for the returned tokens
     allOf(Coll(
       constants,
-      canBeRefund,
-      incrementRefundCounterCorrectly,
-      correctExchange
+      canBeRefund,                            // Ensures that the refund conditions are satisfied.
+      incrementRefundCounterCorrectly,        // Ensures increment the refund counter correctly in proportion with the exchanged amount.
+      correctExchange                         // Ensures that the value extracted and the APTs added are proportional following the R7 exchange ratio.
     ))
   }
 
@@ -405,7 +414,10 @@
 
       val isCorrectDevAmount = OUT.value == devFeeAmount
 
-      isCorrectDevAmount && isToDevAddress
+      allOf(Coll(
+        isCorrectDevAmount,
+        isToDevAddress
+      ))
     }
 
     val endOrReplicate = {
@@ -416,39 +428,55 @@
     }
 
     val constants = allOf(Coll(
-      endOrReplicate,   // Replicate the contract in case of partial withdraw
-      soldCounterRemainsConstant,
-      refundCounterRemainsConstant,
-      auxiliarExchangeCounterRemainsConstant
+      // isSelfReplication,                     
+      endOrReplicate,                             // Replicate the contract in case of partial withdraw
+      soldCounterRemainsConstant,                 // Any of the counter needs to be incremented, so all of them (sold, refund and exchange) need to remain constants.
+      refundCounterRemainsConstant,                       
+      auxiliarExchangeCounterRemainsConstant,   
+      // mantainValue,                           // Needs to extract value from the contract
+      APTokenRemainsConstant,                    // There is no need to modify the auxiliar token, so it must be constant
+      ProofFundingTokenRemainsConstant          // There is no need to modify the proof of funding token, so it must be constant
     ))
 
     allOf(Coll(
       constants,
-      minimumReached,   // > Project owners are allowed to withdraw ERGs if and only if the minimum number of tokens has been sold.
-      isToProjectAddress,
-      correctDevFee,
-      correctProjectAmount
+      minimumReached,           // Project owners are allowed to withdraw ERGs if and only if the minimum number of tokens has been sold.
+      isToProjectAddress,       // Only to the project address
+      correctDevFee,            // Ensures that the dev fee amount and dev address are correct
+      correctProjectAmount      // Ensures the correct project amount.
     ))
   }
 
   // > Project owners may withdraw unsold tokens from the contract at any time.
   val isWithdrawUnsoldTokens = {
-    val onlyUnsold = -deltaAddedProofTokens < temporaryFundingTokenAmountOnContract(SELF)
+    // Calculate that only are sold the amount of PFT that are available, in other case, will be problems on the APT -> PFT exchange.
+    val onlyUnsold = {
+
+      // The amount of PFT token that has been extracted from the contract
+      val extractedPFT = -deltaPFTokenAdded 
+
+      // Current APT tokens without the one used for project identification     (remember that the APT amount is equal to the PFT emission amount + 1, because the 1 is for be always inside the contract)
+      val temporalTokens = temporaryFundingTokenAmountOnContract(SELF)
+
+      // Only can extract an amount sufficient lower to allow the exchange APT -> PFT
+      extractedPFT < temporalTokens
+    }
 
     val constants = allOf(Coll(
-      isSelfReplication,
-      soldCounterRemainsConstant,
-      refundCounterRemainsConstant,
+      isSelfReplication,                         // Replicate the contract will be needed always            
+      // endOrReplicate,                         // The contract can't end with this action
+      soldCounterRemainsConstant,                // Any of the counter needs to be incremented, so all of them (sold, refund and exchange) need to remain constants.
+      refundCounterRemainsConstant,                       
       auxiliarExchangeCounterRemainsConstant,
-      mantainValue,
-      noAddsOtherTokens,
-      APTokenRemainsConstant
+      mantainValue,                              // The value of the contract must not change.
+      APTokenRemainsConstant                     // APT token must be constant.
+      // ProofFundingTokenRemainsConstant        // The PFT is the token that the action tries to withdraw              
     ))
 
     allOf(Coll(
       constants,
       isToProjectAddress,
-      deltaAddedProofTokens < 0,  // A negative value means that PFT are extracted.
+      deltaPFTokenAdded < 0,  // A negative value means that PFT are extracted.
       onlyUnsold  // Ensures that only extracts the token amount that has not been buyed.
     ))
   }
@@ -457,19 +485,20 @@
   val isAddTokens = {
 
     val constants = allOf(Coll(
-      isSelfReplication,
-      soldCounterRemainsConstant,
-      refundCounterRemainsConstant,
-      auxiliarExchangeCounterRemainsConstant,
-      mantainValue,
-      noAddsOtherTokens,
-      APTokenRemainsConstant
+      isSelfReplication,                     // Replicate the contract will be needed always            
+      // endOrReplicate,                     // The contract can't end with this action
+      soldCounterRemainsConstant,            // Any of the counter needs to be incremented, so all of them (sold, refund and exchange) need to remain constants.
+      refundCounterRemainsConstant,                       
+      auxiliarExchangeCounterRemainsConstant,   
+      mantainValue,                                 
+      APTokenRemainsConstant                 // There is no need to modify the APT amount because the amount is established in base of the PFT emission amount.
+      // ProofFundingTokenRemainsConstant,   // Adds PFT tokens, so can't remain constant             
     ))
 
     allOf(Coll(
       constants,
-      isFromProjectAddress,
-      deltaAddedProofTokens > 0
+      isFromProjectAddress,   // Ensures that the tokens come from the project owners.
+      deltaPFTokenAdded > 0   // Ensures that the tokens are added.
     ))
   }
   
@@ -485,17 +514,7 @@
 
     val correctExchange = {
 
-      val deltaProofFundingTokenExtracted = {
-        val selfPFT = 
-          if (SELF.tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
-          else SELF.tokens(1)._2
-
-        val outPFT =
-          if (OUTPUTS(0).tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
-          else OUTPUTS(0).tokens(1)._2
-
-        selfPFT - outPFT     
-      }
+      val deltaProofFundingTokenExtracted = -deltaPFTokenAdded
       
       allOf(Coll(
         deltaTemporaryFundingTokenAdded == deltaProofFundingTokenExtracted,
@@ -525,18 +544,21 @@
     }
 
     val constants = allOf(Coll(
-      endOrReplicate,
-      soldCounterRemainsConstant,
-      refundCounterRemainsConstant,
-      mantainValue,
-      noAddsOtherTokens
+      // isSelfReplication,                        
+      endOrReplicate,                                       // The contract could be finalized on after this action, so it only check self replication in case of partial withdraw
+      soldCounterRemainsConstant,                           // Sold counter must be constant
+      refundCounterRemainsConstant,                         // Refund counter must be constant
+      // auxiliarExchangeCounterRemainsConstant,            // Auxiliar tokens are added to the contract to be exchanged with PFT
+      mantainValue                                          // ERG value must be constant
+      // APTokenRemainsConstant,                            // APT will change
+      // ProofFundingTokenRemainsConstant,                  // PFT will change
     ))
 
     allOf(Coll(
       constants,
-      minimumReached,   // Only can exchange when the refund action is not, and will not be, possible
-      incrementExchangeCounterCorrectly,
-      correctExchange
+      minimumReached,                        // Only can exchange when the refund action is not, and will not be, possible
+      incrementExchangeCounterCorrectly,     // Ensures that the exchange counter is incremented in proportion to the APT added and the PFT extracted.
+      correctExchange                        // Ensures that the APT added and the PFT extracted amounts are equal.
     ))
   }
 
