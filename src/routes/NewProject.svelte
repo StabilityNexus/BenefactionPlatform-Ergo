@@ -283,7 +283,7 @@
                 disabled={isSubmitting || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle || !daysLimit} 
                 style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
                 >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
+                {isSubmitting ? 'Submitting...   (wait one or two minutes because of the chain tx.)' : 'Submit'}
             </Button>  
         {/if}
         
