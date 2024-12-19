@@ -158,7 +158,7 @@
     }
 
     function setupTempExchange() {
-        label_submit = "Exchange APT per "+project.token_details.name;
+        label_submit = "Exchange "+project.content.title+" APT per "+project.token_details.name;
         function_submit = temp_exchange;
         value_submit = 0;
         show_submit = true;
