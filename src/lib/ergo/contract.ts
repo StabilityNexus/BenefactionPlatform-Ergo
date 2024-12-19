@@ -473,7 +473,7 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       val temporalTokens = temporaryFundingTokenAmountOnContract(SELF)
 
       // Only can extract an amount sufficient lower to allow the exchange APT -> PFT
-      extractedPFT < temporalTokens
+      extractedPFT <= temporalTokens
     }
 
     val constants = allOf(Coll(

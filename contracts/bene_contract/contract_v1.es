@@ -462,7 +462,7 @@
       val temporalTokens = temporaryFundingTokenAmountOnContract(SELF)
 
       // Only can extract an amount sufficient lower to allow the exchange APT -> PFT
-      extractedPFT < temporalTokens
+      extractedPFT <= temporalTokens
     }
 
     val constants = allOf(Coll(
