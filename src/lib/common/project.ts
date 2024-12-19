@@ -38,6 +38,7 @@ export interface Project {
     current_value: number,  // Current value - contract reserves (ex: min box value on ergo)
     total_pft_amount: number,
     current_pft_amount: number,
+    unsold_pft_amount: number,
     sold_counter: number,
     refund_counter: number,
     auxiliar_exchange_counter: number,
