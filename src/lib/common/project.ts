@@ -29,15 +29,15 @@ export interface Project {
     platform: Platform,
     box: Box<Amount>,
     project_id: string,
-    idt_amount: number,
+    current_idt_amount: number,
     token_id: string,
     block_limit: number,
     minimum_amount: number,
     value: number,  // Real exact value
     collected_value: number,  // Value collected
     current_value: number,  // Current value - contract reserves (ex: min box value on ergo)
-    total_amount: number,
-    current_amount: number,
+    total_pft_amount: number,
+    current_pft_amount: number,
     sold_counter: number,
     refund_counter: number,
     auxiliar_exchange_counter: number,

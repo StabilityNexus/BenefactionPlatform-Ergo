@@ -163,7 +163,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                         let token_id = constants.token_id;
                         let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
                         let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
-                        let current_token_amount = e.assets.length > 1 ? e.assets[1].amount : 0;
+                        let current_pft_amount = e.assets.length > 1 ? e.assets[1].amount : 0;
                         let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
                         let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
                         let block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
@@ -187,12 +187,12 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                                 transactionId: e.transactionId
                             },
                             project_id: project_id,
-                            idt_amount: e.assets[0].amount,
+                            current_idt_amount: e.assets[0].amount,
                             token_id: constants.token_id,
                             block_limit: block_limit,
                             minimum_amount: minimum_token_amount,
-                            total_amount: current_token_amount + auxiliar_exchange_counter,
-                            current_amount: current_token_amount,
+                            total_pft_amount: current_pft_amount + auxiliar_exchange_counter,
+                            current_pft_amount: current_pft_amount,
                             refund_counter: refunded_token_amount,
                             sold_counter: token_amount_sold,
                             auxiliar_exchange_counter: auxiliar_exchange_counter,

@@ -31,13 +31,13 @@ export async function temp_exchange(
     )
     .addTokens({
         tokenId: project.project_id,
-        amount: BigInt(project.idt_amount + token_amount)
+        amount: BigInt(project.current_idt_amount + token_amount)
     });
 
-    if (project.current_amount !== token_amount) {
+    if (project.current_pft_amount !== token_amount) {
         contractOutput.addTokens({
             tokenId: project.token_id,
-            amount: BigInt(project.current_amount - token_amount)
+            amount: BigInt(project.current_pft_amount - token_amount)
         });
     }
 

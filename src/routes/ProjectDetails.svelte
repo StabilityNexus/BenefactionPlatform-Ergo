@@ -19,7 +19,7 @@
 
     let currentVal = project.sold_counter;
     let min = project.minimum_amount;
-    let max = project.total_amount;
+    let max = project.total_pft_amount;
     let percentage =  parseInt(((currentVal/max)*100).toString())
     let typeProgress = 'secondary';
     if(currentVal < min) {
@@ -352,7 +352,7 @@
             </div>
         </div>
         <div class="progress">
-            {#if project.sold_counter !== project.total_amount}
+            {#if project.sold_counter !== project.total_pft_amount}
                 <Progress value="{percentage}" type="{typeProgress}" style="color: black;" />
             {:else}
                 <Progress infinite type="primary" />
@@ -372,7 +372,7 @@
             {#if $connected}
                 <div class="action-group">
                     <div class="action-buttons">
-                        <Button style="background-color: orange; color: black; border: none; margin-right: 3rem;" on:click={setupBuy} disabled={!(project.total_amount !== project.sold_counter)}>
+                        <Button style="background-color: orange; color: black; border: none; margin-right: 3rem;" on:click={setupBuy} disabled={!(project.total_pft_amount !== project.sold_counter)}>
                             Contribute
                         </Button>
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund} disabled={!(deadline_passed && !is_min_raised)}>

@@ -35,10 +35,12 @@ export async function rebalance(
     )
     .addTokens({
         tokenId: project.project_id,
-        amount: BigInt(project.idt_amount)
+        amount: BigInt(project.current_idt_amount)
     });
 
-    let contract_token_amount = project.current_amount + token_amount;
+    console.log("PFT current amount "+project.current_pft_amount)
+    let contract_token_amount = project.current_pft_amount + token_amount;
+    console.log("contract token amount "+contract_token_amount)
     if (contract_token_amount > 0) {
         contract_output.addTokens({
             tokenId: project.token_id,
@@ -49,7 +51,11 @@ export async function rebalance(
     contract_output.setAdditionalRegisters({
         R4: SInt(project.block_limit).toHex(),                        // Block limit for withdrawals/refunds
         R5: SLong(BigInt(project.minimum_amount)).toHex(),            // Minimum sold
-        R6: SColl(SLong, [BigInt(project.sold_counter), BigInt(project.refund_counter), BigInt(project.auxiliar_exchange_counter)]).toHex(),
+        R6: SColl(SLong, [
+            BigInt(project.sold_counter), 
+            BigInt(project.refund_counter), 
+            BigInt(project.auxiliar_exchange_counter)
+        ]).toHex(),
         R7: SLong(BigInt(project.exchange_rate)).toHex(),             // Exchange rate ERG/Token
         R8: SString(project.constants.raw ?? ""),                   // Withdrawal address (hash of walletPk)
         R9: SString(project.content.raw)                              // Project content

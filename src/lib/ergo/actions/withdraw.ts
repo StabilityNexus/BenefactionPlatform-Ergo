@@ -47,13 +47,13 @@ export async function withdraw(
             get_address(project.constants)    // Address of the project contract
         ).addTokens({
             tokenId: project.project_id,
-            amount: BigInt(project.idt_amount)
+            amount: BigInt(project.current_idt_amount)
         });
     
-        if (project.current_amount > 0) {
+        if (project.current_pft_amount > 0) {
             contractOutput.addTokens({
                 tokenId: project.token_id,
-                amount: BigInt(project.current_amount)
+                amount: BigInt(project.current_pft_amount)
             });
         }
     

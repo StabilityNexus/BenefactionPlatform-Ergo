@@ -40,11 +40,11 @@ export async function buy_refund(
     )
     .addTokens({
         tokenId: project.project_id,
-        amount: BigInt(project.idt_amount - token_amount)  // On but action the token amount is positive, we extract it from the contract.   On refund action the token amount is negative, we add it to the contract.
+        amount: BigInt(project.current_idt_amount - token_amount)  // On but action the token amount is positive, we extract it from the contract.   On refund action the token amount is negative, we add it to the contract.
     })
     .addTokens({
         tokenId: project.token_id,
-        amount: BigInt(project.current_amount)  // PFT token maintains constant.
+        amount: BigInt(project.current_pft_amount)  // PFT token maintains constant.
     });
 
     let sold_counter   = BigInt(token_amount > 0 ? project.sold_counter + token_amount : project.sold_counter);
