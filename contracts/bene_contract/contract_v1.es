@@ -267,6 +267,7 @@
       selfAPT - outputAlreadyTokens
     }
 
+    val onlyTemporaryUnsoldTokens = deltaTokenRemoved <= temporaryFundingTokenAmountOnContract(SELF)
     
     // Verify if the ERG amount matches the required exchange rate for the given token quantity
     val correctExchange = {
@@ -311,6 +312,7 @@
 
     allOf(Coll(
       constants,
+      onlyTemporaryUnsoldTokens,     // Since the amount of APT is equal to the emission amount of PFT (+1), not necessarily equal to the contract amount, it must be ensured that the APT sold can be exchanged in the future.
       correctExchange,               // Ensures that the proportion between the APTs and value moved is the same following the R7 ratio.
       incrementSoldCounterCorrectly  // Ensures that the R6 first value is incremented in proportion to the exchange value moved.
     ))
