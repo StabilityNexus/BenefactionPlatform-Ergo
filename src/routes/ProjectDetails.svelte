@@ -276,7 +276,7 @@
         project_token_amount.set((user_project_tokens/Math.pow(10, project.token_details.decimals)).toString()+" "+project.token_details.name);
         
         var temporal_tokens = (await platform.get_balance(project.project_id)).get(project.project_id) ?? 0;
-        temporal_token_amount.set(temporal_tokens)
+        temporal_token_amount.set(temporal_tokens/Math.pow(10, project.token_details.decimals))
     }
     get_user_project_tokens()
 
