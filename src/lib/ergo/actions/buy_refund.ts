@@ -23,7 +23,7 @@ export async function buy_refund(
         Token amount negative means refund action.
     */
 
-    token_amount = token_amount * Math.pow(10, project.token_details.decimals);
+    token_amount = Math.floor(token_amount * Math.pow(10, project.token_details.decimals));
 
     let ergo_amount = token_amount * project.exchange_rate
 

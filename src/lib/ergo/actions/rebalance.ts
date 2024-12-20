@@ -18,7 +18,7 @@ export async function rebalance(
     token_amount: number
 ): Promise<string|null> {
     
-    token_amount = token_amount * Math.pow(10, project.token_details.decimals);
+    token_amount = Math.floor(token_amount * Math.pow(10, project.token_details.decimals));
     
     console.log("wants to add ", token_amount)
 
