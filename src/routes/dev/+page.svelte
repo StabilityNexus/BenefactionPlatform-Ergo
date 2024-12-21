@@ -20,28 +20,45 @@
 </script>
 
 <style>
-    body {
+    :global(body) {
         background-color: #000000;
         color: #ffffff;
         font-family: Arial, sans-serif;
         margin: 0;
         padding: 0;
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        height: 100%;
+        overflow-y: auto;
+        scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
     }
 
     h1 {
         text-align: center;
         margin-bottom: 20px;
+        position: sticky;
+        top: 0;
+        background-color: #000000;
+        padding: 20px 0;
+        z-index: 10;
     }
 
-    .container {
-        max-width: 600px;
-        margin: 0 auto;
-        padding: 20px;
+    .content-wrapper {
+        height: calc(100vh - 100px);
+        overflow-y: auto;
+        padding-right: 10px;
     }
 
     ul {
         list-style: none;
         padding: 0;
+        margin: 0;
     }
 
     li {
@@ -72,6 +89,7 @@
         border-radius: 4px;
         cursor: pointer;
         font-size: 1em;
+        margin: 5px 0;
     }
 
     button:hover {
@@ -87,36 +105,43 @@
         text-align: center;
         color: #bbbbbb;
     }
+
+    .actions-container {
+        position: sticky;
+        bottom: 0;
+        background-color: #000000;
+        padding: 20px 0;
+        border-top: 1px solid #444444;
+        display: block;
+        flex-direction: column;
+        gap: 10px;
+    }
 </style>
 
 <div class="container">
     <h1>{message}</h1>
 
-    {#if error}
-        <p class="error-message">Error loading data: {error}</p>
-    {:else if items.length === 0}
-        <p class="loading">Loading data...</p>
-    {:else}
-        <ul>
-            {#each items as box}
-                <li>
-                    <div><span class="box-id">Box ID:</span> {box.boxId}</div>
-                    <div><span class="value">Value:</span> {box.value / Math.pow(10, 9)} ERG</div>
-                    <Button on:click={() => execute_dev(box)}>Execute</Button>
-                </li>
-            {/each}
-        </ul>
-    {/if}
+    <div class="content-wrapper">
+        {#if error}
+            <p class="error-message">Error loading data: {error}</p>
+        {:else if items.length === 0}
+            <p class="loading">Loading data...</p>
+        {:else}
+            <ul>
+                {#each items as box}
+                    <li>
+                        <div><span class="box-id">Box ID:</span> {box.boxId}</div>
+                        <div><span class="value">Value:</span> {box.value / Math.pow(10, 9)} ERG</div>
+                        <Button on:click={() => execute_dev(box)}>Execute</Button>
+                    </li>
+                {/each}
+            </ul>
+        {/if}
+    </div>
 
-    <div>
+    <div class="actions-container">
         <Button on:click={() => submit_test()}>Add to test</Button>
-    </div>
-
-    <div style="margin-top: 50px;">
         <Button on:click={() => fetchDownloadDev()}>Refresh</Button>
-    </div>
-
-    <div>
         <Button on:click={() => mint_token(1000, "TEST", 2)}>Mint new test token</Button>
     </div>
 </div>
