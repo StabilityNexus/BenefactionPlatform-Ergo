@@ -24,7 +24,7 @@ export async function mint_token(amount: number, name: string, decimals: number)
                   }) 
               )
             .payFee(RECOMMENDED_MIN_FEE_VALUE)
-            .sendChangeTo(get_dev_contract_address())
+            .sendChangeTo(await ergo.get_change_address())
             .build()
             .toEIP12Object();
 
