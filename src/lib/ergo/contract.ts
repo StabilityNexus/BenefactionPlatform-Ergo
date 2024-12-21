@@ -509,7 +509,8 @@ export function generate_contract(owner_addr: string, dev_fee_contract_bytes_has
       // ProofFundingTokenRemainsConstant,   // Adds PFT tokens, so can't remain constant             
     ))
 
-    allOf(Coll(
+    if (INPUTS.size == 1) false  // To avoid access INPUTS(1) when there is no input, this could be resolved using actions.
+    else allOf(Coll(
       constants,
       isFromProjectAddress,   // Ensures that the tokens come from the project owners.
       deltaPFTokenAdded > 0   // Ensures that the tokens are added.
