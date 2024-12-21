@@ -4,7 +4,7 @@
     import { submit_test } from "$lib/ergo/dev/submit_test";
     import { Button } from "spaper";
 
-    let message = "Developer fees not yet taken"; 
+    let message = "Developer fees not yet taken (mainnet only)"; 
     let items = [];
     let error;
 
