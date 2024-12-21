@@ -81,21 +81,6 @@
         font-size: 1em;
     }
 
-    button {
-        background-color: #444444;
-        color: #ffffff;
-        padding: 10px 15px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 1em;
-        margin: 5px 0;
-    }
-
-    button:hover {
-        background-color: #666666;
-    }
-
     .error-message {
         color: #ff4d4d;
         text-align: center;
