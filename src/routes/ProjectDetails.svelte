@@ -378,7 +378,7 @@
                         <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund} disabled={!(deadline_passed && !is_min_raised)}>
                             Get a Refund
                         </Button>
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupTempExchange} disabled={!(deadline_passed && is_min_raised)}>
+                        <Button style="background-color: orange; color: black; border: none;" on:click={setupTempExchange} disabled={!(is_min_raised)}>
                             Collect {project.token_details.name}
                         </Button>
                     </div>
