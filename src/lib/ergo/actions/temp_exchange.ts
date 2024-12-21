@@ -18,6 +18,8 @@ export async function temp_exchange(
     token_amount: number
 ): Promise<string|null> {
 
+    token_amount = Math.floor(token_amount * Math.pow(10, project.token_details.decimals));
+
     // Get the wallet address (will be the user address)
     const walletPk = await ergo.get_change_address();
     
