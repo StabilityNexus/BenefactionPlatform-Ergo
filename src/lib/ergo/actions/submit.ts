@@ -37,7 +37,7 @@ async function mint_tx(title: string, constants: ConstantContent, amount: number
             amount: BigInt(amount),
             name: title+" APT",    // A pro for use IDT (identity token) and TFT (temporal funding token) with the same token is that the TFT token that the user holds has the same id than the project.  This allows the user to verify the exact project in case than two projects has the same name.
             decimals: decimals, 
-            description: "Temporal-funding Token for the " + title + " project. Please, exchange the PFT for the project token on Bene once the deadline has passed."
+            description: "Temporal-funding Token for the " + title + " project. Please, exchange the APT for the project token on Bene once the deadline has passed."
           }) 
     ]
 

@@ -1,5 +1,6 @@
 <script>
     import { download_dev, execute_dev } from "$lib/ergo/dev/dev_contract";
+    import { mint_token } from "$lib/ergo/dev/mint_token";
     import { submit_test } from "$lib/ergo/dev/submit_test";
     import { Button } from "spaper";
 
@@ -109,5 +110,13 @@
 
     <div>
         <Button on:click={() => submit_test()}>Add to test</Button>
+    </div>
+
+    <div style="margin-top: 50px;">
+        <Button on:click={() => fetchDownloadDev()}>Refresh</Button>
+    </div>
+
+    <div>
+        <Button on:click={() => mint_token(1000, "TEST", 2)}>Mint new test token</Button>
     </div>
 </div>
