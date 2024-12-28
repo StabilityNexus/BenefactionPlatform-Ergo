@@ -360,9 +360,18 @@
         </div>
         
         <div style="display: flex; justify-content: space-between; color: white;">
-            <span style="flex: 1; text-align: left;">Minimum Amount: {min  / Math.pow(10, project.token_details.decimals)}</span>
-            <span style="flex: 1; text-align: center;">Current Amount Sold: {currentVal / Math.pow(10, project.token_details.decimals)}</span>
-            <span style="flex: 1; text-align: right;">Maximum Amount: {max / Math.pow(10, project.token_details.decimals)}</span>
+            <div>
+                <div style="flex: 1; text-align: left;">Minimum Amount: {min / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                <div style="flex: 1; text-align: right;">{((min * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+            </div>
+            <div>
+                <div style="flex: 1; text-align: left;">Current Amount Sold: {currentVal / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                <div style="flex: 1; text-align: right;">{((currentVal * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+            </div>
+            <div>
+                <div style="flex: 1; text-align: left;">Maximum Amount: {max / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                <div style="flex: 1; text-align: right;">{((max * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+            </div>
         </div>
 
         <!-- Action Buttons -->
