@@ -101,7 +101,7 @@
     $: changeUrl($project_detail);
 
 </script>
-<div class="flex flex-col sm:flex-row justify-between items-center">
+<div class="flex flex-col sm:flex-row justify-between items-center" style="margin-top: 1rem;">
     <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
 
     <div class="flex-1 flex justify-center mt-4 sm:mt-0">
