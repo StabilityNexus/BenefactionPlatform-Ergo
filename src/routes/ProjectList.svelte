@@ -3,51 +3,39 @@
     import {type Project } from '$lib/common/project';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import * as Alert from "$lib/components/ui/alert";
+    import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 
     let platform = new ErgoPlatform();
-
-    // States for managing the fetched projects
     let projects: Map<string, Project> | null = null;
     let errorMessage: string | null = null;
     let isLoading: boolean = true;
 
     export let filterProject: ((project: any) => Promise<boolean>) | null = null;
 
-    // Function to fetch the projects
     async function loadProjects() {
         try {
-            // Fetch the projects using the fetch_projects function
             const projectsList: Map<string, Project> = await platform.fetch();
             const filteredProjectsMap = new Map<string, Project>();
 
-            // Iterate over the projects and apply the filter if it exists
             for (const [id, project] of projectsList.entries()) {
                 let shouldAdd = true;
-
-                // If filterProject is defined, apply the filter to the current project
                 if (filterProject) {
                     shouldAdd = await filterProject(project);
                 }
-
-                // Only add the project if it passes the filter (or if there is no filter)
                 if (shouldAdd) {
                     filteredProjectsMap.set(id, project);
                 }
             }
 
-            // Sort projects by `creationHeight` in descending order
             const sortedProjectsArray = Array.from(filteredProjectsMap.entries()).sort(
                 ([, projectA], [, projectB]) => projectB.box.creationHeight - projectA.box.creationHeight
             );
 
-            // Convert sorted array back to Map
             projects = new Map(sortedProjectsArray);
             
         } catch (error) {
-            // Handle errors (if fetching fails)
             errorMessage = error.message || "Error occurred while fetching projects";
         } finally {
-            // Set "isLoading" back to false
             isLoading = false;
         }
     }
@@ -55,61 +43,69 @@
     loadProjects();
 </script>
 
-<div class="container">
-    <h2 class="title"><slot></slot></h2>
+<h2 class="project-title"><slot></slot></h2>
 
-    {#if errorMessage}
-        <Alert.Root>
-            <Alert.Description>
-                {errorMessage}
-            </Alert.Description>
-          </Alert.Root>
-    {/if}
+{#if errorMessage}
+    <Alert.Root>
+        <Alert.Description>
+            {errorMessage}
+        </Alert.Description>
+    </Alert.Root>
+{/if}
 
-    {#if projects && Array.from(projects).length > 0 && !isLoading}
-        <div class="project-list">
-            {#each Array.from(projects) as [projectId, projectData]}
-                <div class="card">
-                    <ProjectCard project={projectData} />
-                </div>
-            {/each}
-        </div>
-    {:else if isLoading}
-        <p style="text-align: center;">Loading projects...</p>
-    {:else}
-        <p>No projects found.</p>
-    {/if}
-</div>
+{#if projects && Array.from(projects).length > 0 && !isLoading}
+    <div class="scroll-area">
+        {#each Array.from(projects) as [projectId, projectData]}
+            <div class="project-card">
+                <ProjectCard project={projectData} />
+            </div>
+        {/each}
+    </div>
+{:else if isLoading}
+    <p class="loading-text">Loading projects...</p>
+{:else}
+    <p class="no-projects-text">No projects found.</p>
+{/if}
 
 <style>
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    
-    .title {
+
+    .project-title {
         text-align: center;
         font-size: 2rem;
-        margin-top: 15px;
-        margin-bottom: 20px;
+        margin: 15px 0 20px;
         color: orange;
     }
 
-    .project-list {
+    .scroll-area {
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 1rem;
-        justify-content: center;
-        overflow-y: scroll;
-        overflow-x: hidden;
-        height: 80vh;
-        scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 10px;
     }
 
-    .card {
-        width: 500px;
+    .project-card {
+        min-width: 500px;
         height: 410px;
         margin: 0.5rem;
     }
 
+    .loading-text,
+    .no-projects-text {
+        text-align: center;
+    }
+
+    @media (max-width: 768px) {
+        .scroll-area {
+            flex-wrap: wrap;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 80vh;
+        }
+
+        .project-card {
+            width: 100%;
+        }
+    }
 </style>
