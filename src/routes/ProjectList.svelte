@@ -86,8 +86,8 @@
     }
 
     .project-card {
-        min-width: 500px;
-        height: 410px;
+        width: 500px;
+        height: 800px;
         margin: 0.5rem;
     }
 
