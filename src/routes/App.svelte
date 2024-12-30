@@ -142,30 +142,26 @@
           </ul>
         {/if}
       </nav>
-    <Theme/>
-    
-    <div class="wallet-info">
+
+      <div class="flex flex-col sm:flex-row items-center justify-end absolute top-5 right-5 space-y-4 sm:space-y-0 sm:space-x-4">
         {#if $address}
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <div class="identifier flex items-center space-x-2" id="walletIdentifier" on:click={() => showWalletInfo = true}>
-                <Badge style="background-color: orange; color: black; font-size: 0.9em;">{ergInErgs} {platform.main_token}</Badge>
-                <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$address.slice(0, 6) + '...' + $address.slice(-4)}</Badge>
+            <div class="flex flex-col items-center space-y-2">
+                <div class="flex items-center space-x-2">
+                    <Badge style="background-color: orange; color: black; font-size: 0.9em;">{ergInErgs} ERG</Badge>
+                    <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$address.slice(0, 6) + '...' + $address.slice(-4)}</Badge>
+                </div>
+                <div class="flex items-center space-x-2">
+                    {#if $temporal_token_amount}
+                        <Badge style="background-color: #ffc04d; color: black; font-size: 0.9em;">{$temporal_token_amount} APT</Badge>
+                    {/if}
+                    {#if $project_token_amount}
+                        <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount} Gluon</Badge>
+                    {/if}
+                </div>
             </div>
         {/if}
-    </div>
-
-    <div class="token-info">
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div class="identifier flex items-center space-x-2">
-            {#if $temporal_token_amount}
-                <Badge style="background-color: #ffc04d; color: black; font-size: 0.9em;">{$temporal_token_amount} APT</Badge>
-            {/if}
-            {#if $project_token_amount}
-                <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount}</Badge>
-            {/if}
-        </div>
+    
+        <Theme />
     </div>
 
     <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -244,22 +240,6 @@
 </div>
 
 <style>
-
-    .wallet-info {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        display: flex;
-        align-items: center;
-    }
-
-    .token-info {
-        position: absolute;
-        top: 60px;
-        right: 20px;
-        display: flex;
-        align-items: center;
-    }
 
     .bottom-left {
         position: fixed;       /* Keeps the element fixed on the screen */
