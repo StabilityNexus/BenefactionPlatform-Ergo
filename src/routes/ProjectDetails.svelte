@@ -23,12 +23,6 @@
     let min = project.minimum_amount;
     let max = project.total_pft_amount;
     let percentage =  parseInt(((currentVal/max)*100).toString())
-    let typeProgress = 'secondary';
-    if(currentVal < min) {
-        typeProgress = 'danger'; 
-    } else if(currentVal >= max) {
-        typeProgress = 'success';
-    }
 
     // States for amounts
     let show_submit = false;
@@ -354,11 +348,7 @@
             </div>
         </div>
         <div class="progress">
-            {#if project.sold_counter !== project.total_pft_amount}
-                <Progress value="{percentage}" type="{typeProgress}" style="color: black;" />
-            {:else}
-                <Progress infinite type="primary" />
-            {/if}
+            <Progress value="{percentage}"/>
         </div>
         
         <div style="display: flex; justify-content: space-between; color: white;">
