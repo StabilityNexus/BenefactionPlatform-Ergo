@@ -3,7 +3,9 @@
     import { is_ended, min_raised, type Project } from "$lib/common/project";
     import { project_detail } from "$lib/common/store";
     import { Button } from "$lib/components/ui/button";
-
+    import * as Card from "$lib/components/ui/card";
+    import { mode } from "mode-watcher";
+    
     // Define 'project' as a prop of type Project
     export let project: Project;
 
@@ -25,12 +27,11 @@
     }
 </script>
 
-<div
-    class="card"
-    style="background-image: url({project.content.image}); background-size: cover; background-position: center; background-repeat: no-repeat;"
->
-    <div class="card-body">
-        <h3 class="card-title">{project.content.title}</h3>
+<Card.Root class="bg-cover bg-center bg-no-repeat" style="background-image: url({project.content.image});">
+    <Card.Header class="bg-black {$mode === "dark" ? 'bg-opacity-90' : 'bg-opacity-0'}  p-4">
+        <Card.Title class="text-xl font-bold">{project.content.title}</Card.Title>
+    </Card.Header>
+    <Card.Content class="bg-black {$mode === "dark" ? 'bg-opacity-90' : 'bg-opacity-0'} p-4 space-y-4">
         <p>
             {project.content.description.length > 48
                 ? project.content.description.slice(0, 48) + " ...."
@@ -47,24 +48,5 @@
         >
             View
         </Button>
-    </div>
-</div>
-
-<style>
-    .card {
-        margin: 1rem 0;
-        border: 1px solid #ddd;
-        color: #ddd;
-        position: relative;
-    }
-
-    .card-body {
-        padding: 1rem;
-        background-color: rgba(0, 0, 0, 0.9);
-        color: #fff;
-    }
-
-    .card-title {
-        margin-bottom: 0.5rem;
-    }
-</style>
+    </Card.Content>
+</Card.Root>
