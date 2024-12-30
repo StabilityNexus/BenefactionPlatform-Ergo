@@ -2,6 +2,7 @@
     import ProjectCard from './ProjectCard.svelte';
     import {type Project } from '$lib/common/project';
     import { ErgoPlatform } from '$lib/ergo/platform';
+    import * as Alert from "$lib/components/ui/alert";
 
     let platform = new ErgoPlatform();
 
@@ -58,9 +59,11 @@
     <h2 class="title"><slot></slot></h2>
 
     {#if errorMessage}
-        <div class="error">
-            <p>{errorMessage}</p>
-        </div>
+        <Alert.Root>
+            <Alert.Description>
+                {errorMessage}
+            </Alert.Description>
+          </Alert.Root>
     {/if}
 
     {#if projects && Array.from(projects).length > 0 && !isLoading}
@@ -108,7 +111,5 @@
         height: 410px;
         margin: 0.5rem;
     }
-    .error {
-        color: red;
-    }
+
 </style>
