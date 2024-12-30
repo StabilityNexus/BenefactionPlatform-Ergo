@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { Button } from "spaper";
     import { onMount } from "svelte";
     import { createEventDispatcher, SvelteComponent } from 'svelte';
+    import Button from "$lib/components/ui/button/button.svelte";
 
     let showModal = false;
     let isButtonEnabled = false;
@@ -11,7 +11,6 @@
     export let title: string = 'Know Your Assumptions';
     export let subTitle: string = '';
     export let content: string = '';
-    export let component: typeof SvelteComponent = null;
     export let closeBtnText: string = 'I understand and I agree';
 
     const dispatch = createEventDispatcher();

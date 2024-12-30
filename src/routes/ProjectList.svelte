@@ -55,7 +55,7 @@
 </script>
 
 <div class="container">
-    <h1 class="title"><slot></slot></h1>
+    <h2 class="title"><slot></slot></h2>
 
     {#if errorMessage}
         <div class="error">
@@ -85,10 +85,11 @@
     }
     
     .title {
-        font-size: 3em;
         text-align: center;
-        margin-top: 0px;
+        font-size: 2rem;
+        margin-top: 15px;
         margin-bottom: 20px;
+        color: orange;
     }
 
     .project-list {
