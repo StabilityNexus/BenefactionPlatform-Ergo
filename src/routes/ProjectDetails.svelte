@@ -1,7 +1,9 @@
 <script lang="ts">
     import { type Project, is_ended, min_raised } from "$lib/common/project";
     import { address, connected, project_detail, project_token_amount, temporal_token_amount } from "$lib/common/store";
-    import { Button, Progress, Badge } from "spaper";
+    import { Progress } from "$lib/components/ui/progress";
+    import { Button } from "$lib/components/ui/button";
+    import { Badge } from "$lib/components/ui/badge";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { web_explorer_uri_tx } from '$lib/ergo/envs';

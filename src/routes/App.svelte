@@ -1,12 +1,10 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { address, connected, balance, project_detail, network, project_token_amount, temporal_token_amount } from "$lib/common/store";
+    import { address, connected, balance, project_detail, project_token_amount, temporal_token_amount } from "$lib/common/store";
     import MyProjects from './MyProjects.svelte';
     import MyContributions from './MyContributions.svelte';
     import NewProject from './NewProject.svelte';
     import TokenAcquisition from './TokenAcquisition.svelte';
-    import 'papercss/dist/paper.min.css'
-    import { Navbar, Badge, Button } from 'spaper';
     import ProjectDetails from './ProjectDetails.svelte';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import { loadProjectById } from '$lib/common/load_by_id';
@@ -15,6 +13,11 @@
     import { type Project } from '$lib/common/project';
     import Kya from './kya.svelte';
     import { web_explorer_uri_addr } from '$lib/ergo/envs';
+    import Theme from './Theme.svelte';
+    import { Badge } from "$lib/components/ui/badge";
+    import { Button, buttonVariants } from '$lib/components/ui/button';
+    import * as Dialog from "$lib/components/ui/dialog/index.js";
+    import * as Alert from "$lib/components/ui/alert";
 
 
     let activeTab = 'acquireTokens';
@@ -100,46 +103,46 @@
 
 <div>
 
-    <Navbar border={false} split={true} style="background-color: black; width: 80%">
-        <h3 slot="brand">Bene</h3>
+    <nav class="navbar">
+        <slot name="brand">
+          <!-- Aquí iría contenido del slot `brand`, como un título o logo -->
+        </slot>
+      
         {#if $project_detail === null}
-            <ul class="inline">
-                <li>
-                    <a href="#" on:click={() => changeTab('acquireTokens')} 
-                    class="tab-link"
-                    style="{activeTab === 'acquireTokens' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
-                    Contribute to a Project
-                    </a>
-                </li>
-                <li>
-                    <a href="#" on:click={() => changeTab('myContributions')} 
-                    class="tab-link"
-                    style="{activeTab === 'myContributions' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
-                    My Contributions
-                    </a>
-                </li>
-                <li>
-                    <a href="#" on:click={() => changeTab('myProjects')} 
-                    class="tab-link"
-                    style="{activeTab === 'myProjects' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
-                    My Projects
-                    </a>
-                </li>
-                <li>
-                    <a href="#" on:click={() => changeTab('submitProject')} 
-                    class="tab-link"
-                    style="{activeTab === 'submitProject' ? 'border-bottom-color: orangered;' : 'border-bottom-color: orange;'}">
-                    New Project
-                    </a>
-                </li>
-            </ul>
+          <ul class="inline">
+            <li>
+              <!-- svelte-ignore a11y-invalid-attribute -->
+              <a href="#" on:click={() => changeTab('acquireTokens')} class="tab-link" style="border-bottom-color: {activeTab === 'acquireTokens' ? 'orangered' : 'orange'};">
+                Contribute to a Project
+              </a>
+            </li>
+            <li>
+              <!-- svelte-ignore a11y-invalid-attribute -->
+              <a href="#" on:click={() => changeTab('myContributions')} class="tab-link" style="border-bottom-color: {activeTab === 'myContributions' ? 'orangered' : 'orange'};">
+                My Contributions
+              </a>
+            </li>
+            <li>
+              <!-- svelte-ignore a11y-invalid-attribute -->
+              <a href="#" on:click={() => changeTab('myProjects')} class="tab-link" style="border-bottom-color: {activeTab === 'myProjects' ? 'orangered' : 'orange'};">
+                My Projects
+              </a>
+            </li>
+            <li>
+              <!-- svelte-ignore a11y-invalid-attribute -->
+              <a href="#" on:click={() => changeTab('submitProject')} class="tab-link" style="border-bottom-color: {activeTab === 'submitProject' ? 'orangered' : 'orange'};">
+                New Project
+              </a>
+            </li>
+          </ul>
         {:else}
-            <ul class="inline">
-                <!-- svelte-ignore a11y-missing-attribute -->
-                <li><a style="color: orange; border-bottom-color: orange; font-size: 2rem">{$project_detail.content.title}</a></li>
-            </ul>
+          <ul class="inline">
+            <!-- svelte-ignore a11y-missing-attribute -->
+            <li><a style="color: orange; border-bottom-color: orange; font-size: 2rem;">{$project_detail.content.title}</a></li>
+          </ul>
         {/if}
-    </Navbar>
+      </nav>
+    <Theme/>
     
     <div class="wallet-info">
         {#if $address}
@@ -167,51 +170,44 @@
 
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     {#if $address}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-no-static-element-interactions -->
-        <div
-            class="modal"
-            class:active={showWalletInfo}
-            on:click={handleOutsideClick}
-        >
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <!-- svelte-ignore a11y-missing-attribute -->
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <div class="modal-body" on:click|stopPropagation>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <a>Address: {$address.slice(0, 19) + '...' + $address.slice(-8)}</a>
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <a on:click={copyToClipboard}>
-                    🔗
-                </a>
-                <a href="{web_explorer_uri_addr+$address}" target="_blank">
-                    🔍
-                </a>
+    <Dialog.Root bind:open={showWalletInfo}>
+        <Dialog.Content class="sm:max-w-[425px] md:max-w-[600px] lg:max-w-[800px]">
+         <Dialog.Header>
+          <Dialog.Title>Wallet Info</Dialog.Title>
+         </Dialog.Header>
+         <div class="py-4">
+          <!-- svelte-ignore a11y-missing-attribute -->
+          <a>Address: {$address.slice(0, 19) + '...' + $address.slice(-8)}</a>
+          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y-missing-attribute -->
+          <a on:click={copyToClipboard}>🔗</a>
+          <a href="{web_explorer_uri_addr + address}" target="_blank">🔍</a>
+       
+          {#if showCopyMessage}
+            <Alert.Root>
+                <Alert.Description>
+                    Wallet address copied to clipboard!
+                </Alert.Description>
+            </Alert.Root>
+          {/if}
+       
+          <p>Total balance: {ergInErgs} {platform.main_token}</p>
 
-                {#if showCopyMessage}
-                    <div class="message">
-                        Wallet address copied to clipboard!
-                    </div>
-                {/if}
-
-                <div class="disconnect-message">
-                    To disconnect, please delete this webpage from the connected dApps settings in the Nautilus extension. Then reload the page.
-                </div>
-
-                <p>Total balance: {ergInErgs} {platform.main_token}</p>
-
-                <footer>
-                    <Button
-                        disabled
-                        size="small"
-                        outline="primary" 
-                        on:click={async () => disconnect()}>
-                        Disconnect
-                    </Button>
-                </footer>
-            </div>
-        </div>
+          <p class="text-muted-foreground text-sm" style="margin-top: 2rem;">
+            To disconnect, please delete this webpage from the connected dApps settings in the Nautilus extension. Then reload the page.
+          </p>
+       
+          <Dialog.Footer>
+           <Button
+            disabled
+            class={buttonVariants({ variant: "outline" })}
+            on:click={disconnect}>
+                Disconnect
+           </Button>
+          </Dialog.Footer>
+         </div>
+        </Dialog.Content>
+       </Dialog.Root>
     {/if}
     
     {#if $project_detail === null}
@@ -263,55 +259,6 @@
         right: 20px;
         display: flex;
         align-items: center;
-    }
-
-    .message {
-        position: absolute;
-        top: 120px;
-        right: 20px;
-        background: #28a745;
-        color: #fff;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-size: 0.8em;
-        z-index: 1000;
-    }
-
-    .disconnect-message {
-        position: absolute;
-        top: 95px;
-        right: 75px;
-        background: #02070334;
-        color: #000000;
-        padding: 5px 10px;
-        border-radius: 5px;
-        font-size: 0.80em;
-        z-index: 1000;
-    }
-
-    .modal.active {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .modal-body {
-        top: 50%;
-        max-width: 800;
-        width: 50%;
-        margin: auto;
-        background-color: white;
-        padding: 1rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    .modal-body a {
-        color: #41403e;
-        background-image: none;
-    }
-
-    .modal-body a svg {
-        text-decoration: none;
     }
 
     .bottom-left {

@@ -2,7 +2,6 @@
     import ProjectCard from './ProjectCard.svelte';
     import {type Project } from '$lib/common/project';
     import { ErgoPlatform } from '$lib/ergo/platform';
-    import { connected } from '$lib/common/store';
 
     let platform = new ErgoPlatform();
 
