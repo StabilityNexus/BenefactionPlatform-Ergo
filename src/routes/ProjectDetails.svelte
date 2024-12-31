@@ -289,21 +289,21 @@
 
 <!-- Main Project Detail Page -->
 <div class="project-detail" style="{$mode === 'light' ? 'color: black;' : 'color: #ddd;'}">
-    <div class="details">
+    <div class="details space-y-4">
 
         <!-- =============================== -->
         <!-- Project Description Section -->
         <!-- =============================== -->
-        <p><em style="font-size: 1.2em; font-weight: bold;">Description</em></p>
+        <p><em class="text-xl font-bold">Description</em></p>
         <p>{project.content.description}</p>
         {#if project.content.link !== null}
-            <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer">here</a>.</p>
+            <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">here</a>.</p>
         {/if}
 
         <!-- =============================== -->
         <!-- Key Project Details Section -->
         <!-- =============================== -->
-        <p><em style="font-size: 1.2em; font-weight: bold;">Details</em></p>
+        <p><em class="text-xl font-bold">Details</em></p>
         <p><strong>Exchange Rate:</strong> {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} {platform.main_token}/{project.token_details.name}</p>
         <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
         <p><strong>Token:</strong> {project.token_id.slice(0, 6) + '...' + project.token_id.slice(-4)}</p>
@@ -313,16 +313,16 @@
         <!-- =============================== -->
         <!-- Additional Comments Section -->
         <!-- =============================== -->
-        <!-- <p><em style="font-size: 1.2em; font-weight: bold;">Additional Comments</em></p> -->
+        <!-- <p><em class="text-xl font-bold">Additional Comments</em></p> -->
          <!---<p><strong>Tokens refunded:</strong> {project.refunded_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>-->
         <!-- <p><strong>ERGs collected (included refunded or withdrawn):</strong> {project.collected_value / 1000000000} ERG</p> -->
         <!-- <p><strong>Owner:</strong> {project.constants.owner.slice(0, 6)}...{project.constants.owner.slice(-4)}</p> -->
 
-        <Button style="background-color: gray; color: black; border: none; margin-top: 2rem;" on:click={shareProject}>
+        <Button class="bg-gray-500 text-black border-none mt-8" style="margin-top: 3rem;" on:click={shareProject}>
             Share
         </Button>
         {#if showCopyMessage}
-            <div class="copy-msg" style="margin-top: 1rem;">
+            <div class="copy-msg mt-4 text-green-500">
                 Project page url copied to clipboard!
             </div>
         {/if}
