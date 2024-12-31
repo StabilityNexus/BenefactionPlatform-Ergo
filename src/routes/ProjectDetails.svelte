@@ -288,8 +288,8 @@
 </div>
 
 <!-- Main Project Detail Page -->
-<div class="project-detail" style="{$mode === 'light' ? 'color: black;' : 'color: #ddd;'}">
-    <div class="details space-y-4">
+<div class="project-detail flex flex-col md:flex-row" style="{$mode === 'light' ? 'color: black;' : 'color: #ddd;'}">
+    <div class="details w-full md:w-1/3 space-y-4">
 
         <!-- =============================== -->
         <!-- Project Description Section -->
@@ -328,7 +328,7 @@
         {/if}
     </div>
 
-    <div class="extra">
+    <div class="extra w-full md:w-2/3 mt-4 md:mt-0">
         <div class="timeleft">
             <span class="timeleft-label">TIME LEFT</span>
             <div class="responsive1">
@@ -485,27 +485,32 @@
         padding: 1.5rem;
         border-radius: 8px;
         display: flex;
-        flex-direction: row;
+        flex-direction: column;
         gap: 2rem;
-        height: 85vh;
+        height: auto;
     }
 
-    .details {
-        width: 30vw;
+    .details, .extra {
+        width: 100%;
         margin-bottom: 1.5rem;
-        flex-direction: column;
         overflow-y: scroll;
         overflow-x: hidden;
         scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
     }
 
-    .extra {
-        width: 50vw;
-        display: flex;
-        flex-direction: column;
-        overflow-y: scroll;
-        overflow-x: hidden;
-        scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
+    @media (min-width: 768px) {
+        .project-detail {
+            flex-direction: row;
+            height: 85vh; 
+        }
+        
+        .details {
+            width: 30vw; 
+        }
+
+        .extra {
+            width: 50vw;
+        }
     }
 
     .actions {
