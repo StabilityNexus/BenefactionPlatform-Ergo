@@ -101,7 +101,7 @@
     $: changeUrl($project_detail);
 
 </script>
-<div class="flex flex-col sm:flex-row justify-between items-center" style="margin-top: 1rem;">
+<div class="flex flex-col sm:flex-row justify-between items-center" style="margin-top: 1rem; margin-left: 1rem; margin-right: 1rem;">
     <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
 
     <div class="flex-1 flex justify-center mt-4 sm:mt-0">
@@ -264,7 +264,7 @@
     .bottom-left {
         position: fixed;       /* Keeps the element fixed on the screen */
         bottom: 20px;          /* Adds some space from the bottom */
-        left: 5px;            /* Adds a little space from the left */
+        left: 10px;            /* Adds a little space from the left */
         width: 150px;          /* Sets a smaller width for the bar */
         height: 20px;          /* Sets a smaller height for the bar */
         text-align: left;    /* Centers the text inside the bar */
@@ -286,14 +286,21 @@
     }
 
     .bottom-right {
-        position: fixed;       /* Keeps the element fixed on the screen */
-        bottom: 20px;          /* Adds some space from the bottom */
-        right: 5px;            /* Adds a little space from the left */
-        width: 150px;          /* Sets a smaller width for the bar */
-        height: 20px;          /* Sets a smaller height for the bar */
-        text-align: right;    /* Centers the text inside the bar */
-        padding: 5px;          /* Adds a smaller padding */
-        border-radius: 8px;    /* Adds rounded corners */
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        position: fixed;
+        bottom: 20px;
+        right: 5px;
+        width: 150px;
+        height: 30px;
+        padding: 5px;
+        border-radius: 8px;
+        background-color: white;
+    }
+
+    .bottom-right svg {
+        margin-right: 10px;
     }
 
 </style>
