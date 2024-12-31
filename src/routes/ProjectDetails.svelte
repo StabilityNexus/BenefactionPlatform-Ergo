@@ -3,11 +3,13 @@
     import { address, connected, project_detail, project_token_amount, temporal_token_amount } from "$lib/common/store";
     import { Progress } from "$lib/components/ui/progress";
     import { Button } from "$lib/components/ui/button";
-    import { Badge } from "$lib/components/ui/badge";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { web_explorer_uri_tx } from '$lib/ergo/envs';
     import { mode } from "mode-watcher";
+    import { Input } from "$lib/components/ui/input";
+    import { Label } from "$lib/components/ui/label/index.js";
+    import { Badge } from "$lib/components/ui/badge/index.js";
 
     // Define 'project' as a prop of type Project
     let project: Project = $project_detail;
@@ -432,9 +434,10 @@
                         </div>
                     {:else}
                         <!-- svelte-ignore a11y-label-has-associated-control -->
-                        <label>{label_submit}</label>
+                        <Label for="number">{label_submit}</Label>
                         <div style="display: flex; align-items: center;">
-                            <input
+                            <Input
+                                id="number"
                                 type="number"
                                 bind:value={value_submit}
                                 min="0"
