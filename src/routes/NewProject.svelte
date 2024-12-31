@@ -2,7 +2,11 @@
     import { time_to_block } from '$lib/common/countdown';
     import { explorer_uri, web_explorer_uri_tx } from '$lib/ergo/envs';
     import { ErgoPlatform } from '$lib/ergo/platform';
+    import { Label } from "$lib/components/ui/label/index.js";
+    import { Textarea } from "$lib/components/ui/textarea";
     import { Button } from '$lib/components/ui/button';
+    import { Input } from "$lib/components/ui/input";
+    import * as Select from "$lib/components/ui/select";
 
     let platform = new ErgoPlatform();
 
@@ -165,25 +169,29 @@
 
 <div>
     <div class="container">
-        <h1 class="title">Raise Funds for a new Project</h1>
+        <h2 class="title">Raise Funds for a new Project</h2>
 
         <div class="form-grid">
             <div class="form-group" style="margin-bottom: 0.5rem;">
-                <label for="tokenId">Token</label>
-                <select id="tokenId" bind:value={tokenId} required>
-                    <option value="" disabled>Select a token</option>
-                    {#each userTokens as token}
-                        <option value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</option>
-                    {/each}
-                </select>
+                <Label for="tokenId">Token</Label>
+                <Select.Root bind:value={tokenId} required>
+                    <Select.Trigger class="w-full">
+                        <Select.Value placeholder="Select a token" />
+                    </Select.Trigger>
+                    <Select.Content>
+                        {#each userTokens as token}
+                            <Select.Item value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</Select.Item>
+                        {/each}
+                    </Select.Content>
+                </Select.Root>
                 <p>
                     Don't have a token? <a href="https://tools.mewfinance.com/mint" target="_blank" rel="noopener noreferrer">Mint one here</a>.
                 </p>
             </div>
 
             <div class="form-group">
-                <label for="tokenAmount">Token amount</label>
-                <input 
+                <Label for="tokenAmount">Token amount</Label>
+                <Input 
                     type="number" 
                     id="tokenAmount" 
                     bind:value={tokenAmountPrecise} 
@@ -199,8 +207,8 @@
             </div>
 
             <div class="form-group">
-                <label for="exchangeRate">Exchange Rate (ERGs per token)</label>
-                <input 
+                <Label for="exchangeRate">Exchange Rate (ERGs per token)</Label>
+                <Input 
                     type="number" 
                     id="exchangeRate" 
                     bind:value={exchangeRatePrecise}
@@ -212,8 +220,8 @@
             </div>
 
             <div class="form-group">  
-                <label for="minValue">Min ERGs collected</label>
-                <input 
+                <Label for="minValue">Min ERGs collected</Label>
+                <Input 
                     type="number" 
                     id="minValue" 
                     bind:value={minValuePrecise} 
@@ -224,8 +232,8 @@
             </div>
 
             <div class="form-group">
-                <label for="maxValue">Max ERGs collected</label>
-                <input 
+                <Label for="maxValue">Max ERGs collected</Label>
+                <Input 
                     type="number" 
                     id="maxValue" 
                     bind:value={maxValuePrecise}
@@ -236,8 +244,8 @@
             </div>
 
             <div class="form-group">
-                <label for="blockLimit">Days limit</label>
-                <input
+                <Label for="blockLimit">Days limit</Label>
+                <Input
                     id="blockLimit"
                     type="number"
                     bind:value={daysLimit}
@@ -249,23 +257,23 @@
             </div>
 
             <div class="form-group">
-                <label for="projectTitle">Project Title</label>
-                <input type="text" id="projectTitle" bind:value={projectTitle} placeholder="Enter project title" required />
+                <Label for="projectTitle">Project Title</Label>
+                <Input type="text" id="projectTitle" bind:value={projectTitle} placeholder="Enter project title" required />
             </div>
 
             <div class="form-group">
-                <label for="projectImage">Project Image URL</label>
-                <input type="text" id="projectImage" bind:value={projectImage} placeholder="Enter image URL" required />
+                <Label for="projectImage">Project Image URL</Label>
+                <Input type="text" id="projectImage" bind:value={projectImage} placeholder="Enter image URL" required />
             </div>
 
             <div class="form-group">
-                <label for="projectLink">Project Link</label>
-                <input type="text" id="projectLink" bind:value={projectLink} placeholder="Enter project link" required />
+                <Label for="projectLink">Project Link</Label>
+                <Input type="text" id="projectLink" bind:value={projectLink} placeholder="Enter project link" required />
             </div>
 
             <div class="form-group form-group-full">
-                <label for="projectDescription">Project Description</label>
-                <textarea id="projectDescription" bind:value={projectDescription} placeholder="Enter project description" required style="width: 100%; height: 7rem;"></textarea>
+                <Label for="projectDescription">Project Description</Label>
+                <Textarea id="projectDescription" bind:value={projectDescription} placeholder="Enter project description" required style="width: 100%; height: 7rem;" />
             </div>
         </div>
         
@@ -306,13 +314,13 @@
         overflow-x: hidden;
         scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
     }
-    .title {
-        font-size: 3em;
-        text-align: center;
-        margin-top: 0px;
-        margin-bottom: 20px;
-    }
 
+    .title {
+        text-align: center;
+        font-size: 2rem;
+        margin: 15px 0 20px;
+        color: orange;
+    }
     #tokenId {
         background-color: #000;
         color: orange;
