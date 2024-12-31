@@ -296,7 +296,6 @@
         height: 30px;
         padding: 5px;
         border-radius: 8px;
-        background-color: white;
     }
 
     .bottom-right svg {
