@@ -487,21 +487,17 @@
         display: flex;
         flex-direction: column;
         gap: 2rem;
-        height: auto;
     }
 
     .details, .extra {
         width: 100%;
         margin-bottom: 1.5rem;
-        overflow-y: scroll;
-        overflow-x: hidden;
-        scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
     }
 
     @media (min-width: 768px) {
         .project-detail {
             flex-direction: row;
-            height: 85vh; 
+            min-height: 85vh;
         }
         
         .details {
