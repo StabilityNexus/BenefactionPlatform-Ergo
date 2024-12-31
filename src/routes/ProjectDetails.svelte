@@ -7,6 +7,7 @@
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { web_explorer_uri_tx } from '$lib/ergo/envs';
+    import { mode } from "mode-watcher";
 
     // Define 'project' as a prop of type Project
     let project: Project = $project_detail;
@@ -285,7 +286,7 @@
 </div>
 
 <!-- Main Project Detail Page -->
-<div class="project-detail">
+<div class="project-detail" style="{$mode === 'light' ? 'color: black;' : 'color: #ddd;'}">
     <div class="details">
 
         <!-- =============================== -->
@@ -409,10 +410,10 @@
         <!-- Input field and submit button for actions -->
         {#if show_submit}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <div class="actions-form">
+            <div class="actions-form" style="{$mode === 'light' ? 'background: rgba(50, 50, 50, 0.05);' : 'background: rgba(255, 255, 255, 0.05);'}">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div class="close-button" on:click={close_submit_form}>
+                <div class="close-button" on:click={close_submit_form} style="{ $mode === 'light' ? 'color: black;' : 'color: rgb(255, 255, 255);'}">
                     &times;
                 </div>
                 <div class="centered-form">
@@ -480,7 +481,6 @@
         margin-left: 2rem;
         padding: 1.5rem;
         border-radius: 8px;
-        color: #ddd;
         display: flex;
         flex-direction: row;
         gap: 2rem;
@@ -534,7 +534,6 @@
         position: relative;
         margin-top: 1rem;
         padding: 1rem;
-        background: rgba(255, 255, 255, 0.05);
         border-radius: 16px;
         display: flex;
         justify-content: center;
@@ -548,7 +547,6 @@
         background-color: transparent;
         border: none;
         font-size: 24px;
-        color: rgb(255, 255, 255);
         cursor: pointer;
     }
 
