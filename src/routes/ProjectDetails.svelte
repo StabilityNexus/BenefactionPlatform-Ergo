@@ -281,7 +281,7 @@
 
 </script>
 
-<div class="back">
+<div class="back hidden md:block">
     <Button style="background-color: #FFB347; color: black;" on:click={closePage}>
         &lt; Go to main
     </Button>
