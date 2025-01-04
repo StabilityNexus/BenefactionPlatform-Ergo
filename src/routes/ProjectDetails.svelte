@@ -487,6 +487,9 @@
         display: flex;
         flex-direction: column;
         gap: 2rem;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
     }
 
     .details, .extra {
@@ -498,6 +501,9 @@
         .project-detail {
             flex-direction: row;
             min-height: 85vh;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
         }
         
         .details {
@@ -506,6 +512,15 @@
 
         .extra {
             width: 50vw;
+        }
+    }
+
+    @media (max-height: 900px) {
+        .project-detail {
+            height: 65vh;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
         }
     }
 
