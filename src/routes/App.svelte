@@ -102,7 +102,18 @@
 
 </script>
 <div class="flex flex-col sm:flex-row justify-between items-center" style="margin-top: 1rem; margin-left: 1rem; margin-right: 1rem;">
-    <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
+    <div class="md:hidden block w-full flex justify-between items-center">
+        <div class="flex-1 flex justify-center">
+            <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
+        </div>
+        <div class="flex justify-end">
+            <Theme />
+        </div>
+    </div>
+
+    <div class="hidden md:block">
+        <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
+    </div>
 
     <div class="flex-1 flex justify-center mt-4 sm:mt-0">
         {#if $project_detail === null}
@@ -180,7 +191,9 @@
             </div>
         {/if}
     
-        <Theme />
+        <div class="hidden md:block">
+            <Theme />
+        </div>
     </div>
 </div>
 
