@@ -481,6 +481,7 @@
     }
 
     .project-detail {
+        height: 64vh;
         margin-left: 2rem;
         padding: 1.5rem;
         border-radius: 8px;
