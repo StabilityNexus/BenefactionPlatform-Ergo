@@ -1,0 +1,6 @@
+{
+    "api": [{"port":80, "protocol":["http"]}],
+    "architecture": "aarch64",
+    "entrypoint": "ngnix -g 'daemon off;'",
+    "envs": []
+}
