@@ -5,10 +5,11 @@
         "components.json",
         "postcss.config.js",
         "svelte.config.js",
-        "tailwind.config.js",
+        "tailwind.config.ts",
         "tsconfig.json",
-        "vite.config.js",
+        "vite.config.ts",
         ".npmrc",
-        "src"
+        "src",
+        "static"
     ]
 }
