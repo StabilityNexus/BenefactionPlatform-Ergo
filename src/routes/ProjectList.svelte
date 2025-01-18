@@ -54,9 +54,9 @@
 {/if}
 
 {#if projects && Array.from(projects).length > 0 && !isLoading}
-    <div class="scroll-area grid grid-cols-3 sm:grid-cols-1">
+    <div class="scroll-area grid grid-cols-3 gap-3">
         {#each Array.from(projects) as [projectId, projectData]}
-            <div class="project-card col-span-1 w-full">
+            <div class="project-card w-full">
                 <ProjectCard project={projectData} />
             </div>
         {/each}
@@ -77,16 +77,17 @@
     }
 
     .scroll-area {
-        display: flex;
-        flex-wrap: nowrap;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
         gap: 1rem;
-        overflow-x: auto;
-        overflow-y: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
         padding: 10px;
+        height: 80vh;
     }
 
     .project-card {
-        min-height: 350px;
+        min-height: 400px;
         margin: 0.1rem;
     }
 
@@ -97,10 +98,10 @@
 
     @media (max-width: 768px) {
         .scroll-area {
-            flex-wrap: wrap;
+            grid-template-columns: repeat(1, 1fr);
             overflow-y: auto;
             overflow-x: hidden;
-            height: 80vh;
+            height: 60vh;
         }
     }
 </style>
