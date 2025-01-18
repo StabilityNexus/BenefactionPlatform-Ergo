@@ -3,7 +3,6 @@
     import {type Project } from '$lib/common/project';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import * as Alert from "$lib/components/ui/alert";
-    import { ScrollArea } from "$lib/components/ui/scroll-area/index.js";
 
     let platform = new ErgoPlatform();
     let projects: Map<string, Project> | null = null;

@@ -281,7 +281,7 @@
 
 </script>
 
-<div class="back hidden md:block">
+<div class="back" style="margin-left: 2rem;">
     <Button style="background-color: #FFB347; color: black;" on:click={closePage}>
         &lt; Go to main
     </Button>
@@ -482,7 +482,7 @@
 
     .project-detail {
         height: 64vh;
-        margin-left: 2rem;
+        margin-left: 0.5rem;
         padding: 1.5rem;
         border-radius: 8px;
         display: flex;
