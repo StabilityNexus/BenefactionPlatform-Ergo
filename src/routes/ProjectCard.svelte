@@ -29,10 +29,10 @@
 
 <!-- <Card.Root class="bg-cover bg-center bg-no-repeat" style="background-image: url({project.content.image});"> -->
 <Card.Root style="height: 400px; position: relative;">
-    <Card.Header class="bg-black {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'} p-4">
+    <Card.Header class="bg-[#1a1a1a] {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'} p-4">
         <Card.Title class="text-xl font-bold">{project.content.title}</Card.Title>
     </Card.Header>
-    <Card.Content class="bg-black {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'} p-4 space-y-4">
+    <Card.Content class="bg-[#1a1a1a] {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'} p-4 space-y-4">
         <p>
             {project.content.description.length > 48
                 ? project.content.description.slice(0, 48) + " ...."
