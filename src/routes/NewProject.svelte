@@ -168,7 +168,7 @@
 </script>
 
 <div>
-    <div class="container mx-auto h-[60vh] sm:h-auto">
+    <div class="container mx-auto h-[70vh] sm:h-auto;">
         <h2 class="title">Raise Funds for a new Project</h2>
 
         <div class="form-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -323,24 +323,6 @@
 
     .form-group {
         margin-bottom: 1.8rem;
-    }
-
-    label {
-        font-weight: bold;
-    }
-
-    input, select, textarea {
-        padding: 0.5rem;
-        margin-top: 0.25rem;
-        color: orange;
-        background-color: #000;
-        border: 1px solid #555;
-        transition: border-color 0.2s;
-    }
-
-    input:focus, select:focus, textarea:focus {
-        outline: none !important;
-        border: 1px solid orange;
     }
 
     .result {
