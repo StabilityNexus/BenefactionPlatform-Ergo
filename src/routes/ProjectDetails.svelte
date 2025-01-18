@@ -354,7 +354,7 @@
             <Progress value="{percentage}"/>
         </div>
         
-        <div style="display: flex; justify-content: space-between; color: white;">
+        <div style="display: flex; justify-content: space-between; color: {$mode === 'light' ? 'black' : 'white'};">
             <div>
                 <div style="flex: 1; text-align: left;">Minimum Amount: {min / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
                 <div style="flex: 1; text-align: right;">{((min * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
