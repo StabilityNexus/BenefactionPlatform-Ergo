@@ -353,19 +353,21 @@
         <div class="progress">
             <Progress value="{percentage}"/>
         </div>
-        
-        <div style="display: flex; justify-content: space-between; color: {$mode === 'light' ? 'black' : 'white'};">
-            <div>
-                <div style="flex: 1; text-align: left;">Minimum Amount: {min / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                <div style="flex: 1; text-align: right;">{((min * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+
+        <div class="flex flex-col md:flex-row justify-between gap-6 text-black" style="color: {$mode === 'light' ? 'black' : 'white'};">
+            <div class="flex flex-col">
+                <div class="text-left">Minimum Amount: {min / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                <div class="text-center md:text-right">{((min * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
             </div>
-            <div>
-                <div style="flex: 1; text-align: left;">Current Amount Sold: {currentVal / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                <div style="flex: 1; text-align: right;">{((currentVal * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+            
+            <div class="flex flex-col">
+                <div class="text-left">Current Amount Sold: {currentVal / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                <div class="text-center md:text-right">{((currentVal * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
             </div>
-            <div>
-                <div style="flex: 1; text-align: left;">Maximum Amount: {max / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                <div style="flex: 1; text-align: right;">{((max * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+            
+            <div class="flex flex-col">
+                <div class="text-left">Maximum Amount: {max / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                <div class="text-center md:text-right">{((currentVal * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
             </div>
         </div>
 
