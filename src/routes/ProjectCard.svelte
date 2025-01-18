@@ -27,7 +27,8 @@
     }
 </script>
 
-<Card.Root class="bg-cover bg-center bg-no-repeat" style="background-image: url({project.content.image});">
+<!-- <Card.Root class="bg-cover bg-center bg-no-repeat" style="background-image: url({project.content.image});"> -->
+<Card.Root>
     <Card.Header class="bg-black {$mode === "dark" ? 'bg-opacity-90' : 'bg-opacity-0'}  p-4">
         <Card.Title class="text-xl font-bold">{project.content.title}</Card.Title>
     </Card.Header>
