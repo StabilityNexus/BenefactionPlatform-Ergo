@@ -54,9 +54,9 @@
 {/if}
 
 {#if projects && Array.from(projects).length > 0 && !isLoading}
-    <div class="scroll-area">
+    <div class="scroll-area grid grid-cols-3 sm:grid-cols-1">
         {#each Array.from(projects) as [projectId, projectData]}
-            <div class="project-card">
+            <div class="project-card col-span-1 w-full">
                 <ProjectCard project={projectData} />
             </div>
         {/each}
@@ -86,9 +86,8 @@
     }
 
     .project-card {
-        width: 500px;
-        height: 800px;
-        margin: 0.5rem;
+        min-height: 350px;
+        margin: 0.1rem;
     }
 
     .loading-text,
@@ -102,10 +101,6 @@
             overflow-y: auto;
             overflow-x: hidden;
             height: 80vh;
-        }
-
-        .project-card {
-            width: 100%;
         }
     }
 </style>
