@@ -483,7 +483,7 @@
     }
 
     .project-detail {
-        height: 64vh;
+        height: 68vh;
         margin-left: 0.5rem;
         padding: 1.5rem;
         border-radius: 8px;
@@ -503,7 +503,6 @@
     @media (min-width: 768px) {
         .project-detail {
             flex-direction: row;
-            min-height: 85vh;
             overflow-y: scroll;
             overflow-x: hidden;
             scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
