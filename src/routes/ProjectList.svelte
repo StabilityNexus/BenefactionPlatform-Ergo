@@ -100,6 +100,7 @@
             grid-template-columns: repeat(1, 1fr);
             overflow-y: auto;
             overflow-x: hidden;
+            height: 70vh;
         }
     }
 
