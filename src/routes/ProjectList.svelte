@@ -100,7 +100,18 @@
             grid-template-columns: repeat(1, 1fr);
             overflow-y: auto;
             overflow-x: hidden;
-            height: 60vh;
+        }
+    }
+
+    @media (max-height: 950px) { 
+        .scroll-area {
+            height: 65vh;
+        }
+    }
+
+    @media (max-height: 700px) { 
+        .scroll-area {
+            height: 55vh;
         }
     }
 </style>
