@@ -28,11 +28,11 @@
 </script>
 
 <!-- <Card.Root class="bg-cover bg-center bg-no-repeat" style="background-image: url({project.content.image});"> -->
-<Card.Root style="height: 400px; position: relative;">
-    <Card.Header class="bg-[#1a1a1a] {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'} p-4">
+<Card.Root class="bg-[#1a1a1a] {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'}" style="height: 400px; position: relative;">
+    <Card.Header class="p-4">
         <Card.Title class="text-xl font-bold">{project.content.title}</Card.Title>
     </Card.Header>
-    <Card.Content class="bg-[#1a1a1a] {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'} p-4 space-y-4">
+    <Card.Content  class="p-4 space-y-4">
         <p>
             {project.content.description.length > 48
                 ? project.content.description.slice(0, 48) + " ...."
@@ -43,13 +43,15 @@
         <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
         <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
         
+    </Card.Content>
+    <Card.Footer>
         <!-- Botón posicionado en la esquina inferior izquierda -->
         <Button
             class="absolute bottom-4 left-4"
             on:click={toggleDetails}
-            style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
+            style="background-color: orange; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
         >
             View
         </Button>
-    </Card.Content>
+    </Card.Footer>
 </Card.Root>
