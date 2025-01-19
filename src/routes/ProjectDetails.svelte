@@ -375,7 +375,7 @@
             
             <div class="flex flex-col">
                 <div class="text-left">Maximum Amount: {max / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                <div class="text-center md:text-right">{((currentVal * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+                <div class="text-center md:text-right">{((max * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
             </div>
         </div>
 
