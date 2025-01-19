@@ -101,60 +101,57 @@
     $: changeUrl($project_detail);
 
 </script>
-<div class="flex flex-col sm:flex-row justify-between items-center" style="margin-top: 1rem; margin-left: 1rem; margin-right: 1rem;">
-    <div class="md:hidden block w-full flex justify-between items-center">
+
+<div class="flex flex-col lg:flex-row justify-between items-center" style="margin-top: 1rem; margin-left: 1rem; margin-right: 1rem;">
+    <!-- Mobile Logo Section (visible below 768px) -->
+    <div class="md:hidden w-full flex justify-between items-center mb-4">
         <div class="flex-1 flex justify-center">
             <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
         </div>
-        <div class="flex justify-end">
-            <Theme />
-        </div>
     </div>
 
-    <div class="hidden md:block">
+    <!-- Desktop Logo (hidden on mobile) -->
+    <div class="hidden md:block mb-4 lg:mb-0">
         <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
     </div>
 
-    <div class="flex-1 flex justify-center mt-4 sm:mt-0">
+    <!-- Navigation Menu -->
+    <div class="flex-1 flex justify-center mb-4 lg:mb-0 w-full lg:w-auto">
         {#if $project_detail === null}
-            <Menubar.Root>
-                <Menubar.Menu>
-                    <Menubar.Item>
-                        <!-- svelte-ignore a11y-invalid-attribute -->
+            <Menubar.Root class="w-full lg:w-auto">
+                <Menubar.Menu class="flex flex-col lg:flex-row items-center space-y-2 lg:space-y-0 lg:space-x-4">
+                    <Menubar.Item class="w-full lg:w-auto text-center">
                         <a
                             href="#"
                             on:click={() => changeTab('acquireTokens')}
-                            class="tab-link"
+                            class="tab-link block w-full"
                             style="border-bottom-color: {activeTab === 'acquireTokens' ? 'orangered' : 'orange'};">
                             Contribute to a Project
                         </a>
                     </Menubar.Item>
-                    <Menubar.Item>
-                        <!-- svelte-ignore a11y-invalid-attribute -->
+                    <Menubar.Item class="w-full lg:w-auto text-center">
                         <a
                             href="#"
                             on:click={() => changeTab('myContributions')}
-                            class="tab-link"
+                            class="tab-link block w-full"
                             style="border-bottom-color: {activeTab === 'myContributions' ? 'orangered' : 'orange'};">
                             My Contributions
                         </a>
                     </Menubar.Item>
-                    <Menubar.Item>
-                        <!-- svelte-ignore a11y-invalid-attribute -->
+                    <Menubar.Item class="w-full lg:w-auto text-center">
                         <a
                             href="#"
                             on:click={() => changeTab('myProjects')}
-                            class="tab-link"
+                            class="tab-link block w-full"
                             style="border-bottom-color: {activeTab === 'myProjects' ? 'orangered' : 'orange'};">
                             My Projects
                         </a>
                     </Menubar.Item>
-                    <Menubar.Item>
-                        <!-- svelte-ignore a11y-invalid-attribute -->
+                    <Menubar.Item class="w-full lg:w-auto text-center">
                         <a
                             href="#"
                             on:click={() => changeTab('submitProject')}
-                            class="tab-link"
+                            class="tab-link block w-full"
                             style="border-bottom-color: {activeTab === 'submitProject' ? 'orangered' : 'orange'};">
                             New Project
                         </a>
@@ -162,9 +159,9 @@
                 </Menubar.Menu>
             </Menubar.Root>
         {:else}
-            <ul class="inline">
-                <!-- svelte-ignore a11y-missing-attribute -->
+            <ul class="inline w-full text-center">
                 <li>
+                    <!-- svelte-ignore a11y-missing-attribute -->
                     <a style="color: orange; border-bottom-color: orange; font-size: 2rem;">
                         {$project_detail.content.title}
                     </a>
@@ -173,7 +170,8 @@
         {/if}
     </div>
 
-    <div class="flex flex-col sm:flex-row items-center justify-end space-y-4 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-0">
+    <!-- User Info and Theme - Now always horizontal -->
+    <div class="flex flex-row items-center justify-center space-x-4 w-full lg:w-auto">
         {#if $address}
             <div class="flex flex-col items-center space-y-2">
                 <div class="flex items-center space-x-2">
@@ -190,8 +188,9 @@
                 </div>
             </div>
         {/if}
-    
-        <div class="hidden md:block">
+        
+        <!-- Theme component now always visible and aligned with user info -->
+        <div class="block">
             <Theme />
         </div>
     </div>
