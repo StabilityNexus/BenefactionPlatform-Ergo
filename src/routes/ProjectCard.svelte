@@ -49,7 +49,7 @@
         <Button
             class="absolute bottom-4 left-4"
             on:click={toggleDetails}
-            style="background-color: orange; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
+            style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
         >
             View
         </Button>
