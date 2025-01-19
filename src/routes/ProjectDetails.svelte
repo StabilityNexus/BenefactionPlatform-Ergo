@@ -300,7 +300,15 @@
             <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">here</a>.</p>
         {/if}
 
-        <!-- =============================== -->
+        <div 
+            class="bg-cover bg-center bg-no-repeat h-64" 
+            style="background-image: url({project.content.image});"
+        ></div>
+
+    </div>
+
+    <div class="details w-full md:w-1/3 space-y-4">
+    <!-- =============================== -->
         <!-- Key Project Details Section -->
         <!-- =============================== -->
         <p><em class="text-xl font-bold">Details</em></p>
@@ -328,7 +336,7 @@
         {/if}
     </div>
 
-    <div class="extra w-full md:w-2/3 mt-4 md:mt-0">
+    <div class="extra w-full md:w-1/3 mt-4 md:mt-0">
         <div class="timeleft">
             <span class="timeleft-label">TIME LEFT</span>
             <div class="responsive1">
@@ -483,7 +491,7 @@
     }
 
     .project-detail {
-        height: 68vh;
+        height: 75vh;
         margin-left: 0.5rem;
         padding: 1.5rem;
         border-radius: 8px;
@@ -492,6 +500,7 @@
         gap: 2rem;
         overflow-y: scroll;
         overflow-x: hidden;
+        scrollbar-width: none;
         scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
     }
 
@@ -513,7 +522,8 @@
         }
 
         .extra {
-            width: 50vw;
+            margin-left: auto;
+            margin-right: auto;
         }
     }
 
