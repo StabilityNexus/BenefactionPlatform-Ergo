@@ -2,7 +2,7 @@
     import { download_dev, execute_dev } from "$lib/ergo/dev/dev_contract";
     import { mint_token } from "$lib/ergo/dev/mint_token";
     import { submit_test } from "$lib/ergo/dev/submit_test";
-    import { Button } from "spaper";
+    import Button from "$lib/components/ui/button/button.svelte";
 
     let message = "Developer fees not yet taken (mainnet only)"; 
     let items = [];

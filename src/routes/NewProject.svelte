@@ -2,7 +2,11 @@
     import { time_to_block } from '$lib/common/countdown';
     import { explorer_uri, web_explorer_uri_tx } from '$lib/ergo/envs';
     import { ErgoPlatform } from '$lib/ergo/platform';
-    import { Button } from 'spaper';
+    import { Label } from "$lib/components/ui/label/index.js";
+    import { Textarea } from "$lib/components/ui/textarea";
+    import { Button } from '$lib/components/ui/button';
+    import { Input } from "$lib/components/ui/input";
+    import * as Select from "$lib/components/ui/select";
 
     let platform = new ErgoPlatform();
 
@@ -164,26 +168,30 @@
 </script>
 
 <div>
-    <div class="container">
-        <h1 class="title">Raise Funds for a new Project</h1>
+    <div class="container mx-auto h-[70vh] sm:h-auto;">
+        <h2 class="title">Raise Funds for a new Project</h2>
 
-        <div class="form-grid">
-            <div class="form-group" style="margin-bottom: 0.5rem;">
-                <label for="tokenId">Token</label>
-                <select id="tokenId" bind:value={tokenId} required>
-                    <option value="" disabled>Select a token</option>
-                    {#each userTokens as token}
-                        <option value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</option>
-                    {/each}
-                </select>
-                <p>
-                    Don't have a token? <a href="https://tools.mewfinance.com/mint" target="_blank" rel="noopener noreferrer">Mint one here</a>.
+        <div class="form-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="form-group">
+                <Label for="tokenId">Token</Label>
+                <Select.Root bind:value={tokenId} required>
+                    <Select.Trigger class="w-full">
+                        <Select.Value placeholder="Select a token" />
+                    </Select.Trigger>
+                    <Select.Content>
+                        {#each userTokens as token}
+                            <Select.Item value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</Select.Item>
+                        {/each}
+                    </Select.Content>
+                </Select.Root>
+                <p class="text-sm mt-1">
+                    Don't have a token? <a href="https://tools.mewfinance.com/mint" target="_blank" rel="noopener noreferrer" class="text-orange-400 underline">Mint one here</a>.
                 </p>
             </div>
 
             <div class="form-group">
-                <label for="tokenAmount">Token amount</label>
-                <input 
+                <Label for="tokenAmount">Token amount</Label>
+                <Input 
                     type="number" 
                     id="tokenAmount" 
                     bind:value={tokenAmountPrecise} 
@@ -191,16 +199,14 @@
                     step={1 / Math.pow(10, tokenDecimals)}
                     min={0}
                     placeholder="Max amount token"
-                    on:input={() => {
-                        // updateMaxValue();  // Could change this instead.
-                        updateExchangeRate();
-                    }}
+                    on:input={() => updateExchangeRate()}
+                    class="max-w-xs"
                 />
             </div>
 
             <div class="form-group">
-                <label for="exchangeRate">Exchange Rate (ERGs per token)</label>
-                <input 
+                <Label for="exchangeRate">Exchange Rate (ERGs per token)</Label>
+                <Input 
                     type="number" 
                     id="exchangeRate" 
                     bind:value={exchangeRatePrecise}
@@ -208,64 +214,67 @@
                     step="0.000000001"
                     placeholder="Exchange rate in ERG"
                     on:input={updateMaxValue}
+                    class="max-w-xs"
                 />
             </div>
 
             <div class="form-group">  
-                <label for="minValue">Min ERGs collected</label>
-                <input 
+                <Label for="minValue">Min ERGs collected</Label>
+                <Input 
                     type="number" 
                     id="minValue" 
                     bind:value={minValuePrecise} 
                     max={maxValuePrecise}
                     min={0}
-                    placeholder="Min ERGs collected"  
+                    placeholder="Min ERGs collected"
+                    class="max-w-xs"
                 />
             </div>
 
             <div class="form-group">
-                <label for="maxValue">Max ERGs collected</label>
-                <input 
+                <Label for="maxValue">Max ERGs collected</Label>
+                <Input 
                     type="number" 
                     id="maxValue" 
                     bind:value={maxValuePrecise}
                     min={minValuePrecise}
                     placeholder="Max ERGs collected"
                     on:input={updateExchangeRate}
+                    class="max-w-xs"
                 />
             </div>
 
             <div class="form-group">
-                <label for="blockLimit">Days limit</label>
-                <input
+                <Label for="blockLimit">Days limit</Label>
+                <Input
                     id="blockLimit"
                     type="number"
                     bind:value={daysLimit}
                     min="1"
-                    style="width: 20rem; align-self:center;"
                     placeholder="Enter days limit"
                     aria-label="Enter the limit in days"
+                    class="max-w-xs"
                 />
             </div>
 
             <div class="form-group">
-                <label for="projectTitle">Project Title</label>
-                <input type="text" id="projectTitle" bind:value={projectTitle} placeholder="Enter project title" required />
+                <Label for="projectTitle">Project Title</Label>
+                <Input type="text" id="projectTitle" bind:value={projectTitle} placeholder="Enter project title" required class="max-w-xs" />
             </div>
 
             <div class="form-group">
-                <label for="projectImage">Project Image URL</label>
-                <input type="text" id="projectImage" bind:value={projectImage} placeholder="Enter image URL" required />
+                <Label for="projectImage">Project Image URL</Label>
+                <Input type="text" id="projectImage" bind:value={projectImage} placeholder="Enter image URL" required class="max-w-xs" />
             </div>
 
             <div class="form-group">
-                <label for="projectLink">Project Link</label>
-                <input type="text" id="projectLink" bind:value={projectLink} placeholder="Enter project link" required />
+                <Label for="projectLink">Project Link</Label>
+                <Input type="text" id="projectLink" bind:value={projectLink} placeholder="Enter project link" required class="max-w-xs" />
             </div>
 
-            <div class="form-group form-group-full">
-                <label for="projectDescription">Project Description</label>
-                <textarea id="projectDescription" bind:value={projectDescription} placeholder="Enter project description" required style="width: 100%; height: 7rem;"></textarea>
+            <div class="form-group form-group-full lg:col-span-3">
+                <Label for="projectDescription">Project Description</Label>
+                <Textarea id="projectDescription" bind:value={projectDescription} placeholder="Enter project description" required class="w-full h-28 lg:h-32" />
             </div>
         </div>
         
@@ -273,7 +282,7 @@
             <div class="result">
                 <p>
                     <strong>Transaction ID:</strong>
-                    <a href="{web_explorer_uri_tx + transactionId}" target="_blank" rel="noopener noreferrer" style="color: #ffa500;">
+                    <a href="{web_explorer_uri_tx + transactionId}" target="_blank" rel="noopener noreferrer" class="text-orange-400 underline">
                         {transactionId}
                     </a>
                 </p>
@@ -281,9 +290,9 @@
         {:else}
             <Button on:click={handleSubmit} 
                 disabled={isSubmitting || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle || !daysLimit} 
-                style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
-                >
-                {isSubmitting ? 'Waiting for confirmation of the project creation.' : 'Submit'}  <!-- TODO add the message: "Waiting for confirmation of token deposit." too -->
+                class="bg-orange-500 text-black border-none py-1 px-4 text-lg"
+            >
+                {isSubmitting ? 'Waiting for confirmation of the project creation.' : 'Submit'}
             </Button>  
         {/if}
         
@@ -300,62 +309,27 @@
         max-width: 1200px;
         margin: 0 auto;
         padding: 10px;
-        height: 85vh;
         flex-direction: column;
-        overflow-y: scroll;
-        overflow-x: hidden;
+        overflow-y: auto;
         scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
     }
+
     .title {
-        font-size: 3em;
         text-align: center;
-        margin-top: 0px;
-        margin-bottom: 20px;
-    }
-
-    #tokenId {
-        background-color: #000;
+        font-size: 2rem;
+        margin: 15px 0 20px;
         color: orange;
-        border: 1px solid #555;
-    }
-
-    #tokenId option {
-        background-color: #000;
-        color: orange;
-    }
-
-    .form-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 1rem;
-    }
-
-    .form-group-full {
-        grid-column: span 3;
     }
 
     .form-group {
         margin-bottom: 1.8rem;
     }
-    label {
-        font-weight: bold;
-    }
-    input, select, textarea {
-        width: 100%;
-        padding: 0.5rem;
-        margin-top: 0.25rem;
-        color: orange;
-        background-color: #000;
-        border: 1px solid #555;
-    }
-    input:focus, select:focus, textarea:focus {
-        outline: none !important;
-        border:1px solid orange;
-    }
+
     .result {
         margin-top: 1rem;
         padding: 1rem;
     }
+
     .error {
         color: red;
     }

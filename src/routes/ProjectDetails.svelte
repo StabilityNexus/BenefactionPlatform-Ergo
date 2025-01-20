@@ -1,10 +1,15 @@
 <script lang="ts">
     import { type Project, is_ended, min_raised } from "$lib/common/project";
     import { address, connected, project_detail, project_token_amount, temporal_token_amount } from "$lib/common/store";
-    import { Button, Progress, Badge } from "spaper";
+    import { Progress } from "$lib/components/ui/progress";
+    import { Button } from "$lib/components/ui/button";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { web_explorer_uri_tx } from '$lib/ergo/envs';
+    import { mode } from "mode-watcher";
+    import { Input } from "$lib/components/ui/input";
+    import { Label } from "$lib/components/ui/label/index.js";
+    import { Badge } from "$lib/components/ui/badge/index.js";
 
     // Define 'project' as a prop of type Project
     let project: Project = $project_detail;
@@ -21,12 +26,6 @@
     let min = project.minimum_amount;
     let max = project.total_pft_amount;
     let percentage =  parseInt(((currentVal/max)*100).toString())
-    let typeProgress = 'secondary';
-    if(currentVal < min) {
-        typeProgress = 'danger'; 
-    } else if(currentVal >= max) {
-        typeProgress = 'success';
-    }
 
     // States for amounts
     let show_submit = false;
@@ -282,29 +281,37 @@
 
 </script>
 
-<div class="back">
-    <Button style="background-color: #FFB347; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;" on:click={closePage}>
+<div class="back" style="margin-left: 2rem;">
+    <Button style="background-color: #FFB347; color: black;" on:click={closePage}>
         &lt; Go to main
     </Button>
 </div>
 
 <!-- Main Project Detail Page -->
-<div class="project-detail">
-    <div class="details">
+<div class="project-detail flex flex-col md:flex-row" style="{$mode === 'light' ? 'color: black;' : 'color: #ddd;'}">
+    <div class="details w-full md:w-1/3 space-y-4">
 
         <!-- =============================== -->
         <!-- Project Description Section -->
         <!-- =============================== -->
-        <p><em style="font-size: 1.2em; font-weight: bold;">Description</em></p>
+        <p><em class="text-xl font-bold">Description</em></p>
         <p>{project.content.description}</p>
         {#if project.content.link !== null}
-            <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer">here</a>.</p>
+            <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">here</a>.</p>
         {/if}
 
-        <!-- =============================== -->
+        <div 
+            class="bg-cover bg-center bg-no-repeat h-64" 
+            style="background-image: url({project.content.image});"
+        ></div>
+
+    </div>
+
+    <div class="details w-full md:w-1/3 space-y-4">
+    <!-- =============================== -->
         <!-- Key Project Details Section -->
         <!-- =============================== -->
-        <p><em style="font-size: 1.2em; font-weight: bold;">Details</em></p>
+        <p><em class="text-xl font-bold">Details</em></p>
         <p><strong>Exchange Rate:</strong> {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} {platform.main_token}/{project.token_details.name}</p>
         <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
         <p><strong>Token:</strong> {project.token_id.slice(0, 6) + '...' + project.token_id.slice(-4)}</p>
@@ -314,22 +321,22 @@
         <!-- =============================== -->
         <!-- Additional Comments Section -->
         <!-- =============================== -->
-        <!-- <p><em style="font-size: 1.2em; font-weight: bold;">Additional Comments</em></p> -->
+        <!-- <p><em class="text-xl font-bold">Additional Comments</em></p> -->
          <!---<p><strong>Tokens refunded:</strong> {project.refunded_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>-->
         <!-- <p><strong>ERGs collected (included refunded or withdrawn):</strong> {project.collected_value / 1000000000} ERG</p> -->
         <!-- <p><strong>Owner:</strong> {project.constants.owner.slice(0, 6)}...{project.constants.owner.slice(-4)}</p> -->
 
-        <Button style="background-color: gray; color: black; border: none; margin-top: 2rem;" on:click={shareProject}>
+        <Button class="bg-gray-500 text-black border-none mt-8" style="margin-top: 3rem;" on:click={shareProject}>
             Share
         </Button>
         {#if showCopyMessage}
-            <div class="copy-msg" style="margin-top: 1rem;">
+            <div class="copy-msg mt-4 text-green-500">
                 Project page url copied to clipboard!
             </div>
         {/if}
     </div>
 
-    <div class="extra">
+    <div class="extra w-full md:w-1/3 mt-4 md:mt-0">
         <div class="timeleft">
             <span class="timeleft-label">TIME LEFT</span>
             <div class="responsive1">
@@ -352,25 +359,23 @@
             </div>
         </div>
         <div class="progress">
-            {#if project.sold_counter !== project.total_pft_amount}
-                <Progress value="{percentage}" type="{typeProgress}" style="color: black;" />
-            {:else}
-                <Progress infinite type="primary" />
-            {/if}
+            <Progress value="{percentage}"/>
         </div>
-        
-        <div style="display: flex; justify-content: space-between; color: white;">
-            <div>
-                <div style="flex: 1; text-align: left;">Minimum Amount: {min / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                <div style="flex: 1; text-align: right;">{((min * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+
+        <div class="flex flex-col md:flex-row justify-between gap-6 text-black" style="color: {$mode === 'light' ? 'black' : 'white'};">
+            <div class="flex flex-col">
+                <div class="text-left">Minimum Amount: {min / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                <div class="text-center md:text-right">{((min * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
             </div>
-            <div>
-                <div style="flex: 1; text-align: left;">Current Amount Sold: {currentVal / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                <div style="flex: 1; text-align: right;">{((currentVal * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+            
+            <div class="flex flex-col">
+                <div class="text-left">Current Amount Sold: {currentVal / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                <div class="text-center md:text-right">{((currentVal * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
             </div>
-            <div>
-                <div style="flex: 1; text-align: left;">Maximum Amount: {max / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                <div style="flex: 1; text-align: right;">{((max * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+            
+            <div class="flex flex-col">
+                <div class="text-left">Maximum Amount: {max / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                <div class="text-center md:text-right">{((max * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
             </div>
         </div>
 
@@ -417,10 +422,10 @@
         <!-- Input field and submit button for actions -->
         {#if show_submit}
             <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <div class="actions-form">
+            <div class="actions-form" style="{$mode === 'light' ? 'background: rgba(50, 50, 50, 0.05);' : 'background: rgba(255, 255, 255, 0.05);'}">
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div class="close-button" on:click={close_submit_form}>
+                <div class="close-button" on:click={close_submit_form} style="{ $mode === 'light' ? 'color: black;' : 'color: rgb(255, 255, 255);'}">
                     &times;
                 </div>
                 <div class="centered-form">
@@ -439,9 +444,10 @@
                         </div>
                     {:else}
                         <!-- svelte-ignore a11y-label-has-associated-control -->
-                        <label>{label_submit}</label>
+                        <Label for="number">{label_submit}</Label>
                         <div style="display: flex; align-items: center;">
-                            <input
+                            <Input
+                                id="number"
                                 type="number"
                                 bind:value={value_submit}
                                 min="0"
@@ -485,32 +491,49 @@
     }
 
     .project-detail {
-        margin-left: 2rem;
+        height: 75vh;
+        margin-left: 0.5rem;
         padding: 1.5rem;
         border-radius: 8px;
-        color: #ddd;
         display: flex;
-        flex-direction: row;
+        flex-direction: column;
         gap: 2rem;
-        height: 85vh;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        scrollbar-width: none;
+        scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
     }
 
-    .details {
-        width: 30vw;
+    .details, .extra {
+        width: 100%;
         margin-bottom: 1.5rem;
-        flex-direction: column;
-        overflow-y: scroll;
-        overflow-x: hidden;
-        scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
     }
 
-    .extra {
-        width: 50vw;
-        display: flex;
-        flex-direction: column;
-        overflow-y: scroll;
-        overflow-x: hidden;
-        scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
+    @media (min-width: 768px) {
+        .project-detail {
+            flex-direction: row;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
+        }
+        
+        .details {
+            width: 30vw; 
+        }
+
+        .extra {
+            margin-left: auto;
+            margin-right: auto;
+        }
+    }
+
+    @media (max-height: 900px) {
+        .project-detail {
+            height: 65vh;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
+        }
     }
 
     .actions {
@@ -542,7 +565,6 @@
         position: relative;
         margin-top: 1rem;
         padding: 1rem;
-        background: rgba(255, 255, 255, 0.05);
         border-radius: 16px;
         display: flex;
         justify-content: center;
@@ -556,7 +578,6 @@
         background-color: transparent;
         border: none;
         font-size: 24px;
-        color: rgb(255, 255, 255);
         cursor: pointer;
     }
 

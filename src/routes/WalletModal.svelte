@@ -2,7 +2,6 @@
 
     import { address } from "$lib/common/store";
     import { web_explorer_uri_addr } from "$lib/ergo/envs";
-    import { onMount } from "svelte";
 
     export let ergInErgs = "0.059";
     export let platform = { main_token: "ERG" };
