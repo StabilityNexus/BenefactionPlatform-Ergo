@@ -232,6 +232,9 @@
     }
     setTargetDate()
 
+    let progressColor = 'white';
+    let countdownAnimation = false;
+
     function updateCountdown() {
         var currentDate = new Date().getTime();
         var diff = targetDate - currentDate;
@@ -265,6 +268,21 @@
         }
         if (secondsElement) {
             secondsElement.innerHTML = seconds.toString();
+        }
+
+        if (is_min_raised) {
+            progressColor = '#A8E6A1';  // green
+        } else {
+            if (diff <= 0) {
+                progressColor = '#FF6F61';  // red
+                countdownAnimation = false;
+            } else if (diff < 24 * 60 * 60 * 1000) {
+                progressColor = '#FFF5A3';  // yelow
+                countdownAnimation = true;
+            } else {
+                progressColor = 'white';
+                countdownAnimation = false;
+            }
         }
     }
 
@@ -321,29 +339,36 @@
     </div>
 
     <div class="extra w-full md:w-1/3 mt-4 md:mt-0">
-        <div class="timeleft">
-            <span class="timeleft-label">TIME LEFT</span>
-            <div class="responsive1">
-                <div class="item">
-                    <div id="days"></div>
-                    <div class="h3"><h3>Days</h3></div>
-                </div>
-                <div class="item">
-                    <div id="hours"></div>
-                    <div class="h3"><h3>Hours</h3></div>
-                </div>
-                <div class="item">
-                    <div id="minutes"></div>
-                    <div class="h3"><h3>Minutes</h3></div>
-                </div>
-                <div class="item">
-                    <div id="seconds"></div>
-                    <div class="h3"><h3>Seconds</h3></div>
-                </div>
+        <div class="timeleft {deadline_passed ? 'ended' : (countdownAnimation ? 'soon' : '')}">
+            <span class="timeleft-label">
+              {#if deadline_passed}
+                TIME'S UP!
+              {:else}
+                TIME LEFT
+              {/if}
+            </span>
+            <div>
+              <div class="item">
+                <div id="days"></div>
+                <div class="h3"><h3>Days</h3></div>
+              </div>
+              <div class="item">
+                <div id="hours"></div>
+                <div class="h3"><h3>Hours</h3></div>
+              </div>
+              <div class="item">
+                <div id="minutes"></div>
+                <div class="h3"><h3>Minutes</h3></div>
+              </div>
+              <div class="item">
+                <div id="seconds"></div>
+                <div class="h3"><h3>Seconds</h3></div>
+              </div>
             </div>
-        </div>
+          </div>
+          
         <div class="progress">
-            <Progress value="{percentage}"/>
+            <Progress value="{percentage}" color="{progressColor}" />
         </div>
 
         <div class="flex flex-col md:flex-row justify-between gap-6 text-black" style="color: {$mode === 'light' ? 'black' : 'white'};">
@@ -455,6 +480,22 @@
 </div>
 
 <style>
+
+    @keyframes pulse {
+        0%   { transform: scale(1); }
+        50%  { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    .timeleft.soon .item {
+        animation: pulse 1s infinite;
+        border-color: yellow;
+        color: yellow;
+    }
+
+    .timeleft.ended {
+        opacity: 0.3;
+    }
 
     .result {
         margin-top: 1rem;
