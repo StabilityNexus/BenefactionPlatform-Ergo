@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { type Project, is_ended, min_raised } from "$lib/common/project";
+    import { type Project, is_ended, max_raised, min_raised } from "$lib/common/project";
     import { address, connected, project_detail, project_token_amount, temporal_token_amount } from "$lib/common/store";
     import { Progress } from "$lib/components/ui/progress";
     import { Button } from "$lib/components/ui/button";
@@ -209,13 +209,12 @@
 
     let deadline_passed = false;
     let is_min_raised = false;
+    let is_max_raised = false;
     let limit_date = "";
     async function load() {
         deadline_passed = await is_ended(project);
-        is_min_raised = await min_raised(project);
-
-        deadline_passed = await is_ended(project);
         is_min_raised = await min_raised(project)
+        is_max_raised = await max_raised(project);
         limit_date = new Date(await block_to_time(project.block_limit, project.platform)).toLocaleString();
     }
     load();
@@ -341,12 +340,15 @@
     <div class="extra w-full md:w-1/3 mt-4 md:mt-0">
         <div class="timeleft {deadline_passed ? 'ended' : (countdownAnimation ? 'soon' : '')}">
             <span class="timeleft-label">
-              {#if deadline_passed}
-                TIME'S UP!
-              {:else}
-                TIME LEFT
-              {/if}
-            </span>
+                {#if deadline_passed}
+                  TIME'S UP!  
+                  {#if ! is_max_raised}
+                  <small class="secondary-text">... But you can still contribute!</small>
+                  {/if}
+                {:else}
+                  TIME LEFT
+                {/if}
+              </span>
             <div>
               <div class="item">
                 <div id="days"></div>
@@ -480,6 +482,11 @@
 </div>
 
 <style>
+    .secondary-text {
+    display: block;
+    font-size: 0.7em;  /* Makes it smaller */
+    margin-top: 0.2em; /* Adds a little space between lines */
+    }
 
     @keyframes pulse {
         0%   { transform: scale(1); }

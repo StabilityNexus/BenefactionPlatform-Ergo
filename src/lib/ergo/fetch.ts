@@ -193,6 +193,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                             token_id: constants.token_id,
                             block_limit: block_limit,
                             minimum_amount: minimum_token_amount,
+                            maximum_amount: total_pft_amount,
                             total_pft_amount: total_pft_amount,
                             current_pft_amount: current_pft_amount,
                             unsold_pft_amount: unsold_pft_amount,
