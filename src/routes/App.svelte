@@ -19,7 +19,6 @@
     import * as Dialog from "$lib/components/ui/dialog/index.js";
     import * as Alert from "$lib/components/ui/alert";
     import * as Menubar from "$lib/components/ui/menubar";
-    import { set } from 'zod';
 
 
     let activeTab = 'acquireTokens';
