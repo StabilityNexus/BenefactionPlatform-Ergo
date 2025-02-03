@@ -163,9 +163,18 @@
     <div class="flex flex-row items-center justify-center space-x-4 w-full lg:w-auto">
         {#if $address}
             <div class="flex flex-col items-center space-y-2">
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
+                <!-- svelte-ignore a11y-missing-attribute -->
                 <div class="flex items-center space-x-2">
                     <Badge style="background-color: orange; color: black; font-size: 0.9em;">{ergInErgs} ERG</Badge>
-                    <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$address.slice(0, 6) + '...' + $address.slice(-4)}</Badge>
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <!-- svelte-ignore a11y-no-static-element-interactions -->
+                    <a on:click={() => showWalletInfo = true}>
+                        <Badge 
+                            style="background-color: orange; color: black; font-size: 0.9em;">
+                            {$address.slice(0, 6) + '...' + $address.slice(-4)}
+                        </Badge>
+                    </a>
                 </div>
                 <div class="flex items-center space-x-2">
                     {#if $temporal_token_amount}
@@ -187,7 +196,7 @@
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 {#if $address}
-<Dialog.Root bind:open={showWalletInfo}>
+    <Dialog.Root bind:open={showWalletInfo}>
     <Dialog.Content class="sm:max-w-[425px] md:max-w-[600px] lg:max-w-[800px]">
         <Dialog.Header>
         <Dialog.Title>Wallet Info</Dialog.Title>
