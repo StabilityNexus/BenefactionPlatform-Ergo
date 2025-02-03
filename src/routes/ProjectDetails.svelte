@@ -456,37 +456,59 @@
                             <p>{errorMessage}</p>
                         </div>
                     {:else}
-                        <div>
-                            {#if info_type_to_show === "buy"}
-                                <p><strong>Exchange Rate:</strong> 
-                                    {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} 
-                                    {platform.main_token}/{project.token_details.name}</p>
-                            {/if}
-                            {#if info_type_to_show === "dev"}
-                                <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
-                                <p><strong>Current PFT balance:</strong> {project.current_pft_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
-                            {/if}
-                        </div>
-                        <div>
-                            <!-- svelte-ignore a11y-label-has-associated-control -->
-                            <Label for="number">{label_submit}</Label>
-                            <div style="display: flex; align-items: center;">
-                                <Input
-                                    id="number"
-                                    type="number"
-                                    bind:value={value_submit}
-                                    min="0"
-                                    step="1"
-                                    style="margin-left: 5px;"
-                                />
-                                <span style="margin-left: 15px;">{submit_amount_label}</span>
+                        <div class="flex flex-col md:flex-row items-start justify-between gap-8 w-full">
+                            <!-- Información a la izquierda -->
+                            <div class="md:w-1/6">
+                                {#if info_type_to_show === "buy"}
+                                    <p class="text-left">
+                                        <strong>Exchange Rate:</strong> 
+                                        {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} 
+                                        {platform.main_token}/{project.token_details.name}
+                                    </p>
+                                {/if}
+                                {#if info_type_to_show === "dev"}
+                                    <p class="text-left"><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
+                                    <p class="text-left"><strong>Current PFT balance:</strong> {project.current_pft_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
+                                {/if}
                             </div>
-                            {#if ! hide_submit_info}
-                                <Badge type="primary" rounded>{submit_info}</Badge>
-                            {/if}
-                            <Button on:click={function_submit} disabled={isSubmitting} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">
-                                {isSubmitting ? 'Submitting...' : 'Submit'}
-                            </Button>  
+                        
+                            <div class="md:w-4/6 flex flex-col items-center">
+                                <div class="w-full max-w-xs space-y-4">
+                                    <!-- svelte-ignore a11y-label-has-associated-control -->
+                                    <Label for="number" class="block text-center mb-3">{label_submit}</Label>
+                                    <div class="flex items-center mt-3">
+                                        <Input
+                                            id="number"
+                                            type="number"
+                                            bind:value={value_submit}
+                                            min="0"
+                                            step="1"
+                                            class="flex-1 ml-2"
+                                        />
+                                        <span class="ml-4">{submit_amount_label}</span>
+                                    </div>
+                                    
+                                    {#if ! hide_submit_info}
+                                        <div class="mt-2 text-center">
+                                            <Badge type="primary" rounded>{submit_info}</Badge>
+                                        </div>
+                                    {/if}
+                                    
+                                    <div class="mt-6 text-center">
+                                        <Button 
+                                            on:click={function_submit} 
+                                            disabled={isSubmitting} 
+                                            style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
+                                        >
+                                            {isSubmitting ? 'Submitting...' : 'Submit'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="md:w-1/6">
+        
+                            </div>
                         </div>
                     {/if}
                 </div>
@@ -614,7 +636,7 @@
 
     .centered-form {
         width: 100%;
-        max-width: 500px;
+        max-width: 80%;
         display: flex;
         align-items: center;
         flex-direction: column;
