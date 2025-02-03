@@ -456,24 +456,23 @@
                             <p>{errorMessage}</p>
                         </div>
                     {:else}
-                        <div class="flex flex-col md:flex-row items-start justify-between gap-8 w-full">
-                            <!-- Información a la izquierda -->
-                            <div class="md:w-1/6">
+                        <div class="flex flex-col md:flex-row items-center md:items-start justify-between gap-8 w-full">
+                            <div class="md:w-1/6 text-center md:text-left">
                                 {#if info_type_to_show === "buy"}
-                                    <p class="text-left">
+                                    <p>
                                         <strong>Exchange Rate:</strong> 
                                         {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} 
                                         {platform.main_token}/{project.token_details.name}
                                     </p>
                                 {/if}
                                 {#if info_type_to_show === "dev"}
-                                    <p class="text-left"><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
-                                    <p class="text-left"><strong>Current PFT balance:</strong> {project.current_pft_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
+                                    <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
+                                    <p><strong>Current PFT balance:</strong> {project.current_pft_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
                                 {/if}
                             </div>
                         
                             <div class="md:w-4/6 flex flex-col items-center">
-                                <div class="w-full max-w-xs space-y-4">
+                                <div class="w-full max-w-xs space-y-4 mx-auto">
                                     <!-- svelte-ignore a11y-label-has-associated-control -->
                                     <Label for="number" class="block text-center mb-3">{label_submit}</Label>
                                     <div class="flex items-center mt-3">
@@ -505,10 +504,8 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="md:w-1/6">
-        
-                            </div>
+                        
+                            <div class="md:w-1/6 hidden md:block"></div>
                         </div>
                     {/if}
                 </div>
