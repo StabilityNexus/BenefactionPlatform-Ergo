@@ -5,7 +5,7 @@
     import { Button } from "$lib/components/ui/button";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
-    import { web_explorer_uri_tx } from '$lib/ergo/envs';
+    import { web_explorer_uri_addr, web_explorer_uri_tkn, web_explorer_uri_tx } from '$lib/ergo/envs';
     import { mode } from "mode-watcher";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label/index.js";
@@ -323,7 +323,11 @@
             {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} 
             {platform.main_token}/{project.token_details.name}</p>
         <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
-        <p><strong>Token:</strong> {project.token_id.slice(0, 6) + '...' + project.token_id.slice(-4)}</p>
+        <p><strong>Token:</strong> 
+            <a href="{web_explorer_uri_tkn + project.token_id}" target="_blank">
+                {project.token_id.slice(0, 6) + '...' + project.token_id.slice(-4)}
+            </a>
+        </p>
         <p><strong>Deadline Date:</strong> {limit_date}</p>
         <p><strong>Deadline Block:</strong> {project.block_limit}</p>
 
