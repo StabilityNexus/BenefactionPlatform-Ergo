@@ -390,45 +390,44 @@
             </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="actions">
 
-            <!-- User actions -->
-            {#if $connected}
-                <div class="action-group">
-                    <div class="action-buttons">
-                        <Button style="background-color: orange; color: black; border: none; margin-right: 3rem;" on:click={setupBuy} disabled={!(project.total_pft_amount !== project.sold_counter)}>
-                            Contribute
-                        </Button>
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund} disabled={!(deadline_passed && !is_min_raised)}>
-                            Get a Refund
-                        </Button>
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupTempExchange} disabled={!(is_min_raised)}>
-                            Collect {project.token_details.name}
-                        </Button>
-                    </div>
-                </div>
-            {/if}
-
-            <!-- Project owner actions -->
-            {#if is_owner}
-                <div class="action-group">
-                    <div class="action-buttons">
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupAddTokens}>
-                            Add {project.token_details.name}
-                        </Button>
-                        <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawTokens}>
-                            Withdraw {project.token_details.name}
-                        </Button>
-  
-                        <Button style="background-color: orange; color: black; border: none; margin-left: 3rem;" on:click={setupWithdrawErg} disabled={!is_min_raised}>
-                            Collect {platform.main_token}
-                        </Button>
-                    </div>
-                </div>
-            {/if}
-
+        {#if $connected}
+        <!-- User actions -->
+        <div class="user-actions">
+          <div class="action-row">
+            <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy} disabled={!(project.total_pft_amount !== project.sold_counter)}>
+              Contribute
+            </Button>
+          </div>
+          <div class="action-row">
+            <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund} disabled={!(deadline_passed && !is_min_raised)}>
+              Get a Refund
+            </Button>
+            <Button style="background-color: orange; color: black; border: none;" on:click={setupTempExchange} disabled={!(is_min_raised)}>
+              Collect {project.token_details.name}
+            </Button>
+          </div>
         </div>
+      {/if}
+      
+      {#if is_owner}
+        <!-- Project owner actions -->
+        <div class="owner-actions">
+          <div class="action-row">
+            <Button style="background-color: orange; color: black; border: none;" on:click={setupAddTokens}>
+              Add {project.token_details.name}
+            </Button>
+            <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawTokens}>
+              Withdraw {project.token_details.name}
+            </Button>
+          </div>
+          <div class="action-row">
+            <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawErg} disabled={!is_min_raised}>
+              Collect {platform.main_token}
+            </Button>
+          </div>
+        </div>
+      {/if}
 
         <!-- Input field and submit button for actions -->
         {#if show_submit}
@@ -562,29 +561,19 @@
         }
     }
 
-    .actions {
+    .user-actions, .owner-actions {
         margin-top: 2rem;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.5rem;
     }
-
-    .action-group {
-        padding: 0.1rem;
-        flex: 1;
-    }
-
-    .action-buttons {
+    
+    .action-row {
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        margin-top: 0.25rem;
-    }
-
-    .action-buttons :global(button) {
-        padding: 0.25rem 1rem;
-        font-size: 1rem;
+        justify-content: center;
+        gap: 1rem;
+        width: 100%;
+        margin-bottom: 1rem;
     }
 
     .actions-form {
