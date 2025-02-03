@@ -30,6 +30,7 @@
     // States for amounts
     let show_submit = false;
     let label_submit = "";
+    let info_type_to_show: "buy"|"dev"|"" = "";
     let function_submit = null;
     let value_submit = 0;
     let submit_info = "";
@@ -40,6 +41,7 @@
 
     // Project owner actions
     function setupAddTokens() {
+        info_type_to_show = "dev";
         label_submit = "How many tokens do you want to add?";
         function_submit = add_tokens;
         value_submit = 0;
@@ -63,6 +65,7 @@
     }
 
     function setupWithdrawTokens() {
+        info_type_to_show = "dev";
         label_submit = "How many tokens do you want to withdraw?";
         function_submit = withdraw_tokens;
         value_submit = 0;
@@ -87,6 +90,7 @@
     }
 
     function setupWithdrawErg() {
+        info_type_to_show = "dev";
         label_submit = "How many ERGs do you want to withdraw?";
         function_submit = withdraw_erg;
         value_submit = 0;
@@ -111,6 +115,7 @@
 
     // User actions
     function setupBuy() {
+        info_type_to_show = "buy";
         label_submit = "How much do you want to contribute?";
         function_submit = buy;
         value_submit = 0;
@@ -134,6 +139,7 @@
     }
 
     function setupRefund() {
+        info_type_to_show = "";
         label_submit = "How many tokens do you want to refund?";
         function_submit = refund;
         value_submit = 0;
@@ -157,6 +163,7 @@
     }
 
     function setupTempExchange() {
+        info_type_to_show = "";
         label_submit = "Exchange "+project.content.title+" APT per "+project.token_details.name;
         function_submit = temp_exchange;
         value_submit = 0;
@@ -301,7 +308,7 @@
 <!-- Main Project Detail Page -->
 <div class="project-detail flex flex-col md:flex-row" style="{$mode === 'light' ? 'color: black;' : 'color: #ddd;'}">
     <!-- Columna izquierda - Descripción -->
-    <div class="details w-full md:w-1/3 space-y-4">
+    <div class="details w-full md:w-1/2 space-y-4">
         <p>
             <em class="text-2xl font-bold tracking-wide">
                 {project.content.title}
@@ -333,14 +340,7 @@
         {/if}
     </div>
 
-    <div class="details w-full md:w-1/3 space-y-4 mt-12"> 
-        <p><strong>Exchange Rate:</strong> 
-            {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} 
-            {platform.main_token}/{project.token_details.name}</p>
-        <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
-    </div>
-
-    <div class="extra w-full md:w-1/3 mt-4 md:mt-0">
+    <div class="extra w-full md:w-1/2 mt-4 md:mt-0">
         <div class="timeleft {deadline_passed ? 'ended' : (countdownAnimation ? 'soon' : '')}">
             <span class="timeleft-label">
                 {#if deadline_passed}
@@ -456,25 +456,38 @@
                             <p>{errorMessage}</p>
                         </div>
                     {:else}
-                        <!-- svelte-ignore a11y-label-has-associated-control -->
-                        <Label for="number">{label_submit}</Label>
-                        <div style="display: flex; align-items: center;">
-                            <Input
-                                id="number"
-                                type="number"
-                                bind:value={value_submit}
-                                min="0"
-                                step="1"
-                                style="margin-left: 5px;"
-                            />
-                            <span style="margin-left: 15px;">{submit_amount_label}</span>
+                        <div>
+                            {#if info_type_to_show === "buy"}
+                                <p><strong>Exchange Rate:</strong> 
+                                    {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} 
+                                    {platform.main_token}/{project.token_details.name}</p>
+                            {/if}
+                            {#if info_type_to_show === "dev"}
+                                <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
+                                <p><strong>Current PFT balance:</strong> {project.current_pft_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
+                            {/if}
                         </div>
-                        {#if ! hide_submit_info}
-                            <Badge type="primary" rounded>{submit_info}</Badge>
-                        {/if}
-                        <Button on:click={function_submit} disabled={isSubmitting} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">
-                            {isSubmitting ? 'Submitting...' : 'Submit'}
-                        </Button>  
+                        <div>
+                            <!-- svelte-ignore a11y-label-has-associated-control -->
+                            <Label for="number">{label_submit}</Label>
+                            <div style="display: flex; align-items: center;">
+                                <Input
+                                    id="number"
+                                    type="number"
+                                    bind:value={value_submit}
+                                    min="0"
+                                    step="1"
+                                    style="margin-left: 5px;"
+                                />
+                                <span style="margin-left: 15px;">{submit_amount_label}</span>
+                            </div>
+                            {#if ! hide_submit_info}
+                                <Badge type="primary" rounded>{submit_info}</Badge>
+                            {/if}
+                            <Button on:click={function_submit} disabled={isSubmitting} style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;">
+                                {isSubmitting ? 'Submitting...' : 'Submit'}
+                            </Button>  
+                        </div>
                     {/if}
                 </div>
             </div>
