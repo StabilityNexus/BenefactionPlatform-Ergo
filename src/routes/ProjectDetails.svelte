@@ -322,15 +322,6 @@
             class="bg-cover bg-center bg-no-repeat h-64" 
             style="background-image: url({project.content.image});"
         ></div>
-    </div>
-
-    <div class="details w-full md:w-1/3 space-y-4 mt-12"> 
-        <p><strong>Exchange Rate:</strong> 
-            {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} 
-            {platform.main_token}/{project.token_details.name}</p>
-        <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
-        <p><strong>Deadline Date:</strong> {limit_date}</p>
-        <p><strong>Deadline Block:</strong> {project.block_limit}</p>
 
         <Button class="bg-gray-500 text-black border-none mt-8" on:click={shareProject}>
             Share
@@ -340,6 +331,13 @@
                 Project page url copied to clipboard!
             </div>
         {/if}
+    </div>
+
+    <div class="details w-full md:w-1/3 space-y-4 mt-12"> 
+        <p><strong>Exchange Rate:</strong> 
+            {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} 
+            {platform.main_token}/{project.token_details.name}</p>
+        <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
     </div>
 
     <div class="extra w-full md:w-1/3 mt-4 md:mt-0">
@@ -372,8 +370,8 @@
                 <div class="h3"><h3>Seconds</h3></div>
               </div>
             </div>
+            <small>Until {limit_date} UTC on block {project.block_limit}</small>
           </div>
-          
         <div class="progress">
             <Progress value="{percentage}" color="{progressColor}" />
         </div>
