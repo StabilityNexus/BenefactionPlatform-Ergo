@@ -516,7 +516,7 @@
     }
 
     .project-detail {
-        height: 75vh;
+        height: 100vh;
         margin-left: 0.5rem;
         padding: 1.5rem;
         border-radius: 8px;
