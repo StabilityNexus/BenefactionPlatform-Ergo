@@ -111,7 +111,7 @@
 
     // User actions
     function setupBuy() {
-        label_submit = "With how many tokens do you want to contribute?";
+        label_submit = "How much do you want to contribute?";
         function_submit = buy;
         value_submit = 0;
         show_submit = true;
