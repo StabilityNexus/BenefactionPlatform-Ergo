@@ -6,50 +6,67 @@
     import * as Card from "$lib/components/ui/card";
     import { mode } from "mode-watcher";
     
-    // Define 'project' as a prop of type Project
     export let project: Project;
 
     let deadline_passed = false;
     let is_min_raised = false;
     let limit_date = "";
+    let statusMessage = "";
+    let statusColor = "";
+
     async function load() {
         deadline_passed = await is_ended(project);
         is_min_raised = await min_raised(project);
-        limit_date = new Date(
-            await block_to_time(project.block_limit, project.platform)
-        ).toLocaleString();
+        const blockTime = await block_to_time(project.block_limit, project.platform);
+        const date = new Date(blockTime);
+        // Format date as YYYY-MM-DD HH:MM UTC
+        limit_date = `${date.getUTCFullYear()}-${(date.getUTCMonth() + 1).toString().padStart(2, '0')}-${date.getUTCDate().toString().padStart(2, '0')} ${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')} UTC`;
+
+        const minErg = (project.minimum_amount / 1e9).toFixed(3);
+        const maxErg = (project.value / 1e9).toFixed(3);
+        const isMaxReached = project.collected_value >= project.value;
+
+        if (isMaxReached) {
+            statusMessage = `Reached maximum goal of ${maxErg} ERG; closed for contributions.`;
+            statusColor = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+        } else if (deadline_passed) {
+            statusMessage = is_min_raised 
+                ? `Reached minimum goal; open until ${limit_date}.`
+                : `Did not raise ${minErg} ERG before ${limit_date}; closed.`;
+            statusColor = is_min_raised ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+        } else {
+            statusMessage = is_min_raised
+                ? `Reached minimum of ${minErg} ERG; open up to ${maxErg} ERG.`
+                : `Aiming to raise ${minErg} ERG before ${limit_date}.`;
+            statusColor = is_min_raised ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+        }
     }
     load();
-
-    function toggleDetails() {
-        // Get the current value of the store
-        project_detail.set(project);
-    }
 </script>
 
-<!-- <Card.Root class="bg-cover bg-center bg-no-repeat" style="background-image: url({project.content.image});"> -->
-<Card.Root class="bg-[#1a1a1a] {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'}" style="height: 400px; position: relative;">
-    <Card.Header class="p-4">
-        <Card.Title class="text-xl font-bold">{project.content.title}</Card.Title>
+<Card.Root class="relative bg-[#1a1a1a] h-[400px] flex flex-col {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'}">
+    <Card.Header class="p-4 pb-2">
+        <Card.Title class="text-xl font-bold line-clamp-1">{project.content.title}</Card.Title>
     </Card.Header>
-    <Card.Content  class="p-4 space-y-4">
-        <p>
-            {project.content.description.length > 48
-                ? project.content.description.slice(0, 48) + " ...."
-                : project.content.description}
+    
+    <Card.Content class="p-4 flex-1">
+        <p class="line-clamp-3 text-sm opacity-90 h-[60px]">
+            {project.content.description}
         </p>
-        <p><strong>Limit date:</strong> {limit_date}</p>
-        <p><strong>Current ERG balance:</strong> {project.current_value / 1000000000} ERG</p>
-        <p><strong>Deadline passed:</strong> {deadline_passed ? "Yes" : "No"}</p>
-        <p><strong>Min value raised:</strong> {is_min_raised ? "Yes" : "No"}</p>
-        
     </Card.Content>
-    <Card.Footer>
-        <!-- Botón posicionado en la esquina inferior izquierda -->
+
+    <!-- Status Message Sticky Bottom -->
+    <div class="absolute bottom-16 left-0 w-full px-4">
+        <div class={`${statusColor} p-2 rounded-md text-sm transition-all`}>
+            {statusMessage}
+        </div>
+    </div>
+
+    <Card.Footer class="p-4 pt-2 mt-auto">
         <Button
-            class="absolute bottom-4 left-4"
-            on:click={toggleDetails}
-            style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
+            class="w-full"
+            on:click={() => project_detail.set(project)}
+            style="background-color: orange; color: black;"
         >
             View
         </Button>
