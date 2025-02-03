@@ -281,20 +281,15 @@
 
 </script>
 
-<div class="back" style="margin-left: 2rem;">
-    <Button style="background-color: #FFB347; color: black;" on:click={closePage}>
-        &lt; Go to main
-    </Button>
-</div>
-
 <!-- Main Project Detail Page -->
 <div class="project-detail flex flex-col md:flex-row" style="{$mode === 'light' ? 'color: black;' : 'color: #ddd;'}">
+    <!-- Columna izquierda - Descripción -->
     <div class="details w-full md:w-1/3 space-y-4">
-
-        <!-- =============================== -->
-        <!-- Project Description Section -->
-        <!-- =============================== -->
-        <p><em class="text-xl font-bold">Description</em></p>
+        <p>
+            <em class="text-2xl font-bold tracking-wide">
+                {project.content.title}
+            </em>
+        </p>
         <p>{project.content.description}</p>
         {#if project.content.link !== null}
             <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">here</a>.</p>
@@ -304,29 +299,18 @@
             class="bg-cover bg-center bg-no-repeat h-64" 
             style="background-image: url({project.content.image});"
         ></div>
-
     </div>
 
-    <div class="details w-full md:w-1/3 space-y-4">
-    <!-- =============================== -->
-        <!-- Key Project Details Section -->
-        <!-- =============================== -->
-        <p><em class="text-xl font-bold">Details</em></p>
-        <p><strong>Exchange Rate:</strong> {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} {platform.main_token}/{project.token_details.name}</p>
+    <div class="details w-full md:w-1/3 space-y-4 mt-12"> 
+        <p><strong>Exchange Rate:</strong> 
+            {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} 
+            {platform.main_token}/{project.token_details.name}</p>
         <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
         <p><strong>Token:</strong> {project.token_id.slice(0, 6) + '...' + project.token_id.slice(-4)}</p>
         <p><strong>Deadline Date:</strong> {limit_date}</p>
         <p><strong>Deadline Block:</strong> {project.block_limit}</p>
 
-        <!-- =============================== -->
-        <!-- Additional Comments Section -->
-        <!-- =============================== -->
-        <!-- <p><em class="text-xl font-bold">Additional Comments</em></p> -->
-         <!---<p><strong>Tokens refunded:</strong> {project.refunded_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>-->
-        <!-- <p><strong>ERGs collected (included refunded or withdrawn):</strong> {project.collected_value / 1000000000} ERG</p> -->
-        <!-- <p><strong>Owner:</strong> {project.constants.owner.slice(0, 6)}...{project.constants.owner.slice(-4)}</p> -->
-
-        <Button class="bg-gray-500 text-black border-none mt-8" style="margin-top: 3rem;" on:click={shareProject}>
+        <Button class="bg-gray-500 text-black border-none mt-8" on:click={shareProject}>
             Share
         </Button>
         {#if showCopyMessage}
@@ -482,12 +466,6 @@
 
     .copy-msg {
         color: #28a745;
-    }
-
-    .back {
-        margin-top: 15px;
-        margin-left: 3.5rem;
-        margin-bottom: 0rem;
     }
 
     .project-detail {

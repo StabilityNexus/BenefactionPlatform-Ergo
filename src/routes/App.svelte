@@ -117,57 +117,46 @@
 
     <!-- Navigation Menu -->
     <div class="flex-1 flex justify-center mb-4 lg:mb-0 w-full lg:w-auto">
-        {#if $project_detail === null}
-            <Menubar.Root class="w-full lg:w-auto">
-                <Menubar.Menu class="flex flex-col lg:flex-row items-center space-y-2 lg:space-y-0 lg:space-x-4">
-                    <Menubar.Item class="w-full lg:w-auto text-center">
-                        <a
-                            href="#"
-                            on:click={() => changeTab('acquireTokens')}
-                            class="tab-link block w-full"
-                            style="border-bottom-color: {activeTab === 'acquireTokens' ? 'orangered' : 'orange'};">
-                            Contribute to a Project
-                        </a>
-                    </Menubar.Item>
-                    <Menubar.Item class="w-full lg:w-auto text-center">
-                        <a
-                            href="#"
-                            on:click={() => changeTab('myContributions')}
-                            class="tab-link block w-full"
-                            style="border-bottom-color: {activeTab === 'myContributions' ? 'orangered' : 'orange'};">
-                            My Contributions
-                        </a>
-                    </Menubar.Item>
-                    <Menubar.Item class="w-full lg:w-auto text-center">
-                        <a
-                            href="#"
-                            on:click={() => changeTab('myProjects')}
-                            class="tab-link block w-full"
-                            style="border-bottom-color: {activeTab === 'myProjects' ? 'orangered' : 'orange'};">
-                            My Projects
-                        </a>
-                    </Menubar.Item>
-                    <Menubar.Item class="w-full lg:w-auto text-center">
-                        <a
-                            href="#"
-                            on:click={() => changeTab('submitProject')}
-                            class="tab-link block w-full"
-                            style="border-bottom-color: {activeTab === 'submitProject' ? 'orangered' : 'orange'};">
-                            New Project
-                        </a>
-                    </Menubar.Item>
-                </Menubar.Menu>
-            </Menubar.Root>
-        {:else}
-            <ul class="inline w-full text-center">
-                <li>
-                    <!-- svelte-ignore a11y-missing-attribute -->
-                    <a style="color: orange; border-bottom-color: orange; font-size: 2rem;">
-                        {$project_detail.content.title}
+        <Menubar.Root class="w-full lg:w-auto">
+            <Menubar.Menu class="flex flex-col lg:flex-row items-center space-y-2 lg:space-y-0 lg:space-x-4">
+                <Menubar.Item class="w-full lg:w-auto text-center">
+                    <a
+                        href="#"
+                        on:click={() => changeTab('acquireTokens')}
+                        class="tab-link block w-full"
+                        style="border-bottom-color: {activeTab === 'acquireTokens' ? 'orangered' : 'orange'};">
+                        Contribute to a Project
                     </a>
-                </li>
-            </ul>
-        {/if}
+                </Menubar.Item>
+                <Menubar.Item class="w-full lg:w-auto text-center">
+                    <a
+                        href="#"
+                        on:click={() => changeTab('myContributions')}
+                        class="tab-link block w-full"
+                        style="border-bottom-color: {activeTab === 'myContributions' ? 'orangered' : 'orange'};">
+                        My Contributions
+                    </a>
+                </Menubar.Item>
+                <Menubar.Item class="w-full lg:w-auto text-center">
+                    <a
+                        href="#"
+                        on:click={() => changeTab('myProjects')}
+                        class="tab-link block w-full"
+                        style="border-bottom-color: {activeTab === 'myProjects' ? 'orangered' : 'orange'};">
+                        My Projects
+                    </a>
+                </Menubar.Item>
+                <Menubar.Item class="w-full lg:w-auto text-center">
+                    <a
+                        href="#"
+                        on:click={() => changeTab('submitProject')}
+                        class="tab-link block w-full"
+                        style="border-bottom-color: {activeTab === 'submitProject' ? 'orangered' : 'orange'};">
+                        New Project
+                    </a>
+                </Menubar.Item>
+            </Menubar.Menu>
+        </Menubar.Root>
     </div>
 
     <!-- User Info and Theme - Now always horizontal -->
