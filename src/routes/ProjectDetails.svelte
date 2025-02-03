@@ -410,7 +410,7 @@
         </div>
       {/if}
       
-      {#if is_owner}
+      {#if $connected && is_owner}
         <!-- Project owner actions -->
         <div class="owner-actions">
           <div class="action-row">
@@ -483,8 +483,8 @@
 <style>
     .secondary-text {
     display: block;
-    font-size: 0.7em;  /* Makes it smaller */
-    margin-top: 0.2em; /* Adds a little space between lines */
+    font-size: 0.7em; 
+    margin-top: 0.2em;
     }
 
     @keyframes pulse {
