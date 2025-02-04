@@ -27,23 +27,27 @@
 
         const minErg = ((project.minimum_amount * project.exchange_rate) / Math.pow(10, 9));
         const maxErg = ((project.sold_counter * project.exchange_rate) / Math.pow(10, 9))
-        const isMaxReached = project.collected_value >= project.value;
+        const isMaxReached = project.sold_counter >= project.total_pft_amount;
 
         if (isMaxReached) {
-            statusMessage = `Reached maximum goal of ${maxErg} ${platform.main_token}; closed for contributions.`;
+            statusMessage = `Reached maximum goal of ${maxErg} ${platform.main_token}; currently closed for contributions.`;
             statusColor = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
         } 
         else if (deadline_passed) {
             statusMessage = is_min_raised 
-                ? `Reached minimum goal; open until ${limit_date}.`
-                : `Did not raise ${minErg} ${platform.main_token} before ${limit_date}; closed.`;
-            statusColor = is_min_raised ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+                ? `Reached minimum of ${minErg} ${platform.main_token}; open for contributions up to ${maxErg} ${platform.main_token}.`
+                : `Did not raise minimum of ${minErg} ${platform.main_token} before ${limit_date}; closed for contributions.`;
+            statusColor = is_min_raised 
+                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" 
+                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
         } 
         else {
             statusMessage = is_min_raised
-                ? `Reached minimum of ${minErg} ${platform.main_token}; open up to ${maxErg} ${platform.main_token}.`
-                : `Aiming to raise ${minErg} ${platform.main_token} before ${limit_date}.`;
-            statusColor = is_min_raised ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+                ? `Reached minimum of ${minErg} ${platform.main_token}; open for contributions up to ${maxErg} ${platform.main_token}.`
+                : `Aiming to raise a minimum of ${minErg} ${platform.main_token} before ${limit_date}.`;
+            statusColor = is_min_raised 
+                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
+                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
         }
     }
     load();
