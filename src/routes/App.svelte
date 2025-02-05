@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { address, connected, balance, project_detail, project_token_amount, temporal_token_amount } from "$lib/common/store";
+    import { address, connected, balance, project_detail, project_token_amount, temporal_token_amount, timer } from "$lib/common/store";
     import MyProjects from './MyProjects.svelte';
     import MyContributions from './MyContributions.svelte';
     import NewProject from './NewProject.svelte';
@@ -19,6 +19,7 @@
     import * as Dialog from "$lib/components/ui/dialog/index.js";
     import * as Alert from "$lib/components/ui/alert";
     import * as Menubar from "$lib/components/ui/menubar";
+    import { get } from 'svelte/store';
 
 
     let activeTab = 'acquireTokens';
@@ -44,7 +45,18 @@
     });
 
     function changeTab(tab: string) {
-        project_detail.set(null)
+        const timerValue = get(timer);
+
+        if (timerValue.countdownInterval) {
+            clearInterval(timerValue.countdownInterval);
+        }
+
+        timer.set({ countdownInterval: 0, target: 0 });
+
+        project_detail.set(null);
+        temporal_token_amount.set(null);
+        project_token_amount.set(null);
+        
         activeTab = tab;
     }
 

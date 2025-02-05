@@ -1,6 +1,6 @@
 <script lang="ts">
     import { type Project, is_ended, max_raised, min_raised } from "$lib/common/project";
-    import { address, connected, project_detail, project_token_amount, temporal_token_amount } from "$lib/common/store";
+    import { address, connected, project_detail, project_token_amount, temporal_token_amount, timer } from "$lib/common/store";
     import { Progress } from "$lib/components/ui/progress";
     import { Button } from "$lib/components/ui/button";
     import { block_to_time } from "$lib/common/countdown";
@@ -10,6 +10,7 @@
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label/index.js";
     import { Badge } from "$lib/components/ui/badge/index.js";
+    import { get } from "svelte/store";
 
     // Define 'project' as a prop of type Project
     let project: Project = $project_detail;
@@ -199,13 +200,14 @@
     }
 
     // Function to close the detail page
-    function closePage() {
+    async function closePage() {
         targetDate = 0;
         clearInterval(countdownInterval);
         project_detail.set(null);
         temporal_token_amount.set(null);
         project_token_amount.set(null);
     }
+    close()
 
     function close_submit_form() {
         show_submit = false;
@@ -232,7 +234,10 @@
     }
     checkIfIsOwner();
 
-    let targetDate = 0;
+    let timerValue = get(timer);
+    let targetDate = timerValue.target;
+    let countdownInterval = timerValue.countdownInterval;
+
     async function setTargetDate() {
         targetDate = await block_to_time(project.block_limit, project.platform);
     }
@@ -292,7 +297,8 @@
         }
     }
 
-    var countdownInterval = setInterval(updateCountdown, 1000);
+    countdownInterval = setInterval(updateCountdown, 1000);
+    timer.update(current => ({ ...current, countdownInterval }));
 
     async function get_user_project_tokens(){
         var user_project_tokens = (await platform.get_balance(project.token_id)).get(project.token_id) ?? 0;
