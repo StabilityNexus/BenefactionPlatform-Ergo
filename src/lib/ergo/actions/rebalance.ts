@@ -38,9 +38,9 @@ export async function rebalance(
         amount: BigInt(project.current_idt_amount)
     });
 
-    console.log("PFT current unsold amount "+project.unsold_pft_amount)
-    let contract_token_amount = project.unsold_pft_amount + token_amount;
-    console.log("contract token amount "+contract_token_amount)
+    console.log("PFT current amount "+project.current_pft_amount /  Math.pow(10, project.token_details.decimals))
+    let contract_token_amount = project.current_pft_amount + token_amount;
+    console.log("contract token amount "+contract_token_amount /  Math.pow(10, project.token_details.decimals))
     if (contract_token_amount > 0) {
         contract_output.addTokens({
             tokenId: project.token_id,
