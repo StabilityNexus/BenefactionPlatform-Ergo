@@ -584,7 +584,7 @@
         margin-bottom: 1rem;
     }
 
-    @media (min-width: 768px) {
+    @media (min-width: 1000px) {
         .project-detail {
             flex-direction: row;
             gap: 2rem;
@@ -612,13 +612,9 @@
         }
     }
 
-    @media (max-height: 800px) {
+    @media (max-width: 1000px) {
         .project-detail {
-            height: calc(100vh - 120px);
-        }
-        
-        .details .bg-cover {
-            height: 250px;
+            height: calc(100vh - 206px);
         }
     }
 
