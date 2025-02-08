@@ -557,17 +557,18 @@
     }
 
     .project-detail {
-        height: 100vh;
-        margin-left: 0.5rem;
+        height: calc(100vh - 120px);
+        margin: 0.5rem 0.5rem 40px 0.5rem;
         padding: 1.5rem;
         border-radius: 8px;
         display: flex;
         flex-direction: column;
         gap: 2rem;
-        overflow-y: scroll;
+        overflow-y: auto;
         overflow-x: hidden;
-        scrollbar-width: none;
-        scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.13) rgba(255, 255, 255, 0.479);
+        position: relative;
     }
 
     .details, .extra {
@@ -575,30 +576,49 @@
         margin-bottom: 1.5rem;
     }
 
+    .details .bg-cover {
+        height: 300px;
+        width: 100%;
+        background-size: contain;
+        background-position: center;
+        margin-bottom: 1rem;
+    }
+
     @media (min-width: 768px) {
         .project-detail {
             flex-direction: row;
-            overflow-y: scroll;
-            overflow-x: hidden;
-            scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
+            gap: 2rem;
+            height: calc(100vh - 120px);
         }
         
         .details {
-            width: 30vw; 
+            width: 40%;
+            padding-right: 1rem;
+            overflow-y: auto;
         }
 
         .extra {
-            margin-left: auto;
-            margin-right: auto;
+            width: 60%;
+            padding-left: 1rem;
+            overflow-y: auto;
+        }
+        
+        .timeleft {
+            margin-top: 0;
+        }
+        
+        .progress {
+            margin: 1rem 0;
         }
     }
 
-    @media (max-height: 900px) {
+    @media (max-height: 800px) {
         .project-detail {
-            height: 65vh;
-            overflow-y: scroll;
-            overflow-x: hidden;
-            scrollbar-color: rgba(255, 255, 255, 0.13) rgba(0, 0, 0, 0.479);
+            height: calc(100vh - 120px);
+        }
+        
+        .details .bg-cover {
+            height: 250px;
         }
     }
 
