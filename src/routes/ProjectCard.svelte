@@ -26,7 +26,7 @@
         limit_date = `${date.getUTCFullYear()}-${(date.getUTCMonth() + 1).toString().padStart(2, '0')}-${date.getUTCDate().toString().padStart(2, '0')} ${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')} UTC`;
 
         const minErg = ((project.minimum_amount * project.exchange_rate) / Math.pow(10, 9));
-        const maxErg = ((project.sold_counter * project.exchange_rate) / Math.pow(10, 9))
+        const maxErg = ((project.maximum_amount * project.exchange_rate) / Math.pow(10, 9))
         const isMaxReached = project.sold_counter >= project.total_pft_amount;
 
         if (isMaxReached) {
