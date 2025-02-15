@@ -118,14 +118,18 @@
 <div class="flex flex-col lg:flex-row justify-between items-center" style="margin-top: 1rem; margin-left: 1rem; margin-right: 1rem;">
     <!-- Mobile Logo Section (visible below 768px) -->
     <div class="md:hidden w-full flex justify-between items-center mb-4">
-        <div class="flex-1 flex justify-center">
+        <div class="flex-1 flex justify-center items-center">
+            <img src="favicon.png" alt="Logo" class="w-9 h-9 mr-2" />
             <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
         </div>
     </div>
 
     <!-- Desktop Logo (hidden on mobile) -->
     <div class="hidden md:block mb-4 lg:mb-0">
-        <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
+        <div class="flex items-center">
+            <img src="favicon.png" alt="Logo" class="w-9 h-9 mr-2" />
+            <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
+        </div>
     </div>
 
     <!-- Navigation Menu -->
