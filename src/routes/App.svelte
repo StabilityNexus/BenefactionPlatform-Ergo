@@ -198,7 +198,7 @@
                         <Badge style="background-color: #ffc04d; color: black; font-size: 0.9em;">{$temporal_token_amount} APT</Badge>
                     {/if}
                     {#if $project_token_amount}
-                        <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount} Gluon</Badge>
+                        <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount}</Badge>
                     {/if}
                 </div>
             </div>
