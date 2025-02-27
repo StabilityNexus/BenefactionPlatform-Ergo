@@ -36,10 +36,10 @@
         else if (deadline_passed) {
             statusMessage = is_min_raised 
                 ? `Reached minimum of ${minErg} ${platform.main_token}; open for contributions up to ${maxErg} ${platform.main_token}.`
-                : `Did not raise minimum of ${minErg} ${platform.main_token} before ${limit_date}; closed for contributions.`;
+                : `Did not raise minimum of ${minErg} ${platform.main_token} before ${limit_date}; open for contributions up to ${maxErg} ${platform.main_token}.`;
             statusColor = is_min_raised 
-                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" 
-                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
+                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
         } 
         else {
             statusMessage = is_min_raised
