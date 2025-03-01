@@ -31,7 +31,7 @@
     // States for amounts
     let show_submit = false;
     let label_submit = "";
-    let info_type_to_show: "buy"|"dev"|"" = "";
+    let info_type_to_show: "buy"|"dev"|"dev-collect"|"" = "";
     let function_submit = null;
     let value_submit = 0;
     let submit_info = "";
@@ -91,7 +91,7 @@
     }
 
     function setupWithdrawErg() {
-        info_type_to_show = "dev";
+        info_type_to_show = "dev-collect";
         label_submit = "How many ERGs do you want to withdraw?";
         function_submit = withdraw_erg;
         value_submit = 0;
@@ -471,8 +471,10 @@
                                         {platform.main_token}/{project.token_details.name}
                                     </p>
                                 {/if}
-                                {#if info_type_to_show === "dev"}
+                                {#if info_type_to_show === "dev-collect"}
                                     <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
+                                {/if}
+                                {#if info_type_to_show === "dev"}
                                     <p><strong>Current PFT balance:</strong> {project.current_pft_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
                                 {/if}
                             </div>
