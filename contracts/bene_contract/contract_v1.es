@@ -182,7 +182,7 @@
     val sameScript = selfScript == OUTPUTS(0).propositionBytes
 
     // The PFT must be the same
-    val sameProofFundingToken = {
+    val sameProofFundingToken = {  // TODO This should be improved.
       anyOf(Coll(
         OUTPUTS(0).tokens.size == 1,
         OUTPUTS(0).tokens(1)._1 == Coll[Byte](),
@@ -406,7 +406,7 @@
 
     val correctProjectAmount = OUTPUTS(1).value == projectAmount
 
-    val correctDevFee = {
+    val correctDevFee = {  // TODO In case all funds are being extracted and there isn’t enough for the developers’ portion to reach the minimum, it should be forgiven.
       val OUT = OUTPUTS(2)
 
       val isToDevAddress = {
