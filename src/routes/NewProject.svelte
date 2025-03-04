@@ -10,7 +10,8 @@
 
     let platform = new ErgoPlatform();
 
-    let tokenId: string;
+    let tokenOption: object|null = null;
+    let tokenId: string|null = null;
     let tokenDecimals: number = 0;
 
     let tokenAmountRaw: number;
@@ -36,6 +37,14 @@
 
     let currentHeight: number | null = null;
     let userTokens: Array<{ tokenId: string, title: string, balance: number, decimals: number }> = [];
+
+    $: {
+        if (tokenOption) {
+            tokenId = tokenOption.value;
+        } else {
+            tokenId = null;
+        }
+    }
 
     $: tokenDecimals = userTokens.find(t => t.tokenId === tokenId)?.decimals || 0;
 
@@ -65,6 +74,8 @@
     }
 
     async function handleSubmit() {
+        if (tokenId === null) return
+
         isSubmitting = true;
         errorMessage = null;
         transactionId = null;
@@ -174,7 +185,7 @@
         <div class="form-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div class="form-group">
                 <Label for="tokenId">Token</Label>
-                <Select.Root bind:value={tokenId} required>
+                <Select.Root bind:selected={tokenOption} required>
                     <Select.Trigger class="w-full">
                         <Select.Value placeholder="Select a token" />
                     </Select.Trigger>
