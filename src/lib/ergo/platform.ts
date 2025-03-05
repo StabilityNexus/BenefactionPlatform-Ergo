@@ -17,6 +17,7 @@ export class ErgoPlatform implements Platform {
     main_token = "ERG";
     icon = "";
     time_per_block = 2*60*1000;
+    last_version: contract_version = "v1_1";
 
     async connect(): Promise<void> {
         if (typeof ergoConnector !== 'undefined') {

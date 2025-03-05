@@ -99,6 +99,7 @@
 
         try {
             const result = await platform.submit(
+                platform.last_version,
                 tokenId, 
                 tokenAmountRaw, 
                 blockLimit, 

@@ -7,6 +7,7 @@ export interface Platform {
     main_token: string; // ERG, ETH ...
     icon: string;  // Icon path or url.
     time_per_block: number; // milliseconds
+    last_version: contract_version;
     connect(): Promise<void>;
     get_current_height(): Promise<number>;
     get_balance(id?: string): Promise<Map<string, number>>;
