@@ -614,11 +614,11 @@ export function get_address(constants: ConstantContent) {
 }
 
 function get_template_hash(): string {
-  const mainnet_addr = "9f3iPJTiciBYA6DnTeGy98CvrwyEhiP7wNrhDrQ1QeKPRhTmaqQ";
-  const testnet_addr = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
-  let random_addr = network_id == "mainnet" ? mainnet_addr : testnet_addr;
-  const dev_contract = uint8ArrayToHex(blake2b256("9a3d2f6b"));
-  let contract = generate_contract(random_addr, dev_contract, 5, "");
+  const random_mainnet_addr = "9f3iPJTiciBYA6DnTeGy98CvrwyEhiP7wNrhDrQ1QeKPRhTmaqQ";
+  const random_testnet_addr = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
+  let random_addr = network_id == "mainnet" ? random_mainnet_addr : random_testnet_addr;
+  const random_dev_contract = uint8ArrayToHex(blake2b256("9a3d2f6b"));
+  let contract = generate_contract(random_addr, random_dev_contract, 5, "");
   return hex.encode(sha256(compile(contract, {version: 1, network: network_id}).template.toBytes()))
 }
 
