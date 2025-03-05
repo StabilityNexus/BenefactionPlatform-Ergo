@@ -1,6 +1,6 @@
 // src/common/platform.ts
 import { type Project } from "$lib/common/project";
-import { contract_version } from "$lib/ergo/contract";
+import { type contract_version } from "$lib/ergo/contract";
 
 export interface Platform {
     id: string;  // ergo, ethereum ...

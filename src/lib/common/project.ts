@@ -1,4 +1,4 @@
-import { contract_version } from "$lib/ergo/contract";
+import { type contract_version } from "$lib/ergo/contract";
 import { type Platform } from "./platform";
 import type { Amount, Box } from "@fleet-sdk/core";
 

@@ -9,7 +9,7 @@ import { rebalance } from './actions/rebalance';
 import { explorer_uri, network_id } from './envs';
 import { address, connected, network, balance } from "../common/store";
 import { temp_exchange } from './actions/temp_exchange';
-import { contract_version } from './contract';
+import { type contract_version } from './contract';
 
 export class ErgoPlatform implements Platform {
 

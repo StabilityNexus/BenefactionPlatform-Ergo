@@ -9,7 +9,7 @@ import { type Project, type TokenEIP4, getConstantContent, getProjectContent } f
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
 import { explorer_uri } from "./envs";
-import { contract_version, ergo_tree_template_hash, get_template_hash } from "./contract";
+import { type contract_version, get_template_hash } from "./contract";
 
 const expectedSigmaTypes = {
     R4: 'SInt',

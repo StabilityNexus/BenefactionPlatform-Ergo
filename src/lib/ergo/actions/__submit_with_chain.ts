@@ -8,7 +8,7 @@ import {
 } from '@fleet-sdk/core';
 import { SInt, SPair } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
-import { contract_version, get_address, mint_contract_address } from '../contract';
+import { type contract_version, get_address, mint_contract_address } from '../contract';
 import { type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
