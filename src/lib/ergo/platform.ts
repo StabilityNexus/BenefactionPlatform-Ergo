@@ -8,7 +8,6 @@ import { buy_refund } from './actions/buy_refund';
 import { rebalance } from './actions/rebalance';
 import { explorer_uri, network_id } from './envs';
 import { address, connected, network, balance } from "../common/store";
-import { ergo_tree_template_hash } from './contract';
 import { temp_exchange } from './actions/temp_exchange';
 
 export class ErgoPlatform implements Platform {
@@ -130,6 +129,6 @@ export class ErgoPlatform implements Platform {
     }
 
     async fetch(): Promise<Map<string, Project>> {
-        return await fetch_projects(explorer_uri, ergo_tree_template_hash);
+        return await fetch_projects();
     }
 }

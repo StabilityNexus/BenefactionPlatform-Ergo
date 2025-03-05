@@ -9,6 +9,7 @@ import { type Project, type TokenEIP4, getConstantContent, getProjectContent } f
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
 import { explorer_uri } from "./envs";
+import { ergo_tree_template_hash, get_template_hash } from "./contract";
 
 const expectedSigmaTypes = {
     R4: 'SInt',
@@ -118,7 +119,7 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
     }
 }
 
-export async function fetch_projects(explorer_uri: string, ergo_tree_template_hash: string): Promise<Map<string, Project>> {
+export async function fetch_projects(): Promise<Map<string, Project>> {
     try {
         let params = {
             offset: 0,
@@ -139,7 +140,7 @@ export async function fetch_projects(explorer_uri: string, ergo_tree_template_ha
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                    "ergoTreeTemplateHash": ergo_tree_template_hash,
+                    "ergoTreeTemplateHash": get_template_hash("v1_0"),
                     "registers": registers,
                     "constants": {},
                     "assets": []

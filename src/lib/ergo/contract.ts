@@ -7,9 +7,9 @@ import { uint8ArrayToHex } from "./utils";
 import { network_id } from "./envs";
 import { get_dev_contract_hash } from "./dev/dev_contract";
 
-let contract_version: "v1_0" | "v1_1";
+type contract_version = "v1_0" | "v1_1";
 
-export function generate_contract_v1_0(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
+function generate_contract_v1_0(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
     return `
 {
 
@@ -605,7 +605,7 @@ export function generate_contract_v1_0(owner_addr: string, dev_fee_contract_byte
   `
 }
 
-export function generate_contract_v1_1(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
+function generate_contract_v1_1(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
   return `
   {
 
@@ -1192,39 +1192,53 @@ export function generate_contract_v1_1(owner_addr: string, dev_fee_contract_byte
   `
 }
 
-export function get_address(constants: ConstantContent) {
+function handle_contract_generator(version: contract_version) {
+  let f;
+  switch (version) {
+    case "v1_0":
+      f = generate_contract_v1_0;
+      break;
+    case "v1_1":
+      f = generate_contract_v1_1;
+      break;
+    default:
+      throw new Error("Invalid contract version");
+  }
+  return f
+}
+
+export function get_address(constants: ConstantContent, version: contract_version) {
 
     // In case that dev_hash is undefined, we try to use the current contract hash. But the tx will fail if the hash is different.
-    let contract = generate_contract_v1_0(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id);
+    let contract = handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id);
     let ergoTree = compile(contract, {version: 1, network: network_id})
 
     let network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
     return ergoTree.toAddress(network).toString();
 }
 
-function get_template_hash(): string {
+export function get_template_hash(version: contract_version): string {
   const random_mainnet_addr = "9f3iPJTiciBYA6DnTeGy98CvrwyEhiP7wNrhDrQ1QeKPRhTmaqQ";
   const random_testnet_addr = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
   let random_addr = network_id == "mainnet" ? random_mainnet_addr : random_testnet_addr;
   const random_dev_contract = uint8ArrayToHex(blake2b256("9a3d2f6b"));
-  let contract = generate_contract_v1_0(random_addr, random_dev_contract, 5, "");
+
+  let contract = handle_contract_generator(version)(random_addr, random_dev_contract, 5, "");
   return hex.encode(sha256(compile(contract, {version: 1, network: network_id}).template.toBytes()))
 }
 
-export const ergo_tree_template_hash = get_template_hash()
-
-function get_contract_hash(constants: ConstantContent): string {
+function get_contract_hash(constants: ConstantContent, version: contract_version): string {
     return uint8ArrayToHex(
         blake2b256(
-            compile(generate_contract_v1_0(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id), 
+            compile(handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id), 
               {version: 1, network: network_id}
           ).toBytes()  // Compile contract to ergo tree
         ) // Blake2b256 hash of contract bytes
     );
 }
 
-export function mint_contract_address(constants: ConstantContent) {
-  const contract_bytes_hash = get_contract_hash(constants);
+export function mint_contract_address(constants: ConstantContent, version: contract_version) {
+  const contract_bytes_hash = get_contract_hash(constants, version);
   let contract = `
 {
   val contractBox = OUTPUTS(0)
