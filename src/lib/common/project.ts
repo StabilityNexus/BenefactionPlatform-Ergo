@@ -1,3 +1,4 @@
+import { contract_version } from "$lib/ergo/contract";
 import { type Platform } from "./platform";
 import type { Amount, Box } from "@fleet-sdk/core";
 
@@ -26,6 +27,7 @@ export interface ConstantContent {
 }
 
 export interface Project {
+    version: contract_version,
     platform: Platform,
     box: Box<Amount>,
     project_id: string,

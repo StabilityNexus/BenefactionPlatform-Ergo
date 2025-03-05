@@ -7,7 +7,7 @@ import { uint8ArrayToHex } from "./utils";
 import { network_id } from "./envs";
 import { get_dev_contract_hash } from "./dev/dev_contract";
 
-type contract_version = "v1_0" | "v1_1";
+export type contract_version = "v1_0" | "v1_1";
 
 function generate_contract_v1_0(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
     return `

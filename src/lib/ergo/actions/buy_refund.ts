@@ -36,7 +36,7 @@ export async function buy_refund(
     // Building the project output
     let output = new OutputBuilder(
         BigInt(project.value + ergo_amount).toString(),  // On buy action the ergo_amount is positive, we add ergs to the contract.    On refund action the ergo_amount is negative, we extract ergs from the contract.
-        get_address(project.constants)    // Address of the project contract
+        get_address(project.constants, project.version)    // Address of the project contract
     )
     .addTokens({
         tokenId: project.project_id,

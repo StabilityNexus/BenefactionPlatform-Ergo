@@ -9,6 +9,7 @@ import { rebalance } from './actions/rebalance';
 import { explorer_uri, network_id } from './envs';
 import { address, connected, network, balance } from "../common/store";
 import { temp_exchange } from './actions/temp_exchange';
+import { contract_version } from './contract';
 
 export class ErgoPlatform implements Platform {
 
@@ -101,6 +102,7 @@ export class ErgoPlatform implements Platform {
     }
 
     async submit(
+        version: contract_version,
         token_id: string,
         token_amount: number,
         blockLimit: number,
@@ -110,6 +112,7 @@ export class ErgoPlatform implements Platform {
         title: string
     ): Promise<string | null> {
         return await submit_project(
+            version,
             token_id,
             token_amount,
             blockLimit,

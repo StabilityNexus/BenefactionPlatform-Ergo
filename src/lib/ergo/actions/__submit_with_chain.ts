@@ -8,7 +8,7 @@ import {
 } from '@fleet-sdk/core';
 import { SInt, SPair } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
-import { get_address, mint_contract_address } from '../contract';
+import { contract_version, get_address, mint_contract_address } from '../contract';
 import { type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
@@ -23,6 +23,7 @@ async function get_token_data(token_id: string): Promise<{amount: number, decima
 
 // Function to submit a project to the blockchain
 export async function submit_project(
+    version: contract_version,
     token_id: string, 
     token_amount: number,
     blockLimit: number,     // Block height until withdrawal/refund is allowed
@@ -53,7 +54,7 @@ export async function submit_project(
 
     let mintOutput = new OutputBuilder(
             SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-            mint_contract_address(addressContent)
+            mint_contract_address(addressContent, version)
         )
         .mintToken({ 
             amount: BigInt(id_token_amount),
@@ -64,7 +65,7 @@ export async function submit_project(
 
     let contractOutput = new OutputBuilder(
             SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-            get_address(addressContent)    // Address of the project contract
+            get_address(addressContent, version)    // Address of the project contract
         )
         .addTokens({
             tokenId: inputs[0].boxId,

@@ -8,7 +8,7 @@ import {
 } from '@fleet-sdk/core';
 import { SColl, SInt } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
-import { get_address, mint_contract_address } from '../contract';
+import { type contract_version, get_address, mint_contract_address } from '../contract';
 import { type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
@@ -21,7 +21,7 @@ async function get_token_data(token_id: string): Promise<{amount: number, decima
     return {"amount": id_token_amount, "decimals": token_fetch['decimals']}
 }
 
-async function mint_tx(title: string, constants: ConstantContent, amount: number, decimals: number): Promise<Box> {
+async function mint_tx(title: string, constants: ConstantContent, version: contract_version, amount: number, decimals: number): Promise<Box> {
     // Get the wallet address (will be the project address)
     const walletPk = await ergo.get_change_address();
 
@@ -31,7 +31,7 @@ async function mint_tx(title: string, constants: ConstantContent, amount: number
     let outputs: OutputBuilder[] = [
         new OutputBuilder(
             SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-            mint_contract_address(constants)
+            mint_contract_address(constants, version)
         )
         .mintToken({ 
             amount: BigInt(amount),
@@ -71,6 +71,7 @@ async function mint_tx(title: string, constants: ConstantContent, amount: number
 
 // Function to submit a project to the blockchain
 export async function submit_project(
+    version: contract_version,
     token_id: string, 
     token_amount: number,
     blockLimit: number,     // Block height until withdrawal/refund is allowed
@@ -96,7 +97,7 @@ export async function submit_project(
     let id_token_amount = token_data["amount"];
 
     // Build the mint tx.
-    let mint_box = await mint_tx(title, addressContent, id_token_amount, token_data["decimals"]);
+    let mint_box = await mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"]);
     let project_id = mint_box.assets[0].tokenId;
 
     if (project_id === null) { alert("Token minting failed!"); return null; }
@@ -108,7 +109,7 @@ export async function submit_project(
     let outputs: OutputBuilder[] = [
         new OutputBuilder(
             SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-            get_address(addressContent)    // Address of the project contract
+            get_address(addressContent, version)    // Address of the project contract
         )
         .addTokens({
             tokenId: project_id,

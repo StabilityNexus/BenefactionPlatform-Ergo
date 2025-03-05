@@ -1,5 +1,6 @@
 // src/common/platform.ts
 import { type Project } from "$lib/common/project";
+import { contract_version } from "$lib/ergo/contract";
 
 export interface Platform {
     id: string;  // ergo, ethereum ...
@@ -14,12 +15,14 @@ export interface Platform {
     rebalance(project: Project, token_amount: number): Promise<string | null>;
     temp_exchange(project: Project, token_amount: number): Promise<string | null>;
     submit(
+        version: contract_version,
         token_id: string,
         token_amount: number,
         blockLimit: number,
         exchangeRate: number,
         projectLink: string,
-        minimumSold: number
+        minimumSold: number,
+        title: string
     ): Promise<string | null>;
     fetch(): Promise<Map<string, Project>>;
 }

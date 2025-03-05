@@ -29,7 +29,7 @@ export async function temp_exchange(
     // Building the project output
     let contractOutput = new OutputBuilder(
         BigInt(project.value),
-        get_address(project.constants)
+        get_address(project.constants, project.version)
     )
     .addTokens({
         tokenId: project.project_id,
