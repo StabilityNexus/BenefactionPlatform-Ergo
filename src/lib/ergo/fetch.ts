@@ -121,10 +121,6 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
 
 export async function fetch_projects(): Promise<Map<string, Project>> {
     try {
-        let params = {
-            offset: 0,
-            limit: 500,
-        };
         let projects = new Map<string, Project>();
         let registers = {};
         let moreDataAvailable;
@@ -132,7 +128,13 @@ export async function fetch_projects(): Promise<Map<string, Project>> {
         const versions: contract_version[] = ["v1_0", "v1_1"];
 
         for (const version of versions) {
+            
             moreDataAvailable = true;
+            let params = {
+                offset: 0,
+                limit: 500,
+            };
+
             while (moreDataAvailable) {
                 const url = explorer_uri+'/api/v1/boxes/unspent/search';
                 const response = await fetch(url + '?' + new URLSearchParams({
@@ -153,6 +155,7 @@ export async function fetch_projects(): Promise<Map<string, Project>> {
 
                 if (response.ok) {
                     let json_data = await response.json();
+                    console.log(json_data, get_template_hash(version))
                     if (json_data.items.length == 0) {
                         moreDataAvailable = false;
                         break;
