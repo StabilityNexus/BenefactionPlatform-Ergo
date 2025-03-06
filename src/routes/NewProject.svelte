@@ -281,7 +281,7 @@
                     {#if (daysLimitBlock)}
                         <a>On block: {daysLimitBlock}</a>
                         <br>
-                        <a>Date limit: {daysLimitText}</a>
+                        <a style="color: red;">Date limit: {daysLimitText}</a>
                     {/if}
                  </div>
             </div>
