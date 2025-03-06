@@ -5,11 +5,11 @@
     import { Button } from "$lib/components/ui/button";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
-    import { web_explorer_uri_addr, web_explorer_uri_tkn, web_explorer_uri_tx } from '$lib/ergo/envs';
+    import { web_explorer_uri_tkn, web_explorer_uri_tx } from '$lib/ergo/envs';
     import { mode } from "mode-watcher";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label/index.js";
-    import { Badge } from "$lib/components/ui/badge/index.js";
+    import { Badge, badgeVariants } from "$lib/components/ui/badge/index.js";
     import { get } from "svelte/store";
 
     // Define 'project' as a prop of type Project
@@ -320,6 +320,8 @@
                 {project.content.title}
             </em>
         </p>
+        <a href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es" target="_blank"
+            class={badgeVariants({ variant: "outline" })}>Contract version: {project.version.replace("_", ".")}</a>
         <p>{project.content.description}</p>
         {#if project.content.link !== null}
             <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">here</a>.</p>
