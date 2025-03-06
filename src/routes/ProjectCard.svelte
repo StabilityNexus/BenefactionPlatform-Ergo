@@ -2,6 +2,7 @@
     import { block_to_time } from "$lib/common/countdown";
     import { is_ended, min_raised, type Project } from "$lib/common/project";
     import { project_detail } from "$lib/common/store";
+    import { badgeVariants } from "$lib/components/ui/badge";
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
     import { ErgoPlatform } from "$lib/ergo/platform";
@@ -53,9 +54,14 @@
     load();
 </script>
 
-<Card.Root class="relative bg-[#1a1a1a] h-[400px] flex flex-col {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'}">
-    <Card.Header class="p-4 pb-2">
+<Card.Root class="relative bg-[#1a1a1a] h-[370px] flex flex-col {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'}">
+    <Card.Header class="p-4 pb-2 flex flex-row items-center justify-between">
         <Card.Title class="text-xl font-bold line-clamp-1">{project.content.title}</Card.Title>
+        <a href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es" 
+           target="_blank"
+           class={badgeVariants({ variant: "outline" })}>
+           Contract version: {project.version.replace("_", ".")}
+        </a>
     </Card.Header>
     
     <Card.Content class="p-4 flex-1">
