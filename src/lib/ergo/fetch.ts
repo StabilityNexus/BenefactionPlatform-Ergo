@@ -126,12 +126,13 @@ export async function fetch_projects(): Promise<Map<string, Project>> {
             limit: 500,
         };
         let projects = new Map<string, Project>();
-        let moreDataAvailable = true;
         let registers = {};
+        let moreDataAvailable;
 
         const versions: contract_version[] = ["v1_0", "v1_1"];
 
         for (const version of versions) {
+            moreDataAvailable = true;
             while (moreDataAvailable) {
                 const url = explorer_uri+'/api/v1/boxes/unspent/search';
                 const response = await fetch(url + '?' + new URLSearchParams({
