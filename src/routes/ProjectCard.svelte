@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { block_to_time } from "$lib/common/countdown";
+    import { block_to_date, block_to_time } from "$lib/common/countdown";
     import { is_ended, min_raised, type Project } from "$lib/common/project";
     import { project_detail } from "$lib/common/store";
     import { badgeVariants } from "$lib/components/ui/badge";
@@ -14,17 +14,13 @@
 
     let deadline_passed = false;
     let is_min_raised = false;
-    let limit_date = "";
     let statusMessage = "";
     let statusColor = "";
 
     async function load() {
         deadline_passed = await is_ended(project);
         is_min_raised = await min_raised(project);
-        const blockTime = await block_to_time(project.block_limit, project.platform);
-        const date = new Date(blockTime);
-        // Format date as YYYY-MM-DD HH:MM UTC
-        limit_date = `${date.getUTCFullYear()}-${(date.getUTCMonth() + 1).toString().padStart(2, '0')}-${date.getUTCDate().toString().padStart(2, '0')} ${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')} UTC`;
+        const limit_date = await block_to_date(project.block_limit, project.platform);
 
         const minErg = ((project.minimum_amount * project.exchange_rate) / Math.pow(10, 9));
         const maxErg = ((project.maximum_amount * project.exchange_rate) / Math.pow(10, 9))

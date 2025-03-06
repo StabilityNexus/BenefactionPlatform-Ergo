@@ -12,6 +12,14 @@ export async function block_to_time(target_block: number, platform: Platform): P
     return new Date().getTime() + diff_time;
 }
 
+export async function block_to_date(target_block: number, platform: Platform): Promise<string>
+{
+    const blockTime = await block_to_time(target_block, platform);
+    const date = new Date(blockTime);
+    // Format date as YYYY-MM-DD HH:MM UTC
+    return `${date.getUTCFullYear()}-${(date.getUTCMonth() + 1).toString().padStart(2, '0')}-${date.getUTCDate().toString().padStart(2, '0')} ${date.getUTCHours().toString().padStart(2, '0')}:${date.getUTCMinutes().toString().padStart(2, '0')} UTC`;
+}
+
 export async function time_to_block(target_time: number, platform: Platform): Promise<number>
 {
     // Get the current block height

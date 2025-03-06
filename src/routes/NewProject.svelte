@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { time_to_block } from '$lib/common/countdown';
+    import { block_to_date, time_to_block } from '$lib/common/countdown';
     import { explorer_uri, web_explorer_uri_tx } from '$lib/ergo/envs';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import { Label } from "$lib/components/ui/label/index.js";
@@ -20,6 +20,7 @@
     
     let daysLimit: number;
     let daysLimitBlock: number;
+    let daysLimitText: string;
     
     let exchangeRateRaw: number;
     let exchangeRatePrecise: number;
@@ -70,6 +71,7 @@
         let target_date = new Date();
         target_date.setDate(target_date.getDate() + days);
         daysLimitBlock = await time_to_block(target_date.getTime(), platform);
+        daysLimitText = await block_to_date(daysLimitBlock, platform);
     }
 
     function updateExchangeRate() {
@@ -272,12 +274,14 @@
                     placeholder="Enter days limit"
                     aria-label="Enter the limit in days"
                     class="max-w-xs"
+                    autocomplete="off"
                 />
                 <!-- svelte-ignore a11y-missing-attribute -->
-                 <div>
+                 <div> <!-- Only for development purpose -->
                     {#if (daysLimitBlock)}
                         <a>On block: {daysLimitBlock}</a>
-                        <a>Date limit: {}</a>
+                        <br>
+                        <a>Date limit: {daysLimitText}</a>
                     {/if}
                  </div>
             </div>
