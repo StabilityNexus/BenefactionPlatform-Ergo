@@ -19,6 +19,7 @@
     let maxTokenAmountRaw: number;
     
     let daysLimit: number;
+    let daysLimitBlock: number;
     
     let exchangeRateRaw: number;
     let exchangeRatePrecise: number;
@@ -61,6 +62,16 @@
         exchangeRateRaw = exchangeRatePrecise * Math.pow(10, 9-tokenDecimals);
     }
 
+    $: {
+        calculateBlockLimit(daysLimit);
+    }
+
+    async function calculateBlockLimit(days: number) {
+        let target_date = new Date();
+        target_date.setDate(target_date.getDate() + days);
+        daysLimitBlock = await time_to_block(target_date.getTime(), platform);
+    }
+
     function updateExchangeRate() {
         if (maxValuePrecise && tokenAmountPrecise) {
             exchangeRatePrecise = maxValuePrecise / tokenAmountPrecise
@@ -79,11 +90,6 @@
         isSubmitting = true;
         errorMessage = null;
         transactionId = null;
-
-        let target_date = new Date();
-        target_date.setDate(target_date.getDate() + daysLimit);
-        // target_date.setTime(target_date.getTime() + 5 * 60 * 1000);
-        let blockLimit = await time_to_block(target_date.getTime(), platform);
 
         if (minValuePrecise === undefined) {minValuePrecise = 0;}
         let minValueNano = minValuePrecise * Math.pow(10, 9);
@@ -267,6 +273,13 @@
                     aria-label="Enter the limit in days"
                     class="max-w-xs"
                 />
+                <!-- svelte-ignore a11y-missing-attribute -->
+                 <div>
+                    {#if (daysLimitBlock)}
+                        <a>On block: {daysLimitBlock}</a>
+                        <a>Date limit: {}</a>
+                    {/if}
+                 </div>
             </div>
 
             <div class="form-group">
