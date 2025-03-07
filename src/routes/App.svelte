@@ -18,13 +18,14 @@
     import { Button, buttonVariants } from '$lib/components/ui/button';
     import * as Dialog from "$lib/components/ui/dialog/index.js";
     import * as Alert from "$lib/components/ui/alert";
-    import * as Menubar from "$lib/components/ui/menubar";
     import { get } from 'svelte/store';
+    import { fade } from 'svelte/transition';
 
 
     let activeTab = 'acquireTokens';
     let showCopyMessage = false;
     let showWalletInfo = false;
+    let mobileMenuOpen = false;
 
     let platform = new ErgoPlatform();
 
@@ -58,6 +59,7 @@
         project_token_amount.set(null);
         
         activeTab = tab;
+        mobileMenuOpen = false; // Close mobile menu after selection
     }
 
     // Function to copy the wallet address to the clipboard
@@ -79,8 +81,12 @@
     }
 
     // Close the modal if the user clicks outside of it
-    function handleOutsideClick(event) {
+    function handleOutsideClick(event: MouseEvent) {
         showWalletInfo = false;
+    }
+
+    function toggleMobileMenu() {
+        mobileMenuOpen = !mobileMenuOpen;
     }
 
     let current_height: number | null = null;
@@ -115,101 +121,108 @@
 
 </script>
 
-<div class="flex flex-col lg:flex-row justify-between items-center" style="margin-top: 1rem; margin-left: 1rem; margin-right: 1rem;">
-    <!-- Mobile Logo Section (visible below 768px) -->
-    <div class="md:hidden w-full flex justify-between items-center mb-4">
-        <div class="flex-1 flex justify-center items-center">
-            <img src="favicon.png" alt="Logo" class="w-9 h-9 mr-2" />
-            <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
+<header class="navbar-container">
+    <div class="navbar-content">
+        <!-- Logo Section -->
+        <div class="logo-container">
+            <img src="favicon.png" alt="Logo" class="logo-image" />
+            <h1 class="logo-text">Bene</h1>
         </div>
-    </div>
 
-    <!-- Desktop Logo (hidden on mobile) -->
-    <div class="hidden md:block mb-4 lg:mb-0">
-        <div class="flex items-center">
-            <img src="favicon.png" alt="Logo" class="w-9 h-9 mr-2" />
-            <h1 class="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl" style="color: orange;">Bene</h1>
-        </div>
-    </div>
-
-    <!-- Navigation Menu -->
-    <div class="flex-1 flex justify-center mb-4 lg:mb-0 w-full lg:w-auto">
-        <Menubar.Root class="w-full lg:w-auto">
-            <Menubar.Menu class="flex flex-col lg:flex-row items-center space-y-2 lg:space-y-0 lg:space-x-4">
-                <Menubar.Item class="w-full lg:w-auto text-center">
-                    <a
-                        href="#"
-                        on:click={() => changeTab('acquireTokens')}
-                        class="tab-link block w-full"
-                        style="border-bottom-color: {activeTab === 'acquireTokens' ? 'orangered' : 'orange'};">
+        <!-- Desktop Navigation -->
+        <nav class="desktop-nav">
+            <ul class="nav-links">
+                <li class={activeTab === 'acquireTokens' ? 'active' : ''}>
+                    <a href="#" on:click={() => changeTab('acquireTokens')}>
                         Contribute to a Project
                     </a>
-                </Menubar.Item>
-                <Menubar.Item class="w-full lg:w-auto text-center">
-                    <a
-                        href="#"
-                        on:click={() => changeTab('myContributions')}
-                        class="tab-link block w-full"
-                        style="border-bottom-color: {activeTab === 'myContributions' ? 'orangered' : 'orange'};">
+                </li>
+                <li class={activeTab === 'myContributions' ? 'active' : ''}>
+                    <a href="#" on:click={() => changeTab('myContributions')}>
                         My Contributions
                     </a>
-                </Menubar.Item>
-                <Menubar.Item class="w-full lg:w-auto text-center">
-                    <a
-                        href="#"
-                        on:click={() => changeTab('myProjects')}
-                        class="tab-link block w-full"
-                        style="border-bottom-color: {activeTab === 'myProjects' ? 'orangered' : 'orange'};">
+                </li>
+                <li class={activeTab === 'myProjects' ? 'active' : ''}>
+                    <a href="#" on:click={() => changeTab('myProjects')}>
                         My Projects
                     </a>
-                </Menubar.Item>
-                <Menubar.Item class="w-full lg:w-auto text-center">
-                    <a
-                        href="#"
-                        on:click={() => changeTab('submitProject')}
-                        class="tab-link block w-full"
-                        style="border-bottom-color: {activeTab === 'submitProject' ? 'orangered' : 'orange'};">
+                </li>
+                <li class={activeTab === 'submitProject' ? 'active' : ''}>
+                    <a href="#" on:click={() => changeTab('submitProject')}>
                         New Project
                     </a>
-                </Menubar.Item>
-            </Menubar.Menu>
-        </Menubar.Root>
-    </div>
+                </li>
+            </ul>
+        </nav>
 
-    <!-- User Info and Theme - Now always horizontal -->
-    <div class="flex flex-row items-center justify-center space-x-4 w-full lg:w-auto">
-        {#if $address}
-            <div class="flex flex-col items-center space-y-2">
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <!-- svelte-ignore a11y-missing-attribute -->
-                <div class="flex items-center space-x-2">
-                    <Badge style="background-color: orange; color: black; font-size: 0.9em;">{ergInErgs} ERG</Badge>
-                    <!-- svelte-ignore a11y-click-events-have-key-events -->
-                    <!-- svelte-ignore a11y-no-static-element-interactions -->
-                    <a on:click={() => showWalletInfo = true}>
-                        <Badge 
-                            style="background-color: orange; color: black; font-size: 0.9em;">
-                            {$address.slice(0, 6) + '...' + $address.slice(-4)}
-                        </Badge>
-                    </a>
+        <!-- User Info and Theme -->
+        <div class="user-section">
+            {#if $address}
+                <div class="user-info">
+                    <div class="badge-container">
+                        <Badge style="background-color: orange; color: black; font-size: 0.9em;">{ergInErgs} ERG</Badge>
+                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                        <!-- svelte-ignore a11y-no-static-element-interactions -->
+                        <a on:click={() => showWalletInfo = true}>
+                            <Badge style="background-color: orange; color: black; font-size: 0.9em;">
+                                {$address.slice(0, 6) + '...' + $address.slice(-4)}
+                            </Badge>
+                        </a>
+                    </div>
+                    <div class="badge-container">
+                        {#if $temporal_token_amount}
+                            <Badge style="background-color: #ffc04d; color: black; font-size: 0.9em;">{$temporal_token_amount} APT</Badge>
+                        {/if}
+                        {#if $project_token_amount}
+                            <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount}</Badge>
+                        {/if}
+                    </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                    {#if $temporal_token_amount}
-                        <Badge style="background-color: #ffc04d; color: black; font-size: 0.9em;">{$temporal_token_amount} APT</Badge>
-                    {/if}
-                    {#if $project_token_amount}
-                        <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount}</Badge>
-                    {/if}
-                </div>
+            {/if}
+            
+            <div class="theme-toggle">
+                <Theme />
             </div>
-        {/if}
-        
-        <!-- Theme component now always visible and aligned with user info -->
-        <div class="block">
-            <Theme />
         </div>
+
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-button" on:click={toggleMobileMenu} aria-label="Toggle menu">
+            <div class="hamburger {mobileMenuOpen ? 'open' : ''}">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </button>
     </div>
-</div>
+</header>
+
+<!-- Mobile Navigation Menu -->
+{#if mobileMenuOpen}
+    <div class="mobile-nav" transition:fade={{ duration: 200 }}>
+        <ul class="mobile-nav-links">
+            <li class={activeTab === 'acquireTokens' ? 'active' : ''}>
+                <a href="#" on:click={() => changeTab('acquireTokens')}>
+                    Contribute to a Project
+                </a>
+            </li>
+            <li class={activeTab === 'myContributions' ? 'active' : ''}>
+                <a href="#" on:click={() => changeTab('myContributions')}>
+                    My Contributions
+                </a>
+            </li>
+            <li class={activeTab === 'myProjects' ? 'active' : ''}>
+                <a href="#" on:click={() => changeTab('myProjects')}>
+                    My Projects
+                </a>
+            </li>
+            <li class={activeTab === 'submitProject' ? 'active' : ''}>
+                <a href="#" on:click={() => changeTab('submitProject')}>
+                    New Project
+                </a>
+            </li>
+        </ul>
+    </div>
+{/if}
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 {#if $address}
@@ -285,9 +298,238 @@
     {current_height}
 </div>
 
-
 <style>
+    /* Navbar Styles */
+    .navbar-container {
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        padding: 0.5rem 1rem;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        background-color: rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 
+    }
+
+    .navbar-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 16px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Logo Styles */
+    .logo-container {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        background: rgba(255, 165, 0, 0.05);
+    }
+
+    .logo-container:hover {
+        transform: scale(1.02);
+        box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);
+    }
+
+    .logo-image {
+        width: 2.25rem;
+        height: 2.25rem;
+        filter: drop-shadow(0 0 5px rgba(255, 165, 0, 0.3));
+    }
+
+    .logo-text {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: orange;
+        margin-left: 0.5rem;
+        line-height: 1;
+        text-shadow: 0 0 10px rgba(255, 165, 0, 0.3);
+    }
+
+    /* Desktop Navigation */
+    .desktop-nav {
+        display: none;
+    }
+
+    @media (min-width: 768px) {
+        .desktop-nav {
+            display: block;
+        }
+    }
+
+    .nav-links {
+        display: flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        gap: 1.5rem;
+    }
+
+    .nav-links li {
+        position: relative;
+    }
+
+    .nav-links li a {
+        color: inherit;
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.5rem 0.75rem;
+        display: block;
+        transition: all 0.2s ease;
+        border-radius: 8px;
+        border-bottom: 2px solid transparent;
+    }
+
+    .nav-links li a:hover {
+        color: orange;
+        background: rgba(255, 165, 0, 0.05);
+        box-shadow: 0 0 10px rgba(255, 165, 0, 0.1);
+    }
+
+    .nav-links li.active a {
+        border-bottom: 2px solid orange;
+        color: orange;
+        background: rgba(255, 165, 0, 0.1);
+        box-shadow: 0 0 15px rgba(255, 165, 0, 0.15);
+    }
+
+    /* User Section */
+    .user-section {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
+
+    .user-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .badge-container {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* Mobile Menu Button */
+    .mobile-menu-button {
+        display: block;
+        background: none;
+        border: none;
+        cursor: pointer;
+        z-index: 100;
+        padding: 0.5rem;
+        border-radius: 8px;
+        transition: background-color 0.2s ease;
+    }
+
+    .mobile-menu-button:hover {
+        background-color: rgba(255, 165, 0, 0.1);
+    }
+
+    @media (min-width: 768px) {
+        .mobile-menu-button {
+            display: none;
+        }
+    }
+
+    .hamburger {
+        width: 24px;
+        height: 20px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .hamburger span {
+        display: block;
+        height: 3px;
+        width: 100%;
+        background-color: orange;
+        border-radius: 3px;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 5px rgba(255, 165, 0, 0.3);
+    }
+
+    .hamburger.open span:nth-child(1) {
+        transform: translateY(8.5px) rotate(45deg);
+    }
+
+    .hamburger.open span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .hamburger.open span:nth-child(3) {
+        transform: translateY(-8.5px) rotate(-45deg);
+    }
+
+    /* Mobile Navigation */
+    .mobile-nav {
+        position: fixed;
+        top: 4.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 400px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        padding: 1rem;
+        z-index: 99;
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 165, 0, 0.1);
+    }
+
+    .mobile-nav-links {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .mobile-nav-links li a {
+        color: white;
+        text-decoration: none;
+        font-weight: 500;
+        padding: 0.75rem;
+        display: block;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+
+    .mobile-nav-links li a:hover {
+        background-color: rgba(255, 165, 0, 0.1);
+        box-shadow: 0 0 15px rgba(255, 165, 0, 0.1);
+    }
+
+    .mobile-nav-links li.active a {
+        background-color: rgba(255, 165, 0, 0.2);
+        color: orange;
+        box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);
+    }
+
+    /* Bottom Elements */
     .bottom-left {
         position: fixed;       /* Keeps the element fixed on the screen */
         bottom: 20px;          /* Adds some space from the bottom */
@@ -329,4 +571,14 @@
         margin-right: 10px;
     }
 
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .logo-text {
+            font-size: 1.75rem;
+        }
+        
+        .user-section {
+            display: none;
+        }
+    }
 </style>
