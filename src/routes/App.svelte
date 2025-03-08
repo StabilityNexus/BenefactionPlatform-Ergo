@@ -178,6 +178,11 @@
                         {/if}
                     </div>
                 </div>
+                
+                <!-- Wallet Button for smaller screens -->
+                <button class="wallet-button" on:click={() => showWalletInfo = true} aria-label="Wallet info">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                </button>
             {/if}
             
             <div class="theme-toggle">
@@ -305,13 +310,12 @@
         top: 0;
         left: 0;
         right: 0;
-        z-index: 100;
+        z-index: 50;
         padding: 0.5rem 1rem;
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
         background-color: rgba(0, 0, 0, 0.05);
         box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-
     }
 
     .navbar-content {
@@ -325,6 +329,7 @@
         border-radius: 16px;
         box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.1);
+        overflow: hidden;
     }
 
     /* Logo Styles */
@@ -336,6 +341,8 @@
         padding: 0.25rem 0.5rem;
         border-radius: 12px;
         background: rgba(255, 165, 0, 0.05);
+        flex-shrink: 0;
+        margin-right: 1rem;
     }
 
     .logo-container:hover {
@@ -361,6 +368,8 @@
     /* Desktop Navigation */
     .desktop-nav {
         display: none;
+        flex: 1;
+        overflow: hidden;
     }
 
     @media (min-width: 768px) {
@@ -375,6 +384,14 @@
         margin: 0;
         padding: 0;
         gap: 1.5rem;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE and Edge */
+    }
+
+    .nav-links::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
     }
 
     .nav-links li {
@@ -409,12 +426,13 @@
     .user-section {
         display: flex;
         align-items: center;
-        gap: 1rem;
-        padding: 0.5rem;
+        gap: 0.75rem;
+        padding: 0.25rem 0.5rem;
         border-radius: 12px;
         background: rgba(255, 255, 255, 0.05);
         backdrop-filter: blur(5px);
         -webkit-backdrop-filter: blur(5px);
+        flex-shrink: 0;
     }
 
     .user-info {
@@ -426,6 +444,29 @@
     .badge-container {
         display: flex;
         gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .wallet-button {
+        display: none;
+        background: rgba(255, 165, 0, 0.15);
+        border: none;
+        color: orange;
+        border-radius: 8px;
+        padding: 0.4rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .wallet-button:hover {
+        background: rgba(255, 165, 0, 0.3);
+        box-shadow: 0 0 10px rgba(255, 165, 0, 0.2);
+    }
+
+    @media (max-width: 1024px) {
+        .wallet-button {
+            display: flex;
+        }
     }
 
     /* Mobile Menu Button */
@@ -438,6 +479,7 @@
         padding: 0.5rem;
         border-radius: 8px;
         transition: background-color 0.2s ease;
+        margin-left: 0.5rem;
     }
 
     .mobile-menu-button:hover {
@@ -572,13 +614,79 @@
     }
 
     /* Responsive Adjustments */
-    @media (max-width: 768px) {
-        .logo-text {
-            font-size: 1.75rem;
+    @media (max-width: 1024px) {
+        .navbar-content {
+            padding: 0.4rem;
+        }
+        
+        .nav-links {
+            gap: 0.5rem;
+        }
+        
+        .user-info {
+            display: none;
         }
         
         .user-section {
+            padding: 0.25rem;
+            gap: 0.35rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .navbar-content {
+            gap: 0.25rem;
+            justify-content: space-between;
+        }
+        
+        .logo-text {
+            font-size: 1.35rem;
+        }
+        
+        .user-section {
+            background: transparent;
+            padding: 0;
+            gap: 0;
+            margin-left: auto; /* Push to the right */
+            order: 2; /* Position after logo, before mobile menu */
+            display: flex;
+            align-items: center;
+        }
+        
+        .wallet-button {
+            background: rgba(255, 165, 0, 0.25);
+            padding: 0.35rem;
+            margin-right: 0.5rem;
+            display: flex;
+        }
+        
+        /* Hide theme toggle on smaller screens */
+        .theme-toggle {
             display: none;
         }
+
+        /* Position mobile menu button at the extreme right */
+        .mobile-menu-button {
+            margin-left: 0;
+            order: 3; /* Always at the end */
+        }
+    }
+
+    /* Additional responsive styles for the navbar */
+    @media (max-width: 1024px) {
+        .navbar-content {
+            padding: 0.25rem;
+        }
+        
+        .logo-container {
+            padding: 0.25rem 0.25rem;
+            margin-right: 0.5rem;
+        }
+    }
+
+    /* Added better wrapping for the user section elements */
+    .user-section, .theme-toggle, .wallet-button {
+        display: flex;
+        align-items: center;
     }
 </style>
