@@ -645,10 +645,10 @@
         
         .user-section {
             background: transparent;
-            padding: 0;
+            padding: 0.25rem;
             gap: 0;
-            margin-left: auto; /* Push to the right */
-            order: 2; /* Position after logo, before mobile menu */
+            margin-left: auto; 
+            order: 2; 
             display: flex;
             align-items: center;
         }
