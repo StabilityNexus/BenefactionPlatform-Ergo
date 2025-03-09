@@ -9,3 +9,4 @@ export const temporal_token_amount = writable<number|null>(null);
 export const project_token_amount = writable<string|null>(null);
 export const project_detail = writable<Project|null>(null);
 export const timer = writable<{countdownInterval: number, target: number}>({countdownInterval: 0, target: 0})
+export const projects = writable<Map<string, Project>>(new Map());

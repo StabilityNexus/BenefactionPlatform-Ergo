@@ -2,35 +2,54 @@
     import ProjectCard from './ProjectCard.svelte';
     import {type Project } from '$lib/common/project';
     import { ErgoPlatform } from '$lib/ergo/platform';
+    import { projects } from '$lib/common/store';
     import * as Alert from "$lib/components/ui/alert";
+    import { onMount } from 'svelte';
+    import { get } from 'svelte/store';
 
     let platform = new ErgoPlatform();
-    let projects: Map<string, Project> | null = null;
+    let listedProjects: Map<string, Project> | null = null;
     let errorMessage: string | null = null;
     let isLoading: boolean = true;
 
     export let filterProject: ((project: any) => Promise<boolean>) | null = null;
 
+    async function filterProjects(projectsMap: Map<string, Project>) {
+        const filteredProjectsMap = new Map<string, Project>();
+
+        for (const [id, project] of projectsMap.entries()) {
+            let shouldAdd = true;
+            if (filterProject) {
+                shouldAdd = await filterProject(project);
+            }
+            if (shouldAdd) {
+                filteredProjectsMap.set(id, project);
+            }
+        }
+
+        const sortedProjectsArray = Array.from(filteredProjectsMap.entries()).sort(
+            ([, projectA], [, projectB]) => projectB.box.creationHeight - projectA.box.creationHeight
+        );
+
+        return new Map(sortedProjectsArray);
+    }
+
     async function loadProjects() {
         try {
-            const projectsList: Map<string, Project> = await platform.fetch();
-            const filteredProjectsMap = new Map<string, Project>();
-
-            for (const [id, project] of projectsList.entries()) {
-                let shouldAdd = true;
-                if (filterProject) {
-                    shouldAdd = await filterProject(project);
-                }
-                if (shouldAdd) {
-                    filteredProjectsMap.set(id, project);
-                }
+            isLoading = true;
+            
+            // Check if we already have projects in the store
+            let projectsInStore = get(projects);
+            
+            // If the store is empty, fetch projects and update the store
+            if (projectsInStore.size === 0) {
+                const fetchedProjects = await platform.fetch();
+                projects.set(fetchedProjects);
+                projectsInStore = fetchedProjects;
             }
-
-            const sortedProjectsArray = Array.from(filteredProjectsMap.entries()).sort(
-                ([, projectA], [, projectB]) => projectB.box.creationHeight - projectA.box.creationHeight
-            );
-
-            projects = new Map(sortedProjectsArray);
+            
+            // Filter and sort projects from the store
+            listedProjects = await filterProjects(projectsInStore);
             
         } catch (error) {
             errorMessage = error.message || "Error occurred while fetching projects";
@@ -39,7 +58,9 @@
         }
     }
 
-    loadProjects();
+    onMount(() => {
+        loadProjects();
+    });
 </script>
 
 <h2 class="project-title"><slot></slot></h2>
@@ -52,9 +73,9 @@
     </Alert.Root>
 {/if}
 
-{#if projects && Array.from(projects).length > 0 && !isLoading}
+{#if listedProjects && Array.from(listedProjects).length > 0 && !isLoading}
     <div class="scroll-area grid grid-cols-3 gap-3">
-        {#each Array.from(projects) as [projectId, projectData]}
+        {#each Array.from(listedProjects) as [projectId, projectData]}
             <div class="project-card w-full">
                 <ProjectCard project={projectData} />
             </div>
