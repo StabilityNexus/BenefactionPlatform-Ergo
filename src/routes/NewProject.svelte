@@ -7,6 +7,8 @@
     import { Button } from '$lib/components/ui/button';
     import { Input } from "$lib/components/ui/input";
     import * as Select from "$lib/components/ui/select";
+    import { get } from 'svelte/store';
+    import { user_tokens } from '$lib/common/store';
 
     let platform = new ErgoPlatform();
 
@@ -168,7 +170,11 @@
 
     async function getUserTokens() {
         try {
-            const tokens = await platform.get_balance();
+            let tokens: Map<string, number> = get(user_tokens);
+            if (tokens.size === 0) {
+                tokens = await platform.get_balance();
+                user_tokens.set(tokens);
+            }
             userTokens = await Promise.all(
                 Array.from(tokens.entries())
                     .filter(([tokenId, _]) => tokenId !== "ERG")
