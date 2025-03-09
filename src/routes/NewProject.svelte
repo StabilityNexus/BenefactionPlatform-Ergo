@@ -7,6 +7,8 @@
     import { Button } from '$lib/components/ui/button';
     import { Input } from "$lib/components/ui/input";
     import * as Select from "$lib/components/ui/select";
+    import { get } from 'svelte/store';
+    import { user_tokens } from '$lib/common/store';
 
     let platform = new ErgoPlatform();
 
@@ -69,7 +71,7 @@
 
     async function calculateBlockLimit(days: number) {
         let target_date = new Date();
-        target_date.setDate(target_date.getDate() + days);
+        target_date.setTime(target_date.getTime() + days * 24 * 60 * 60 * 1000);
         daysLimitBlock = await time_to_block(target_date.getTime(), platform);
         daysLimitText = await block_to_date(daysLimitBlock, platform);
     }
@@ -168,7 +170,11 @@
 
     async function getUserTokens() {
         try {
-            const tokens = await platform.get_balance();
+            let tokens: Map<string, number> = get(user_tokens);
+            if (tokens.size === 0) {
+                tokens = await platform.get_balance();
+                user_tokens.set(tokens);
+            }
             userTokens = await Promise.all(
                 Array.from(tokens.entries())
                     .filter(([tokenId, _]) => tokenId !== "ERG")
@@ -277,11 +283,11 @@
                     autocomplete="off"
                 />
                 <!-- svelte-ignore a11y-missing-attribute -->
-                 <div> <!-- Only for development purpose -->
+                 <div hidden> <!-- Only for development purpose -->
                     {#if (daysLimitBlock)}
                         <a>On block: {daysLimitBlock}</a>
                         <br>
-                        <a style="color: red;">Date limit: {daysLimitText}</a>
+                        <a>Date limit: {daysLimitText}</a>
                     {/if}
                  </div>
             </div>
