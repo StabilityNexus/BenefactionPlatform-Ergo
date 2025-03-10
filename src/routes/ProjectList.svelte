@@ -79,9 +79,9 @@
         </Alert.Root>
     {/if}
 
-    {#if projects && Array.from(projects).length > 0 && !isLoading}
+    {#if listedProjects && Array.from(listedProjects).length > 0 && !isLoading}
         <div class="projects-grid">
-            {#each Array.from(projects) as [projectId, projectData]}
+            {#each Array.from(listedProjects) as [projectId, projectData]}
                 <div class="project-card">
                     <ProjectCard project={projectData} />
                 </div>
@@ -102,30 +102,6 @@
         <p class="no-projects-text">No projects found.</p>
     {/if}
 </div>
-
-<h2 class="project-title"><slot></slot></h2>
-
-{#if errorMessage}
-    <Alert.Root>
-        <Alert.Description>
-            {errorMessage}
-        </Alert.Description>
-    </Alert.Root>
-{/if}
-
-{#if listedProjects && Array.from(listedProjects).length > 0 && !isLoading}
-    <div class="scroll-area grid grid-cols-3 gap-3">
-        {#each Array.from(listedProjects) as [projectId, projectData]}
-            <div class="project-card w-full">
-                <ProjectCard project={projectData} />
-            </div>
-        {/each}
-    </div>
-{:else if isLoading}
-    <p class="loading-text">Loading projects...</p>
-{:else}
-    <p class="no-projects-text">No projects found.</p>
-{/if}
 
 <style>
     .project-container {
