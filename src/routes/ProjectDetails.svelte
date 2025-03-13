@@ -320,8 +320,10 @@
                 {project.content.title}
             </em>
         </p>
+        <div hidden>
         <a href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es" target="_blank"
             class={badgeVariants({ variant: "outline" })}>Contract version: {project.version.replace("_", ".")}</a>
+        </div>
         <p>{project.content.description}</p>
         {#if project.content.link !== null}
             <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">here</a>.</p>

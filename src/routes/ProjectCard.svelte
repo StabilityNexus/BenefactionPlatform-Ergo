@@ -53,11 +53,13 @@
 <Card.Root class="relative bg-[#1a1a1a] h-[370px] flex flex-col {$mode === 'dark' ? 'bg-opacity-90' : 'bg-opacity-0'}">
     <Card.Header class="p-4 pb-2 flex flex-row items-center justify-between">
         <Card.Title class="text-xl font-bold line-clamp-1">{project.content.title}</Card.Title>
-        <a href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es" 
-           target="_blank"
-           class={badgeVariants({ variant: "outline" })}>
-           Contract version: {project.version.replace("_", ".")}
-        </a>
+        <div hidden>
+            <a href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es" 
+                target="_blank"
+                class={badgeVariants({ variant: "outline" })}>
+                Contract version: {project.version.replace("_", ".")}
+            </a>
+        </div>
     </Card.Header>
     
     <Card.Content class="p-4 flex-1">
