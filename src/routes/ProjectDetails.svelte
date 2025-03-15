@@ -199,16 +199,6 @@
             .catch(err => console.error('Failed to copy text: ', err));
     }
 
-    // Function to close the detail page
-    async function closePage() {
-        targetDate = 0;
-        clearInterval(countdownInterval);
-        project_detail.set(null);
-        temporal_token_amount.set(null);
-        project_token_amount.set(null);
-    }
-    close()
-
     function close_submit_form() {
         show_submit = false;
         transactionId = null;
