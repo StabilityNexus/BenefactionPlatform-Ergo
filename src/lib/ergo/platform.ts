@@ -35,9 +35,9 @@ export class ErgoPlatform implements Platform {
             } else {
                 alert('Nautilus Wallet is not active');
             }
-            } else {
+            } /*else {
                 alert('No wallet available');
-            }
+            } */
     }
 
     async get_current_height(): Promise<number> {
