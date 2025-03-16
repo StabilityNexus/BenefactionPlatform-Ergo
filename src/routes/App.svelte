@@ -242,7 +242,7 @@
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-missing-attribute -->
         <a on:click={copyToClipboard}>🔗</a>
-        <a href="{web_explorer_uri_addr + address}" target="_blank">🔍</a>
+        <a href="{web_explorer_uri_addr + $address}" target="_blank">🔍</a>
     
         {#if showCopyMessage}
         <Alert.Root>
