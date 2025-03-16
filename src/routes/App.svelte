@@ -304,6 +304,32 @@
 </div>
 
 <style>
+       :global(html) {
+        height: 100%;
+        scroll-behavior: smooth;
+        overflow-y: auto;
+    }
+
+    :global(body) {
+        margin: 0;
+        padding: 0;
+        overflow-y: auto !important; 
+        overflow-x: hidden;
+        height: 100%;
+    }
+    
+
+    :global(.bits-dropdown-menu-content-wrapper) {
+        position: absolute !important;
+        z-index: 999 !important;
+        pointer-events: auto !important;
+    }
+    
+
+    :global(.bits-dropdown-menu-root-open) {
+        position: static !important;
+        overflow: visible !important;
+    }
     /* Navbar Styles */
     .navbar-container {
         position: sticky;
