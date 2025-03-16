@@ -12,7 +12,9 @@
     import { Badge, badgeVariants } from "$lib/components/ui/badge/index.js";
     import { get } from "svelte/store";
 
-    // Define 'project' as a prop of type Project
+    import { onDestroy } from 'svelte';
+
+
     let project: Project = $project_detail;
 
     let platform = new ErgoPlatform();
@@ -39,6 +41,12 @@
     let submit_amount_label = "";
 
     $: submit_info = Number(value_submit * project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '') + "ERGs in total."
+
+    
+    let daysValue = 0;
+    let hoursValue = 0;
+    let minutesValue = 0;
+    let secondsValue = 0;
 
     // Project owner actions
     function setupAddTokens() {
@@ -241,44 +249,27 @@
         var diff = targetDate - currentDate;
 
         if (diff > 0) {
-            var days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            // Use reactive variables instead of DOM manipulation
+            daysValue = Math.floor(diff / (1000 * 60 * 60 * 24));
+            hoursValue = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            minutesValue = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            secondsValue = Math.floor((diff % (1000 * 60)) / 1000);
         } 
         else {
-            var days = 0;
-            var hours = 0
-            var minutes = 0;
-            var seconds = 0;
-        }
-
-        const daysElement = document.getElementById('days');
-        const hoursElement = document.getElementById('hours');
-        const minutesElement = document.getElementById('minutes');
-        const secondsElement = document.getElementById('seconds');
-
-        if (daysElement) {
-            daysElement.innerHTML = days.toString();
-        }
-        if (hoursElement) {
-            hoursElement.innerHTML = hours.toString();
-        }
-        if (minutesElement) {
-            minutesElement.innerHTML = minutes.toString();
-        }
-        if (secondsElement) {
-            secondsElement.innerHTML = seconds.toString();
+            daysValue = 0;
+            hoursValue = 0;
+            minutesValue = 0;
+            secondsValue = 0;
         }
 
         if (is_min_raised) {
-            progressColor = '#A8E6A1';  // green
+            progressColor = '#A8E6A1';  
         } else {
             if (diff <= 0) {
-                progressColor = '#FF6F61';  // red
+                progressColor = '#FF6F61';  
                 countdownAnimation = false;
             } else if (diff < 24 * 60 * 60 * 1000) {
-                progressColor = '#FFF5A3';  // yelow
+                progressColor = '#FFF5A3';  
                 countdownAnimation = true;
             } else {
                 progressColor = 'white';
@@ -299,48 +290,63 @@
     }
     get_user_project_tokens()
 
+    
+    onDestroy(() => {
+        if (countdownInterval) {
+            clearInterval(countdownInterval);
+        }
+    });
+
 </script>
 
 <!-- Main Project Detail Page -->
-<div class="project-detail flex flex-col md:flex-row" style="{$mode === 'light' ? 'color: black;' : 'color: #ddd;'}">
-    <!-- Columna izquierda - Descripción -->
-    <div class="details w-full md:w-1/2 space-y-4">
-        <p>
-            <em class="text-2xl font-bold tracking-wide">
-                {project.content.title}
-            </em>
-        </p>
-        <div hidden>
+<div class="project-detail" style="{$mode === 'light' ? 'color: black;' : 'color: #ddd;'}">
+    <div class="project-container">
+        <!-- Left Column - Project Information -->
+        <div class="project-info">
+            <div class="project-header">
+                <h1 class="project-title">{project.content.title}</h1>
+                <div class="project-badge">
         <a href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es" target="_blank"
             class={badgeVariants({ variant: "outline" })}>Contract version: {project.version.replace("_", ".")}</a>
-        </div>
+                </div>
+            </div>
+            
+            <div class="project-image" 
+                style="background-image: url({project.content.image});">
+            </div>
+
+            <div class="project-description">
         <p>{project.content.description}</p>
         {#if project.content.link !== null}
             <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">here</a>.</p>
         {/if}
+            </div>
 
+            <div class="token-info">
         <p>Proof-of-Funding Token:
             <a href="{web_explorer_uri_tkn + project.token_id}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">
                {project.token_details.name}
             </a>
         </p>
+            </div>
 
-        <div 
-            class="bg-cover bg-center bg-no-repeat h-64" 
-            style="background-image: url({project.content.image});"
-        ></div>
-
-        <Button class="bg-gray-500 text-black border-none mt-8" on:click={shareProject}>
-            Share
+            <div class="share-button">
+                <Button class="share-btn" on:click={shareProject}>
+                    Share Project
         </Button>
         {#if showCopyMessage}
-            <div class="copy-msg mt-4 text-green-500">
+                    <div class="copy-msg">
                 Project page url copied to clipboard!
             </div>
         {/if}
+            </div>
     </div>
 
-    <div class="extra w-full md:w-1/2 mt-4 md:mt-0">
+        <!-- Right Column - Project Stats & Actions -->
+        <div class="project-stats">
+            <!-- Countdown Timer -->
+            <div class="countdown-container">
         <div class="timeleft {deadline_passed ? 'ended' : (countdownAnimation ? 'soon' : '')}">
             <span class="timeleft-label">
                 {#if deadline_passed}
@@ -352,93 +358,128 @@
                   TIME LEFT
                 {/if}
               </span>
-            <div>
+                    <div class="countdown-items">
               <div class="item">
-                <div id="days"></div>
+                <div>{daysValue}</div>
                 <div class="h3"><h3>Days</h3></div>
               </div>
               <div class="item">
-                <div id="hours"></div>
+                <div>{hoursValue}</div>
                 <div class="h3"><h3>Hours</h3></div>
               </div>
               <div class="item">
-                <div id="minutes"></div>
+                <div>{minutesValue}</div>
                 <div class="h3"><h3>Minutes</h3></div>
               </div>
               <div class="item">
-                <div id="seconds"></div>
+                <div>{secondsValue}</div>
                 <div class="h3"><h3>Seconds</h3></div>
               </div>
             </div>
-            <small>Until {limit_date} UTC on block {project.block_limit}</small>
+                    <small class="deadline-info">Until {limit_date} UTC on block {project.block_limit}</small>
           </div>
-        <div class="progress">
-            <Progress value="{percentage}" color="{progressColor}" />
         </div>
 
-        <div class="flex flex-col md:flex-row justify-between gap-6 text-black" style="color: {$mode === 'light' ? 'black' : 'white'};">
-            <div class="flex flex-col">
-                <div class="text-left">Minimum Amount: {min / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                <div class="text-center md:text-right">{((min * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+            <!-- Progress Bar -->
+            <div class="progress-container">
+                <Progress value="{percentage}" color="{progressColor}" />
+                
+                <div class="amounts-info">
+                    <div class="amount-item">
+                        <div class="amount-label">Minimum Amount</div>
+                        <div class="amount-value">{min / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                        <div class="amount-ergs">{((min * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
             </div>
             
-            <div class="flex flex-col">
-                <div class="text-left">Current Amount Sold: {currentVal / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                <div class="text-center md:text-right">{((currentVal * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+                    <div class="amount-item current">
+                        <div class="amount-label">Current Amount</div>
+                        <div class="amount-value">{currentVal / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                        <div class="amount-ergs">{((currentVal * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
             </div>
             
-            <div class="flex flex-col">
-                <div class="text-left">Maximum Amount: {max / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                <div class="text-center md:text-right">{((max * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+                    <div class="amount-item">
+                        <div class="amount-label">Maximum Amount</div>
+                        <div class="amount-value">{max / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
+                        <div class="amount-ergs">{((max * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+                    </div>
             </div>
         </div>
 
-
+            <!-- User Actions -->
         {#if $connected}
-        <!-- User actions -->
-        <div class="user-actions">
-          <div class="action-row">
-            <Button style="background-color: orange; color: black; border: none;" on:click={setupBuy} disabled={!(project.total_pft_amount !== project.sold_counter)}>
-              Contribute
-            </Button>
-          </div>
-          <div class="action-row">
-            <Button style="background-color: orange; color: black; border: none;" on:click={setupRefund} disabled={!(deadline_passed && !is_min_raised)}>
-              Get a Refund
-            </Button>
-            <Button style="background-color: orange; color: black; border: none;" on:click={setupTempExchange} disabled={!(is_min_raised)}>
-              Collect {project.token_details.name}
-            </Button>
-          </div>
-        </div>
-      {/if}
+            <div class="actions-section">
+                <h2 class="actions-title">Actions</h2>
+                <div class="action-buttons">
+                    <Button 
+                        class="action-btn primary" 
+                        style="background-color: #FFA500; color: black;" 
+                        on:click={setupBuy} 
+                        disabled={!(project.total_pft_amount !== project.sold_counter)}
+                    >
+                      Contribute
+                    </Button>
+                    
+                    <Button 
+                        class="action-btn" 
+                        style="background-color: #FF8C00; color: black;" 
+                        on:click={setupRefund} 
+                        disabled={!(deadline_passed && !is_min_raised)}
+                    >
+                      Get a Refund
+                    </Button>
+                    
+                    <Button 
+                        class="action-btn" 
+                        style="background-color: #FF8C00; color: black;" 
+                        on:click={setupTempExchange} 
+                        disabled={!(is_min_raised)}
+                    >
+                      Collect {project.token_details.name}
+                    </Button>
+                </div>
+            </div>
+        {/if}
       
+            <!-- Project Owner Actions -->
       {#if $connected && is_owner}
-        <!-- Project owner actions -->
-        <div class="owner-actions">
-          <div class="action-row">
-            <Button style="background-color: orange; color: black; border: none;" on:click={setupAddTokens}>
-              Add {project.token_details.name}
-            </Button>
-            <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawTokens}>
-              Withdraw {project.token_details.name}
-            </Button>
-          </div>
-          <div class="action-row">
-            <Button style="background-color: orange; color: black; border: none;" on:click={setupWithdrawErg} disabled={!is_min_raised}>
-              Collect {platform.main_token}
-            </Button>
-          </div>
-        </div>
+            <div class="actions-section owner">
+                <h2 class="actions-title">Owner Actions</h2>
+                <div class="action-buttons">
+                    <Button 
+                        class="action-btn" 
+                        style="background-color: #FF8C00; color: black;" 
+                        on:click={setupAddTokens}
+                    >
+                      Add {project.token_details.name}
+                    </Button>
+                    
+                    <Button 
+                        class="action-btn" 
+                        style="background-color: #FF8C00; color: black;" 
+                        on:click={setupWithdrawTokens}
+                    >
+                      Withdraw {project.token_details.name}
+                    </Button>
+                    
+                    <Button 
+                        class="action-btn" 
+                        style="background-color: #FF8C00; color: black;" 
+                        on:click={setupWithdrawErg} 
+                        disabled={!is_min_raised}
+                    >
+                      Collect {platform.main_token}
+                    </Button>
+                </div>
+            </div>
       {/if}
+        </div>
+    </div>
 
-        <!-- Input field and submit button for actions -->
+    <!-- Transaction Form Modal -->
         {#if show_submit}
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <div class="actions-form" style="{$mode === 'light' ? 'background: rgba(50, 50, 50, 0.05);' : 'background: rgba(255, 255, 255, 0.05);'}">
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div class="close-button" on:click={close_submit_form} style="{ $mode === 'light' ? 'color: black;' : 'color: rgb(255, 255, 255);'}">
+    <div class="modal-overlay">
+        <div class="actions-form" style="{$mode === 'light' ? 'background: white;' : 'background: #2a2a2a;'}">
+            <div class="close-button" on:click={close_submit_form}>
                     &times;
                 </div>
                 <div class="centered-form">
@@ -446,7 +487,7 @@
                         <div class="result">
                             <p>
                                 <strong>Transaction ID:</strong>
-                                <a href="{web_explorer_uri_tx + transactionId}" target="_blank" rel="noopener noreferrer" style="color: #ffa500;">
+                            <a href="{web_explorer_uri_tx + transactionId}" target="_blank" rel="noopener noreferrer" class="transaction-link">
                                     {transactionId.slice(0,16)}
                                 </a>
                             </p>
@@ -456,8 +497,8 @@
                             <p>{errorMessage}</p>
                         </div>
                     {:else}
-                        <div class="flex flex-col md:flex-row items-center md:items-start justify-between gap-8 w-full">
-                            <div class="md:w-1/6 text-center md:text-left">
+                    <div class="form-container">
+                        <div class="form-info">
                                 {#if info_type_to_show === "buy"}
                                     <p>
                                         <strong>Exchange Rate:</strong> 
@@ -473,57 +514,458 @@
                                 {/if}
                             </div>
                         
-                            <div class="md:w-4/6 flex flex-col items-center">
-                                <div class="w-full max-w-xs space-y-4 mx-auto">
-                                    <!-- svelte-ignore a11y-label-has-associated-control -->
-                                    <Label for="number" class="block text-center mb-3">{label_submit}</Label>
-                                    <div class="flex items-center mt-3">
+                        <div class="form-content">
+                            <Label for="number" class="form-label">{label_submit}</Label>
+                            <div class="input-container">
                                         <Input
                                             id="number"
                                             type="number"
                                             bind:value={value_submit}
                                             min="0"
                                             step="1"
-                                            class="flex-1 ml-2"
+                                    class="form-input"
                                         />
-                                        <span class="ml-4">{submit_amount_label}</span>
+                                <span class="input-suffix">{submit_amount_label}</span>
                                     </div>
                                     
                                     {#if ! hide_submit_info}
-                                        <div class="mt-2 text-center">
+                                <div class="info-badge">
                                             <Badge type="primary" rounded>{submit_info}</Badge>
                                         </div>
                                     {/if}
                                     
-                                    <div class="mt-6 text-center">
                                         <Button 
                                             on:click={function_submit} 
                                             disabled={isSubmitting} 
-                                            style="background-color: orange; color: black; border: none; padding: 0.25rem 1rem; font-size: 1rem;"
+                                            class="submit-btn"
+                                            style="background-color: #FF8C00; color: black;"
                                         >
-                                            {isSubmitting ? 'Submitting...' : 'Submit'}
+                                            {isSubmitting ? 'Processing...' : 'Submit'}
                                         </Button>
                                     </div>
-                                </div>
-                            </div>
-                        
-                            <div class="md:w-1/6 hidden md:block"></div>
                         </div>
                     {/if}
+            </div>
                 </div>
             </div>
         {/if}
-
-    </div>
 </div>
 
 <style>
-    .secondary-text {
-    display: block;
-    font-size: 0.7em; 
-    margin-top: 0.2em;
+    /* Base Layout */
+    .project-detail {
+        min-height: 100vh;
+        height: auto;
+        width: 100%;
+        padding: 2rem;
+        overflow-y: auto;
+        overflow-x: hidden;
+        position: relative;
     }
 
+    .project-container {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        overflow: visible;
+    }
+
+    /* Project Information Section */
+    .project-info {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        overflow: visible;
+    }
+
+    .project-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .project-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .project-badge {
+        margin-bottom: 1rem;
+    }
+
+    .project-image {
+        width: 100%;
+        height: 300px;
+        border-radius: 8px;
+        background-size: contain;
+        background-position: center;
+        background-repeat: no-repeat;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .project-description {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    .token-info {
+        margin-top: 0.5rem;
+    }
+
+    .share-button {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .share-btn {
+        background-color: #6B7280;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .share-btn:hover {
+        background-color: #4B5563;
+    }
+
+    .copy-msg {
+        color: #10B981;
+        font-size: 0.875rem;
+    }
+
+    /* Project Stats Section */
+    .project-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        overflow: visible;
+    }
+
+    /* Countdown Timer */
+    .countdown-container {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .timeleft {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .timeleft-label {
+        font-size: 1.5rem;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .secondary-text {
+        display: block;
+        font-size: 0.875rem;
+        opacity: 0.8;
+        margin-top: 0.25rem;
+    }
+
+    .countdown-items {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .item {
+        width: 80px;
+        height: 80px;
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border: 2px solid;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .item > div {
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .item > div > h3 {
+        font-size: 0.875rem;
+        font-weight: 400;
+        margin-top: 0.5rem;
+    }
+
+    .deadline-info {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        text-align: center;
+    }
+
+    /* Progress Bar */
+    .progress-container {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .progress {
+        height: 10px;
+        margin-bottom: 1.5rem;
+    }
+
+    .amounts-info {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .amount-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0.75rem;
+        border-radius: 6px;
+        background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    .amount-item.current {
+        background-color: rgba(255, 165, 0, 0.1);
+        border: 1px solid rgba(255, 165, 0, 0.3);
+    }
+
+    .amount-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .amount-value {
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+
+    .amount-ergs {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        margin-top: 0.25rem;
+    }
+
+    /* Action Sections */
+    .actions-section {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .actions-section.owner {
+        background-color: rgba(255, 165, 0, 0.05);
+        border: 1px solid rgba(255, 165, 0, 0.2);
+    }
+
+    .actions-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 0;
+        margin-bottom: 1rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .action-btn {
+        color: black;
+        border: none;
+        padding: 0.75rem 1.25rem;
+        border-radius: 4px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        flex: 1;
+        min-width: 140px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .action-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .action-btn:active:not(:disabled) {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
+    .action-btn.primary {
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .actions-form {
+        position: relative;
+        width: 90%;
+        max-width: 600px;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .close-button {
+        position: absolute;
+        top: 1rem;
+        right: 1.5rem;
+        font-size: 1.5rem;
+        cursor: pointer;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 50%;
+        transition: background-color 0.2s;
+    }
+
+    .close-button:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .centered-form {
+        width: 100%;
+    }
+
+    .form-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .form-info {
+        background-color: rgba(255, 255, 255, 0.05);
+        padding: 0.75rem;
+        border-radius: 6px;
+    }
+
+    .form-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .form-label {
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    .input-container {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .form-input {
+        flex: 1;
+        padding: 0.75rem;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background-color: rgba(255, 255, 255, 0.05);
+        color: inherit;
+        font-size: 1rem;
+    }
+
+    .input-suffix {
+        font-size: 0.9rem;
+        font-weight: 500;
+        min-width: 50px;
+    }
+
+    .info-badge {
+        margin-top: 0.5rem;
+        text-align: center;
+    }
+
+    .submit-btn {
+        color: black;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        font-weight: 600;
+        margin-top: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        align-self: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .submit-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .submit-btn:active:not(:disabled) {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .result {
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .transaction-link {
+        color: #FF8C00;
+        text-decoration: underline;
+    }
+
+    .error {
+        color: #EF5350;
+        text-align: center;
+        padding: 1rem;
+    }
+
+    /* Animation */
     @keyframes pulse {
         0%   { transform: scale(1); }
         50%  { transform: scale(1.05); }
@@ -531,176 +973,67 @@
     }
 
     .timeleft.soon .item {
-        animation: pulse 1s infinite;
-        border-color: yellow;
-        color: yellow;
+        animation: pulse 1.2s infinite;
+        border-color: #FFC107;
+        color: #FFC107;
     }
 
     .timeleft.ended {
-        opacity: 0.3;
+        opacity: 0.6;
     }
 
-    .result {
-        margin-top: 1rem;
-    }
+    /* Responsive Design */
+    @media (min-width: 768px) {
+        .project-container {
+            grid-template-columns: 1fr 1fr;
+        }
 
-    .error {
-        color: red;
-    }
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+        }
 
-    .copy-msg {
-        color: #28a745;
-    }
-
-    .project-detail {
-        height: calc(100vh - 120px);
-        margin: 0.5rem 0.5rem 40px 0.5rem;
-        padding: 1.5rem;
-        border-radius: 8px;
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-        overflow-y: auto;
-        overflow-x: hidden;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.13) rgba(255, 255, 255, 0.479);
-        position: relative;
-    }
-
-    .details, .extra {
-        width: 100%;
-        margin-bottom: 1.5rem;
-    }
-
-    .details .bg-cover {
-        height: 300px;
-        width: 100%;
-        background-size: contain;
-        background-position: center;
-        margin-bottom: 1rem;
-    }
-
-    @media (min-width: 1000px) {
-        .project-detail {
+        .form-container {
             flex-direction: row;
-            gap: 2rem;
-            height: calc(100vh - 120px);
-        }
-        
-        .details {
-            width: 40%;
-            padding-right: 1rem;
-            overflow-y: auto;
         }
 
-        .extra {
-            width: 60%;
-            padding-left: 1rem;
-            overflow-y: auto;
+        .form-info {
+            flex: 1;
         }
-        
-        .timeleft {
-            margin-top: 0;
-        }
-        
-        .progress {
-            margin: 1rem 0;
+
+        .form-content {
+            flex: 2;
         }
     }
 
-    @media (max-width: 1000px) {
+    @media (max-width: 767px) {
         .project-detail {
-            height: calc(100vh - 206px);
+            padding: 1rem;
+            height: auto;
+            min-height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
-    }
 
-    .user-actions, .owner-actions {
-        margin-top: 2rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .action-row {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-        width: 100%;
-        margin-bottom: 1rem;
-    }
+        .countdown-items {
+            gap: 0.5rem;
+        }
 
-    .actions-form {
-        position: relative;
-        margin-top: 1rem;
-        padding: 1rem;
-        border-radius: 16px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
+        .item {
+            width: 70px;
+            height: 70px;
+        }
 
-    .close-button {
-        position: absolute;
-        top: 10px;
-        right: 15px;
-        background-color: transparent;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-    }
+        .amounts-info {
+            grid-template-columns: 1fr;
+        }
 
-    .centered-form {
-        width: 100%;
-        max-width: 80%;
-        display: flex;
-        align-items: center;
-        flex-direction: column;
-        gap: 1rem;
-    }
+        .action-buttons {
+            flex-direction: column;
+        }
 
-    .timeleft {
-        margin-bottom: 2rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .timeleft-label {
-        font-size: 30px;
-        text-align: center;
-        margin-bottom: 1rem;
-    }
-
-    .timeleft > span {
-        font-size: 30px;
-    }
-
-    .progress {
-        margin-bottom: 1rem;
-        min-height: 1rem;
-    }
-
-    .item {
-        width: 100px;
-        height: 100px;
-        padding: 10px 0px 5px 0px;
-        text-align: center;
-        display: inline-block;
-        margin: 5px;
-        border: 3px solid #ddd;
-        border-radius: 5px;
-    }
-
-    .item > div {
-        font-size: 40px;
-        animation: fade 3s;
-        line-height: 30px;
-        margin-top: 5px;
-    }
-
-    .item > div > h3 {
-        margin-top: 15px;
-        font-size: 20px;
-        font-weight: normal;
+        .actions-form {
+            padding: 1.5rem;
+        }
     }
 </style>

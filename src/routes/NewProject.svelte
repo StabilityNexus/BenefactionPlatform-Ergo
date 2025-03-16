@@ -194,148 +194,179 @@
 </script>
 
 <div>
-    <div class="container mx-auto h-[70vh] sm:h-auto;">
-        <h2 class="title">Raise Funds for a new Project</h2>
+    <div class="container mx-auto py-4">
+        <h2 class="project-title">Raise Funds for a New Project</h2>
 
-        <div class="form-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div class="form-group">
-                <Label for="tokenId">Token</Label>
-                <Select.Root bind:selected={tokenOption} required>
-                    <Select.Trigger class="w-full">
-                        <Select.Value placeholder="Select a token" />
-                    </Select.Trigger>
-                    <Select.Content>
-                        {#each userTokens as token}
-                            <Select.Item value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</Select.Item>
-                        {/each}
-                    </Select.Content>
-                </Select.Root>
-                <p class="text-sm mt-1">
-                    Don't have a token? <a href="https://tools.mewfinance.com/mint" target="_blank" rel="noopener noreferrer" class="text-orange-400 underline">Mint one here</a>.
-                </p>
+        <div class="form-container bg-background/80 backdrop-blur-lg border border-orange-500/20 rounded-xl p-6 mb-6">
+            <div class="form-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="form-group">
+                    <Label for="tokenId" class="text-sm font-medium mb-2 block">Token</Label>
+                    <Select.Root bind:selected={tokenOption} required>
+                        <Select.Trigger class="w-full border-orange-500/20 focus:border-orange-500/40">
+                            <Select.Value placeholder="Select a token" />
+                        </Select.Trigger>
+                        <Select.Content>
+                            {#each userTokens as token}
+                                <Select.Item value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</Select.Item>
+                            {/each}
+                        </Select.Content>
+                    </Select.Root>
+                    <p class="text-sm mt-2 text-muted-foreground">
+                        Don't have a token? <a href="https://tools.mewfinance.com/mint" target="_blank" rel="noopener noreferrer" class="text-orange-400 underline hover:text-orange-300 transition-colors">Mint one here</a>.
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <Label for="tokenAmount" class="text-sm font-medium mb-2 block">Token amount</Label>
+                    <Input 
+                        type="number" 
+                        id="tokenAmount" 
+                        bind:value={tokenAmountPrecise} 
+                        max={maxTokenAmountRaw}
+                        step={1 / Math.pow(10, tokenDecimals)}
+                        min={0}
+                        placeholder="Max amount token"
+                        on:input={() => updateExchangeRate()}
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <Label for="exchangeRate" class="text-sm font-medium mb-2 block">Exchange Rate (ERGs per token)</Label>
+                    <Input 
+                        type="number" 
+                        id="exchangeRate" 
+                        bind:value={exchangeRatePrecise}
+                        min={0}
+                        step="0.000000001"
+                        placeholder="Exchange rate in ERG"
+                        on:input={updateMaxValue}
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
+                    />
+                </div>
+
+                <div class="form-group">  
+                    <Label for="minValue" class="text-sm font-medium mb-2 block">Min ERGs collected</Label>
+                    <Input 
+                        type="number" 
+                        id="minValue" 
+                        bind:value={minValuePrecise} 
+                        max={maxValuePrecise}
+                        min={0}
+                        placeholder="Min ERGs collected"
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <Label for="maxValue" class="text-sm font-medium mb-2 block">Max ERGs collected</Label>
+                    <Input 
+                        type="number" 
+                        id="maxValue" 
+                        bind:value={maxValuePrecise}
+                        min={minValuePrecise}
+                        placeholder="Max ERGs collected"
+                        on:input={updateExchangeRate}
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <Label for="blockLimit" class="text-sm font-medium mb-2 block">Days limit</Label>
+                    <Input
+                        id="blockLimit"
+                        type="number"
+                        bind:value={daysLimit}
+                        min="1"
+                        placeholder="Enter days limit"
+                        aria-label="Enter the limit in days"
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
+                        autocomplete="off"
+                    />
+                    <!-- svelte-ignore a11y-missing-attribute -->
+                    <div hidden> <!-- Only for development purpose -->
+                        {#if (daysLimitBlock)}
+                            <a>On block: {daysLimitBlock}</a>
+                            <br>
+                            <a>Date limit: {daysLimitText}</a>
+                        {/if}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <Label for="projectTitle" class="text-sm font-medium mb-2 block">Project Title</Label>
+                    <Input 
+                        type="text" 
+                        id="projectTitle" 
+                        bind:value={projectTitle} 
+                        placeholder="Enter project title" 
+                        required 
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1" 
+                    />
+                </div>
+
+                <div class="form-group">
+                    <Label for="projectImage" class="text-sm font-medium mb-2 block">Project Image URL</Label>
+                    <Input 
+                        type="text" 
+                        id="projectImage" 
+                        bind:value={projectImage} 
+                        placeholder="Enter image URL" 
+                        required 
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1" 
+                    />
+                </div>
+
+                <div class="form-group">
+                    <Label for="projectLink" class="text-sm font-medium mb-2 block">Project Link</Label>
+                    <Input 
+                        type="text" 
+                        id="projectLink" 
+                        bind:value={projectLink} 
+                        placeholder="Enter project link" 
+                        required 
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1" 
+                    />
+                </div>
+
+                <div class="form-group form-group-full lg:col-span-3">
+                    <Label for="projectDescription" class="text-sm font-medium mb-2 block">Project Description</Label>
+                    <Textarea 
+                        id="projectDescription" 
+                        bind:value={projectDescription} 
+                        placeholder="Enter project description" 
+                        required 
+                        class="w-full h-28 lg:h-32 border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1" 
+                    />
+                </div>
             </div>
 
-            <div class="form-group">
-                <Label for="tokenAmount">Token amount</Label>
-                <Input 
-                    type="number" 
-                    id="tokenAmount" 
-                    bind:value={tokenAmountPrecise} 
-                    max={maxTokenAmountRaw}
-                    step={1 / Math.pow(10, tokenDecimals)}
-                    min={0}
-                    placeholder="Max amount token"
-                    on:input={() => updateExchangeRate()}
-                    class="max-w-xs"
-                />
+            <div class="form-actions mt-6 flex justify-center">
+                {#if transactionId}
+                    <div class="result bg-background/80 backdrop-blur-lg border border-orange-500/20 rounded-lg p-4 w-full max-w-xl">
+                        <p class="text-center">
+                            <strong>Transaction ID:</strong>
+                            <a href="{web_explorer_uri_tx + transactionId}" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-300 underline transition-colors">
+                                {transactionId}
+                            </a>
+                        </p>
+                    </div>
+                {:else}
+                    <Button on:click={handleSubmit} 
+                        disabled={isSubmitting || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle || !daysLimit} 
+                        class="bg-orange-500 hover:bg-orange-600 text-black border-none py-2 px-6 text-lg font-semibold rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none"
+                    >
+                        {isSubmitting ? 'Waiting for confirmation of the project creation...' : 'Submit Project'}
+                    </Button>  
+                {/if}
             </div>
-
-            <div class="form-group">
-                <Label for="exchangeRate">Exchange Rate (ERGs per token)</Label>
-                <Input 
-                    type="number" 
-                    id="exchangeRate" 
-                    bind:value={exchangeRatePrecise}
-                    min={0}
-                    step="0.000000001"
-                    placeholder="Exchange rate in ERG"
-                    on:input={updateMaxValue}
-                    class="max-w-xs"
-                />
-            </div>
-
-            <div class="form-group">  
-                <Label for="minValue">Min ERGs collected</Label>
-                <Input 
-                    type="number" 
-                    id="minValue" 
-                    bind:value={minValuePrecise} 
-                    max={maxValuePrecise}
-                    min={0}
-                    placeholder="Min ERGs collected"
-                    class="max-w-xs"
-                />
-            </div>
-
-            <div class="form-group">
-                <Label for="maxValue">Max ERGs collected</Label>
-                <Input 
-                    type="number" 
-                    id="maxValue" 
-                    bind:value={maxValuePrecise}
-                    min={minValuePrecise}
-                    placeholder="Max ERGs collected"
-                    on:input={updateExchangeRate}
-                    class="max-w-xs"
-                />
-            </div>
-
-            <div class="form-group">
-                <Label for="blockLimit">Days limit</Label>
-                <Input
-                    id="blockLimit"
-                    type="number"
-                    bind:value={daysLimit}
-                    min="1"
-                    placeholder="Enter days limit"
-                    aria-label="Enter the limit in days"
-                    class="max-w-xs"
-                    autocomplete="off"
-                />
-                <!-- svelte-ignore a11y-missing-attribute -->
-                 <div hidden> <!-- Only for development purpose -->
-                    {#if (daysLimitBlock)}
-                        <a>On block: {daysLimitBlock}</a>
-                        <br>
-                        <a>Date limit: {daysLimitText}</a>
-                    {/if}
-                 </div>
-            </div>
-
-            <div class="form-group">
-                <Label for="projectTitle">Project Title</Label>
-                <Input type="text" id="projectTitle" bind:value={projectTitle} placeholder="Enter project title" required class="max-w-xs" />
-            </div>
-
-            <div class="form-group">
-                <Label for="projectImage">Project Image URL</Label>
-                <Input type="text" id="projectImage" bind:value={projectImage} placeholder="Enter image URL" required class="max-w-xs" />
-            </div>
-
-            <div class="form-group">
-                <Label for="projectLink">Project Link</Label>
-                <Input type="text" id="projectLink" bind:value={projectLink} placeholder="Enter project link" required class="max-w-xs" />
-            </div>
-
-            <div class="form-group form-group-full lg:col-span-3">
-                <Label for="projectDescription">Project Description</Label>
-                <Textarea id="projectDescription" bind:value={projectDescription} placeholder="Enter project description" required class="w-full h-28 lg:h-32" />
-            </div>
+            
+            {#if errorMessage}
+                <div class="error mt-4 bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center">
+                    <p class="text-red-500">{errorMessage}</p>
+                </div>
+            {/if}
         </div>
-        
-        {#if transactionId}
-            <div class="result">
-                <p>
-                    <strong>Transaction ID:</strong>
-                    <a href="{web_explorer_uri_tx + transactionId}" target="_blank" rel="noopener noreferrer" class="text-orange-400 underline">
-                        {transactionId}
-                    </a>
-                </p>
-            </div>
-        {:else}
-            <Button on:click={handleSubmit} 
-                disabled={isSubmitting || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle || !daysLimit} 
-                class="bg-orange-500 text-black border-none py-1 px-4 text-lg"
-            >
-                {isSubmitting ? 'Waiting for confirmation of the project creation.' : 'Submit'}
-            </Button>  
-        {/if}
-        
-        {#if errorMessage}
-            <div class="error">
-                <p>{errorMessage}</p>
-            </div>
-        {/if}
     </div>
 </div>
 
@@ -343,29 +374,50 @@
     .container {
         max-width: 1200px;
         margin: 0 auto;
-        padding: 10px;
-        flex-direction: column;
+        padding: 10px 15px;
         overflow-y: auto;
         scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
     }
 
-    .title {
+    .project-title {
         text-align: center;
-        font-size: 2rem;
-        margin: 15px 0 20px;
+        font-size: 2.2rem;
+        margin: 20px 0 30px;
         color: orange;
+        font-family: 'Russo One', sans-serif;
+        letter-spacing: 0.02em;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        position: relative;
+    }
+
+    .project-title::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 3px;
+        background: linear-gradient(90deg, rgba(255, 165, 0, 0), rgba(255, 165, 0, 1), rgba(255, 165, 0, 0));
+    }
+
+    .form-container {
+        animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     .form-group {
-        margin-bottom: 1.8rem;
+        margin-bottom: 1.5rem;
     }
 
-    .result {
-        margin-top: 1rem;
-        padding: 1rem;
-    }
-
-    .error {
-        color: red;
+    @media (max-width: 768px) {
+        .project-title {
+            font-size: 1.8rem;
+            margin: 15px 0 25px;
+        }
     }
 </style>
