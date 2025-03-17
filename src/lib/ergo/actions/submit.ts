@@ -21,6 +21,22 @@ async function get_token_data(token_id: string): Promise<{amount: number, decima
     return {"amount": id_token_amount, "decimals": token_fetch['decimals']}
 }
 
+function playBeep(frequency = 1000, duration = 3000) {
+    const audioCtx = new window.AudioContext();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+    setTimeout(() => {
+        oscillator.stop();
+    }, duration);
+}
+
 async function mint_tx(title: string, constants: ConstantContent, version: contract_version, amount: number, decimals: number): Promise<Box> {
     // Get the wallet address (will be the project address)
     const walletPk = await ergo.get_change_address();
@@ -137,6 +153,12 @@ export async function submit_project(
         .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
         .build()                               // Build the transaction
         .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
+
+    try {
+        playBeep();
+    } catch (error) {
+        console.error('Error executing play beep:', error);
+    }
 
     // Sign the transaction
     const signedTransaction = await ergo.sign_tx(unsignedTransaction);
