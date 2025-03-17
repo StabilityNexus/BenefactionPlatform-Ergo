@@ -112,7 +112,7 @@
                 platform.last_version,
                 tokenId, 
                 tokenAmountRaw, 
-                blockLimit, 
+                daysLimitBlock, 
                 Math.round(exchangeRateRaw),
                 projectContent, 
                 Math.round(minimumTokenSold),
@@ -353,7 +353,7 @@
                     </div>
                 {:else}
                     <Button on:click={handleSubmit} 
-                        disabled={isSubmitting || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle || !daysLimit} 
+                        disabled={isSubmitting || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle || !daysLimitBlock} 
                         class="bg-orange-500 hover:bg-orange-600 text-black border-none py-2 px-6 text-lg font-semibold rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none"
                     >
                         {isSubmitting ? 'Waiting for confirmation of the project creation...' : 'Submit Project'}
