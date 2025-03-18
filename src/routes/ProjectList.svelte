@@ -15,6 +15,7 @@
     let errorMessage: string | null = null;
     let isLoading: boolean = true;
     let searchQuery: string = "";
+    let offset: number = 0;
 
     export let filterProject: ((project: any) => Promise<boolean>) | null = null;
 
@@ -54,7 +55,7 @@
             let projectsInStore = get(projects);
             
             if (projectsInStore.size === 0) {
-                const fetchedProjects = await platform.fetch();
+                const fetchedProjects = await platform.fetch(offset);
                 projects.set(fetchedProjects);
                 projectsInStore = fetchedProjects;
             }
