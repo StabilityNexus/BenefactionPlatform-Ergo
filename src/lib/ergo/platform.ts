@@ -132,7 +132,7 @@ export class ErgoPlatform implements Platform {
         return await temp_exchange(project, token_amount);
     }
 
-    async fetch(): Promise<Map<string, Project>> {
-        return await fetch_projects();
+    async fetch(offset: number = 0): Promise<Map<string, Project>> {
+        return await fetch_projects(offset);
     }
 }

@@ -119,7 +119,7 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
     }
 }
 
-export async function fetch_projects(): Promise<Map<string, Project>> {
+export async function fetch_projects(offset: number = 0): Promise<Map<string, Project>> {
     try {
         let projects = new Map<string, Project>();
         let registers = {};
@@ -131,8 +131,8 @@ export async function fetch_projects(): Promise<Map<string, Project>> {
             
             moreDataAvailable = true;
             let params = {
-                offset: 0,
-                limit: 500,
+                offset: offset,
+                limit: 9,
             };
 
             while (moreDataAvailable) {
