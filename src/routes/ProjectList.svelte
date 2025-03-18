@@ -114,7 +114,7 @@
             <Dialog.Content class="w-[250px] rounded-xl bg-background/80 backdrop-blur-lg border border-orange-500/20">
                 <div class="flex flex-col items-center justify-center p-6 gap-4">
                     <Loader2 class="h-16 w-16 animate-spin text-orange-500" />
-                    <Dialog.Title class="text-lg font-medium font-['Russo_One']">Downloading projects from the chain</Dialog.Title>
+                    <Dialog.Title class="text-lg font-medium font-['Russo_One']">Fetching fundraising campaigns from the Ergo blockchain</Dialog.Title>
                 </div>
             </Dialog.Content>
         </Dialog.Root>
