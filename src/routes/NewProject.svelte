@@ -197,7 +197,8 @@
     <div class="container mx-auto py-4">
         <h2 class="project-title">Raise Funds for a New Project</h2>
 
-        <div class="form-container bg-background/80 backdrop-blur-lg border border-orange-500/20 rounded-xl p-6 mb-6">
+       <!-- <div class="form-container bg-background/80 backdrop-blur-lg border border-orange-500/20 rounded-xl p-6 mb-6">  -->
+       <div class="form-container bg-background/80 backdrop-blur-lg rounded-xl p-6 mb-6">
             <div class="form-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div class="form-group">
                     <Label for="tokenId" class="text-sm font-medium mb-2 block">Token</Label>
