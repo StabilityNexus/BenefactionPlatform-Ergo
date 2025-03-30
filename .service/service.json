@@ -1,4 +1,5 @@
 {
+    "tag": "bene-v1",
     "api": [{"port":80, "protocol":["http"]}],
     "architecture": "amd64",
     "entrypoint": "nginx -g 'daemon off;'",
