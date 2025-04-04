@@ -41,8 +41,12 @@
         }
     });
 
-    connected.subscribe(async () => {
+    connected.subscribe(async (isConnected) => {
         console.log("Connected to the network.");
+        if (isConnected) {
+            // Update the balance information whenever connection state changes
+            await updateWalletInfo();
+        }
     });
 
     function changeTab(tab: string) {
@@ -119,6 +123,32 @@
     $: ergInErgs = $balance ? ($balance / 1_000_000_000).toFixed(4) : 0;
     $: changeUrl($project_detail);
 
+    // Function to update wallet information periodically
+    async function updateWalletInfo() {
+        try {
+            await platform.get_balance(); // This updates the balance store
+            // Update current height
+            current_height = await platform.get_current_height();
+        } catch (error) {
+            console.error("Error updating wallet info:", error);
+        }
+    }
+
+    // Set up periodic balance refresh (every 30 seconds)
+    let balanceUpdateInterval: number;
+
+    onMount(() => {
+        if (browser) {
+            balanceUpdateInterval = setInterval(updateWalletInfo, 30000);
+        }
+
+        return () => {
+            if (balanceUpdateInterval) {
+                clearInterval(balanceUpdateInterval);
+            }
+        }
+    });
+
 </script>
 
 <header class="navbar-container">
@@ -160,7 +190,9 @@
             {#if $address}
                 <div class="user-info">
                     <div class="badge-container">
-                        <Badge style="background-color: orange; color: black; font-size: 0.9em;">{ergInErgs} ERG</Badge>
+                        <Badge style="background-color: orange; color: black; font-size: 0.9em;">
+                            {ergInErgs} ERG
+                        </Badge>
                         <!-- svelte-ignore a11y-click-events-have-key-events -->
                         <!-- svelte-ignore a11y-no-static-element-interactions -->
                         <a on:click={() => showWalletInfo = true}>
@@ -597,46 +629,44 @@
         box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);
     }
 
-    /* Bottom Elements */
-    .bottom-left {
-        position: fixed;       /* Keeps the element fixed on the screen */
-        bottom: 20px;          /* Adds some space from the bottom */
-        left: 10px;            /* Adds a little space from the left */
-        width: 150px;          /* Sets a smaller width for the bar */
-        height: 20px;          /* Sets a smaller height for the bar */
-        text-align: left;    /* Centers the text inside the bar */
-        padding: 5px;          /* Adds a smaller padding */
-        border-radius: 8px;    /* Adds rounded corners */
+    /* Bottom Sections */
+    .bottom-left, .bottom-right {
+        position: fixed;
+        bottom: 1rem;
         display: flex;
-        flex-direction: row;
-        align-items: center;
+        gap: 0.5rem;
+        z-index: 10;
     }
 
-    .bottom-left a {
-        color: gray;
-        margin-right: 12px;
-        background-image: none;
-    }
-
-    .bottom-left a svg {
-        text-decoration: none;
+    .bottom-left {
+        left: 1rem;
     }
 
     .bottom-right {
-        display: flex;
+        right: 1rem;
         align-items: center;
-        justify-content: flex-end;
-        position: fixed;
-        bottom: 20px;
-        right: 5px;
-        width: 150px;
-        height: 30px;
-        padding: 5px;
+        gap: 0.5rem;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 0.5rem 0.75rem;
         border-radius: 8px;
+        font-size: 0.875rem;
     }
 
-    .bottom-right svg {
-        margin-right: 10px;
+    .discord-button, .github-button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.2);
+        color: inherit;
+        transition: all 0.2s ease;
+    }
+
+    .discord-button:hover, .github-button:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
     }
 
     /* Responsive Adjustments */
