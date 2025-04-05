@@ -1,6 +1,6 @@
 <script lang="ts">
     import { type Project, is_ended, max_raised, min_raised } from "$lib/common/project";
-    import { address, connected, project_detail, project_token_amount, temporal_token_amount, timer } from "$lib/common/store";
+    import { address, connected, project_detail, project_token_amount, temporal_token_amount, timer, balance } from "$lib/common/store";
     import { Progress } from "$lib/components/ui/progress";
     import { Button } from "$lib/components/ui/button";
     import { block_to_time } from "$lib/common/countdown";
@@ -34,7 +34,7 @@
     let show_submit = false;
     let label_submit = "";
     let info_type_to_show: "buy"|"dev"|"dev-collect"|"" = "";
-    let function_submit = null;
+    let function_submit: ((event?: any) => Promise<void>) | null = null;
     let value_submit = 0;
     let submit_info = "";
     let hide_submit_info = false;
@@ -47,6 +47,50 @@
     let hoursValue = 0;
     let minutesValue = 0;
     let secondsValue = 0;
+
+    // Balance-aware variables
+    let userErgBalance = 0; // User's ERG balance
+    let userProjectTokenBalance = 0; // User's project token balance  
+    let userTemporalTokenBalance = 0; // User's temporal token balance
+    let maxContributeAmount = 0; // Maximum amount user can contribute
+    let maxRefundAmount = 0; // Maximum amount user can refund
+    let maxCollectAmount = 0; // Maximum amount user can collect
+    let maxWithdrawTokenAmount = 0; // Maximum amount project owner can withdraw
+    let maxWithdrawErgAmount = 0; // Maximum amount project owner can withdraw
+
+    async function getWalletBalances() {
+        // Get ERG balance
+        userErgBalance = ($balance || 0) / Math.pow(10, 9);
+        
+        // Fetch project token balances
+        const userTokens = await platform.get_balance();
+        
+        // Get project token balance
+        userProjectTokenBalance = (userTokens.get(project.token_id) || 0) / Math.pow(10, project.token_details.decimals);
+        
+        // Get temporal token balance
+        userTemporalTokenBalance = (userTokens.get(project.project_id) || 0) / Math.pow(10, project.token_details.decimals);
+        
+        // Calculate maximum contribution amount based on both ERG balance and available tokens
+        const ergLimitedAmount = userErgBalance / (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9));
+        const projectLimitedAmount = (project.total_pft_amount - project.sold_counter) / Math.pow(10, project.token_details.decimals);
+        maxContributeAmount = Math.min(ergLimitedAmount, projectLimitedAmount);
+        
+        // Calculate maximum refund amount based on user's project tokens
+        maxRefundAmount = userProjectTokenBalance;
+        
+        // Calculate maximum collect amount based on user's temporal tokens
+        maxCollectAmount = userTemporalTokenBalance;
+        
+        // For project owner
+        maxWithdrawTokenAmount = project.current_pft_amount / Math.pow(10, project.token_details.decimals);
+        maxWithdrawErgAmount = project.current_value / Math.pow(10, 9);
+    }
+
+    // Add balance check after connection state changes
+    $: if ($connected) {
+        getWalletBalances();
+    }
 
     // Project owner actions
     function setupAddTokens() {
@@ -124,6 +168,7 @@
 
     // User actions
     function setupBuy() {
+        getWalletBalances(); // Refresh balances before opening modal
         info_type_to_show = "buy";
         label_submit = "How much do you want to contribute?";
         function_submit = buy;
@@ -148,6 +193,7 @@
     }
 
     function setupRefund() {
+        getWalletBalances(); // Refresh balances before opening modal
         info_type_to_show = "";
         label_submit = "How many tokens do you want to refund?";
         function_submit = refund;
@@ -172,6 +218,7 @@
     }
 
     function setupTempExchange() {
+        getWalletBalances(); // Refresh balances before opening modal
         info_type_to_show = "";
         label_submit = "Exchange "+project.content.title+" APT per "+project.token_details.name;
         function_submit = temp_exchange;
@@ -289,7 +336,9 @@
         temporal_token_amount.set(temporal_tokens/Math.pow(10, project.token_details.decimals))
     }
     get_user_project_tokens()
-
+    
+    // Call getWalletBalances initially to set up values
+    getWalletBalances();
     
     onDestroy(() => {
         if (countdownInterval) {
@@ -306,7 +355,7 @@
         <div class="project-info">
             <div class="project-header">
                 <h1 class="project-title">{project.content.title}</h1>
-                <div class="project-badge">
+                <div class="project-badge" style="display: none;">
         <a href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es" target="_blank"
             class={badgeVariants({ variant: "outline" })}>Contract version: {project.version.replace("_", ".")}</a>
                 </div>
@@ -414,7 +463,7 @@
                         class="action-btn primary" 
                         style="background-color: #FFA500; color: black;" 
                         on:click={setupBuy} 
-                        disabled={!(project.total_pft_amount !== project.sold_counter)}
+                        disabled={!(project.total_pft_amount !== project.sold_counter) || maxContributeAmount <= 0}
                     >
                       Contribute
                     </Button>
@@ -423,7 +472,7 @@
                         class="action-btn" 
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupRefund} 
-                        disabled={!(deadline_passed && !is_min_raised)}
+                        disabled={!(deadline_passed && !is_min_raised) || maxRefundAmount <= 0}
                     >
                       Get a Refund
                     </Button>
@@ -432,7 +481,7 @@
                         class="action-btn" 
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupTempExchange} 
-                        disabled={!(is_min_raised)}
+                        disabled={!(is_min_raised) || maxCollectAmount <= 0}
                     >
                       Collect {project.token_details.name}
                     </Button>
@@ -457,6 +506,7 @@
                         class="action-btn" 
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupWithdrawTokens}
+                        disabled={maxWithdrawTokenAmount <= 0}
                     >
                       Withdraw {project.token_details.name}
                     </Button>
@@ -465,7 +515,7 @@
                         class="action-btn" 
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupWithdrawErg} 
-                        disabled={!is_min_raised}
+                        disabled={!is_min_raised || maxWithdrawErgAmount <= 0}
                     >
                       Collect {platform.main_token}
                     </Button>
@@ -505,25 +555,48 @@
                                         {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} 
                                         {platform.main_token}/{project.token_details.name}
                                     </p>
+                                    <p>
+                                        <strong>Available Balance:</strong> 
+                                        {userErgBalance.toFixed(4)} {platform.main_token}
+                                    </p>
+                                    <p>
+                                        <strong>Maximum Contribution:</strong> 
+                                        {maxContributeAmount.toFixed(4)} {project.token_details.name}
+                                    </p>
                                 {/if}
                                 {#if info_type_to_show === "dev-collect"}
                                     <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
+                                    <p><strong>Maximum Withdrawal:</strong> {maxWithdrawErgAmount.toFixed(4)} {platform.main_token}</p>
                                 {/if}
                                 {#if info_type_to_show === "dev"}
                                     <p><strong>Current PFT balance:</strong> {project.current_pft_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
+                                    <p><strong>Maximum Withdrawal:</strong> {maxWithdrawTokenAmount.toFixed(4)} {project.token_details.name}</p>
+                                {/if}
+                                {#if function_submit === refund}
+                                    <p><strong>Your Token Balance:</strong> {userProjectTokenBalance.toFixed(4)} {project.token_details.name}</p>
+                                    <p><strong>Maximum Refund:</strong> {maxRefundAmount.toFixed(4)} {project.token_details.name}</p>
+                                {/if}
+                                {#if function_submit === temp_exchange}
+                                    <p><strong>Your Temporal Token Balance:</strong> {userTemporalTokenBalance.toFixed(4)} APT</p>
+                                    <p><strong>Maximum Collection:</strong> {maxCollectAmount.toFixed(4)} {project.token_details.name}</p>
                                 {/if}
                             </div>
                         
                         <div class="form-content">
-                            <Label for="number" class="form-label">{label_submit}</Label>
+                            <Label for="amount-input" class="form-label">{label_submit}</Label>
                             <div class="input-container">
                                         <Input
-                                            id="number"
+                                            id="amount-input"
                                             type="number"
                                             bind:value={value_submit}
                                             min="0"
-                                            step="1"
-                                    class="form-input"
+                                            max={function_submit === buy ? maxContributeAmount : 
+                                                 function_submit === refund ? maxRefundAmount : 
+                                                 function_submit === temp_exchange ? maxCollectAmount :
+                                                 function_submit === withdraw_tokens ? maxWithdrawTokenAmount :
+                                                 function_submit === withdraw_erg ? maxWithdrawErgAmount : null}
+                                            step="0.001"
+                                            class="form-input"
                                         />
                                 <span class="input-suffix">{submit_amount_label}</span>
                                     </div>
@@ -536,7 +609,12 @@
                                     
                                         <Button 
                                             on:click={function_submit} 
-                                            disabled={isSubmitting} 
+                                            disabled={isSubmitting || value_submit <= 0 || 
+                                                     (function_submit === buy && value_submit > maxContributeAmount) ||
+                                                     (function_submit === refund && value_submit > maxRefundAmount) ||
+                                                     (function_submit === temp_exchange && value_submit > maxCollectAmount) ||
+                                                     (function_submit === withdraw_tokens && value_submit > maxWithdrawTokenAmount) ||
+                                                     (function_submit === withdraw_erg && value_submit > maxWithdrawErgAmount)}
                                             class="submit-btn"
                                             style="background-color: #FF8C00; color: black;"
                                         >
