@@ -19,11 +19,12 @@ export interface ProjectContent {
 
 export interface ConstantContent {
     raw?: string,
-    owner: string
+    owner: string,
     dev_addr?: string,
     dev_hash: string,
     dev_fee: number,
-    token_id: string
+    token_id: string,
+    base_token_id?: string  // Base token ID for multi-token support (empty for ERG)
 }
 
 export interface Project {
@@ -33,6 +34,8 @@ export interface Project {
     project_id: string,
     current_idt_amount: number,
     token_id: string,
+    base_token_id: string,  // Base token ID for contributions (empty string for ERG)
+    base_token_details?: TokenEIP4,  // Details of the base token (null for ERG)
     block_limit: number,
     minimum_amount: number,
     maximum_amount: number,
@@ -45,7 +48,7 @@ export interface Project {
     sold_counter: number,
     refund_counter: number,
     auxiliar_exchange_counter: number,
-    exchange_rate: number, 
+    exchange_rate: number,  // Base token per PFT exchange rate
     token_details: TokenEIP4,
     content: ProjectContent,
     constants: ConstantContent
@@ -77,6 +80,7 @@ export function getProjectContent(id: string, value: string): ProjectContent {
         };
     } catch (error) {
         return {
+            
             raw: value,
             title: 'Id '+id,
             description: "No description provided.",
@@ -95,7 +99,8 @@ export function getConstantContent(value: string): ConstantContent | null {
             dev_addr: parsed.dev_addr,
             dev_hash: parsed.dev_hash,
             dev_fee: parsed.dev_fee,
-            token_id: parsed.token_id
+            token_id: parsed.token_id,
+            base_token_id: parsed.base_token_id || ""  // Default to empty string for ERG
         }
     } catch(error) {
         return null;

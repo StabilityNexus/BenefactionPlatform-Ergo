@@ -17,7 +17,7 @@ export class ErgoPlatform implements Platform {
     main_token = "ERG";
     icon = "";
     time_per_block = 2*60*1000;  // every 2 minutes
-    last_version: contract_version = "v1_1";
+    last_version: contract_version = "v1_2";
 
     async connect(): Promise<void> {
         if (typeof ergoConnector !== 'undefined') {
@@ -110,7 +110,8 @@ export class ErgoPlatform implements Platform {
         exchangeRate: number,
         projectContent: string,
         minimumSold: number,
-        title: string
+        title: string,
+        base_token_id: string = ""
     ): Promise<string | null> {
         return await submit_project(
             version,
@@ -120,7 +121,8 @@ export class ErgoPlatform implements Platform {
             exchangeRate,
             projectContent,
             minimumSold,
-            title
+            title,
+            base_token_id
         );
     }
 
