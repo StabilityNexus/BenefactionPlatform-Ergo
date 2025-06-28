@@ -110,7 +110,7 @@ export async function submit_project(
 
     // Get token emission amount.
     let token_data = await get_token_data(token_id);
-    let id_token_amount = token_data["amount"];
+    let id_token_amount = token_data["amount"];  // TODO Should be +1 because of the id token?  TODO CHECK THIS.
 
     // Build the mint tx.
     let mint_box = await mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"]);
