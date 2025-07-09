@@ -88,13 +88,14 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
 // Function to submit a project to the blockchain
 export async function submit_project(
     version: contract_version,
-    token_id: string, 
+    token_id: string,
     token_amount: number,
     blockLimit: number,     // Block height until withdrawal/refund is allowed
-    exchangeRate: number,   // Exchange rate ERG/Token
+    exchangeRate: number,   // Exchange rate base_token/PFT
     projectContent: string,    // Project content
     minimumSold: number,     // Minimum amount sold to allow withdrawal
-    title: string
+    title: string,
+    base_token_id: string = ""  // Base token ID for contributions (empty for ERG)
 ): Promise<string|null> {
 
     // Get the wallet address (will be the project address)
@@ -105,7 +106,8 @@ export async function submit_project(
         "dev_addr": get_dev_contract_address(),
         "dev_hash": get_dev_contract_hash(),
         "dev_fee": get_dev_fee(),
-        "token_id": token_id
+        "token_id": token_id,
+        "base_token_id": base_token_id
     };
 
     // Get token emission amount.
@@ -122,28 +124,43 @@ export async function submit_project(
     const inputs = [mint_box, ...await ergo.get_utxos()];
 
     // Building the project output
-    let outputs: OutputBuilder[] = [
-        new OutputBuilder(
-            SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-            get_address(addressContent, version)    // Address of the project contract
-        )
-        .addTokens({
-            tokenId: project_id,
-            amount: BigInt(id_token_amount)  // The mint contract force to spend all the id_token_amount
-        })
-        .addTokens({
-            tokenId: token_id ?? "",
-            amount: token_amount.toString()
-        })
-        .setAdditionalRegisters({
+    let outputBuilder = new OutputBuilder(
+        SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
+        get_address(addressContent, version)    // Address of the project contract
+    )
+    .addTokens({
+        tokenId: project_id,
+        amount: BigInt(id_token_amount)  // The mint contract force to spend all the id_token_amount
+    })
+    .addTokens({
+        tokenId: token_id ?? "",
+        amount: token_amount.toString()
+    });
+
+    // For v1_2 contracts, use the new register format with base token support
+    if (version === "v1_2") {
+        const base_token_id_len = base_token_id ? base_token_id.length / 2 : 0; // Hex string length / 2
+        outputBuilder.setAdditionalRegisters({
            R4: SInt(blockLimit).toHex(),                              // Block limit for withdrawals/refunds
            R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
-           R6: SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex(),     // Pair [Tokens sold counter, Tokens refunded counter]
-           R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
-           R8: SString(JSON.stringify(addressContent)),               // Owner address, dev address and dev fee.
+           R6: SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex(),     // [Tokens sold counter, Tokens refunded counter, Exchange counter]
+           R7: SColl(SLong, [BigInt(exchangeRate), BigInt(base_token_id_len)]).toHex(),  // [Exchange rate base_token/PFT, Base token ID length]
+           R8: SString(JSON.stringify(addressContent)),               // Owner address, dev address, dev fee, and base token ID
            R9: SString(projectContent)                                // Project content
-        })
-    ];
+        });
+    } else {
+        // Legacy format for v1_0 and v1_1
+        outputBuilder.setAdditionalRegisters({
+           R4: SInt(blockLimit).toHex(),                              // Block limit for withdrawals/refunds
+           R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
+           R6: SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex(),     // [Tokens sold counter, Tokens refunded counter, Exchange counter]
+           R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
+           R8: SString(JSON.stringify(addressContent)),               // Owner address, dev address and dev fee
+           R9: SString(projectContent)                                // Project content
+        });
+    }
+
+    let outputs: OutputBuilder[] = [outputBuilder];
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
