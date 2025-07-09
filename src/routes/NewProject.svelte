@@ -16,12 +16,6 @@
     let tokenId: string|null = null;
     let tokenDecimals: number = 0;
 
-    // Base token selection for multi-token support
-    let baseTokenOption: object|null = null;
-    let baseTokenId: string = "";  // Empty string means ERG
-    let baseTokenDecimals: number = 9;  // ERG has 9 decimals
-    let baseTokenName: string = "ERG";
-
     let tokenAmountRaw: number;
     let tokenAmountPrecise: number;
     let maxTokenAmountRaw: number;
@@ -56,19 +50,6 @@
         }
     }
 
-    $: {
-        if (baseTokenOption) {
-            baseTokenId = baseTokenOption.value;
-            const baseToken = userTokens.find(t => t.tokenId === baseTokenId);
-            baseTokenDecimals = baseToken?.decimals || 0;
-            baseTokenName = baseToken?.title || "Unknown Token";
-        } else {
-            baseTokenId = "";  // ERG
-            baseTokenDecimals = 9;
-            baseTokenName = "ERG";
-        }
-    }
-
     $: tokenDecimals = userTokens.find(t => t.tokenId === tokenId)?.decimals || 0;
 
     $: {
@@ -81,7 +62,7 @@
     }
 
     $: {
-        exchangeRateRaw = exchangeRatePrecise * Math.pow(10, baseTokenDecimals-tokenDecimals);
+        exchangeRateRaw = exchangeRatePrecise * Math.pow(10, 9-tokenDecimals);
     }
 
     $: {
@@ -115,7 +96,7 @@
         transactionId = null;
 
         if (minValuePrecise === undefined) {minValuePrecise = 0;}
-        let minValueNano = minValuePrecise * Math.pow(10, baseTokenDecimals);
+        let minValueNano = minValuePrecise * Math.pow(10, 9);
 
         let minimumTokenSold = minValueNano / exchangeRateRaw;
 
@@ -127,17 +108,15 @@
         });
 
         try {
-            console.log("Base token ID:", baseTokenId);
             const result = await platform.submit(
                 platform.last_version,
-                tokenId,
-                tokenAmountRaw,
-                daysLimitBlock,
+                tokenId, 
+                tokenAmountRaw, 
+                daysLimitBlock, 
                 Math.round(exchangeRateRaw),
-                projectContent,
+                projectContent, 
                 Math.round(minimumTokenSold),
-                projectTitle,
-                baseTokenId  // Pass the base token ID for multi-token support
+                projectTitle
             );
 
             transactionId = result;
@@ -222,28 +201,10 @@
        <div class="form-container bg-background/80 backdrop-blur-lg rounded-xl p-6 mb-6">
             <div class="form-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div class="form-group">
-                    <Label for="baseTokenId" class="text-sm font-medium mb-2 block">Base Token (for contributions)</Label>
-                    <Select.Root bind:selected={baseTokenOption}>
-                        <Select.Trigger class="w-full border-orange-500/20 focus:border-orange-500/40">
-                            <Select.Value placeholder="ERG (default)" />
-                        </Select.Trigger>
-                        <Select.Content>
-                            <Select.Item value="">ERG (Ergo native token)</Select.Item>
-                            {#each userTokens as token}
-                                <Select.Item value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</Select.Item>
-                            {/each}
-                        </Select.Content>
-                    </Select.Root>
-                    <p class="text-sm mt-2 text-muted-foreground">
-                        Contributors will use {baseTokenName} to fund this project.
-                    </p>
-                </div>
-
-                <div class="form-group">
-                    <Label for="tokenId" class="text-sm font-medium mb-2 block">Reward Token</Label>
+                    <Label for="tokenId" class="text-sm font-medium mb-2 block">Token</Label>
                     <Select.Root bind:selected={tokenOption} required>
                         <Select.Trigger class="w-full border-orange-500/20 focus:border-orange-500/40">
-                            <Select.Value placeholder="Select a reward token" />
+                            <Select.Value placeholder="Select a token" />
                         </Select.Trigger>
                         <Select.Content>
                             {#each userTokens as token}
@@ -272,40 +233,40 @@
                 </div>
 
                 <div class="form-group">
-                    <Label for="exchangeRate" class="text-sm font-medium mb-2 block">Exchange Rate ({baseTokenName} per token)</Label>
-                    <Input
-                        type="number"
-                        id="exchangeRate"
+                    <Label for="exchangeRate" class="text-sm font-medium mb-2 block">Exchange Rate (ERGs per token)</Label>
+                    <Input 
+                        type="number" 
+                        id="exchangeRate" 
                         bind:value={exchangeRatePrecise}
                         min={0}
                         step="0.000000001"
-                        placeholder="Exchange rate in {baseTokenName}"
+                        placeholder="Exchange rate in ERG"
                         on:input={updateMaxValue}
                         class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
                     />
                 </div>
 
-                <div class="form-group">
-                    <Label for="minValue" class="text-sm font-medium mb-2 block">Min {baseTokenName} collected</Label>
-                    <Input
-                        type="number"
-                        id="minValue"
-                        bind:value={minValuePrecise}
+                <div class="form-group">  
+                    <Label for="minValue" class="text-sm font-medium mb-2 block">Min ERGs collected</Label>
+                    <Input 
+                        type="number" 
+                        id="minValue" 
+                        bind:value={minValuePrecise} 
                         max={maxValuePrecise}
                         min={0}
-                        placeholder="Min {baseTokenName} collected"
+                        placeholder="Min ERGs collected"
                         class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
                     />
                 </div>
 
                 <div class="form-group">
-                    <Label for="maxValue" class="text-sm font-medium mb-2 block">Max {baseTokenName} collected</Label>
-                    <Input
-                        type="number"
-                        id="maxValue"
+                    <Label for="maxValue" class="text-sm font-medium mb-2 block">Max ERGs collected</Label>
+                    <Input 
+                        type="number" 
+                        id="maxValue" 
                         bind:value={maxValuePrecise}
                         min={minValuePrecise}
-                        placeholder="Max {baseTokenName} collected"
+                        placeholder="Max ERGs collected"
                         on:input={updateExchangeRate}
                         class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
                     />

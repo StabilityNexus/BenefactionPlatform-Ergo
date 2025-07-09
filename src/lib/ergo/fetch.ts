@@ -1,3 +1,5 @@
+
+
 /**
     https://api.ergoplatform.com/api/v1/docs/#operation/postApiV1BoxesUnspentSearch
 */
@@ -13,29 +15,20 @@ const expectedSigmaTypes = {
     R4: 'SInt',
     R5: 'SLong',
     R6: 'Coll[SLong]',
-    R7: 'SLong', // For v1_0 and v1_1, will be 'Coll[SLong]' for v1_2
+    R7: 'SLong',
     R8: 'Coll[SByte]',
     R9: 'Coll[SByte]'
 };
 
-const expectedSigmaTypesV12 = {
-    R4: 'SInt',
-    R5: 'SLong',
-    R6: 'Coll[SLong]',
-    R7: 'Coll[SLong]', // For v1_2: [exchange_rate, base_token_id_len]
-    R8: 'Coll[SByte]',
-    R9: 'Coll[SByte]'
-};
-
-function hasValidSigmaTypes(additionalRegisters: any, version: contract_version = "v1_0"): boolean {
-    const expectedTypes = version === "v1_2" ? expectedSigmaTypesV12 : expectedSigmaTypes;
-    for (const [key, expectedType] of Object.entries(expectedTypes)) {
+function hasValidSigmaTypes(additionalRegisters: any): boolean {
+    for (const [key, expectedType] of Object.entries(expectedSigmaTypes)) {
         if (additionalRegisters[key] && additionalRegisters[key].sigmaType !== expectedType) {
             return false;
         }
     }
     return true;
 }
+
 
 export async function fetch_token_details(id: string): Promise<TokenEIP4> {
     const url = explorer_uri+'/api/v1/tokens/'+id;
@@ -100,7 +93,7 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
                         ergoTree: e.ergoTree,
                         creationHeight: e.creationHeight,
                         additionalRegisters: Object.entries(e.additionalRegisters).reduce((acc, [key, value]) => {
-                            acc[key] = (value as any).serializedValue;
+                            acc[key] = value.serializedValue;
                             return acc;
                         }, {} as {
                             [key: string]: string;
@@ -132,7 +125,7 @@ export async function fetch_projects(offset: number = 0): Promise<Map<string, Pr
         let registers = {};
         let moreDataAvailable;
 
-        const versions: contract_version[] = ["v1_0", "v1_1", "v1_2"];
+        const versions: contract_version[] = ["v1_0", "v1_1"];
 
         for (const version of versions) {
             
@@ -168,7 +161,7 @@ export async function fetch_projects(offset: number = 0): Promise<Map<string, Pr
                         break;
                     }
                     for (const e of json_data.items) {
-                        if (hasValidSigmaTypes(e.additionalRegisters, version)) {
+                        if (hasValidSigmaTypes(e.additionalRegisters)) {
                             const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "")
 
                             if (constants === null) { console.log("constants null"); continue; }
@@ -177,24 +170,7 @@ export async function fetch_projects(offset: number = 0): Promise<Map<string, Pr
                             let project_id = e.assets[0].tokenId;
                             let token_id = constants.token_id;
                             let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
-                            
-                            // Handle different R7 register formats
-                            let exchange_rate: number;
-                            let base_token_id = "";
-                            
-                            if (version === "v1_2") {
-                                // v1_2 format: R7 = [exchange_rate, base_token_id_len]
-                                let [rate, base_token_id_len] = JSON.parse(e.additionalRegisters.R7.renderedValue);
-                                exchange_rate = parseInt(rate);
-                                // Get base_token_id from constants if length > 0
-                                if (base_token_id_len > 0 && constants.base_token_id) {
-                                    base_token_id = constants.base_token_id;
-                                }
-                            } else {
-                                // v1_0 and v1_1 format: R7 = exchange_rate (ERG only)
-                                exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
-                            }
-                            
+                            let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
                             let current_pft_amount = e.assets.length > 1 ? e.assets[1].amount : 0;
                             let total_pft_amount = current_pft_amount + auxiliar_exchange_counter;
                             let unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
@@ -202,16 +178,6 @@ export async function fetch_projects(offset: number = 0): Promise<Map<string, Pr
                             let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
                             let block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
                             let collected_value = (token_amount_sold * exchange_rate);
-
-                            // Fetch base token details if it's not ERG
-                            let base_token_details = undefined;
-                            if (base_token_id && base_token_id !== "") {
-                                try {
-                                    base_token_details = await fetch_token_details(base_token_id);
-                                } catch (error) {
-                                    console.warn(`Failed to fetch base token details for ${base_token_id}:`, error);
-                                }
-                            }
 
                             projects.set(project_id, {
                                 version: version,
@@ -223,7 +189,7 @@ export async function fetch_projects(offset: number = 0): Promise<Map<string, Pr
                                     ergoTree: e.ergoTree,
                                     creationHeight: e.creationHeight,
                                     additionalRegisters: Object.entries(e.additionalRegisters).reduce((acc, [key, value]) => {
-                                        acc[key] = (value as any).serializedValue;
+                                        acc[key] = value.serializedValue;
                                         return acc;
                                     }, {} as {
                                         [key: string]: string;
@@ -234,8 +200,6 @@ export async function fetch_projects(offset: number = 0): Promise<Map<string, Pr
                                 project_id: project_id,
                                 current_idt_amount: e.assets[0].amount,
                                 token_id: constants.token_id,
-                                base_token_id: base_token_id,
-                                base_token_details: base_token_details,
                                 block_limit: block_limit,
                                 minimum_amount: minimum_token_amount,
                                 maximum_amount: total_pft_amount,
