@@ -25,7 +25,9 @@ export async function buy_refund(
 
     token_amount = Math.floor(token_amount * Math.pow(10, project.token_details.decimals));
 
-    let ergo_amount = token_amount * project.exchange_rate
+    // Calculate base token amount based on project's base token
+    const isERGBase = !project.base_token_id || project.base_token_id === "";
+    let base_token_amount = token_amount * project.exchange_rate;
 
     // Get the wallet address (will be the user address)
     const walletPk = await ergo.get_change_address();
@@ -33,23 +35,64 @@ export async function buy_refund(
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = [project.box, ...(await ergo.get_utxos())];
 
+    // Calculate ERG value changes
+    let ergValueChange = 0;
+    if (isERGBase) {
+        // For ERG base token, the ERG value of the contract changes
+        ergValueChange = base_token_amount;
+    }
+    // For non-ERG base tokens, ERG value remains the same
+
     // Building the project output
     let output = new OutputBuilder(
-        BigInt(project.value + ergo_amount).toString(),  // On buy action the ergo_amount is positive, we add ergs to the contract.    On refund action the ergo_amount is negative, we extract ergs from the contract.
+        BigInt(project.value + ergValueChange).toString(),  // ERG value change only for ERG base token
         get_address(project.constants, project.version)    // Address of the project contract
     )
     .addTokens({
         tokenId: project.project_id,
-        amount: BigInt(project.current_idt_amount - token_amount)  // On but action the token amount is positive, we extract it from the contract.   On refund action the token amount is negative, we add it to the contract.
+        amount: BigInt(project.current_idt_amount - token_amount)  // On buy action: extract tokens, on refund: add tokens
     })
     .addTokens({
         tokenId: project.token_id,
-        amount: BigInt(project.current_pft_amount)  // PFT token maintains constant.
+        amount: BigInt(project.current_pft_amount)  // PFT token maintains constant
     });
+
+    // Handle base token changes for non-ERG base tokens
+    if (!isERGBase && project.base_token_id) {
+        // Find current base token amount in the project box
+        let currentBaseTokenAmount = 0;
+        for (const token of project.box.assets) {
+            if (token.tokenId === project.base_token_id) {
+                currentBaseTokenAmount = Number(token.amount);
+                break;
+            }
+        }
+        
+        // Add base token with updated amount
+        output.addTokens({
+            tokenId: project.base_token_id,
+            amount: BigInt(currentBaseTokenAmount + base_token_amount)  // On buy: add base tokens, on refund: subtract base tokens
+        });
+    }
 
     let sold_counter   = BigInt(token_amount > 0 ? project.sold_counter + token_amount : project.sold_counter);
     let refund_counter = BigInt(token_amount < 0 ? project.refund_counter - token_amount : project.refund_counter);
-    output.setAdditionalRegisters({
+    
+    // Handle different register formats based on contract version
+    if (project.version === "v1_2") {
+        // v1_2 uses new register format with base token support
+        const base_token_id_len = project.base_token_id ? project.base_token_id.length / 2 : 0;
+        output.setAdditionalRegisters({
+            R4: SInt(project.block_limit).toHex(),                                                          // Block limit for withdrawals/refunds
+            R5: SLong(BigInt(project.minimum_amount)).toHex(),                                              // Minimum sold
+            R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),      
+            R7: SColl(SLong, [BigInt(project.exchange_rate), BigInt(base_token_id_len)]).toHex(),          // [Exchange rate base_token/PFT, Base token ID length]
+            R8: SString(project.constants.raw ?? ""),                                                       // Constants including base token ID
+            R9: SString(project.content.raw)                                                                // Project content
+        });
+    } else {
+        // Legacy format for v1_0 and v1_1 (ERG only)
+        output.setAdditionalRegisters({
             R4: SInt(project.block_limit).toHex(),                                                          // Block limit for withdrawals/refunds
             R5: SLong(BigInt(project.minimum_amount)).toHex(),                                              // Minimum sold
             R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),      
@@ -57,20 +100,34 @@ export async function buy_refund(
             R8: SString(project.constants.raw ?? ""),                                                       // Withdrawal address (hash of walletPk)
             R9: SString(project.content.raw)                                                                // Project content
         });
+    }
     
     let outputs = [output];
 
+    // Create user output for buy transactions
     if (token_amount > 0) {
-        outputs.push(
-            new OutputBuilder(
-                SAFE_MIN_BOX_VALUE,
-                walletPk
-            )
-            .addTokens({
-                tokenId: project.project_id,
-                amount: (token_amount).toString()
-            })
+        let userOutput = new OutputBuilder(
+            SAFE_MIN_BOX_VALUE,
+            walletPk
         )
+        .addTokens({
+            tokenId: project.project_id,
+            amount: (token_amount).toString()
+        });
+
+        outputs.push(userOutput);
+    } else if (token_amount < 0 && !isERGBase && project.base_token_id) {
+        // For refund transactions with non-ERG base tokens, create user output with base tokens
+        let userOutput = new OutputBuilder(
+            SAFE_MIN_BOX_VALUE,
+            walletPk
+        )
+        .addTokens({
+            tokenId: project.base_token_id,
+            amount: Math.abs(base_token_amount).toString()
+        });
+
+        outputs.push(userOutput);
     }
 
     // Building the unsigned transaction
