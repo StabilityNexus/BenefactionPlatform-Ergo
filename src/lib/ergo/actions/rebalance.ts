@@ -53,24 +53,61 @@ export async function rebalance(
                 amount: (contract_token_amount).toString()
             });
         }
+        
+        // Handle base tokens for v1_2 multitoken contracts
+        if (project.version === "v1_2" && project.base_token_id && project.base_token_id !== "") {
+            // Find current base token amount in the project box
+            let currentBaseTokenAmount = 0;
+            for (const token of project.box.assets) {
+                if (token.tokenId === project.base_token_id) {
+                    currentBaseTokenAmount = Number(token.amount);
+                    break;
+                }
+            }
+            
+            // Add base token to contract output (amount remains unchanged during token rebalancing)
+            if (currentBaseTokenAmount > 0) {
+                contract_output.addTokens({
+                    tokenId: project.base_token_id,
+                    amount: BigInt(currentBaseTokenAmount)
+                });
+            }
+        }
 
-        // Fix R7 register - it should be Coll[Long] with [exchange_rate, base_token_id_length]
-        contract_output.setAdditionalRegisters({
-            R4: SInt(project.block_limit).toHex(),                        // Block limit for withdrawals/refunds
-            R5: SLong(BigInt(project.minimum_amount)).toHex(),            // Minimum sold
-            R6: SColl(SLong, [
-                BigInt(project.sold_counter), 
-                BigInt(project.refund_counter), 
-                BigInt(project.auxiliar_exchange_counter)
-            ]).toHex(),
-            R7: SColl(SLong, [
-                BigInt(project.exchange_rate),
-                // dynamic base_token_id_length: hex string length/2 for non-ERG, 0 for ERG
-                BigInt(project.base_token_id ? project.base_token_id.length / 2 : 0)
-            ]).toHex(),
-            R8: SString(project.constants.raw ?? ""),                   // Withdrawal address (hash of walletPk)
-            R9: SString(project.content.raw)                              // Project content
-        });
+        // Set additional registers based on contract version
+        if (project.version === "v1_2") {
+            // v1_2 uses new register format with base token support
+            const base_token_id_len = project.base_token_id ? project.base_token_id.length / 2 : 0;
+            contract_output.setAdditionalRegisters({
+                R4: SInt(project.block_limit).toHex(),
+                R5: SLong(BigInt(project.minimum_amount)).toHex(),
+                R6: SColl(SLong, [
+                    BigInt(project.sold_counter), 
+                    BigInt(project.refund_counter), 
+                    BigInt(project.auxiliar_exchange_counter)
+                ]).toHex(),
+                R7: SColl(SLong, [
+                    BigInt(project.exchange_rate),
+                    BigInt(base_token_id_len)
+                ]).toHex(),
+                R8: SString(project.constants.raw ?? ""),
+                R9: SString(project.content.raw)
+            });
+        } else {
+            // Legacy format for v1_0 and v1_1 (ERG only)
+            contract_output.setAdditionalRegisters({
+                R4: SInt(project.block_limit).toHex(),
+                R5: SLong(BigInt(project.minimum_amount)).toHex(),
+                R6: SColl(SLong, [
+                    BigInt(project.sold_counter), 
+                    BigInt(project.refund_counter), 
+                    BigInt(project.auxiliar_exchange_counter)
+                ]).toHex(),
+                R7: SLong(BigInt(project.exchange_rate)).toHex(),
+                R8: SString(project.constants.raw ?? ""),
+                R9: SString(project.content.raw)
+            });
+        }
         
         let outputs: OutputBuilder[] = [contract_output];
         
