@@ -161,8 +161,13 @@
     // The script must be the same
     val sameScript = selfScript == OUTPUTS(0).propositionBytes
 
-    // Ensures that there are only one or two tokens in the contract (APT and PFT or only APT)
-    val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
+    // Ensures that there are only one or two tokens in the contract (APT and PFT or only APT) for ERG base token
+    // or one, two, or three tokens for non-ERG base token (APT, PFT, and base token)
+    val noAddsOtherTokens = if (isERGBase) {
+      OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
+    } else {
+      OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2 || OUTPUTS(0).tokens.size == 3
+    }
 
     // Verify that the output box is a valid copy of the input box
     sameId && sameBlockLimit && sameMinimumSold && sameExchangeRateAndTokenId && sameConstants && sameProjectContent && sameScript && noAddsOtherTokens
@@ -554,7 +559,11 @@
       if (SELF.tokens.size == 1) true 
       else SELF.tokens(1)._1 == fromBase16("$token_id")
     
-    val onlyOneOrAnyToken = SELF.tokens.size == 1 || SELF.tokens.size == 2
+    val onlyOneOrAnyToken = if (isERGBase) {
+      SELF.tokens.size == 1 || SELF.tokens.size == 2
+    } else {
+      SELF.tokens.size == 1 || SELF.tokens.size == 2 || SELF.tokens.size == 3
+    }
 
     correctTokenId && onlyOneOrAnyToken
   }

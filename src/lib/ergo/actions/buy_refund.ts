@@ -27,7 +27,7 @@ export async function buy_refund(
 
     // Calculate base token amount based on project's base token
     const isERGBase = !project.base_token_id || project.base_token_id === "";
-    let base_token_amount = token_amount * project.exchange_rate;
+    let base_token_amount = Math.abs(token_amount) * project.exchange_rate;
 
     // Get the wallet address (will be the user address)
     const walletPk = await ergo.get_change_address();
@@ -35,27 +35,35 @@ export async function buy_refund(
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = [project.box, ...(await ergo.get_utxos())];
 
-    // Calculate ERG value changes
-    let ergValueChange = 0;
+    // Calculate ERG value for the contract
+    let contractErgValue = project.value;
     if (isERGBase) {
-        // For ERG base token, the ERG value of the contract changes
-        ergValueChange = base_token_amount;
+        if (token_amount > 0) {
+            // Buy: add ERG to contract
+            contractErgValue = project.value + base_token_amount;
+        } else {
+            // Refund: subtract ERG from contract
+            contractErgValue = project.value - base_token_amount;
+        }
     }
-    // For non-ERG base tokens, ERG value remains the same
 
     // Building the project output
     let output = new OutputBuilder(
-        BigInt(project.value + ergValueChange).toString(),  // ERG value change only for ERG base token
-        get_address(project.constants, project.version)    // Address of the project contract
+        BigInt(contractErgValue).toString(),
+        get_address(project.constants, project.version)
     )
     .addTokens({
         tokenId: project.project_id,
-        amount: BigInt(project.current_idt_amount - token_amount)  // On buy action: extract tokens, on refund: add tokens
-    })
-    .addTokens({
-        tokenId: project.token_id,
-        amount: BigInt(project.current_pft_amount)  // PFT token maintains constant
+        amount: BigInt(project.current_idt_amount - token_amount)  // Buy: extract tokens, Refund: add tokens
     });
+
+    // Add PFT tokens if they exist
+    if (project.current_pft_amount > 0) {
+        output.addTokens({
+            tokenId: project.token_id,
+            amount: BigInt(project.current_pft_amount)  // PFT token maintains constant
+        });
+    }
 
     // Handle base token changes for non-ERG base tokens
     if (!isERGBase && project.base_token_id) {
@@ -68,76 +76,90 @@ export async function buy_refund(
             }
         }
         
+        // Calculate new base token amount
+        let newBaseTokenAmount;
+        if (token_amount > 0) {
+            // Buy: add base tokens to contract
+            newBaseTokenAmount = currentBaseTokenAmount + base_token_amount;
+        } else {
+            // Refund: subtract base tokens from contract
+            newBaseTokenAmount = currentBaseTokenAmount - base_token_amount;
+        }
+        
         // Add base token with updated amount
         output.addTokens({
             tokenId: project.base_token_id,
-            amount: BigInt(currentBaseTokenAmount + base_token_amount)  // On buy: add base tokens, on refund: subtract base tokens
+            amount: BigInt(newBaseTokenAmount)
         });
     }
 
-    let sold_counter   = BigInt(token_amount > 0 ? project.sold_counter + token_amount : project.sold_counter);
-    let refund_counter = BigInt(token_amount < 0 ? project.refund_counter - token_amount : project.refund_counter);
+    // Update counters
+    let sold_counter = BigInt(token_amount > 0 ? project.sold_counter + token_amount : project.sold_counter);
+    let refund_counter = BigInt(token_amount < 0 ? project.refund_counter + Math.abs(token_amount) : project.refund_counter);
     
     // Handle different register formats based on contract version
     if (project.version === "v1_2") {
         // v1_2 uses new register format with base token support
         const base_token_id_len = project.base_token_id ? project.base_token_id.length / 2 : 0;
         output.setAdditionalRegisters({
-            R4: SInt(project.block_limit).toHex(),                                                          // Block limit for withdrawals/refunds
-            R5: SLong(BigInt(project.minimum_amount)).toHex(),                                              // Minimum sold
-            R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),      
-            R7: SColl(SLong, [BigInt(project.exchange_rate), BigInt(base_token_id_len)]).toHex(),          // [Exchange rate base_token/PFT, Base token ID length]
-            R8: SString(project.constants.raw ?? ""),                                                       // Constants including base token ID
-            R9: SString(project.content.raw)                                                                // Project content
+            R4: SInt(project.block_limit).toHex(),
+            R5: SLong(BigInt(project.minimum_amount)).toHex(),
+            R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),
+            R7: SColl(SLong, [BigInt(project.exchange_rate), BigInt(base_token_id_len)]).toHex(),
+            R8: SString(project.constants.raw ?? ""),
+            R9: SString(project.content.raw)
         });
     } else {
         // Legacy format for v1_0 and v1_1 (ERG only)
         output.setAdditionalRegisters({
-            R4: SInt(project.block_limit).toHex(),                                                          // Block limit for withdrawals/refunds
-            R5: SLong(BigInt(project.minimum_amount)).toHex(),                                              // Minimum sold
-            R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),      
-            R7: SLong(BigInt(project.exchange_rate)).toHex(),                                               // Exchange rate ERG/Token
-            R8: SString(project.constants.raw ?? ""),                                                       // Withdrawal address (hash of walletPk)
-            R9: SString(project.content.raw)                                                                // Project content
+            R4: SInt(project.block_limit).toHex(),
+            R5: SLong(BigInt(project.minimum_amount)).toHex(),
+            R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),
+            R7: SLong(BigInt(project.exchange_rate)).toHex(),
+            R8: SString(project.constants.raw ?? ""),
+            R9: SString(project.content.raw)
         });
     }
     
     let outputs = [output];
 
-    // Create user output for buy transactions
+    // Create user outputs based on action type
     if (token_amount > 0) {
-        let userOutput = new OutputBuilder(
-            SAFE_MIN_BOX_VALUE,
-            walletPk
-        )
-        .addTokens({
-            tokenId: project.project_id,
-            amount: (token_amount).toString()
-        });
-
+        // Buy: user gets project tokens
+        let userOutput = new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk)
+            .addTokens({
+                tokenId: project.project_id,
+                amount: token_amount.toString()
+            });
         outputs.push(userOutput);
-    } else if (token_amount < 0 && !isERGBase && project.base_token_id) {
-        // For refund transactions with non-ERG base tokens, create user output with base tokens
-        let userOutput = new OutputBuilder(
-            SAFE_MIN_BOX_VALUE,
-            walletPk
-        )
-        .addTokens({
-            tokenId: project.base_token_id,
-            amount: Math.abs(base_token_amount).toString()
-        });
-
-        outputs.push(userOutput);
+    } else if (token_amount < 0) {
+        // Refund: user gets base tokens back
+        if (isERGBase) {
+            // For ERG refunds, user gets ERG
+            let userOutput = new OutputBuilder(
+                (base_token_amount + SAFE_MIN_BOX_VALUE).toString(), // Add minimum box value
+                walletPk
+            );
+            outputs.push(userOutput);
+        } else if (project.base_token_id) {
+            // For token refunds, user gets base tokens
+            let userOutput = new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk)
+                .addTokens({
+                    tokenId: project.base_token_id,
+                    amount: base_token_amount.toString()
+                });
+            outputs.push(userOutput);
+        }
     }
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
-        .from(inputs)                          // Inputs coming from the user's UTXOs
-        .to(outputs)                           // Outputs (the new project box)
-        .sendChangeTo(walletPk)                // Send change back to the wallet
-        .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
-        .build()                               // Build the transaction
-        .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
+        .from(inputs)
+        .to(outputs)
+        .sendChangeTo(walletPk)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build()
+        .toEIP12Object();
     
     try {
         // Sign the transaction
@@ -149,6 +171,7 @@ export async function buy_refund(
         console.log("Transaction id -> ", transactionId);
         return transactionId;
     } catch (e) {
-        console.log(e)
+        console.log("Transaction error:", e);
+        throw e; // Re-throw to help with debugging
     }
 }

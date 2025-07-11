@@ -1334,7 +1334,11 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
     val sameScript = selfScript == OUTPUTS(0).propositionBytes
 
     // Ensures that there are only one or two tokens in the contract (APT and PFT or only APT)
-    val noAddsOtherTokens = OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
+    val noAddsOtherTokens = if (isERGBase) {
+      OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
+    } else {
+      OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2 || OUTPUTS(0).tokens.size == 3
+    }
 
     // Verify that the output box is a valid copy of the input box
     sameId && sameBlockLimit && sameMinimumSold && sameExchangeRateAndTokenId && sameConstants && sameProjectContent && sameScript && noAddsOtherTokens
@@ -1726,7 +1730,11 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
       if (SELF.tokens.size == 1) true
       else SELF.tokens(1)._1 == fromBase16("`+token_id+`")
     
-    val onlyOneOrAnyToken = SELF.tokens.size == 1 || SELF.tokens.size == 2
+    val onlyOneOrAnyToken = if (isERGBase) {
+      SELF.tokens.size == 1 || SELF.tokens.size == 2
+    } else {
+      SELF.tokens.size == 1 || SELF.tokens.size == 2 || SELF.tokens.size == 3
+    }
 
     correctTokenId && onlyOneOrAnyToken
   }
@@ -1785,18 +1793,33 @@ export function get_template_hash(version: contract_version): string {
 }
 
 function get_contract_hash(constants: ConstantContent, version: contract_version): string {
-    return uint8ArrayToHex(
-        blake2b256(
-            compile(
-              version === "v1_2"
-                ? handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id, constants.base_token_id || "")
-                : handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id),
-              {version: 1, network: network_id}
-            ).toBytes()  // Compile contract to ergo tree
-        ) // Blake2b256 hash of contract bytes
-    );
-}
+  try {
+      const contractSource = version === "v1_2"
+          ? handle_contract_generator(version)(
+              constants.owner, 
+              constants.dev_hash ?? get_dev_contract_hash(), 
+              constants.dev_fee, 
+              constants.token_id, 
+              constants.base_token_id || "" // Ensure empty string if undefined
+          )
+          : handle_contract_generator(version)(
+              constants.owner, 
+              constants.dev_hash ?? get_dev_contract_hash(), 
+              constants.dev_fee, 
+              constants.token_id
+          );
 
+      const ergoTree = compile(contractSource, {
+          version: 1, 
+          network: network_id
+      });
+
+      return uint8ArrayToHex(blake2b256(ergoTree.toBytes()));
+  } catch (error) {
+      console.error("Error compiling contract:", error);
+      throw new Error(`Failed to compile contract: ${error.message}`);
+  }
+}
 export function mint_contract_address(constants: ConstantContent, version: contract_version) {
   const contract_bytes_hash = get_contract_hash(constants, version);
   let contract = `
