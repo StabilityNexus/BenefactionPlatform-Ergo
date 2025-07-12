@@ -70,7 +70,7 @@ The Bene: Fundraising Platform supports seven main processes:
    - Project owners are allowed to add more APTs to the contract at any time.
 
 7. **Auxiliary Exchange**:
-   - Users are allowed to exchange **Auxiliary Project Tokens (APTs)** for **Proof-funding Tokens (PFTs)** if and only if the deadline has passed and the minimum number of tokens has been sold.
+   - Users are allowed to exchange **Auxiliary Project Tokens (APTs)** for **Proof-funding Tokens (PFTs)** if and only if the minimum number of tokens has been sold.
 
 
 *In addition to the current functionality, a more advanced implementation could include support for other assets beyond ERG. For example, projects could request **GAU** or other tokens on Ergo. This would provide even more flexibility in terms of the types of contributions a project can receive and enable a broader range of funding options for projects and participants.*
