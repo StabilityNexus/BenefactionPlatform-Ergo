@@ -1,7 +1,7 @@
 <script lang="ts">
     import { block_to_date, block_to_time } from "$lib/common/countdown";
     import { is_ended, min_raised, type Project } from "$lib/common/project";
-    import { project_detail } from "$lib/common/store";
+    import { project_detail, connected, balance } from "$lib/common/store";
     import { badgeVariants } from "$lib/components/ui/badge";
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
@@ -17,6 +17,17 @@
     let statusMessage = "";
     let statusColor = "";
     let showFullDescription = false;
+    
+    // Balance awareness for project cards
+    let userErgBalance = 0;
+    let canContribute = false;
+    let minContributionAmount = 0;
+    
+    $: {
+        userErgBalance = ($balance || 0) / Math.pow(10, 9);
+        minContributionAmount = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
+        canContribute = $connected && userErgBalance >= minContributionAmount && project.sold_counter < project.total_pft_amount;
+    }
 
     async function load() {
         deadline_passed = await is_ended(project);
@@ -52,6 +63,29 @@
 </script>
 
 <Card.Root class="relative bg-[#1a1a1a] h-auto min-h-[380px] flex flex-col {$mode === 'dark' ? 'bg-opacity-90 border-orange-500/30 border' : 'bg-opacity-0 border-orange-500/20 border'} rounded-lg shadow-lg transition-all duration-300 hover:shadow-orange-500/20 hover:shadow-md">
+    <!-- Balance Indicator Badge - Top Left -->
+    {#if $connected}
+        <div class="balance-indicator-badge">
+            {#if canContribute}
+                <div class="balance-badge success" title="You have sufficient funds to contribute to this project">
+                    ✓ You can contribute
+                </div>
+            {:else if userErgBalance <= 0}
+                <div class="balance-badge warning" title="You need ERG in your wallet to contribute">
+                    ! Need {platform.main_token} in wallet
+                </div>
+            {:else if userErgBalance < minContributionAmount}
+                <div class="balance-badge warning" title="You need more ERG to make the minimum contribution">
+                    ! Need {minContributionAmount.toFixed(4)} {platform.main_token}
+                </div>
+            {:else}
+                <div class="balance-badge neutral" title="This project has reached its maximum funding goal">
+                    - Project fully funded
+                </div>
+            {/if}
+        </div>
+    {/if}
+
     <Card.Header class="p-4 pb-2 flex flex-row items-center justify-between {$mode === 'dark' ? 'bg-gradient-to-r from-[#1a1a1a] to-[#2a2a2a]' : 'bg-gradient-to-r from-white to-gray-100'} rounded-t-lg">
         <Card.Title class="text-xl font-bold line-clamp-1 text-orange-500">{project.content.title}</Card.Title>
         <div hidden>
@@ -170,5 +204,47 @@
 
     .scrollable-description::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 165, 0, 0.5);
+    }
+
+    /* Balance Indicator Badge Styles */
+    .balance-indicator-badge {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 10;
+    }
+
+    .balance-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+        backdrop-filter: blur(8px);
+        border: 1px solid;
+        cursor: help;
+        transition: all 0.2s ease;
+    }
+
+    .balance-badge:hover {
+        transform: scale(1.05);
+    }
+
+    .balance-badge.success {
+        background: rgba(34, 197, 94, 0.2);
+        color: #22c55e;
+        border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .balance-badge.warning {
+        background: rgba(251, 146, 60, 0.2);
+        color: #fb923c;
+        border-color: rgba(251, 146, 60, 0.3);
+    }
+
+    .balance-badge.neutral {
+        background: rgba(156, 163, 175, 0.2);
+        color: #9ca3af;
+        border-color: rgba(156, 163, 175, 0.3);
     }
 </style>

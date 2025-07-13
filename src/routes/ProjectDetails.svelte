@@ -40,7 +40,17 @@
     let hide_submit_info = false;
     let submit_amount_label = "";
 
-    $: submit_info = Number(value_submit * project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '') + "ERGs in total."
+    $: submit_info = (() => {
+        const isERGBase = !project.base_token_id || project.base_token_id === "";
+        if (isERGBase) {
+            return Number(value_submit * project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '') + " ERGs in total.";
+        } else {
+            // For non-ERG base tokens, show the base token amount
+            const baseTokenDecimals = project.base_token_details?.decimals || 0;
+            const baseTokenName = project.base_token_details?.name || "tokens";
+            return Number(value_submit * project.exchange_rate / Math.pow(10, baseTokenDecimals)).toFixed(10).replace(/\.?0+$/, '') + ` ${baseTokenName} in total.`;
+        }
+    })()
 
     
     let daysValue = 0;
@@ -71,10 +81,20 @@
         // Get temporal token balance
         userTemporalTokenBalance = (userTokens.get(project.project_id) || 0) / Math.pow(10, project.token_details.decimals);
         
-        // Calculate maximum contribution amount based on both ERG balance and available tokens
-        const ergLimitedAmount = userErgBalance / (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9));
+        // Calculate maximum contribution amount based on base token balance and available tokens
+        const isERGBase = !project.base_token_id || project.base_token_id === "";
+        let balanceLimitedAmount;
+        
+        if (isERGBase) {
+            balanceLimitedAmount = userErgBalance / (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9));
+        } else {
+            // For non-ERG base tokens, get user's base token balance
+            const baseTokenBalance = (userTokens.get(project.base_token_id) || 0) / Math.pow(10, project.base_token_details?.decimals || 0);
+            balanceLimitedAmount = baseTokenBalance / (project.exchange_rate / Math.pow(10, project.base_token_details?.decimals || 0));
+        }
+        
         const projectLimitedAmount = (project.total_pft_amount - project.sold_counter) / Math.pow(10, project.token_details.decimals);
-        maxContributeAmount = Math.min(ergLimitedAmount, projectLimitedAmount);
+        maxContributeAmount = Math.min(balanceLimitedAmount, projectLimitedAmount);
         
         // Calculate maximum refund amount based on user's project tokens
         maxRefundAmount = userProjectTokenBalance;
@@ -92,8 +112,25 @@
         getWalletBalances();
     }
 
+    // Real-time updates when value_submit changes
+    $: if (value_submit && show_submit) {
+        // Update max amounts reactively when input changes
+        if (function_submit === buy && value_submit > maxContributeAmount) {
+            value_submit = maxContributeAmount;
+        } else if (function_submit === refund && value_submit > maxRefundAmount) {
+            value_submit = maxRefundAmount;
+        } else if (function_submit === temp_exchange && value_submit > maxCollectAmount) {
+            value_submit = maxCollectAmount;
+        } else if (function_submit === withdraw_tokens && value_submit > maxWithdrawTokenAmount) {
+            value_submit = maxWithdrawTokenAmount;
+        } else if (function_submit === withdraw_erg && value_submit > maxWithdrawErgAmount) {
+            value_submit = maxWithdrawErgAmount;
+        }
+    }
+
     // Project owner actions
     function setupAddTokens() {
+        getWalletBalances(); // Refresh balances before opening modal
         info_type_to_show = "dev";
         label_submit = "How many tokens do you want to add?";
         function_submit = add_tokens;
@@ -118,6 +155,7 @@
     }
 
     function setupWithdrawTokens() {
+        getWalletBalances(); // Refresh balances before opening modal
         info_type_to_show = "dev";
         label_submit = "How many tokens do you want to withdraw?";
         function_submit = withdraw_tokens;
@@ -143,6 +181,7 @@
     }
 
     function setupWithdrawErg() {
+        getWalletBalances(); // Refresh balances before opening modal
         info_type_to_show = "dev-collect";
         label_submit = "How many ERGs do you want to withdraw?";
         function_submit = withdraw_erg;
@@ -437,19 +476,46 @@
                     <div class="amount-item">
                         <div class="amount-label">Minimum Amount</div>
                         <div class="amount-value">{min / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                        <div class="amount-ergs">{((min * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+                        <div class="amount-ergs">{(() => {
+                            const isERGBase = !project.base_token_id || project.base_token_id === "";
+                            if (isERGBase) {
+                                return ((min * project.exchange_rate) / Math.pow(10, 9)) + " " + platform.main_token;
+                            } else {
+                                const baseTokenDecimals = project.base_token_details?.decimals || 0;
+                                const baseTokenName = project.base_token_details?.name || "tokens";
+                                return ((min * project.exchange_rate) / Math.pow(10, baseTokenDecimals)) + " " + baseTokenName;
+                            }
+                        })()}</div>
             </div>
             
                     <div class="amount-item current">
                         <div class="amount-label">Current Amount</div>
                         <div class="amount-value">{currentVal / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                        <div class="amount-ergs">{((currentVal * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+                        <div class="amount-ergs">{(() => {
+                            const isERGBase = !project.base_token_id || project.base_token_id === "";
+                            if (isERGBase) {
+                                return ((currentVal * project.exchange_rate) / Math.pow(10, 9)) + " " + platform.main_token;
+                            } else {
+                                const baseTokenDecimals = project.base_token_details?.decimals || 0;
+                                const baseTokenName = project.base_token_details?.name || "tokens";
+                                return ((currentVal * project.exchange_rate) / Math.pow(10, baseTokenDecimals)) + " " + baseTokenName;
+                            }
+                        })()}</div>
             </div>
             
                     <div class="amount-item">
                         <div class="amount-label">Maximum Amount</div>
                         <div class="amount-value">{max / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                        <div class="amount-ergs">{((max * project.exchange_rate) / Math.pow(10, 9))} {platform.main_token}</div>
+                        <div class="amount-ergs">{(() => {
+                            const isERGBase = !project.base_token_id || project.base_token_id === "";
+                            if (isERGBase) {
+                                return ((max * project.exchange_rate) / Math.pow(10, 9)) + " " + platform.main_token;
+                            } else {
+                                const baseTokenDecimals = project.base_token_details?.decimals || 0;
+                                const baseTokenName = project.base_token_details?.name || "tokens";
+                                return ((max * project.exchange_rate) / Math.pow(10, baseTokenDecimals)) + " " + baseTokenName;
+                            }
+                        })()}</div>
                     </div>
             </div>
         </div>
@@ -463,28 +529,78 @@
                         class="action-btn primary" 
                         style="background-color: #FFA500; color: black;" 
                         on:click={setupBuy} 
-                        disabled={!(project.total_pft_amount !== project.sold_counter) || maxContributeAmount <= 0}
+                        disabled={!$connected || maxContributeAmount <= 0 || project.sold_counter >= project.total_pft_amount}
+                        title={!$connected ? "Connect your wallet to contribute" : 
+                               maxContributeAmount <= 0 ? (() => {
+                                   const isERGBase = !project.base_token_id || project.base_token_id === "";
+                                   if (isERGBase) {
+                                       return `Need at least ${(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(4)} ${platform.main_token} to contribute`;
+                                   } else {
+                                       const baseTokenDecimals = project.base_token_details?.decimals || 0;
+                                       const baseTokenName = project.base_token_details?.name || "tokens";
+                                       return `Need at least ${(project.exchange_rate / Math.pow(10, baseTokenDecimals)).toFixed(4)} ${baseTokenName} to contribute`;
+                                   }
+                               })() :
+                               project.sold_counter >= project.total_pft_amount ? "Project has reached maximum funding" :
+                               `You can contribute up to ${maxContributeAmount.toFixed(4)} ${project.token_details.name}`}
                     >
                       Contribute
                     </Button>
+                    {#if $connected && maxContributeAmount <= 0 && project.sold_counter < project.total_pft_amount}
+                        <div class="insufficient-funds-message">
+                            {#if userErgBalance <= 0}
+                                Insufficient funds for contribution. You need {platform.main_token} in your wallet.
+                            {:else}
+                                Insufficient funds for contribution. Need at least {(() => {
+                                    const isERGBase = !project.base_token_id || project.base_token_id === "";
+                                    if (isERGBase) {
+                                        return (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(4) + " " + platform.main_token;
+                                    } else {
+                                        const baseTokenDecimals = project.base_token_details?.decimals || 0;
+                                        const baseTokenName = project.base_token_details?.name || "tokens";
+                                        return (project.exchange_rate / Math.pow(10, baseTokenDecimals)).toFixed(4) + " " + baseTokenName;
+                                    }
+                                })()}
+                            {/if}
+                        </div>
+                    {/if}
                     
                     <Button 
                         class="action-btn" 
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupRefund} 
-                        disabled={!(deadline_passed && !is_min_raised) || maxRefundAmount <= 0}
+                        disabled={!$connected || !(deadline_passed && !is_min_raised) || maxRefundAmount <= 0}
+                        title={!$connected ? "Connect your wallet to get refund" :
+                               !deadline_passed ? "Refunds available after deadline" :
+                               is_min_raised ? "Refunds not available - minimum goal reached" :
+                               maxRefundAmount <= 0 ? "You have no tokens to refund" :
+                               `You can refund up to ${maxRefundAmount.toFixed(4)} ${project.token_details.name}`}
                     >
                       Get a Refund
                     </Button>
+                    {#if $connected && maxRefundAmount <= 0 && (deadline_passed && !is_min_raised)}
+                        <div class="insufficient-funds-message">
+                            No tokens available for refund
+                        </div>
+                    {/if}
                     
                     <Button 
                         class="action-btn" 
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupTempExchange} 
-                        disabled={!(is_min_raised) || maxCollectAmount <= 0}
+                        disabled={!$connected || !is_min_raised || maxCollectAmount <= 0}
+                        title={!$connected ? "Connect your wallet to collect tokens" :
+                               !is_min_raised ? "Collection available after minimum goal is reached" :
+                               maxCollectAmount <= 0 ? "You have no temporal tokens to collect" :
+                               `You can collect up to ${maxCollectAmount.toFixed(4)} ${project.token_details.name}`}
                     >
                       Collect {project.token_details.name}
                     </Button>
+                    {#if $connected && maxCollectAmount <= 0 && is_min_raised}
+                        <div class="insufficient-funds-message">
+                            No temporal tokens available for collection
+                        </div>
+                    {/if}
                 </div>
             </div>
         {/if}
@@ -506,19 +622,36 @@
                         class="action-btn" 
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupWithdrawTokens}
-                        disabled={maxWithdrawTokenAmount <= 0}
+                        disabled={!$connected || maxWithdrawTokenAmount <= 0}
+                        title={!$connected ? "Connect your wallet to withdraw tokens" :
+                               maxWithdrawTokenAmount <= 0 ? "No tokens available for withdrawal" :
+                               `You can withdraw up to ${maxWithdrawTokenAmount.toFixed(4)} ${project.token_details.name}`}
                     >
                       Withdraw {project.token_details.name}
                     </Button>
+                    {#if $connected && maxWithdrawTokenAmount <= 0}
+                        <div class="insufficient-funds-message">
+                            No tokens available for withdrawal
+                        </div>
+                    {/if}
                     
                     <Button 
                         class="action-btn" 
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupWithdrawErg} 
-                        disabled={!is_min_raised || maxWithdrawErgAmount <= 0}
+                        disabled={!$connected || !is_min_raised || maxWithdrawErgAmount <= 0}
+                        title={!$connected ? "Connect your wallet to collect ERG" :
+                               !is_min_raised ? "ERG collection available after minimum goal is reached" :
+                               maxWithdrawErgAmount <= 0 ? "No ERG available for withdrawal" :
+                               `You can withdraw up to ${maxWithdrawErgAmount.toFixed(4)} ${platform.main_token}`}
                     >
                       Collect {platform.main_token}
                     </Button>
+                    {#if $connected && (!is_min_raised || maxWithdrawErgAmount <= 0)}
+                        <div class="insufficient-funds-message">
+                            {!is_min_raised ? 'Minimum funding goal not reached' : 'No ERG available for withdrawal'}
+                        </div>
+                    {/if}
                 </div>
             </div>
       {/if}
@@ -552,8 +685,16 @@
                                 {#if info_type_to_show === "buy"}
                                     <p>
                                         <strong>Exchange Rate:</strong> 
-                                        {(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '')} 
-                                        {platform.main_token}/{project.token_details.name}
+                                        {(() => {
+                                            const isERGBase = !project.base_token_id || project.base_token_id === "";
+                                            if (isERGBase) {
+                                                return (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '') + " " + platform.main_token + "/" + project.token_details.name;
+                                            } else {
+                                                const baseTokenDecimals = project.base_token_details?.decimals || 0;
+                                                const baseTokenName = project.base_token_details?.name || "tokens";
+                                                return (project.exchange_rate / Math.pow(10, baseTokenDecimals)).toFixed(10).replace(/\.?0+$/, '') + " " + baseTokenName + "/" + project.token_details.name;
+                                            }
+                                        })()}
                                     </p>
                                     <p>
                                         <strong>Available Balance:</strong> 
@@ -1113,5 +1254,16 @@
         .actions-form {
             padding: 1.5rem;
         }
+    }
+
+    .insufficient-funds-message {
+        margin-top: 8px;
+        padding: 8px 12px;
+        background-color: rgba(255, 99, 71, 0.1);
+        border: 1px solid rgba(255, 99, 71, 0.3);
+        border-radius: 4px;
+        color: #ff6347;
+        font-size: 0.875rem;
+        text-align: center;
     }
 </style>
