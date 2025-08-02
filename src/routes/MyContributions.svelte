@@ -4,6 +4,7 @@
     import ProjectList from "./ProjectList.svelte";
     import { get } from "svelte/store";
     import { user_tokens } from "$lib/common/store";
+    import { walletConnected } from '$lib/wallet/wallet-manager';
 
     let platform = new ErgoPlatform();
 
@@ -21,6 +22,14 @@
         return false;
     }
 };
+
+// Subscribe to wallet connection changes to clear token cache
+walletConnected.subscribe((isConnected) => {
+    if (!isConnected) {
+        // Clear tokens when wallet disconnects to ensure fresh data on next connection
+        user_tokens.set(new Map());
+    }
+});
 </script>
 <ProjectList filterProject={filter}>
     My Contributions

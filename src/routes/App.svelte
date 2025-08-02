@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { address, connected, balance, project_detail, project_token_amount, temporal_token_amount, timer } from "$lib/common/store";
+    import { address, connected, balance, network, project_detail, project_token_amount, temporal_token_amount, timer, user_tokens } from "$lib/common/store";
     import MyProjects from './MyProjects.svelte';
     import MyContributions from './MyContributions.svelte';
     import NewProject from './NewProject.svelte';
@@ -20,7 +20,9 @@
     import * as Alert from "$lib/components/ui/alert";
     import { get } from 'svelte/store';
     import { fade } from 'svelte/transition';
-
+    // New wallet system imports
+    import WalletButton from '$lib/components/WalletButton.svelte';
+    import { walletManager, walletConnected, walletAddress, walletBalance } from '$lib/wallet/wallet-manager';
 
     let activeTab = 'acquireTokens';
     let showCopyMessage = false;
@@ -31,7 +33,7 @@
 
     onMount(async () => {
         if (!browser) return;
-        await platform.connect();
+        // Removed old auto-connect logic - now handled by WalletManager
 
         const projectId = $page.url.searchParams.get('project');
         const platformId = $page.url.searchParams.get('chain');
@@ -41,11 +43,30 @@
         }
     });
 
-    connected.subscribe(async (isConnected) => {
-        console.log("Connected to the network.");
+    // Subscribe to new wallet system instead of old connected store
+    walletConnected.subscribe(async (isConnected) => {
+        console.log("Wallet connection state changed:", isConnected);
         if (isConnected) {
+            // Sync old stores with new wallet system for backward compatibility
+            const walletAddr = get(walletAddress);
+            const walletBal = get(walletBalance);
+            
+            address.set(walletAddr);
+            connected.set(true);
+            balance.set(Number(walletBal.nanoErgs));
+            network.set("ergo-mainnet"); // Set appropriate network
+            
             // Update the balance information whenever connection state changes
             await updateWalletInfo();
+        } else {
+            // Clear old stores when disconnected
+            address.set(null);
+            connected.set(false);
+            balance.set(null);
+            network.set(null);
+            
+            // Clear cached token data to ensure fresh data on next connection
+            user_tokens.set(new Map());
         }
     });
 
@@ -79,9 +100,8 @@
     }
 
     function disconnect() {
-        if ($address) {
-            
-        }
+        // Use the new wallet manager for disconnection
+        walletManager.disconnectWallet();
     }
 
     // Close the modal if the user clicks outside of it
@@ -187,34 +207,19 @@
 
         <!-- User Info and Theme -->
         <div class="user-section">
-            {#if $address}
-                <div class="user-info">
-                    <div class="badge-container">
-                        <Badge style="background-color: orange; color: black; font-size: 0.9em;">
-                            {ergInErgs} ERG
-                        </Badge>
-                        <!-- svelte-ignore a11y-click-events-have-key-events -->
-                        <!-- svelte-ignore a11y-no-static-element-interactions -->
-                        <a on:click={() => showWalletInfo = true}>
-                            <Badge style="background-color: orange; color: black; font-size: 0.9em;">
-                                {$address.slice(0, 6) + '...' + $address.slice(-4)}
-                            </Badge>
-                        </a>
-                    </div>
-                    <div class="badge-container">
-                        {#if $temporal_token_amount}
-                            <Badge style="background-color: #ffc04d; color: black; font-size: 0.9em;">{$temporal_token_amount} APT</Badge>
-                        {/if}
-                        {#if $project_token_amount}
-                            <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount}</Badge>
-                        {/if}
-                    </div>
+            <!-- New RainbowKit-style Wallet Button -->
+            <WalletButton />
+            
+            <!-- Additional project tokens display -->
+            {#if $walletConnected}
+                <div class="token-badges">
+                    {#if $temporal_token_amount}
+                        <Badge style="background-color: #ffc04d; color: black; font-size: 0.9em;">{$temporal_token_amount} APT</Badge>
+                    {/if}
+                    {#if $project_token_amount}
+                        <Badge style="background-color: orange; color: black; font-size: 0.9em;">{$project_token_amount}</Badge>
+                    {/if}
                 </div>
-                
-                <!-- Wallet Button for smaller screens -->
-                <button class="wallet-button" on:click={() => showWalletInfo = true} aria-label="Wallet info">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12c0 1.1.9 2 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
-                </button>
             {/if}
             
             <div class="theme-toggle">
@@ -259,48 +264,6 @@
             </li>
         </ul>
     </div>
-{/if}
-
-<!-- svelte-ignore a11y-no-static-element-interactions -->
-{#if $address}
-    <Dialog.Root bind:open={showWalletInfo}>
-    <Dialog.Content class="sm:max-w-[425px] md:max-w-[600px] lg:max-w-[800px]">
-        <Dialog.Header>
-        <Dialog.Title>Wallet Info</Dialog.Title>
-        </Dialog.Header>
-        <div class="py-4">
-        <!-- svelte-ignore a11y-missing-attribute -->
-        <a>Address: {$address.slice(0, 19) + '...' + $address.slice(-8)}</a>
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <!-- svelte-ignore a11y-missing-attribute -->
-        <a on:click={copyToClipboard}>🔗</a>
-        <a href="{web_explorer_uri_addr + $address}" target="_blank">🔍</a>
-    
-        {#if showCopyMessage}
-        <Alert.Root>
-            <Alert.Description>
-                Wallet address copied to clipboard!
-            </Alert.Description>
-        </Alert.Root>
-        {/if}
-    
-        <p>Total balance: {ergInErgs} {platform.main_token}</p>
-
-        <p class="text-muted-foreground text-sm" style="margin-top: 2rem;">
-        To disconnect, please delete this webpage from the connected dApps settings in the Nautilus extension. Then reload the page.
-        </p>
-    
-        <Dialog.Footer>
-        <Button
-        disabled
-        class={buttonVariants({ variant: "outline" })}
-        on:click={disconnect}>
-            Disconnect
-        </Button>
-        </Dialog.Footer>
-        </div>
-    </Dialog.Content>
-    </Dialog.Root>
 {/if}
 
 {#if $project_detail === null}
@@ -493,39 +456,23 @@
         flex-shrink: 0;
     }
 
-    .user-info {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
+    /* Removed unused .user-info and .badge-container styles */
 
-    .badge-container {
+    /* Token badges for new wallet system */
+    .token-badges {
         display: flex;
         gap: 0.5rem;
         flex-wrap: wrap;
+        align-items: center;
     }
 
-    .wallet-button {
-        display: none;
-        background: rgba(255, 165, 0, 0.15);
-        border: none;
-        color: orange;
-        border-radius: 8px;
-        padding: 0.4rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .wallet-button:hover {
-        background: rgba(255, 165, 0, 0.3);
-        box-shadow: 0 0 10px rgba(255, 165, 0, 0.2);
-    }
-
-    @media (max-width: 1024px) {
-        .wallet-button {
-            display: flex;
+    @media (max-width: 768px) {
+        .token-badges {
+            display: none; /* Hide on mobile to save space */
         }
     }
+
+    /* Removed unused .wallet-button styles - now using WalletButton component */
 
     /* Mobile Menu Button */
     .mobile-menu-button {
@@ -679,9 +626,7 @@
             gap: 0.5rem;
         }
         
-        .user-info {
-            display: none;
-        }
+        /* Removed unused .user-info selector */
         
         .user-section {
             padding: 0.25rem;
@@ -709,12 +654,7 @@
             align-items: center;
         }
         
-        .wallet-button {
-            background: rgba(255, 165, 0, 0.25);
-            padding: 0.35rem;
-            margin-right: 0.5rem;
-            display: flex;
-        }
+        /* Removed unused .wallet-button selector */
         
         /* Hide theme toggle on smaller screens */
         .theme-toggle {
@@ -741,7 +681,7 @@
     }
 
     /* Added better wrapping for the user section elements */
-    .user-section, .theme-toggle, .wallet-button {
+    .user-section, .theme-toggle {
         display: flex;
         align-items: center;
     }
