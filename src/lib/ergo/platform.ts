@@ -41,8 +41,17 @@ export class ErgoPlatform implements Platform {
 
     async get_current_height(): Promise<number> {
         try {
-            // If connected to the Ergo wallet, get the current height directly
-            if (typeof window !== 'undefined' && window.ergo) {
+            // Check if wallet manager is available and connected
+            if (walletManager && walletManager.isConnected()) {
+                // Use wallet adapter's getCurrentHeight method which handles SafeW correctly
+                const adapter = walletManager.getConnectedWallet();
+                if (adapter && adapter.getCurrentHeight) {
+                    return await adapter.getCurrentHeight();
+                }
+            }
+            
+            // Try direct window.ergo if available (for legacy compatibility with Nautilus)
+            if (typeof window !== 'undefined' && window.ergo && window.ergo.get_current_height) {
                 return await window.ergo.get_current_height();
             }
         } catch (error) {

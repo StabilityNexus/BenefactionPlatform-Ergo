@@ -5,10 +5,13 @@
     import { projects } from '$lib/common/store';
     import * as Alert from "$lib/components/ui/alert";
     import * as Dialog from "$lib/components/ui/dialog";
-    import { Loader2, Search } from 'lucide-svelte';
+    import { Loader2, Search, Filter } from 'lucide-svelte';
     import { onMount } from 'svelte';
     import { get } from 'svelte/store';
     import { Input } from "$lib/components/ui/input";
+    import { Button } from "$lib/components/ui/button";
+    import { getFilteredProjects, type FilterOptions } from '$lib/ergo/dataAccess';
+    import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
 
     let platform = new ErgoPlatform();
     let listedProjects: Map<string, Project> | null = null;
@@ -16,6 +19,8 @@
     let isLoading: boolean = true;
     let searchQuery: string = "";
     let offset: number = 0;
+    let sortBy: 'newest' | 'oldest' | 'amount' | 'name' = 'newest';
+    let filterOpen = false;
 
     export let filterProject: ((project: any) => Promise<boolean>) | null = null;
 
@@ -42,7 +47,20 @@
         }
 
         const sortedProjectsArray = Array.from(filteredProjectsMap.entries()).sort(
-            ([, projectA], [, projectB]) => projectB.box.creationHeight - projectA.box.creationHeight
+            ([, projectA], [, projectB]) => {
+                switch (sortBy) {
+                    case 'newest':
+                        return projectB.box.creationHeight - projectA.box.creationHeight;
+                    case 'oldest':
+                        return projectA.box.creationHeight - projectB.box.creationHeight;
+                    case 'amount':
+                        return projectB.box.value - projectA.box.value;
+                    case 'name':
+                        return projectA.content.title.localeCompare(projectB.content.title);
+                    default:
+                        return 0;
+                }
+            }
         );
 
         return new Map(sortedProjectsArray);
@@ -52,15 +70,31 @@
         try {
             isLoading = true;
             
-            let projectsInStore = get(projects);
+            // Use the new data access layer with caching and indexing
+            const filterOptions: FilterOptions = {
+                searchQuery: searchQuery || undefined,
+                sortBy: sortBy
+            };
             
-            if (projectsInStore.size === 0) {
-                const fetchedProjects = await platform.fetch(offset);
-                projects.set(fetchedProjects);
-                projectsInStore = fetchedProjects;
+            let filteredProjectsMap = await getFilteredProjects(filterOptions);
+            
+            // Apply any additional custom filter if provided
+            if (filterProject) {
+                const customFiltered = new Map<string, Project>();
+                for (const [id, project] of filteredProjectsMap.entries()) {
+                    if (await filterProject(project)) {
+                        customFiltered.set(id, project);
+                    }
+                }
+                filteredProjectsMap = customFiltered;
             }
             
-            listedProjects = await filterProjects(projectsInStore);
+            listedProjects = filteredProjectsMap;
+            
+            // Update store if needed
+            if (get(projects).size === 0 && filteredProjectsMap.size > 0) {
+                projects.set(filteredProjectsMap);
+            }
             
         } catch (error: any) {
             errorMessage = error.message || "Error occurred while fetching projects";
@@ -69,7 +103,7 @@
         }
     }
 
-    $: if (searchQuery !== undefined) {
+    $: if (searchQuery !== undefined || sortBy) {
         loadProjects();
     }
 
@@ -82,14 +116,44 @@
     <h2 class="project-title"><slot></slot></h2>
 
     <div class="search-container mb-6">
-        <div class="relative w-full max-w-md mx-auto">
-            <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-500/70 h-4 w-4" />
-            <Input
-                type="text"
-                placeholder="Search projects..."
-                bind:value={searchQuery}
-                class="pl-10 w-full bg-background/80 backdrop-blur-lg border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1 rounded-lg transition-all duration-200"
-            />
+        <div class="relative w-full max-w-md mx-auto flex gap-2">
+            <div class="relative flex-1">
+                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-500/70 h-4 w-4" />
+                <Input
+                    type="text"
+                    placeholder="Search projects..."
+                    bind:value={searchQuery}
+                    class="pl-10 w-full bg-background/80 backdrop-blur-lg border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1 rounded-lg transition-all duration-200"
+                />
+            </div>
+            <DropdownMenu.Root bind:open={filterOpen}>
+                <DropdownMenu.Trigger asChild let:builder>
+                    <Button 
+                        builders={[builder]} 
+                        variant="outline" 
+                        size="icon"
+                        class="border-orange-500/20 hover:border-orange-500/40 hover:bg-orange-500/10"
+                    >
+                        <Filter class="h-4 w-4 text-orange-500/70" />
+                    </Button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content class="w-56" align="end">
+                    <DropdownMenu.Label>Sort By</DropdownMenu.Label>
+                    <DropdownMenu.Separator />
+                    <DropdownMenu.Item class={sortBy === 'newest' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'newest'}>
+                        {sortBy === 'newest' ? '✓ ' : ''}Newest First
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item class={sortBy === 'oldest' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'oldest'}>
+                        {sortBy === 'oldest' ? '✓ ' : ''}Oldest First
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item class={sortBy === 'amount' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'amount'}>
+                        {sortBy === 'amount' ? '✓ ' : ''}Highest Value
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item class={sortBy === 'name' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'name'}>
+                        {sortBy === 'name' ? '✓ ' : ''}Alphabetical
+                    </DropdownMenu.Item>
+                </DropdownMenu.Content>
+            </DropdownMenu.Root>
         </div>
     </div>
 

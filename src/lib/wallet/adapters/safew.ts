@@ -153,7 +153,20 @@ export class SafewWalletAdapter extends BaseWalletAdapter {
       if (!(await this.isConnected())) {
         throw new Error('Wallet not connected');
       }
-      return await window.ergo!.get_current_height();
+      
+      // SafeW doesn't expose get_current_height() method
+      // Fetch from Ergo Explorer API instead
+      const response = await fetch('https://api.ergoplatform.com/api/v1/blocks?limit=1&offset=0');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch current height: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      if (data.items && data.items.length > 0) {
+        return data.items[0].height;
+      }
+      
+      throw new Error('Could not determine current blockchain height');
     } catch (error) {
       this.handleError(error, 'getCurrentHeight');
     }

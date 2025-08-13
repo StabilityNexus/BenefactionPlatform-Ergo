@@ -13,6 +13,7 @@ import { type contract_version, get_address, mint_contract_address } from '../co
 import { type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
+import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 
 async function get_token_data(token_id: string): Promise<{amount: number, decimals: number}> {
     let token_fetch = await fetch_token_details(token_id);
@@ -40,10 +41,10 @@ function playBeep(frequency = 1000, duration = 3000) {
 
 async function mint_tx(title: string, constants: ConstantContent, version: contract_version, amount: number, decimals: number): Promise<Box> {
     // Get the wallet address (will be the project address)
-    const walletPk = await ergo.get_change_address();
+    const walletPk = await getChangeAddress();
 
     // Get the UTXOs from the current wallet to use as inputs
-    const inputs = await ergo.get_utxos();
+    const inputs = await window.ergo!.get_utxos();
 
     let outputs: OutputBuilder[] = [
         new OutputBuilder(
@@ -59,7 +60,7 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
     ]
 
     // Building the unsigned transaction
-    const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
+    const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
         .from(inputs)                          // Inputs coming from the user's UTXOs
         .to(outputs)                           // Outputs (the new project box)
         .sendChangeTo(walletPk)                // Send change back to the wallet
@@ -68,10 +69,10 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
         .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
 
     // Sign the transaction
-    const signedTransaction = await ergo.sign_tx(unsignedTransaction);
+    const signedTransaction = await signTransaction(unsignedTransaction);
 
     // Send the transaction to the Ergo network
-    const transactionId = await ergo.submit_tx(signedTransaction);
+    const transactionId = await submitTransaction(signedTransaction);
 
     console.log("Mint tx id: "+transactionId);
 
@@ -100,7 +101,7 @@ export async function submit_project(
 ): Promise<string|null> {
 
     // Get the wallet address (will be the project address)
-    const walletPk = await ergo.get_change_address();
+    const walletPk = await getChangeAddress();
 
     let addressContent: ConstantContent = {
         "owner": walletPk,
@@ -122,7 +123,7 @@ export async function submit_project(
     if (project_id === null) { alert("Token minting failed!"); return null; }
 
     // Get the UTXOs from the current wallet to use as inputs
-    const inputs = [mint_box, ...await ergo.get_utxos()];
+    const inputs = [mint_box, ...await window.ergo!.get_utxos()];
 
     // Building the project output
     let outputBuilder = new OutputBuilder(
@@ -164,7 +165,7 @@ export async function submit_project(
     let outputs: OutputBuilder[] = [outputBuilder];
 
     // Building the unsigned transaction
-    const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
+    const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
         .from(inputs)                          // Inputs coming from the user's UTXOs
         .to(outputs)                           // Outputs (the new project box)
         .sendChangeTo(walletPk)                // Send change back to the wallet
@@ -179,10 +180,10 @@ export async function submit_project(
     }
 
     // Sign the transaction
-    const signedTransaction = await ergo.sign_tx(unsignedTransaction);
+    const signedTransaction = await signTransaction(unsignedTransaction);
 
     // Send the transaction to the Ergo network
-    const transactionId = await ergo.submit_tx(signedTransaction);
+    const transactionId = await submitTransaction(signedTransaction);
 
     console.log("Transaction id -> ", transactionId);
     return transactionId;

@@ -10,6 +10,7 @@ import {
 import { SString } from '../utils';
 import { type Project } from '../../common/project';
 import { get_address } from '../contract';
+import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 import { SColl } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
@@ -21,10 +22,10 @@ export async function temp_exchange(
     token_amount = Math.floor(token_amount * Math.pow(10, project.token_details.decimals));
 
     // Get the wallet address (will be the user address)
-    const walletPk = await ergo.get_change_address();
+    const walletPk = await getChangeAddress();
     
     // Get the UTXOs from the current wallet to use as inputs
-    const inputs = [project.box, ...(await ergo.get_utxos())];
+    const inputs = [project.box, ...(await window.ergo!.get_utxos())];
 
     // Building the project output
     let contractOutput = new OutputBuilder(
@@ -99,7 +100,7 @@ export async function temp_exchange(
     let outputs = [contractOutput, walletOutput];
 
     // Building the unsigned transaction
-    const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
+    const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
         .from(inputs)                          // Inputs coming from the user's UTXOs
         .to(outputs)                           // Outputs (the new project box)
         .sendChangeTo(walletPk)                // Send change back to the wallet
@@ -109,10 +110,10 @@ export async function temp_exchange(
     
     try {
         // Sign the transaction
-        const signedTransaction = await ergo.sign_tx(unsignedTransaction);
+        const signedTransaction = await signTransaction(unsignedTransaction);
 
         // Send the transaction to the Ergo network
-        const transactionId = await ergo.submit_tx(signedTransaction);
+        const transactionId = await submitTransaction(signedTransaction);
 
         console.log("Transaction id -> ", transactionId);
         return transactionId;

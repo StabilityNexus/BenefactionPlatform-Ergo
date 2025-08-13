@@ -9,6 +9,7 @@ import { hexToUtf8 } from "./utils";
 import { explorer_uri } from "./envs";
 import { type contract_version, get_template_hash } from "./contract";
 
+
 const expectedSigmaTypes = {
     R4: 'SInt',
     R5: 'SLong',
@@ -126,7 +127,8 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
     }
 }
 
-export async function fetch_projects(offset: number = 0): Promise<Map<string, Project>> {
+// Internal function for fetching projects from blockchain
+async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<string, Project>> {
     try {
         let projects = new Map<string, Project>();
         let registers = {};
@@ -271,4 +273,9 @@ export async function fetch_projects(offset: number = 0): Promise<Map<string, Pr
         console.error('Error while making the POST request:', error);
         return new Map();
     }
+}
+
+// Direct fetch without caching
+export async function fetch_projects(offset: number = 0): Promise<Map<string, Project>> {
+    return await fetchProjectsFromBlockchain(offset);
 }

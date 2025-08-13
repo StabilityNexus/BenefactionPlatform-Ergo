@@ -357,6 +357,14 @@ export class WalletManager {
   closeModal() {
     walletStore.setModalOpen(false);
   }
+
+  isConnected(): boolean {
+    return this.currentAdapter !== null;
+  }
+
+  getConnectedWallet(): ErgoWalletAdapter | null {
+    return this.currentAdapter;
+  }
 }
 
 // Create singleton instance

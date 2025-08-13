@@ -24,6 +24,7 @@
     import WalletButton from '$lib/components/WalletButton.svelte';
     import { walletManager, walletConnected, walletAddress, walletBalance } from '$lib/wallet/wallet-manager';
 
+
     let activeTab = 'acquireTokens';
     let showCopyMessage = false;
     let showWalletInfo = false;
@@ -282,6 +283,8 @@
 {:else}
     <ProjectDetails />
 {/if}
+
+
 
 <div class="bottom-left">
     <a class="discord-button" href="https://discord.com/channels/995968619034984528/1283799987582406737" target="_blank">
