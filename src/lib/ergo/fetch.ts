@@ -8,7 +8,7 @@ import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
 import { explorer_uri } from "./envs";
 import { type contract_version, get_template_hash } from "./contract";
-
+import { projectsCache, tokenDetailsCache } from "./cache";
 
 const expectedSigmaTypes = {
     R4: 'SInt',
@@ -39,38 +39,47 @@ function hasValidSigmaTypes(additionalRegisters: any, version: contract_version 
 }
 
 export async function fetch_token_details(id: string): Promise<TokenEIP4> {
-    const url = explorer_uri+'/api/v1/tokens/'+id;
-        const response = await fetch(url, {
-            method: 'GET',
-        });
+    // Use cache for token details
+    const cacheKey = `token_${id}`;
+    
+    return await tokenDetailsCache.get(
+        cacheKey,
+        async () => {
+            const url = explorer_uri+'/api/v1/tokens/'+id;
+            const response = await fetch(url, {
+                method: 'GET',
+            });
 
-        try{
-            if (response.ok) {
-                let json_data = await response.json();
-                if (json_data['type'] == 'EIP-004') {
-                    return {
-                        "name": json_data['name'],
-                        "description": json_data['description'],
-                        "decimals": json_data['decimals'],
-                        "emissionAmount": json_data['emissionAmount']
+            try{
+                if (response.ok) {
+                    let json_data = await response.json();
+                    if (json_data['type'] == 'EIP-004') {
+                        return {
+                            "name": json_data['name'],
+                            "description": json_data['description'],
+                            "decimals": json_data['decimals'],
+                            "emissionAmount": json_data['emissionAmount']
+                        }
+                    }
+                    else if (json_data['type'] == null) {
+                        return {
+                            "name": id.slice(0,6),
+                            "description": "",
+                            "decimals": 0,
+                            "emissionAmount": json_data['emissionAmount']
+                        }
                     }
                 }
-                else if (json_data['type'] == null) {
-                    return {
-                        "name": id.slice(0,6),
-                        "description": "",
-                        "decimals": 0,
-                        "emissionAmount": json_data['emissionAmount']
-                    }
-                }
-            }
-        } catch {}
-        return {
-            'name': 'token',
-            'description': "",
-            'decimals': 0,
-            'emissionAmount': null
-        };
+            } catch {}
+            return {
+                'name': 'token',
+                'description': "",
+                'decimals': 0,
+                'emissionAmount': null
+            };
+        },
+        30 * 60 * 1000 // 30 minutes TTL for token details
+    );
 }
 
 export async function wait_until_confirmation(tx_id: string): Promise<Box | null> {
@@ -275,7 +284,21 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
     }
 }
 
-// Direct fetch without caching
+// Fetch with caching enabled
 export async function fetch_projects(offset: number = 0): Promise<Map<string, Project>> {
-    return await fetchProjectsFromBlockchain(offset);
+    // Use cache with the offset as part of the key
+    const cacheKey = `projects_offset_${offset}`;
+    
+    return await projectsCache.get(
+        cacheKey,
+        () => fetchProjectsFromBlockchain(offset),
+        5 * 60 * 1000 // 5 minutes TTL
+    );
+}
+
+// Force refresh projects (bypasses cache)
+export async function fetch_projects_fresh(offset: number = 0): Promise<Map<string, Project>> {
+    const cacheKey = `projects_offset_${offset}`;
+    projectsCache.invalidate(cacheKey);
+    return await fetch_projects(offset);
 }

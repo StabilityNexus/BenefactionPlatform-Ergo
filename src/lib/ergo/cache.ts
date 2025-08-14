@@ -179,6 +179,11 @@ export const walletBalanceCache = new BlockchainCache<any>({
     backgroundRefresh: false
 });
 
+export const tokenDetailsCache = new BlockchainCache<any>({
+    ttl: 30 * 60 * 1000, // 30 minutes for token details (they rarely change)
+    backgroundRefresh: false
+});
+
 // Global cache invalidation for wallet address changes
 export function invalidateUserSpecificCaches(): void {
     userProjectsCache.invalidateAll();
@@ -193,6 +198,7 @@ export function getCacheStats(): Record<string, any> {
         projects: projectsCache.getStats(),
         userProjects: userProjectsCache.getStats(),
         contributions: contributionsCache.getStats(),
-        walletBalance: walletBalanceCache.getStats()
+        walletBalance: walletBalanceCache.getStats(),
+        tokenDetails: tokenDetailsCache.getStats()
     };
 }
