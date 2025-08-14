@@ -84,6 +84,7 @@ const walletConnectors: WalletConnector[] = [
 export class WalletManager {
   private currentAdapter: ErgoWalletAdapter | null = null;
   private balanceUpdateInterval: number | null = null;
+  private addressPollInterval: number | null = null;
 
   constructor() {
     this.initializeWallets();
@@ -286,6 +287,33 @@ export class WalletManager {
     }
   }
 
+  private async checkAddressChange(): Promise<void> {
+    const state = get(walletStore);
+    if (!state.connectedWallet || !this.currentAdapter) return;
+
+    try {
+      const newAddress = await this.currentAdapter.getChangeAddress();
+      if (newAddress && newAddress !== state.connectedWallet.address) {
+        let addresses: string[] = state.connectedWallet.addresses;
+        try {
+          addresses = await this.currentAdapter.getAddresses();
+        } catch (_err) {
+          // keep previous addresses if fetching fails
+        }
+        walletStore.update(s => ({
+          ...s,
+          connectedWallet: s.connectedWallet ? {
+            ...s.connectedWallet,
+            address: newAddress,
+            addresses
+          } : null
+        }));
+      }
+    } catch (_err) {
+      // ignore transient errors
+    }
+  }
+
   private setupWalletEventListeners(adapter: ErgoWalletAdapter) {
     adapter.on('disconnect', () => {
       this.disconnectWallet();
@@ -317,13 +345,22 @@ export class WalletManager {
     this.stopBalanceUpdates();
     this.balanceUpdateInterval = setInterval(() => {
       this.refreshBalance();
-    }, 30000); // Update every 30 seconds
+    }, 30000); // Update balance every 30 seconds
+
+    // Poll for address changes frequently to update UI promptly
+    this.addressPollInterval = setInterval(() => {
+      void this.checkAddressChange();
+    }, 3000);
   }
 
   private stopBalanceUpdates() {
     if (this.balanceUpdateInterval) {
       clearInterval(this.balanceUpdateInterval);
       this.balanceUpdateInterval = null;
+    }
+    if (this.addressPollInterval) {
+      clearInterval(this.addressPollInterval);
+      this.addressPollInterval = null;
     }
   }
 

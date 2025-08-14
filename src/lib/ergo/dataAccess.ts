@@ -6,6 +6,7 @@
 import { fetch_projects } from './fetch';
 import { projectIndex } from './memoryIndex';
 import type { Project } from '../common/project';
+import { projectsCache, userProjectsCache, contributionsCache } from './cache';
 
 export interface FilterOptions {
     searchQuery?: string;

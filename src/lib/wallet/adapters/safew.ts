@@ -6,9 +6,9 @@ export class SafewWalletAdapter extends BaseWalletAdapter {
   name = 'SAFEW';
   icon = '/wallet-icons/safew.svg';
   downloadUrls: WalletDownloadUrls = {
-    chrome: 'https://chrome.google.com/webstore/detail/safew/jkcclpkbediabkjkoeghfimdcjnggpan',
+    chrome: 'https://chromewebstore.google.com/detail/safew-simple-and-fast-erg/fmpbldieijjehhalgjblbpgjmijencll',
     firefox: 'https://addons.mozilla.org/en-US/firefox/addon/safew/',
-    browserExtension: 'https://github.com/ThierryM1212/SAFEW'
+    browserExtension: 'https://github.com/ThierryM1212/SAFEW/releases/latest'
   };
 
   async connect(): Promise<boolean> {
