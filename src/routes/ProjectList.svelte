@@ -17,10 +17,12 @@
     let listedProjects: Map<string, Project> | null = null;
     let errorMessage: string | null = null;
     let isLoading: boolean = true;
+    let isRefreshing: boolean = false;
     let searchQuery: string = "";
     let offset: number = 0;
     let sortBy: 'newest' | 'oldest' | 'amount' | 'name' = 'newest';
     let filterOpen = false;
+    let debounceTimer: NodeJS.Timeout;
 
     export let filterProject: ((project: any) => Promise<boolean>) | null = null;
 
@@ -66,9 +68,14 @@
         return new Map(sortedProjectsArray);
     }
 
-    async function loadProjects() {
+    async function loadProjects(showLoading: boolean = true) {
         try {
-            isLoading = true;
+            // Only show loading on initial load, not on refresh
+            if (showLoading && !listedProjects) {
+                isLoading = true;
+            } else {
+                isRefreshing = true;
+            }
             
             // Use the new data access layer with caching and indexing
             const filterOptions: FilterOptions = {
@@ -100,15 +107,38 @@
             errorMessage = error.message || "Error occurred while fetching projects";
         } finally {
             isLoading = false;
+            isRefreshing = false;
         }
     }
 
-    $: if (searchQuery !== undefined || sortBy) {
-        loadProjects();
+    // Debounce search to avoid multiple API calls
+    function handleSearchChange() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            loadProjects(false);
+        }, 300);
     }
 
-    onMount(() => {
-        loadProjects();
+    $: if (searchQuery !== undefined) {
+        handleSearchChange();
+    }
+
+    $: if (sortBy) {
+        loadProjects(false);
+    }
+
+    onMount(async () => {
+        // Try to show cached data immediately
+        const cachedProjects = get(projects);
+        if (cachedProjects && cachedProjects.size > 0) {
+            listedProjects = cachedProjects;
+            isLoading = false;
+            // Load fresh data in background
+            loadProjects(false);
+        } else {
+            // No cache, load with loading indicator
+            await loadProjects(true);
+        }
     });
 </script>
 
@@ -163,6 +193,13 @@
                 {errorMessage}
             </Alert.Description>
         </Alert.Root>
+    {/if}
+
+    {#if isRefreshing && listedProjects}
+        <div class="refresh-indicator">
+            <Loader2 class="h-4 w-4 animate-spin text-orange-500" />
+            <span class="text-sm text-orange-500">Updating...</span>
+        </div>
     {/if}
 
     {#if listedProjects && Array.from(listedProjects).length > 0 && !isLoading}
@@ -266,6 +303,20 @@
     .loading-placeholder {
         height: 70vh;
         width: 100%;
+    }
+
+    .refresh-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 165, 0, 0.1);
+        border-radius: 20px;
+        margin-bottom: 1rem;
+        width: fit-content;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     @media (max-width: 768px) {

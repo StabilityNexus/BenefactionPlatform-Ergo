@@ -173,7 +173,6 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
 
                 if (response.ok) {
                     let json_data = await response.json();
-                    console.log(json_data, get_template_hash(version))
                     if (json_data.items.length == 0) {
                         moreDataAvailable = false;
                         break;

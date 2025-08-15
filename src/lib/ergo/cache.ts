@@ -129,6 +129,34 @@ export class BlockchainCache<T> {
     }
 
     /**
+     * Get cached data synchronously (no fetch)
+     */
+    getSync(key: string): T | null {
+        const cached = this.cache.get(key);
+        const now = Date.now();
+        
+        if (cached && now - cached.timestamp < cached.ttl) {
+            return cached.data;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Check if cache entry is stale (past 80% of TTL)
+     */
+    isStale(key: string): boolean {
+        const cached = this.cache.get(key);
+        if (!cached) return true;
+        
+        const now = Date.now();
+        const age = now - cached.timestamp;
+        
+        // Consider stale if past 80% of TTL
+        return age > cached.ttl * 0.8;
+    }
+
+    /**
      * Schedule background refresh
      */
     private scheduleBackgroundRefresh(key: string, fetchFn: () => Promise<T>, ttl: number): void {

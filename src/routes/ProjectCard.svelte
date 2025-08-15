@@ -134,8 +134,8 @@
 
     <!-- Status Message Sticky Bottom -->
     <div class="absolute bottom-16 left-0 w-full px-4">
-        <div class={`${statusColor} p-2 rounded-md text-sm transition-all shadow-sm`}>
-            {statusMessage}
+        <div class={`${statusColor} p-2 rounded-md text-sm transition-all shadow-sm break-words`}>
+            <p class="leading-relaxed">{statusMessage}</p>
         </div>
     </div>
 
@@ -204,6 +204,13 @@
 
     .scrollable-description::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 165, 0, 0.5);
+    }
+
+    /* Ensure proper text wrapping for status messages */
+    .break-words {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
     }
 
     /* Balance Indicator Badge Styles */

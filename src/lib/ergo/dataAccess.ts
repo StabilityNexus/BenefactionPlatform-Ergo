@@ -21,8 +21,28 @@ export interface FilterOptions {
  * Get filtered projects with indexing
  */
 export async function getFilteredProjects(options: FilterOptions = {}): Promise<Map<string, Project>> {
-    // Fetch projects directly from blockchain
-    const projects = await fetch_projects(0);
+    // First try to get from cache immediately
+    const cacheKey = `projects_offset_0`;
+    const cachedProjects = projectsCache.getSync(cacheKey);
+    
+    let projects: Map<string, Project>;
+    
+    if (cachedProjects && cachedProjects.size > 0) {
+        // Use cached data immediately
+        projects = cachedProjects;
+        
+        // Trigger background refresh if cache is stale
+        if (projectsCache.isStale(cacheKey)) {
+            fetch_projects(0).then(freshProjects => {
+                if (freshProjects.size > 0) {
+                    projectIndex.buildIndex(freshProjects);
+                }
+            }).catch(console.error);
+        }
+    } else {
+        // No cache, fetch synchronously
+        projects = await fetch_projects(0);
+    }
     
     // Build or update the index
     if (projectIndex.size() === 0 || projectIndex.size() !== projects.size) {
