@@ -1,4 +1,3 @@
-{
 
 // ===== Contract Description ===== //
 // Name: Bene Fundraising Platform Contract (Multi-Token Support)
@@ -74,36 +73,7 @@
 
   }
 
-  // Helper function to find token amount in a token collection
-  def findTokenAmount(tokens: Coll[(Coll[Byte], Long)], targetTokenId: Coll[Byte]): Long = {
-    def loop(index: Int): Long = {
-      if (index >= tokens.size) {
-        0L
-      } else {
-        if (tokens(index)._1 == targetTokenId) {
-          tokens(index)._2
-        } else {
-          loop(index + 1)
-        }
-      }
-    }
-    loop(0)
-  }
-// Find base token index in a token collection (if needed)
-  def findBaseTokenIndex(tokens: Coll[(Coll[Byte], Long)], targetTokenId: Coll[Byte]): Int = {
-    def loop(index: Int): Int = {
-      if (index >= tokens.size) {
-        -1 // Not found
-      } else {
-        if (tokens(index)._1 == targetTokenId) {
-          index
-        } else {
-          loop(index + 1)
-        }
-      }
-    }
-    loop(0)
-  }
+
 
   val selfId = SELF.tokens(0)._1
   val selfAPT = SELF.tokens(0)._2
@@ -124,7 +94,7 @@
   val baseTokenId = if (selfBaseTokenIdLen == 0L) {
     Coll[Byte]() // Empty collection for ERG
   } else {
-    fromBase16("$base_token_id") // Base token ID from compile-time constant
+    fromBase16("${base_token_id}") // Base token ID from compile-time constant
   }
   val isERGBase = baseTokenId.size == 0
 
@@ -133,7 +103,14 @@
     if (isERGBase) {
       box.value
     } else {
-      findTokenAmount(box.tokens, baseTokenId)
+      val matchingTokens = box.tokens.filter { (token: (Coll[Byte], Long)) => 
+        token._1 == baseTokenId
+      }
+      if (matchingTokens.size > 0) {
+        matchingTokens(0)._2
+      } else {
+        0L
+      }
     }
   }
 
@@ -191,7 +168,7 @@
   val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2)
   val mantainValue = selfValue == OUTPUTS(0).value
 
-  val projectAddr: SigmaProp = PK("$owner_addr")
+  val projectAddr: SigmaProp = PK("${owner_addr}")
   
   val isToProjectAddress = {
     val propAndBox: (SigmaProp, Box) = (projectAddr, OUTPUTS(1))
@@ -365,43 +342,69 @@
     // Anyone can withdraw the funds to the project address.
     
     val minnerFeeAmount = 1100000  // Pay minner fee with the extracted value allows to withdraw when project address does not have ergs.
-    val devFee = $dev_fee
+    val devFee = `+dev_fee+`
     
-    // For ERG base token, extract ERG value. For other tokens, maintain ERG value and extract base tokens.
-    val extractedValue: Long = if (isERGBase) {
+    // Calculate extracted amounts based on base token type
+    val extractedBaseAmount: Long = if (isERGBase) {
+      // For ERG base token, extract ERG value
       if (selfScript == OUTPUTS(0).propositionBytes) { selfValue - OUTPUTS(0).value } else { selfValue }
     } else {
-      // For non-ERG base tokens, we need to calculate the equivalent ERG value for fees
-      // This is a simplified approach - in practice, you might want to use an oracle or DEX price
-      0L // For now, assume no ERG fees for non-ERG base tokens
+      // For non-ERG base tokens, extract the token amount
+      val selfBaseTokens = getBaseTokenAmount(SELF)
+      val outputBaseTokens = if (selfScript == OUTPUTS(0).propositionBytes) getBaseTokenAmount(OUTPUTS(0)) else 0L
+      selfBaseTokens - outputBaseTokens
     }
     
-    val devFeeAmount = if (isERGBase) extractedValue * devFee / 100 else 0L
-    val projectAmount = if (isERGBase) extractedValue - devFeeAmount - minnerFeeAmount else 0L
+    // Calculate dev fee and project amounts
+    val devFeeAmount = extractedBaseAmount * devFee / 100
+    val projectAmountBase = extractedBaseAmount - devFeeAmount
+    
+    // For ERG, also subtract miner fee from project amount. For base tokens, no miner fee needed.
+    val projectAmount = if (isERGBase) projectAmountBase - minnerFeeAmount else projectAmountBase
 
-    val correctProjectAmount = if (isERGBase) OUTPUTS(1).value == projectAmount else true // Simplified for non-ERG
+    // Verify correct project amount
+    val correctProjectAmount = if (isERGBase) {
+      OUTPUTS(1).value == projectAmount
+    } else {
+      // For non-ERG tokens, verify the project receives correct token amount
+      val projectTokens = OUTPUTS(1).tokens.filter { (token: (Coll[Byte], Long)) => 
+        token._1 == baseTokenId
+      }
+      val projectTokenAmount = if (projectTokens.size > 0) projectTokens(0)._2 else 0L
+      projectTokenAmount == projectAmount
+    }
 
-    val correctDevFee = if (isERGBase) {
+    // Verify correct dev fee - now properly handles base tokens
+    val correctDevFee = {
       val OUT = OUTPUTS(2)
 
       val isToDevAddress = {
-          val isSamePropBytes: Boolean = fromBase16("$dev_fee_contract_bytes_hash") == blake2b256(OUT.propositionBytes)
+          val isSamePropBytes: Boolean = fromBase16("${dev_fee_contract_bytes_hash}") == blake2b256(OUT.propositionBytes)
           
           isSamePropBytes
       }
 
-      val isCorrectDevAmount = OUT.value == devFeeAmount
+      val isCorrectDevAmount = if (isERGBase) {
+        OUT.value == devFeeAmount
+      } else {
+        // For non-ERG tokens, verify dev receives correct token amount
+        // Handle the case where devFeeAmount might be less than 1 (should be 0 in that case)
+        val actualDevFeeAmount = if (devFeeAmount < 1L) 0L else devFeeAmount
+        val devTokens = OUT.tokens.filter { (token: (Coll[Byte], Long)) => 
+          token._1 == baseTokenId
+        }
+        val devTokenAmount = if (devTokens.size > 0) devTokens(0)._2 else 0L
+        devTokenAmount == actualDevFeeAmount
+      }
 
       allOf(Coll(
         isCorrectDevAmount,
         isToDevAddress
       ))
-    } else {
-      true // Simplified for non-ERG base tokens
     }
 
     val endOrReplicate = {
-      val allFundsWithdrawn = if (isERGBase) extractedValue == selfValue else true // Simplified
+      val allFundsWithdrawn = if (isERGBase) extractedBaseAmount == selfValue else (extractedBaseAmount == getBaseTokenAmount(SELF))
       val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
 
       isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
@@ -557,7 +560,7 @@
 
     val correctTokenId = 
       if (SELF.tokens.size == 1) true 
-      else SELF.tokens(1)._1 == fromBase16("$token_id")
+      else SELF.tokens(1)._1 == fromBase16("`+token_id+`")
     
     val onlyOneOrAnyToken = if (isERGBase) {
       SELF.tokens.size == 1 || SELF.tokens.size == 2

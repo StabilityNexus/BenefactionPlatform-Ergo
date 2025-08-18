@@ -1191,10 +1191,14 @@ function generate_contract_v1_1(owner_addr: string, dev_fee_contract_bytes_hash:
   }
   `
 }
-
-function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string, base_token_id: string = "") {
-  return `
-{
+function generate_contract_v1_2(
+  owner_addr: string, 
+  dev_fee_contract_bytes_hash: string, 
+  dev_fee: number, 
+  token_id: string, 
+  base_token_id: string = ""
+): string {
+  return `{
 
 // ===== Contract Description ===== //
 // Name: Bene Fundraising Platform Contract (Multi-Token Support)
@@ -1270,6 +1274,8 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
 
   }
 
+
+
   val selfId = SELF.tokens(0)._1
   val selfAPT = SELF.tokens(0)._2
   val selfValue = SELF.value
@@ -1289,11 +1295,11 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
   val baseTokenId = if (selfBaseTokenIdLen == 0L) {
     Coll[Byte]() // Empty collection for ERG
   } else {
-    fromBase16("`+base_token_id+`") // Base token ID from compile-time constant
+    fromBase16("${base_token_id}") // Base token ID from compile-time constant
   }
   val isERGBase = baseTokenId.size == 0
 
-  // Helper function to get base token amount from a box
+  // Helper function to get base token amount from contract
   def getBaseTokenAmount(box: Box): Long = {
     if (isERGBase) {
       box.value
@@ -1333,7 +1339,8 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
     // The script must be the same
     val sameScript = selfScript == OUTPUTS(0).propositionBytes
 
-    // Ensures that there are only one or two tokens in the contract (APT and PFT or only APT)
+    // Ensures that there are only one or two tokens in the contract (APT and PFT or only APT) for ERG base token
+    // or one, two, or three tokens for non-ERG base token (APT, PFT, and base token)
     val noAddsOtherTokens = if (isERGBase) {
       OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
     } else {
@@ -1347,7 +1354,7 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
   val APTokenRemainsConstant = selfAPT == OUTPUTS(0).tokens(0)._2
   val ProofFundingTokenRemainsConstant = {
 
-    val selfAmount =
+    val selfAmount = 
       if (SELF.tokens.size == 1) 0L
       else SELF.tokens(1)._2
 
@@ -1362,7 +1369,7 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
   val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2)
   val mantainValue = selfValue == OUTPUTS(0).value
 
-  val projectAddr: SigmaProp = PK("`+owner_addr+`")
+  val projectAddr: SigmaProp = PK("${owner_addr}")
   
   val isToProjectAddress = {
     val propAndBox: (SigmaProp, Box) = (projectAddr, OUTPUTS(1))
@@ -1382,11 +1389,11 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
   val deltaPFTokenAdded = {
 
     // Calculate the difference in token amounts
-    val selfTokens =
+    val selfTokens = 
         if (SELF.tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
         else SELF.tokens(1)._2
     
-    val outTokens =
+    val outTokens = 
         if (OUTPUTS(0).tokens.size == 1) 0L // There is going to be any PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
         else OUTPUTS(0).tokens(1)._2
     
@@ -1442,12 +1449,12 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
     }
 
     val constants = allOf(Coll(
-      isSelfReplication,                          // Replicate the contract will be needed always
+      isSelfReplication,                          // Replicate the contract will be needed always                
       // endOrReplicate,                          // The contract can't end with this action
       // soldCounterRemainsConstant,              // The sold counter needs to be incremented.
       refundCounterRemainsConstant,               // The refund counter must be constant
       auxiliarExchangeCounterRemainsConstant,     // The auxiliar exchange counter must be constant because there is no exchange between APT -> PFT.
-      // mantainValue,                            // Needs to add value to the contract (for ERG) or maintain value (for tokens)
+      // mantainValue,                            // Needs to add value to the contract (for ERG) or maintain value (for tokens)                   
       // APTokenRemainsConstant,                  // APT token is extracted from the contract.
       ProofFundingTokenRemainsConstant           // PFT needs to be constant
     ))
@@ -1512,12 +1519,12 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
     }
 
     val constants = allOf(Coll(
-      isSelfReplication,                          // Replicate the contract will be needed always
+      isSelfReplication,                          // Replicate the contract will be needed always            
       // endOrReplicate,                          // The contract can't end with this action
       soldCounterRemainsConstant,                 // The sold counter needs to be constant.
       // refundCounterRemainsConstant,            // Refund counter needs to be incremented.
       auxiliarExchangeCounterRemainsConstant,     // Auxiliar counter needs to be constant.
-      // mantainValue,                            // Needs to extract value (for ERG) or maintain value (for tokens)
+      // mantainValue,                            // Needs to extract value (for ERG) or maintain value (for tokens)     
       // APTokenRemainsConstant,                  // Needs to add Auxiliar tokens.
       ProofFundingTokenRemainsConstant           // PFT needs to be constant.
     ))
@@ -1538,52 +1545,78 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
     val minnerFeeAmount = 1100000  // Pay minner fee with the extracted value allows to withdraw when project address does not have ergs.
     val devFee = `+dev_fee+`
     
-    // For ERG base token, extract ERG value. For other tokens, maintain ERG value and extract base tokens.
-    val extractedValue: Long = if (isERGBase) {
+    // Calculate extracted amounts based on base token type
+    val extractedBaseAmount: Long = if (isERGBase) {
+      // For ERG base token, extract ERG value
       if (selfScript == OUTPUTS(0).propositionBytes) { selfValue - OUTPUTS(0).value } else { selfValue }
     } else {
-      // For non-ERG base tokens, we need to calculate the equivalent ERG value for fees
-      // This is a simplified approach - in practice, you might want to use an oracle or DEX price
-      0L // For now, assume no ERG fees for non-ERG base tokens
+      // For non-ERG base tokens, extract the token amount
+      val selfBaseTokens = getBaseTokenAmount(SELF)
+      val outputBaseTokens = if (selfScript == OUTPUTS(0).propositionBytes) getBaseTokenAmount(OUTPUTS(0)) else 0L
+      selfBaseTokens - outputBaseTokens
     }
     
-    val devFeeAmount = if (isERGBase) extractedValue * devFee / 100 else 0L
-    val projectAmount = if (isERGBase) extractedValue - devFeeAmount - minnerFeeAmount else 0L
+    // Calculate dev fee and project amounts
+    val devFeeAmount = extractedBaseAmount * devFee / 100
+    val projectAmountBase = extractedBaseAmount - devFeeAmount
+    
+    // For ERG, also subtract miner fee from project amount. For base tokens, no miner fee needed.
+    val projectAmount = if (isERGBase) projectAmountBase - minnerFeeAmount else projectAmountBase
 
-    val correctProjectAmount = if (isERGBase) OUTPUTS(1).value == projectAmount else true // Simplified for non-ERG
+    // Verify correct project amount
+    val correctProjectAmount = if (isERGBase) {
+      OUTPUTS(1).value == projectAmount
+    } else {
+      // For non-ERG tokens, verify the project receives correct token amount
+      val projectTokens = OUTPUTS(1).tokens.filter { (token: (Coll[Byte], Long)) => 
+        token._1 == baseTokenId
+      }
+      val projectTokenAmount = if (projectTokens.size > 0) projectTokens(0)._2 else 0L
+      projectTokenAmount == projectAmount
+    }
 
-    val correctDevFee = if (isERGBase) {
+    // Verify correct dev fee - now properly handles base tokens
+    val correctDevFee = {
       val OUT = OUTPUTS(2)
 
       val isToDevAddress = {
-          val isSamePropBytes: Boolean = fromBase16("`+dev_fee_contract_bytes_hash+`") == blake2b256(OUT.propositionBytes)
+          val isSamePropBytes: Boolean = fromBase16("${dev_fee_contract_bytes_hash}") == blake2b256(OUT.propositionBytes)
           
           isSamePropBytes
       }
 
-      val isCorrectDevAmount = OUT.value == devFeeAmount
+      val isCorrectDevAmount = if (isERGBase) {
+        OUT.value == devFeeAmount
+      } else {
+        // For non-ERG tokens, verify dev receives correct token amount
+        // Handle the case where devFeeAmount might be less than 1 (should be 0 in that case)
+        val actualDevFeeAmount = if (devFeeAmount < 1L) 0L else devFeeAmount
+        val devTokens = OUT.tokens.filter { (token: (Coll[Byte], Long)) => 
+          token._1 == baseTokenId
+        }
+        val devTokenAmount = if (devTokens.size > 0) devTokens(0)._2 else 0L
+        devTokenAmount == actualDevFeeAmount
+      }
 
       allOf(Coll(
         isCorrectDevAmount,
         isToDevAddress
       ))
-    } else {
-      true // Simplified for non-ERG base tokens
     }
 
     val endOrReplicate = {
-      val allFundsWithdrawn = if (isERGBase) extractedValue == selfValue else true // Simplified
+      val allFundsWithdrawn = if (isERGBase) extractedBaseAmount == selfValue else (extractedBaseAmount == getBaseTokenAmount(SELF))
       val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
 
       isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
     }
 
     val constants = allOf(Coll(
-      // isSelfReplication,
+      // isSelfReplication,                     
       endOrReplicate,                             // Replicate the contract in case of partial withdraw
       soldCounterRemainsConstant,                 // Any of the counter needs to be incremented, so all of them (sold, refund and exchange) need to remain constants.
-      refundCounterRemainsConstant,
-      auxiliarExchangeCounterRemainsConstant,
+      refundCounterRemainsConstant,                       
+      auxiliarExchangeCounterRemainsConstant,   
       // mantainValue,                           // Needs to extract value from the contract
       APTokenRemainsConstant,                    // There is no need to modify the auxiliar token, so it must be constant
       ProofFundingTokenRemainsConstant          // There is no need to modify the proof of funding token, so it must be constant
@@ -1604,7 +1637,7 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
     val onlyUnsold = {
 
       // The amount of PFT token that has been extracted from the contract
-      val extractedPFT = -deltaPFTokenAdded
+      val extractedPFT = -deltaPFTokenAdded 
 
       // Current APT tokens without the one used for project identification     (remember that the APT amount is equal to the PFT emission amount + 1, because the 1 is for be always inside the contract)
       val temporalTokens = temporaryFundingTokenAmountOnContract(SELF)
@@ -1614,14 +1647,14 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
     }
 
     val constants = allOf(Coll(
-      isSelfReplication,                         // Replicate the contract will be needed always
+      isSelfReplication,                         // Replicate the contract will be needed always            
       // endOrReplicate,                         // The contract can't end with this action
       soldCounterRemainsConstant,                // Any of the counter needs to be incremented, so all of them (sold, refund and exchange) need to remain constants.
-      refundCounterRemainsConstant,
+      refundCounterRemainsConstant,                       
       auxiliarExchangeCounterRemainsConstant,
       mantainValue,                              // The value of the contract must not change.
       APTokenRemainsConstant                     // APT token must be constant.
-      // ProofFundingTokenRemainsConstant        // The PFT is the token that the action tries to withdraw
+      // ProofFundingTokenRemainsConstant        // The PFT is the token that the action tries to withdraw              
     ))
 
     allOf(Coll(
@@ -1636,14 +1669,14 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
   val isAddTokens = {
 
     val constants = allOf(Coll(
-      isSelfReplication,                     // Replicate the contract will be needed always
+      isSelfReplication,                     // Replicate the contract will be needed always            
       // endOrReplicate,                     // The contract can't end with this action
       soldCounterRemainsConstant,            // Any of the counter needs to be incremented, so all of them (sold, refund and exchange) need to remain constants.
-      refundCounterRemainsConstant,
-      auxiliarExchangeCounterRemainsConstant,
-      mantainValue,
+      refundCounterRemainsConstant,                       
+      auxiliarExchangeCounterRemainsConstant,   
+      mantainValue,                                 
       APTokenRemainsConstant                 // There is no need to modify the APT amount because the amount is established in base of the PFT emission amount.
-      // ProofFundingTokenRemainsConstant,   // Adds PFT tokens, so can't remain constant
+      // ProofFundingTokenRemainsConstant,   // Adds PFT tokens, so can't remain constant             
     ))
 
     if (INPUTS.size == 1) false  // To avoid access INPUTS(1) when there is no input, this could be resolved using actions.
@@ -1696,7 +1729,7 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
     }
 
     val constants = allOf(Coll(
-      // isSelfReplication,
+      // isSelfReplication,                        
       endOrReplicate,                                       // The contract could be finalized on after this action, so it only check self replication in case of partial withdraw
       soldCounterRemainsConstant,                           // Sold counter must be constant
       refundCounterRemainsConstant,                         // Refund counter must be constant
@@ -1726,8 +1759,8 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {
 
-    val correctTokenId =
-      if (SELF.tokens.size == 1) true
+    val correctTokenId = 
+      if (SELF.tokens.size == 1) true 
       else SELF.tokens(1)._1 == fromBase16("`+token_id+`")
     
     val onlyOneOrAnyToken = if (isERGBase) {
@@ -1740,8 +1773,7 @@ function generate_contract_v1_2(owner_addr: string, dev_fee_contract_bytes_hash:
   }
 
   sigmaProp(correctBuild && actions)
-}
-  `
+}`;
 }
 
 function handle_contract_generator(version: contract_version) {
