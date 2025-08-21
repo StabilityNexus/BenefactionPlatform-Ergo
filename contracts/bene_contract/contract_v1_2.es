@@ -1,3 +1,4 @@
+{
 
 // ===== Contract Description ===== //
 // Name: Bene Fundraising Platform Contract (Multi-Token Support)

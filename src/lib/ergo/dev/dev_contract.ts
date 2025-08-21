@@ -162,7 +162,7 @@ export function get_dev_contract_address(): string {
 }
 
 export function get_dev_fee(): number {
-    return 5;
+    return 50;
 }
 
 function get_template_hash(): string {

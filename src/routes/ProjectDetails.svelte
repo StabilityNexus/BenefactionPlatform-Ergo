@@ -104,7 +104,22 @@
         
         // For project owner
         maxWithdrawTokenAmount = project.current_pft_amount / Math.pow(10, project.token_details.decimals);
-        maxWithdrawErgAmount = project.current_value / Math.pow(10, 9);
+        
+        // Calculate max withdraw amount based on base token type
+        if (isERGBase) {
+            maxWithdrawErgAmount = project.current_value / Math.pow(10, 9);
+        } else {
+            // For non-ERG base tokens, find the base token amount in project box assets
+            let baseTokenAmount = 0;
+            for (const asset of project.box.assets) {
+                if (asset.tokenId === project.base_token_id) {
+                    baseTokenAmount = Number(asset.amount);
+                    break;
+                }
+            }
+            const baseTokenDecimals = project.base_token_details?.decimals || 0;
+            maxWithdrawErgAmount = baseTokenAmount / Math.pow(10, baseTokenDecimals);
+        }
     }
 
     // Add balance check after connection state changes
@@ -183,12 +198,14 @@
     function setupWithdrawErg() {
         getWalletBalances(); // Refresh balances before opening modal
         info_type_to_show = "dev-collect";
-        label_submit = "How many ERGs do you want to withdraw?";
+        const isERGBase = !project.base_token_id || project.base_token_id === "";
+        const baseTokenName = isERGBase ? "ERGs" : (project.base_token_details?.name || "tokens");
+        label_submit = `How many ${baseTokenName} do you want to withdraw?`;
         function_submit = withdraw_erg;
         value_submit = 0;
         show_submit = true;
         hide_submit_info = true;
-        submit_amount_label = "ERGs";
+        submit_amount_label = baseTokenName;
     }
 
     async function withdraw_erg() {
@@ -640,16 +657,16 @@
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupWithdrawErg} 
                         disabled={!$connected || !is_min_raised || maxWithdrawErgAmount <= 0}
-                        title={!$connected ? "Connect your wallet to collect ERG" :
-                               !is_min_raised ? "ERG collection available after minimum goal is reached" :
-                               maxWithdrawErgAmount <= 0 ? "No ERG available for withdrawal" :
-                               `You can withdraw up to ${maxWithdrawErgAmount.toFixed(4)} ${platform.main_token}`}
+                        title={!$connected ? `Connect your wallet to collect ${(!project.base_token_id || project.base_token_id === "") ? "ERG" : (project.base_token_details?.name || "tokens")}` :
+                               !is_min_raised ? `${(!project.base_token_id || project.base_token_id === "") ? "ERG" : (project.base_token_details?.name || "tokens")} collection available after minimum goal is reached` :
+                               maxWithdrawErgAmount <= 0 ? `No ${(!project.base_token_id || project.base_token_id === "") ? "ERG" : (project.base_token_details?.name || "tokens")} available for withdrawal` :
+                               `You can withdraw up to ${maxWithdrawErgAmount.toFixed(4)} ${(!project.base_token_id || project.base_token_id === "") ? platform.main_token : (project.base_token_details?.name || "tokens")}`}
                     >
-                      Collect {platform.main_token}
+                      Collect {(!project.base_token_id || project.base_token_id === "") ? platform.main_token : (project.base_token_details?.name || "tokens")}
                     </Button>
                     {#if $connected && (!is_min_raised || maxWithdrawErgAmount <= 0)}
                         <div class="insufficient-funds-message">
-                            {!is_min_raised ? 'Minimum funding goal not reached' : 'No ERG available for withdrawal'}
+                            {!is_min_raised ? 'Minimum funding goal not reached' : `No ${(!project.base_token_id || project.base_token_id === "") ? "ERG" : (project.base_token_details?.name || "tokens")} available for withdrawal`}
                         </div>
                     {/if}
                 </div>

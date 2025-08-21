@@ -22,11 +22,15 @@ export async function withdraw(
     const isMultiToken = project.version === "v1_2" && project.base_token_id && project.base_token_id !== "";
     const isERGBase = !isMultiToken;
     
-    // For ERG-based contracts, convert to nanoERG
+    // Convert amount to smallest unit
     if (isERGBase) {
+        // For ERG-based contracts, convert to nanoERG
         amount = amount * Math.pow(10, 9);
+    } else {
+        // For token-based contracts, convert to smallest unit using token decimals
+        const baseTokenDecimals = project.base_token_details?.decimals || 0;
+        amount = amount * Math.pow(10, baseTokenDecimals);
     }
-    // For token-based contracts, amount is already in the smallest unit
     
     console.log("wants withdraw ", amount, isERGBase ? "(ERG)" : "(base token)")
 
