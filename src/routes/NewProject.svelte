@@ -2,94 +2,142 @@
     import { block_to_date, time_to_block } from '$lib/common/countdown';
     import { explorer_uri, web_explorer_uri_tx } from '$lib/ergo/envs';
     import { ErgoPlatform } from '$lib/ergo/platform';
-    import { Label } from "$lib/components/ui/label/index.js";
-    import { Textarea } from "$lib/components/ui/textarea";
+    import { Label } from '$lib/components/ui/label/index.js';
+    import { Textarea } from '$lib/components/ui/textarea';
     import { Button } from '$lib/components/ui/button';
-    import { Input } from "$lib/components/ui/input";
-    import * as Select from "$lib/components/ui/select";
+    import { Input } from '$lib/components/ui/input';
+    import * as Select from '$lib/components/ui/select';
     import { get } from 'svelte/store';
     import { user_tokens } from '$lib/common/store';
     import { walletConnected } from '$lib/wallet/wallet-manager';
 
     let platform = new ErgoPlatform();
 
-    let tokenOption: object|null = null;
-    let tokenId: string|null = null;
-    let tokenDecimals: number = 0;
+    // Token being sold/offered as a reward
+    let rewardTokenOption: object | null = null;
+    let rewardTokenId: string | null = null;
+    let rewardTokenDecimals: number = 0;
+    let rewardTokenName: string = 'Token'; // For the dynamic label
 
-    // Base token selection for multi-token support
-    let baseTokenOption: object|null = null;
-    let baseTokenId: string = "";  // Empty string means ERG
-    let baseTokenDecimals: number = 9;  // ERG has 9 decimals
-    let baseTokenName: string = "ERG";
+    // Token used for contributions
+    let baseTokenOption: object | null = null;
+    let baseTokenId: string = ''; // Empty string means ERG (default)
+    let baseTokenDecimals: number = 9; // ERG has 9 decimals
+    let baseTokenName: string = 'ERG';
 
-    let tokenAmountRaw: number;
-    let tokenAmountPrecise: number;
-    let maxTokenAmountRaw: number;
-    
+    let tokenAmountToSellRaw: number;
+    let tokenAmountToSellPrecise: number;
+    let maxTokenAmountToSell: number;
+
     let daysLimit: number;
     let daysLimitBlock: number;
     let daysLimitText: string;
-    
+
     let exchangeRateRaw: number;
     let exchangeRatePrecise: number;
-    
-    let maxValuePrecise: number;
-    let minValuePrecise: number;
 
-    let projectTitle: string = "";
-    let projectDescription: string = "";
-    let projectImage: string = "";
-    let projectLink: string = "";
+    // Fundraising goals in the base currency
+    let maxGoalPrecise: number;
+    let minGoalPrecise: number;
+
+    let projectTitle: string = '';
+    let projectDescription: string = '';
+    let projectImage: string = '';
+    let projectLink: string = '';
 
     let transactionId: string | null = null;
     let errorMessage: string | null = null;
     let isSubmitting: boolean = false;
 
-    let currentHeight: number | null = null;
-    let userTokens: Array<{ tokenId: string, title: string, balance: number, decimals: number }> = [];
+    let userTokens: Array<{ tokenId: string; title: string; balance: number; decimals: number }> = [];
+
+    // Centralized object for form validation errors
+    let formErrors = {
+        tokenConflict: null,
+        goalOrder: null
+    };
+
+    // --- Reactive Declarations ---
 
     $: {
-        if (tokenOption) {
-            tokenId = tokenOption.value;
+        if (rewardTokenOption) {
+            rewardTokenId = rewardTokenOption.value;
         } else {
-            tokenId = null;
+            rewardTokenId = null;
+        }
+    }
+
+    // Reactively updates the reward token name
+    $: {
+        if (rewardTokenId) {
+            const token = userTokens.find((t) => t.tokenId === rewardTokenId);
+            rewardTokenName = token ? token.title : 'Token';
+        } else {
+            rewardTokenName = 'Token';
         }
     }
 
     $: {
         if (baseTokenOption) {
             baseTokenId = baseTokenOption.value;
-            const baseToken = userTokens.find(t => t.tokenId === baseTokenId);
+            const baseToken = userTokens.find((t) => t.tokenId === baseTokenId);
             baseTokenDecimals = baseToken?.decimals || 0;
-            baseTokenName = baseToken?.title || "Unknown Token";
+            baseTokenName = baseToken?.title || 'Unknown';
         } else {
-            baseTokenId = "";  // ERG
+            baseTokenId = ''; // ERG
             baseTokenDecimals = 9;
-            baseTokenName = "ERG";
+            baseTokenName = 'ERG';
         }
     }
 
-    $: tokenDecimals = userTokens.find(t => t.tokenId === tokenId)?.decimals || 0;
+    // Validation for token conflict
+    $: {
+        if (rewardTokenId && baseTokenId && rewardTokenId === baseTokenId) {
+            formErrors.tokenConflict = 'The Project Token and Contribution Currency cannot be the same.';
+        } else {
+            formErrors.tokenConflict = null;
+        }
+    }
+
+    $: rewardTokenDecimals = userTokens.find((t) => t.tokenId === rewardTokenId)?.decimals || 0;
 
     $: {
-        const token = userTokens.find(t => t.tokenId === tokenId);
-        maxTokenAmountRaw = token ? Number(token.balance) / Math.pow(10, token.decimals) : 0;
+        const token = userTokens.find((t) => t.tokenId === rewardTokenId);
+        maxTokenAmountToSell = token ? Number(token.balance) / Math.pow(10, token.decimals) : 0;
     }
 
     $: {
-        tokenAmountRaw = tokenAmountPrecise * Math.pow(10, tokenDecimals);
+        tokenAmountToSellRaw = tokenAmountToSellPrecise * Math.pow(10, rewardTokenDecimals);
     }
 
     $: {
-        exchangeRateRaw = exchangeRatePrecise * Math.pow(10, baseTokenDecimals-tokenDecimals);
+        exchangeRateRaw = exchangeRatePrecise * Math.pow(10, baseTokenDecimals - rewardTokenDecimals);
     }
 
     $: {
         calculateBlockLimit(daysLimit);
     }
 
+    // --- Functions ---
+
+    function validateGoalOrder() {
+        if (
+            minGoalPrecise !== undefined &&
+            maxGoalPrecise !== undefined &&
+            minGoalPrecise > maxGoalPrecise
+        ) {
+            formErrors.goalOrder = 'The minimum goal cannot be greater than the maximum goal.';
+        } else {
+            formErrors.goalOrder = null;
+        }
+    }
+
     async function calculateBlockLimit(days: number) {
+        if (!days || days <= 0) {
+            daysLimitBlock = 0;
+            daysLimitText = '';
+            return;
+        }
         let target_date = new Date();
         target_date.setTime(target_date.getTime() + days * 24 * 60 * 60 * 1000);
         daysLimitBlock = await time_to_block(target_date.getTime(), platform);
@@ -97,28 +145,34 @@
     }
 
     function updateExchangeRate() {
-        if (maxValuePrecise && tokenAmountPrecise) {
-            exchangeRatePrecise = maxValuePrecise / tokenAmountPrecise
+        if (maxGoalPrecise && tokenAmountToSellPrecise) {
+            exchangeRatePrecise = maxGoalPrecise / tokenAmountToSellPrecise;
         }
+        validateGoalOrder();
     }
-    
+
     function updateMaxValue() {
-        if (tokenAmountPrecise && exchangeRatePrecise) {
-            maxValuePrecise = exchangeRatePrecise * tokenAmountPrecise;
+        if (tokenAmountToSellPrecise && exchangeRatePrecise) {
+            maxGoalPrecise = exchangeRatePrecise * tokenAmountToSellPrecise;
         }
+        validateGoalOrder();
     }
 
     async function handleSubmit() {
-        if (tokenId === null) return
+        if (rewardTokenId === null || formErrors.tokenConflict || formErrors.goalOrder) {
+            errorMessage = 'Please correct the errors before submitting.';
+            return;
+        }
 
         isSubmitting = true;
         errorMessage = null;
         transactionId = null;
 
-        if (minValuePrecise === undefined) {minValuePrecise = 0;}
-        let minValueNano = minValuePrecise * Math.pow(10, baseTokenDecimals);
-
-        let minimumTokenSold = minValueNano / exchangeRateRaw;
+        if (minGoalPrecise === undefined) {
+            minGoalPrecise = 0;
+        }
+        let minValueNano = minGoalPrecise * Math.pow(10, baseTokenDecimals);
+        let minimumTokenSold = exchangeRateRaw > 0 ? minValueNano / exchangeRateRaw : 0;
 
         let projectContent = JSON.stringify({
             title: projectTitle,
@@ -128,66 +182,41 @@
         });
 
         try {
-            console.log("Base token ID:", baseTokenId);
             const result = await platform.submit(
                 platform.last_version,
-                tokenId,
-                tokenAmountRaw,
+                rewardTokenId,
+                tokenAmountToSellRaw,
                 daysLimitBlock,
                 Math.round(exchangeRateRaw),
                 projectContent,
                 Math.round(minimumTokenSold),
                 projectTitle,
-                baseTokenId  // Pass the base token ID for multi-token support
+                baseTokenId
             );
-
             transactionId = result;
         } catch (error) {
-            console.log(error)
-            errorMessage = error.message || "Error occurred while submitting the project";
+            console.error(error);
+            errorMessage = error.message || 'An unexpected error occurred.';
         } finally {
             isSubmitting = false;
         }
     }
 
-    async function getCurrentHeight() {
+    async function fetchTokenDetails(id: string) {
+        const url = `${explorer_uri}/api/v1/tokens/${id}`;
         try {
-            currentHeight = await platform.get_current_height();
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                return {
+                    name: data.name || id.slice(0, 6) + '...' + id.slice(-4),
+                    decimals: data.decimals !== null ? data.decimals : 0
+                };
+            }
         } catch (error) {
-            console.error("Error fetching current height:", error);
+            console.error(`Error fetching token details for ${id}:`, error);
         }
-    }
-    getCurrentHeight();
-
-    async function getTokenName(id: string) {
-        const url = explorer_uri+'/api/v1/tokens/'+id;
-            const response = await fetch(url, {
-                method: 'GET',
-            });
-
-            if (response.ok) {
-                let json_data = await response.json();
-                if (json_data['name'] !== null){
-                    return json_data['name'];
-                }
-            }
-            return id.slice(0, 6) + id.slice(-4);
-    }
-
-    async function getTokenDecimals(id: string) {
-        const url = explorer_uri+'/api/v1/tokens/'+id;
-            const response = await fetch(url, {
-                method: 'GET',
-            });
-
-            if (response.ok) {
-                let json_data = await response.json();
-                console.log(json_data)
-                if (json_data['decimals'] !== null){
-                    return json_data['decimals'];
-                }
-            }
-            return 0;
+        return { name: id.slice(0, 6) + '...' + id.slice(-4), decimals: 0 };
     }
 
     async function getUserTokens() {
@@ -199,222 +228,293 @@
             }
             userTokens = await Promise.all(
                 Array.from(tokens.entries())
-                    .filter(([tokenId, _]) => tokenId !== "ERG")
-                    .map(async ([tokenId, balance]) => ({
-                        tokenId: tokenId,
-                        title: await getTokenName(tokenId),
-                        balance: balance,
-                        decimals: await getTokenDecimals(tokenId)
-                    }))
+                    .filter(([tokenId, _]) => tokenId !== 'ERG')
+                    .map(async ([tokenId, balance]) => {
+                        const { name, decimals } = await fetchTokenDetails(tokenId);
+                        return {
+                            tokenId,
+                            title: name,
+                            balance,
+                            decimals
+                        };
+                    })
             );
         } catch (error) {
-            console.error("Error fetching user tokens:", error);
+            console.error('Error fetching user tokens:', error);
         }
     }
-    getUserTokens();
 
-    // Subscribe to wallet connection changes to refresh tokens
+    // --- Lifecycle and Subscriptions ---
+
     walletConnected.subscribe((isConnected) => {
         if (isConnected) {
-            // Refresh tokens when wallet connects
             getUserTokens();
         } else {
-            // Clear tokens when wallet disconnects
             userTokens = [];
+            rewardTokenOption = null;
+            baseTokenOption = null;
         }
     });
-
 </script>
 
 <div>
     <div class="container mx-auto py-4">
         <h2 class="project-title">Raise Funds for a New Project</h2>
 
-       <!-- <div class="form-container bg-background/80 backdrop-blur-lg border border-orange-500/20 rounded-xl p-6 mb-6">  -->
-       <div class="form-container bg-background/80 backdrop-blur-lg rounded-xl p-6 mb-6">
+        <div class="form-container bg-background/80 backdrop-blur-lg rounded-xl p-6 mb-6">
             <div class="form-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-3">
+                    <h3 class="text-xl font-semibold mb-4 text-orange-400">
+                        Step 1: Configure the Token You Will Sell
+                    </h3>
+                </div>
+
                 <div class="form-group">
-                    <Label for="baseTokenId" class="text-sm font-medium mb-2 block">Base Token (for contributions)</Label>
-                    <Select.Root bind:selected={baseTokenOption}>
+                    <Label for="rewardToken" class="text-sm font-medium mb-2 block"
+                        >Project Token (for rewards)</Label
+                    >
+                    <Select.Root bind:selected={rewardTokenOption} required>
                         <Select.Trigger class="w-full border-orange-500/20 focus:border-orange-500/40">
-                            <Select.Value placeholder="ERG (default)" />
+                            <Select.Value placeholder="Select a token to sell" />
                         </Select.Trigger>
                         <Select.Content>
-                            <Select.Item value="">ERG (Ergo native token)</Select.Item>
                             {#each userTokens as token}
-                                <Select.Item value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</Select.Item>
+                                <Select.Item value={token.tokenId}
+                                    >{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</Select.Item
+                                >
                             {/each}
                         </Select.Content>
                     </Select.Root>
                     <p class="text-sm mt-2 text-muted-foreground">
-                        Contributors will use {baseTokenName} to fund this project.
+                        Don't have a token? <a
+                            href="https://tools.mewfinance.com/mint"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-orange-400 underline hover:text-orange-300 transition-colors"
+                            >Create one here</a
+                        >.
                     </p>
                 </div>
 
                 <div class="form-group">
-                    <Label for="tokenId" class="text-sm font-medium mb-2 block">Reward Token</Label>
-                    <Select.Root bind:selected={tokenOption} required>
-                        <Select.Trigger class="w-full border-orange-500/20 focus:border-orange-500/40">
-                            <Select.Value placeholder="Select a reward token" />
-                        </Select.Trigger>
-                        <Select.Content>
-                            {#each userTokens as token}
-                                <Select.Item value={token.tokenId}>{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</Select.Item>
-                            {/each}
-                        </Select.Content>
-                    </Select.Root>
-                    <p class="text-sm mt-2 text-muted-foreground">
-                        Don't have a token? <a href="https://tools.mewfinance.com/mint" target="_blank" rel="noopener noreferrer" class="text-orange-400 underline hover:text-orange-300 transition-colors">Mint one here</a>.
-                    </p>
-                </div>
-
-                <div class="form-group">
-                    <Label for="tokenAmount" class="text-sm font-medium mb-2 block">Token amount</Label>
-                    <Input 
-                        type="number" 
-                        id="tokenAmount" 
-                        bind:value={tokenAmountPrecise} 
-                        max={maxTokenAmountRaw}
-                        step={1 / Math.pow(10, tokenDecimals)}
+                    <Label for="tokenAmountToSell" class="text-sm font-medium mb-2 block"
+                        >Total Amount for Sale</Label
+                    >
+                    <Input
+                        type="number"
+                        id="tokenAmountToSell"
+                        bind:value={tokenAmountToSellPrecise}
+                        max={maxTokenAmountToSell}
+                        step={1 / Math.pow(10, rewardTokenDecimals)}
                         min={0}
-                        placeholder="Max amount token"
-                        on:input={() => updateExchangeRate()}
+                        placeholder="e.g., 1,000,000"
+                        on:input={updateMaxValue}
                         class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
                     />
                 </div>
 
+                <div class="lg:col-span-3" />
+                <hr class="lg:col-span-3 my-6 border-orange-500/20" />
+
+                <div class="lg:col-span-3">
+                    <h3 class="text-xl font-semibold mb-4 text-orange-400">
+                        Step 2: Define the Fundraising Terms
+                    </h3>
+                    {#if formErrors.tokenConflict}
+                        <p class="text-red-500 text-sm mb-4">{formErrors.tokenConflict}</p>
+                    {/if}
+                </div>
+
                 <div class="form-group">
-                    <Label for="exchangeRate" class="text-sm font-medium mb-2 block">Exchange Rate ({baseTokenName} per token)</Label>
+                    <Label for="baseToken" class="text-sm font-medium mb-2 block"
+                        >Contribution Currency</Label
+                    >
+                    <Select.Root bind:selected={baseTokenOption}>
+                        <Select.Trigger class="w-full border-orange-500/20 focus:border-orange-500/40">
+                            <Select.Value placeholder="Select currency" />
+                        </Select.Trigger>
+                        <Select.Content>
+                            <Select.Item value={null}>ERG (default)</Select.Item>
+                            {#each userTokens as token}
+                                <Select.Item value={token.tokenId}>{token.title}</Select.Item>
+                            {/each}
+                        </Select.Content>
+                    </Select.Root>
+                    <p class="text-sm mt-2 text-muted-foreground">
+                        Contributors will pay with this currency.
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <Label for="exchangeRate" class="text-sm font-medium mb-2 block"
+                        >Price ({baseTokenName} per {rewardTokenName})</Label
+                    >
                     <Input
                         type="number"
                         id="exchangeRate"
                         bind:value={exchangeRatePrecise}
                         min={0}
                         step="0.000000001"
-                        placeholder="Exchange rate in {baseTokenName}"
+                        placeholder="Price in {baseTokenName}"
                         on:input={updateMaxValue}
                         class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
                     />
                 </div>
 
                 <div class="form-group">
-                    <Label for="minValue" class="text-sm font-medium mb-2 block">Min {baseTokenName} collected</Label>
+                    <Label for="daysLimit" class="text-sm font-medium mb-2 block"
+                        >Duration (Days)</Label
+                    >
                     <Input
-                        type="number"
-                        id="minValue"
-                        bind:value={minValuePrecise}
-                        max={maxValuePrecise}
-                        min={0}
-                        placeholder="Min {baseTokenName} collected"
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                    />
-                </div>
-
-                <div class="form-group">
-                    <Label for="maxValue" class="text-sm font-medium mb-2 block">Max {baseTokenName} collected</Label>
-                    <Input
-                        type="number"
-                        id="maxValue"
-                        bind:value={maxValuePrecise}
-                        min={minValuePrecise}
-                        placeholder="Max {baseTokenName} collected"
-                        on:input={updateExchangeRate}
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                    />
-                </div>
-
-                <div class="form-group">
-                    <Label for="blockLimit" class="text-sm font-medium mb-2 block">Days limit</Label>
-                    <Input
-                        id="blockLimit"
+                        id="daysLimit"
                         type="number"
                         bind:value={daysLimit}
                         min="1"
-                        placeholder="Enter days limit"
-                        aria-label="Enter the limit in days"
+                        placeholder="e.g., 30"
                         class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                        autocomplete="off"
-                    />
-                    <!-- svelte-ignore a11y-missing-attribute -->
-                    <div hidden> <!-- Only for development purpose -->
-                        {#if (daysLimitBlock)}
-                            <a>On block: {daysLimitBlock}</a>
-                            <br>
-                            <a>Date limit: {daysLimitText}</a>
-                        {/if}
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <Label for="projectTitle" class="text-sm font-medium mb-2 block">Project Title</Label>
-                    <Input 
-                        type="text" 
-                        id="projectTitle" 
-                        bind:value={projectTitle} 
-                        placeholder="Enter project title" 
-                        required 
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1" 
                     />
                 </div>
 
                 <div class="form-group">
-                    <Label for="projectImage" class="text-sm font-medium mb-2 block">Project Image URL</Label>
-                    <Input 
-                        type="text" 
-                        id="projectImage" 
-                        bind:value={projectImage} 
-                        placeholder="Enter image URL" 
-                        required 
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1" 
+                    <Label for="minGoal" class="text-sm font-medium mb-2 block"
+                        >Minimum Goal (in {baseTokenName})</Label
+                    >
+                    <Input
+                        type="number"
+                        id="minGoal"
+                        bind:value={minGoalPrecise}
+                        max={maxGoalPrecise}
+                        min={0}
+                        placeholder="Minimum amount in {baseTokenName}"
+                        on:blur={validateGoalOrder}
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
                     />
                 </div>
 
                 <div class="form-group">
-                    <Label for="projectLink" class="text-sm font-medium mb-2 block">Project Link</Label>
-                    <Input 
-                        type="text" 
-                        id="projectLink" 
-                        bind:value={projectLink} 
-                        placeholder="Enter project link" 
-                        required 
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1" 
+                    <Label for="maxGoal" class="text-sm font-medium mb-2 block"
+                        >Maximum Goal (in {baseTokenName})</Label
+                    >
+                    <Input
+                        type="number"
+                        id="maxGoal"
+                        bind:value={maxGoalPrecise}
+                        min={minGoalPrecise || 0}
+                        placeholder="Maximum amount in {baseTokenName}"
+                        on:input={updateExchangeRate}
+                        on:blur={validateGoalOrder}
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
                     />
                 </div>
 
-                <div class="form-group form-group-full lg:col-span-3">
-                    <Label for="projectDescription" class="text-sm font-medium mb-2 block">Project Description</Label>
-                    <Textarea 
-                        id="projectDescription" 
-                        bind:value={projectDescription} 
-                        placeholder="Enter project description" 
-                        required 
-                        class="w-full h-28 lg:h-32 border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1" 
+                <div class="lg:col-span-3">
+                    {#if formErrors.goalOrder}
+                        <p class="text-red-500 text-sm -mt-4">{formErrors.goalOrder}</p>
+                    {/if}
+                </div>
+
+                <hr class="lg:col-span-3 my-6 border-orange-500/20" />
+
+                <div class="lg:col-span-3">
+                    <h3 class="text-xl font-semibold mb-4 text-orange-400">
+                        Step 3: Describe Your Project
+                    </h3>
+                </div>
+
+                <div class="form-group">
+                    <Label for="projectTitle" class="text-sm font-medium mb-2 block">Project Title</Label
+                    >
+                    <Input
+                        type="text"
+                        id="projectTitle"
+                        bind:value={projectTitle}
+                        placeholder="Enter the project title"
+                        required
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <Label for="projectImage" class="text-sm font-medium mb-2 block"
+                        >Project Image URL</Label
+                    >
+                    <Input
+                        type="text"
+                        id="projectImage"
+                        bind:value={projectImage}
+                        placeholder="https://..."
+                        required
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
+                    />
+                </div>
+
+                <div class="form-group">
+                    <Label for="projectLink" class="text-sm font-medium mb-2 block"
+                        >Project Link</Label
+                    >
+                    <Input
+                        type="text"
+                        id="projectLink"
+                        bind:value={projectLink}
+                        placeholder="https://..."
+                        required
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
+                    />
+                </div>
+
+                <div class="form-group lg:col-span-3">
+                    <Label for="projectDescription" class="text-sm font-medium mb-2 block"
+                        >Project Description</Label
+                    >
+                    <Textarea
+                        id="projectDescription"
+                        bind:value={projectDescription}
+                        placeholder="Tell us about your project..."
+                        required
+                        class="w-full h-28 lg:h-32 border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
                     />
                 </div>
             </div>
 
             <div class="form-actions mt-6 flex justify-center">
                 {#if transactionId}
-                    <div class="result bg-background/80 backdrop-blur-lg border border-orange-500/20 rounded-lg p-4 w-full max-w-xl">
+                    <div
+                        class="result bg-background/80 backdrop-blur-lg border border-orange-500/20 rounded-lg p-4 w-full max-w-xl"
+                    >
                         <p class="text-center">
                             <strong>Transaction ID:</strong>
-                            <a href="{web_explorer_uri_tx + transactionId}" target="_blank" rel="noopener noreferrer" class="text-orange-400 hover:text-orange-300 underline transition-colors">
+                            <a
+                                href="{web_explorer_uri_tx + transactionId}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="text-orange-400 hover:text-orange-300 underline transition-colors"
+                            >
                                 {transactionId}
                             </a>
                         </p>
                     </div>
                 {:else}
-                    <Button on:click={handleSubmit} 
-                        disabled={isSubmitting || !tokenAmountRaw || !exchangeRateRaw || !maxValuePrecise || !projectTitle || !daysLimitBlock} 
+                    <Button
+                        on:click={handleSubmit}
+                        disabled={isSubmitting ||
+                            !tokenAmountToSellRaw ||
+                            !exchangeRateRaw ||
+                            !maxGoalPrecise ||
+                            !projectTitle ||
+                            !daysLimitBlock ||
+                            formErrors.tokenConflict ||
+                            formErrors.goalOrder}
                         class="bg-orange-500 hover:bg-orange-600 text-black border-none py-2 px-6 text-lg font-semibold rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none"
                     >
-                        {isSubmitting ? 'Waiting for confirmation of the project creation...' : 'Submit Project'}
-                    </Button>  
+                        {isSubmitting ? 'Submitting Project...' : 'Submit Project'}
+                    </Button>
                 {/if}
             </div>
-            
-            {#if errorMessage}
-                <div class="error mt-4 bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center">
+
+            {#if errorMessage && !transactionId}
+                <div
+                    class="error mt-4 bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center"
+                >
                     <p class="text-red-500">{errorMessage}</p>
                 </div>
             {/if}
@@ -430,7 +530,6 @@
         overflow-y: auto;
         scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
     }
-
     .project-title {
         text-align: center;
         font-size: 2.2rem;
@@ -441,7 +540,6 @@
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         position: relative;
     }
-
     .project-title::after {
         content: '';
         position: absolute;
@@ -450,22 +548,29 @@
         transform: translateX(-50%);
         width: 100px;
         height: 3px;
-        background: linear-gradient(90deg, rgba(255, 165, 0, 0), rgba(255, 165, 0, 1), rgba(255, 165, 0, 0));
+        background: linear-gradient(
+            90deg,
+            rgba(255, 165, 0, 0),
+            rgba(255, 165, 0, 1),
+            rgba(255, 165, 0, 0)
+        );
     }
-
     .form-container {
         animation: fadeIn 0.5s ease-in;
     }
-
     @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
-
     .form-group {
-        margin-bottom: 1.5rem;
+        margin-bottom: 0;
     }
-
     @media (max-width: 768px) {
         .project-title {
             font-size: 1.8rem;

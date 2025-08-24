@@ -76,7 +76,7 @@ export function getProjectContent(id: string, value: string): ProjectContent {
             title: parsed.title || 'Id '+id,
             description: parsed.description || "No description provided.",
             link: parsed.link || null,
-            image: parsed.image || null
+            image: parsed.image || "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg"
         };
     } catch (error) {
         return {
@@ -85,7 +85,7 @@ export function getProjectContent(id: string, value: string): ProjectContent {
             title: 'Id '+id,
             description: "No description provided.",
             link: null,
-            image: null
+            image: "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg"
         };
     }
 }
