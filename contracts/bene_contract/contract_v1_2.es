@@ -269,7 +269,7 @@
 
   // Validation for refunding tokens
   val isRefundTokens = {
-
+ 
     // > People should be allowed to exchange tokens for base tokens if and only if the deadline has passed and the minimum number of tokens has not been sold.
     val canBeRefund = {
       // The minimum number of tokens has not been sold.
@@ -345,7 +345,7 @@
     val minnerFeeAmount = 1100000  // Pay minner fee with the extracted value allows to withdraw when project address does not have ergs.
     val devFee = `+dev_fee+`
     
-    // Calculate extracted amounts based on base token type
+    // Calculate extracted amounts based on base token
     val extractedBaseAmount: Long = if (isERGBase) {
       // For ERG base token, extract ERG value
       if (selfScript == OUTPUTS(0).propositionBytes) { selfValue - OUTPUTS(0).value } else { selfValue }
@@ -360,7 +360,7 @@
     val devFeeAmount = extractedBaseAmount * devFee / 100
     val projectAmountBase = extractedBaseAmount - devFeeAmount
     
-    // For ERG, also subtract miner fee from project amount. For base tokens, no miner fee needed.
+    // For ERG, also subtract miner fee from project amount. For base tokens, miner fee payed by the tx. executor
     val projectAmount = if (isERGBase) projectAmountBase - minnerFeeAmount else projectAmountBase
 
     // Verify correct project amount
@@ -375,7 +375,7 @@
       projectTokenAmount == projectAmount
     }
 
-    // Verify correct dev fee - now properly handles base tokens
+    // Verify correct dev fee
     val correctDevFee = {
       val OUT = OUTPUTS(2)
 
@@ -389,13 +389,11 @@
         OUT.value == devFeeAmount
       } else {
         // For non-ERG tokens, verify dev receives correct token amount
-        // Handle the case where devFeeAmount might be less than 1 (should be 0 in that case)
-        val actualDevFeeAmount = if (devFeeAmount < 1L) 0L else devFeeAmount
         val devTokens = OUT.tokens.filter { (token: (Coll[Byte], Long)) => 
           token._1 == baseTokenId
         }
         val devTokenAmount = if (devTokens.size > 0) devTokens(0)._2 else 0L
-        devTokenAmount == actualDevFeeAmount
+        devTokenAmount == devFeeAmount
       }
 
       allOf(Coll(
