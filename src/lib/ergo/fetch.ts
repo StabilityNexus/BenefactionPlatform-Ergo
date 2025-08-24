@@ -6,9 +6,10 @@ import { type Box, SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
 import { type Project, type TokenEIP4, getConstantContent, getProjectContent } from "../common/project";
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
-import { explorer_uri } from "./envs";
 import { type contract_version, get_template_hash } from "./contract";
 import { projectsCache, tokenDetailsCache } from "./cache";
+import { explorer_uri } from "$lib/common/store";
+import { get } from "svelte/store";
 
 const expectedSigmaTypes = {
     R4: 'SInt',
@@ -45,7 +46,7 @@ export async function fetch_token_details(id: string): Promise<TokenEIP4> {
     return await tokenDetailsCache.get(
         cacheKey,
         async () => {
-            const url = explorer_uri+'/api/v1/tokens/'+id;
+            const url = get(explorer_uri)+'/api/v1/tokens/'+id;
             const response = await fetch(url, {
                 method: 'GET',
             });
@@ -83,7 +84,7 @@ export async function fetch_token_details(id: string): Promise<TokenEIP4> {
 }
 
 export async function wait_until_confirmation(tx_id: string): Promise<Box | null> {
-    const url = explorer_uri + '/api/v1/transactions/' + tx_id;
+    const url = get(explorer_uri) + '/api/v1/transactions/' + tx_id;
 
     // Wait for 90 seconds before retrying
     await new Promise(resolve => setTimeout(resolve, 90000));
@@ -154,7 +155,7 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
             };
 
             while (moreDataAvailable) {
-                const url = explorer_uri+'/api/v1/boxes/unspent/search';
+                const url = get(explorer_uri)+'/api/v1/boxes/unspent/search';
                 const response = await fetch(url + '?' + new URLSearchParams({
                     offset: params.offset.toString(),
                     limit: params.limit.toString(),

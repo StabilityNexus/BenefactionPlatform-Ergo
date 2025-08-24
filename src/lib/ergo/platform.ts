@@ -6,8 +6,7 @@ import { submit_project } from './actions/submit';
 import { withdraw } from './actions/withdraw';
 import { buy_refund } from './actions/buy_refund';
 import { rebalance } from './actions/rebalance';
-import { explorer_uri, network_id } from './envs';
-import { address, connected, network, balance } from "../common/store";
+import { address, connected, network, balance, explorer_uri } from "../common/store";
 import { walletManager, walletConnected, walletAddress, walletBalance } from "../wallet/wallet-manager";
 import { get } from "svelte/store";
 import { temp_exchange } from './actions/temp_exchange';
@@ -60,7 +59,7 @@ export class ErgoPlatform implements Platform {
         
         // Fallback to fetching the current height from the Ergo API
         try {
-            const response = await fetch(explorer_uri+'/api/v1/networkState');
+            const response = await fetch(get(explorer_uri)+'/api/v1/networkState');
             if (!response.ok) {
                 throw new Error(`API request failed with status: ${response.status}`);
             }
@@ -92,7 +91,7 @@ export class ErgoPlatform implements Platform {
         if (addr) {
             try {
                 // Fetch balance for the specific address from the API
-                const response = await fetch(explorer_uri+`/api/v1/addresses/${addr}/balance/confirmed`);
+                const response = await fetch(get(explorer_uri)+`/api/v1/addresses/${addr}/balance/confirmed`);
                 if (!response.ok) {
                     throw new Error(`API request failed with status: ${response.status}`);
                 }

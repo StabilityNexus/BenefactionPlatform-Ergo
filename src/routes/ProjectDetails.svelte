@@ -331,7 +331,9 @@
 
     let is_owner = false;
     async function checkIfIsOwner() {
-        is_owner = $connected && await $address === project.constants.owner;
+        const connected = await $connected;
+        const address = await $address; 
+        is_owner = connected && await address === project.constants.owner;
     }
     checkIfIsOwner();
 

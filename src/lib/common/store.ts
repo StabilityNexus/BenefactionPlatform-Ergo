@@ -11,3 +11,4 @@ export const project_detail = writable<Project|null>(null);
 export const timer = writable<{countdownInterval: number, target: number}>({countdownInterval: 0, target: 0})
 export const projects = writable<Map<string, Project>>(new Map());
 export const user_tokens = writable<Map<string, number>>(new Map());
+export const explorer_uri = writable<string|null>("https://api.ergoplatform.com");

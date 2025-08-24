@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { address, connected, balance, network, project_detail, project_token_amount, temporal_token_amount, timer, user_tokens } from "$lib/common/store";
     import MyProjects from './MyProjects.svelte';
     import MyContributions from './MyContributions.svelte';
@@ -19,11 +19,13 @@
     // New wallet system imports
     import WalletButton from '$lib/components/WalletButton.svelte';
     import { walletManager, walletConnected, walletAddress, walletBalance } from '$lib/wallet/wallet-manager';
+    import SettingsModal from './SettingsModal.svelte';
 
     let activeTab = 'acquireTokens';
     let showCopyMessage = false;
     let showWalletInfo = false;
     let mobileMenuOpen = false;
+    let showSettingsModal = false;
 
     let platform = new ErgoPlatform();
 
@@ -42,7 +44,6 @@
     
     onMount(async () => {
         if (!browser) return;
-        // Removed old auto-connect logic - now handled by WalletManager
 
         const projectId = $page.url.searchParams.get('project');
         const platformId = $page.url.searchParams.get('chain');
@@ -54,6 +55,11 @@
         // Setup footer scrolling text
         scrollingTextElement?.addEventListener('animationiteration', handleAnimationIteration);
     });
+
+    onDestroy(() => {
+        scrollingTextElement?.removeEventListener('animationiteration', handleAnimationIteration);
+    });
+
 
     // Subscribe to new wallet system instead of old connected store
     walletConnected.subscribe(async (isConnected) => {
@@ -232,6 +238,10 @@
                 </div>
             {/if}
             
+            <button class="settings-button" on:click={() => showSettingsModal = true}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-settings"><path d="M12.22 2.06c-.5.0-.9.2-1.2.5s-.4.8-.4 1.2c0 .5.2.9.5 1.2s.8.4 1.2.4c.5.0.9-.2 1.2-.5s.4-.8.4-1.2c0-.5-.2-.9-.5-1.2s-.8-.4-1.2-.4zm0 2.4c-2.4 0-4.5 1.5-5.3 3.7c-.8 2.2-.2 4.7 1.6 6.1s4.4 2.2 6.8 1.4c2.4-.8 4.1-3.2 3.8-5.7s-2.1-4.3-4.5-5zm0-2.4c3.2 0 6.1 1.7 7.7 4.7c1.6 3.0 1.2 6.6-.7 9.1s-4.8 3.8-8.3 3.8-6.5-1.3-8.3-3.8-2.3-6.1-.7-9.1c1.6-3.0 4.5-4.7 7.7-4.7z"/><path d="M12.22 2.06c-.5 0-.9.2-1.2.5s-.4.8-.4 1.2c0 .5.2.9.5 1.2s.8.4 1.2.4c.5 0 .9-.2 1.2-.5s.4-.8.4-1.2c0-.5-.2-.9-.5-1.2s-.8-.4-1.2-.4zm0 2.4c-2.4 0-4.5 1.5-5.3 3.7c-.8 2.2-.2 4.7 1.6 6.1s4.4 2.2 6.8 1.4c2.4-.8 4.1-3.2 3.8-5.7s-2.1-4.3-4.5-5zm0-2.4c3.2 0 6.1 1.7 7.7 4.7c1.6 3.0 1.2 6.6-.7 9.1s-4.8 3.8-8.3 3.8-6.5-1.3-8.3-3.8-2.3-6.1-.7-9.1c1.6-3.0 4.5-4.7 7.7-4.7z"/></svg>
+            </button>
+
             <div class="theme-toggle">
                 <Theme />
             </div>
@@ -317,6 +327,8 @@
         {/if}
     </div>
 </footer>
+
+<SettingsModal bind:open={showSettingsModal} />
 
 <style>
        :global(html) {
@@ -476,8 +488,6 @@
         flex-shrink: 0;
     }
 
-    /* Removed unused .user-info and .badge-container styles */
-
     /* Token badges for new wallet system */
     .token-badges {
         display: flex;
@@ -491,8 +501,6 @@
             display: none; /* Hide on mobile to save space */
         }
     }
-
-    /* Removed unused .wallet-button styles - now using WalletButton component */
 
     /* Mobile Menu Button */
     .mobile-menu-button {
@@ -705,11 +713,11 @@
     .scrolling-text-wrapper {
         display: inline-block;
         white-space: nowrap;
-        animation: scroll-left 30s linear infinite;
+        animation: scroll-from-right 30s linear infinite;
         transition: animation-duration 0.5s ease;
     }
 
-    @keyframes scroll-left {
+    @keyframes scroll-from-right {
         from {
             transform: translateX(100%);
         }
@@ -733,5 +741,22 @@
     .discord-button:hover, .github-button:hover {
         background: rgba(255, 255, 255, 0.1);
         transform: translateY(-2px);
+    }
+
+    .settings-button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 8px;
+        transition: background-color 0.2s ease;
+        color: orange;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .settings-button:hover {
+        background-color: rgba(255, 165, 0, 0.1);
     }
 </style>

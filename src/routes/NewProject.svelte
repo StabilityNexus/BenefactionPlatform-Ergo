@@ -1,6 +1,6 @@
 <script lang="ts">
     import { block_to_date, time_to_block } from '$lib/common/countdown';
-    import { explorer_uri, web_explorer_uri_tx } from '$lib/ergo/envs';
+    import { web_explorer_uri_tx } from '$lib/ergo/envs';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import { Label } from '$lib/components/ui/label/index.js';
     import { Textarea } from '$lib/components/ui/textarea';
@@ -8,7 +8,7 @@
     import { Input } from '$lib/components/ui/input';
     import * as Select from '$lib/components/ui/select';
     import { get } from 'svelte/store';
-    import { user_tokens } from '$lib/common/store';
+    import { explorer_uri, user_tokens } from '$lib/common/store';
     import { walletConnected } from '$lib/wallet/wallet-manager';
 
     let platform = new ErgoPlatform();
@@ -221,7 +221,7 @@
     }
 
     async function fetchTokenDetails(id: string) {
-        const url = `${explorer_uri}/api/v1/tokens/${id}`;
+        const url = `${get(explorer_uri)}/api/v1/tokens/${id}`;
         try {
             const response = await fetch(url);
             if (response.ok) {

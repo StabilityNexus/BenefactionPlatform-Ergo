@@ -2,8 +2,10 @@ import { compile } from "@fleet-sdk/compiler";
 import { blake2b256, hex, sha256 } from "@fleet-sdk/crypto";
 import { uint8ArrayToHex } from "../utils";
 import { Network } from "@fleet-sdk/core";
-import { explorer_uri, network_id } from "../envs";
+import { network_id } from "../envs";
 import { distributeFunds } from "./distribute_funds";
+import { explorer_uri } from "$lib/common/store";
+import { get } from "svelte/store";
 
 function wallets() {
     let bruno;
@@ -179,7 +181,7 @@ export async function download_dev() {
         let moreDataAvailable = true;
 
         while (moreDataAvailable) {
-            const url = explorer_uri+'/api/v1/boxes/unspent/search';
+            const url = get(explorer_uri)+'/api/v1/boxes/unspent/search';
             const response = await fetch(url + '?' + new URLSearchParams({
                 offset: params.offset.toString(),
                 limit: params.limit.toString(),
