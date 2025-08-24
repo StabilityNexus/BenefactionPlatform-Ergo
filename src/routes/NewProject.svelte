@@ -469,7 +469,7 @@
                     <Textarea
                         id="projectDescription"
                         bind:value={projectDescription}
-                        placeholder="Tell us about your project..."
+                        placeholder="Tell about your project..."
                         required
                         class="w-full h-28 lg:h-32 border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
                     />
