@@ -9,6 +9,7 @@
     import * as Select from "$lib/components/ui/select";
     import { get } from 'svelte/store';
     import { user_tokens } from '$lib/common/store';
+    import { walletConnected } from '$lib/wallet/wallet-manager';
 
     let platform = new ErgoPlatform();
 
@@ -211,6 +212,17 @@
         }
     }
     getUserTokens();
+
+    // Subscribe to wallet connection changes to refresh tokens
+    walletConnected.subscribe((isConnected) => {
+        if (isConnected) {
+            // Refresh tokens when wallet connects
+            getUserTokens();
+        } else {
+            // Clear tokens when wallet disconnects
+            userTokens = [];
+        }
+    });
 
 </script>
 

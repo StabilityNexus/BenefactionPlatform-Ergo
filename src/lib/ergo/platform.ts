@@ -8,6 +8,8 @@ import { buy_refund } from './actions/buy_refund';
 import { rebalance } from './actions/rebalance';
 import { explorer_uri, network_id } from './envs';
 import { address, connected, network, balance } from "../common/store";
+import { walletManager, walletConnected, walletAddress, walletBalance } from "../wallet/wallet-manager";
+import { get } from "svelte/store";
 import { temp_exchange } from './actions/temp_exchange';
 import { type contract_version } from './contract';
 
@@ -20,50 +22,72 @@ export class ErgoPlatform implements Platform {
     last_version: contract_version = "v1_2";
 
     async connect(): Promise<void> {
-        if (typeof ergoConnector !== 'undefined') {
-            const nautilus = ergoConnector.nautilus;
-            if (nautilus) {
-                if (await nautilus.connect()) {
-                    console.log('Connected!');
-                    address.set(await ergo.get_change_address());
-                    network.set((network_id == "mainnet") ? "ergo-mainnet" : "ergo-testnet");
-                    await this.get_balance();
-                    connected.set(true);
-                } else {
-                    alert('Not connected!');
-                }
-            } else {
-                alert('Nautilus Wallet is not active');
-            }
-            } /*else {
-                alert('No wallet available');
-            } */
+        // This method is now deprecated - wallet connection is handled by WalletManager
+        // Check if already connected via new wallet system
+        const isConnected = get(walletConnected);
+        if (isConnected) {
+            console.log('Already connected via new wallet system');
+            return;
+        }
+        
+        console.warn('ErgoPlatform.connect() is deprecated. Use WalletManager instead.');
+        // For backward compatibility, try to connect to Nautilus if available
+        try {
+            await walletManager.connectWallet('nautilus');
+        } catch (error) {
+            console.error('Failed to connect via WalletManager:', error);
+        }
     }
 
     async get_current_height(): Promise<number> {
         try {
-            // If connected to the Ergo wallet, get the current height directly
-            return await ergo.get_current_height();
-        } catch {
-            // Fallback to fetching the current height from the Ergo API
-            try {
-                const response = await fetch(explorer_uri+'/api/v1/networkState');
-                if (!response.ok) {
-                    throw new Error(`API request failed with status: ${response.status}`);
+            // Check if wallet manager is available and connected
+            if (walletManager && walletManager.isConnected()) {
+                // Use wallet adapter's getCurrentHeight method which handles SafeW correctly
+                const adapter = walletManager.getConnectedWallet();
+                if (adapter && adapter.getCurrentHeight) {
+                    return await adapter.getCurrentHeight();
                 }
-    
-                const data = await response.json();
-                return data.height; // Extract and return the height
-            } catch (error) {
-                console.error("Failed to fetch network height from API:", error);
-                throw new Error("Unable to get current height.");
             }
+            
+            // Try direct window.ergo if available (for legacy compatibility with Nautilus)
+            if (typeof window !== 'undefined' && window.ergo && window.ergo.get_current_height) {
+                return await window.ergo.get_current_height();
+            }
+        } catch (error) {
+            console.warn('Failed to get height from wallet, falling back to API:', error);
+        }
+        
+        // Fallback to fetching the current height from the Ergo API
+        try {
+            const response = await fetch(explorer_uri+'/api/v1/networkState');
+            if (!response.ok) {
+                throw new Error(`API request failed with status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.height; // Extract and return the height
+        } catch (error) {
+            console.error("Failed to fetch network height from API:", error);
+            throw new Error("Unable to get current height.");
         }
     }
 
     async get_balance(id?: string): Promise<Map<string, number>> {
         const balanceMap = new Map<string, number>();
-        const addr = await ergo.get_change_address();
+        
+        // Get address from new wallet system or fallback to ergo global
+        let addr: string | null = null;
+        try {
+            const walletAddr = get(walletAddress);
+            if (walletAddr) {
+                addr = walletAddr;
+            } else if (typeof window !== 'undefined' && window.ergo) {
+                addr = await window.ergo.get_change_address();
+            }
+        } catch (error) {
+            console.error('Failed to get wallet address:', error);
+        }
 
         if (addr) {
             try {

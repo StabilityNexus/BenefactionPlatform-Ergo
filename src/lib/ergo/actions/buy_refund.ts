@@ -10,6 +10,7 @@ import {
 import { SString } from '../utils';
 import { type Project } from '../../common/project';
 import { get_address } from '../contract';
+import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 import { SColl } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
@@ -30,10 +31,10 @@ export async function buy_refund(
     let base_token_amount = Math.abs(token_amount) * project.exchange_rate;
 
     // Get the wallet address (will be the user address)
-    const walletPk = await ergo.get_change_address();
+    const walletPk = await getChangeAddress();
     
     // Get the UTXOs from the current wallet to use as inputs
-    const inputs = [project.box, ...(await ergo.get_utxos())];
+    const inputs = [project.box, ...(await window.ergo!.get_utxos())];
 
     // Calculate ERG value for the contract
     let contractErgValue = project.value;
@@ -153,7 +154,7 @@ export async function buy_refund(
     }
 
     // Building the unsigned transaction
-    const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
+    const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
         .from(inputs)
         .to(outputs)
         .sendChangeTo(walletPk)
@@ -163,10 +164,10 @@ export async function buy_refund(
     
     try {
         // Sign the transaction
-        const signedTransaction = await ergo.sign_tx(unsignedTransaction);
+        const signedTransaction = await signTransaction(unsignedTransaction);
 
         // Send the transaction to the Ergo network
-        const transactionId = await ergo.submit_tx(signedTransaction);
+        const transactionId = await submitTransaction(signedTransaction);
 
         console.log("Transaction id -> ", transactionId);
         return transactionId;

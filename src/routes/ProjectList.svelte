@@ -5,17 +5,24 @@
     import { projects } from '$lib/common/store';
     import * as Alert from "$lib/components/ui/alert";
     import * as Dialog from "$lib/components/ui/dialog";
-    import { Loader2, Search } from 'lucide-svelte';
+    import { Loader2, Search, Filter } from 'lucide-svelte';
     import { onMount } from 'svelte';
     import { get } from 'svelte/store';
     import { Input } from "$lib/components/ui/input";
+    import { Button } from "$lib/components/ui/button";
+    import { getFilteredProjects, type FilterOptions } from '$lib/ergo/dataAccess';
+    import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
 
     let platform = new ErgoPlatform();
     let listedProjects: Map<string, Project> | null = null;
     let errorMessage: string | null = null;
     let isLoading: boolean = true;
+    let isRefreshing: boolean = false;
     let searchQuery: string = "";
     let offset: number = 0;
+    let sortBy: 'newest' | 'oldest' | 'amount' | 'name' = 'newest';
+    let filterOpen = false;
+    let debounceTimer: NodeJS.Timeout;
 
     export let filterProject: ((project: any) => Promise<boolean>) | null = null;
 
@@ -42,39 +49,96 @@
         }
 
         const sortedProjectsArray = Array.from(filteredProjectsMap.entries()).sort(
-            ([, projectA], [, projectB]) => projectB.box.creationHeight - projectA.box.creationHeight
+            ([, projectA], [, projectB]) => {
+                switch (sortBy) {
+                    case 'newest':
+                        return projectB.box.creationHeight - projectA.box.creationHeight;
+                    case 'oldest':
+                        return projectA.box.creationHeight - projectB.box.creationHeight;
+                    case 'amount':
+                        return projectB.box.value - projectA.box.value;
+                    case 'name':
+                        return projectA.content.title.localeCompare(projectB.content.title);
+                    default:
+                        return 0;
+                }
+            }
         );
 
         return new Map(sortedProjectsArray);
     }
 
-    async function loadProjects() {
+    async function loadProjects(showLoading: boolean = true) {
         try {
-            isLoading = true;
-            
-            let projectsInStore = get(projects);
-            
-            if (projectsInStore.size === 0) {
-                const fetchedProjects = await platform.fetch(offset);
-                projects.set(fetchedProjects);
-                projectsInStore = fetchedProjects;
+            // Only show loading on initial load, not on refresh
+            if (showLoading && !listedProjects) {
+                isLoading = true;
+            } else {
+                isRefreshing = true;
             }
             
-            listedProjects = await filterProjects(projectsInStore);
+            // Use the new data access layer with caching and indexing
+            const filterOptions: FilterOptions = {
+                searchQuery: searchQuery || undefined,
+                sortBy: sortBy
+            };
+            
+            let filteredProjectsMap = await getFilteredProjects(filterOptions);
+            
+            // Apply any additional custom filter if provided
+            if (filterProject) {
+                const customFiltered = new Map<string, Project>();
+                for (const [id, project] of filteredProjectsMap.entries()) {
+                    if (await filterProject(project)) {
+                        customFiltered.set(id, project);
+                    }
+                }
+                filteredProjectsMap = customFiltered;
+            }
+            
+            listedProjects = filteredProjectsMap;
+            
+            // Update store if needed
+            if (get(projects).size === 0 && filteredProjectsMap.size > 0) {
+                projects.set(filteredProjectsMap);
+            }
             
         } catch (error: any) {
             errorMessage = error.message || "Error occurred while fetching projects";
         } finally {
             isLoading = false;
+            isRefreshing = false;
         }
     }
 
-    $: if (searchQuery !== undefined) {
-        loadProjects();
+    // Debounce search to avoid multiple API calls
+    function handleSearchChange() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            loadProjects(false);
+        }, 300);
     }
 
-    onMount(() => {
-        loadProjects();
+    $: if (searchQuery !== undefined) {
+        handleSearchChange();
+    }
+
+    $: if (sortBy) {
+        loadProjects(false);
+    }
+
+    onMount(async () => {
+        // Try to show cached data immediately
+        const cachedProjects = get(projects);
+        if (cachedProjects && cachedProjects.size > 0) {
+            listedProjects = cachedProjects;
+            isLoading = false;
+            // Load fresh data in background
+            loadProjects(false);
+        } else {
+            // No cache, load with loading indicator
+            await loadProjects(true);
+        }
     });
 </script>
 
@@ -82,14 +146,44 @@
     <h2 class="project-title"><slot></slot></h2>
 
     <div class="search-container mb-6">
-        <div class="relative w-full max-w-md mx-auto">
-            <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-500/70 h-4 w-4" />
-            <Input
-                type="text"
-                placeholder="Search projects..."
-                bind:value={searchQuery}
-                class="pl-10 w-full bg-background/80 backdrop-blur-lg border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1 rounded-lg transition-all duration-200"
-            />
+        <div class="relative w-full max-w-md mx-auto flex gap-2">
+            <div class="relative flex-1">
+                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-500/70 h-4 w-4" />
+                <Input
+                    type="text"
+                    placeholder="Search projects..."
+                    bind:value={searchQuery}
+                    class="pl-10 w-full bg-background/80 backdrop-blur-lg border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1 rounded-lg transition-all duration-200"
+                />
+            </div>
+            <DropdownMenu.Root bind:open={filterOpen}>
+                <DropdownMenu.Trigger asChild let:builder>
+                    <Button 
+                        builders={[builder]} 
+                        variant="outline" 
+                        size="icon"
+                        class="border-orange-500/20 hover:border-orange-500/40 hover:bg-orange-500/10"
+                    >
+                        <Filter class="h-4 w-4 text-orange-500/70" />
+                    </Button>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content class="w-56" align="end">
+                    <DropdownMenu.Label>Sort By</DropdownMenu.Label>
+                    <DropdownMenu.Separator />
+                    <DropdownMenu.Item class={sortBy === 'newest' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'newest'}>
+                        {sortBy === 'newest' ? '✓ ' : ''}Newest First
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item class={sortBy === 'oldest' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'oldest'}>
+                        {sortBy === 'oldest' ? '✓ ' : ''}Oldest First
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item class={sortBy === 'amount' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'amount'}>
+                        {sortBy === 'amount' ? '✓ ' : ''}Highest Value
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item class={sortBy === 'name' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'name'}>
+                        {sortBy === 'name' ? '✓ ' : ''}Alphabetical
+                    </DropdownMenu.Item>
+                </DropdownMenu.Content>
+            </DropdownMenu.Root>
         </div>
     </div>
 
@@ -99,6 +193,13 @@
                 {errorMessage}
             </Alert.Description>
         </Alert.Root>
+    {/if}
+
+    {#if isRefreshing && listedProjects}
+        <div class="refresh-indicator">
+            <Loader2 class="h-4 w-4 animate-spin text-orange-500" />
+            <span class="text-sm text-orange-500">Updating...</span>
+        </div>
     {/if}
 
     {#if listedProjects && Array.from(listedProjects).length > 0 && !isLoading}
@@ -202,6 +303,20 @@
     .loading-placeholder {
         height: 70vh;
         width: 100%;
+    }
+
+    .refresh-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 165, 0, 0.1);
+        border-radius: 20px;
+        margin-bottom: 1rem;
+        width: fit-content;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     @media (max-width: 768px) {

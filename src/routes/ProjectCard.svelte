@@ -7,6 +7,7 @@
     import * as Card from "$lib/components/ui/card";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { mode } from "mode-watcher";
+    import { getBaseTokenDisplayInfo, formatBaseTokenAmount } from "$lib/ergo/token_utils";
     
     export let project: Project;
 
@@ -16,6 +17,9 @@
     let is_min_raised = false;
     let statusMessage = "";
     let statusColor = "";
+    let baseSymbol = platform.main_token;
+    let baseDecimals = 9;
+    
     let showFullDescription = false;
     
     // Balance awareness for project cards
@@ -33,27 +37,35 @@
         deadline_passed = await is_ended(project);
         is_min_raised = await min_raised(project);
         const limit_date = await block_to_date(project.block_limit, project.platform);
+        
+        // Determine base token display info (ERG or other token like SigUSD)
+        const baseInfo = await getBaseTokenDisplayInfo(project.base_token_id);
+        baseSymbol = baseInfo.symbol;
+        baseDecimals = baseInfo.decimals;
 
-        const minErg = ((project.minimum_amount * project.exchange_rate) / Math.pow(10, 9));
-        const maxErg = ((project.maximum_amount * project.exchange_rate) / Math.pow(10, 9))
+        // Compute min/max in smallest base token units, then format for display
+        const minBaseUnits = project.minimum_amount * project.exchange_rate;
+        const maxBaseUnits = project.maximum_amount * project.exchange_rate;
+        const minDisplay = formatBaseTokenAmount(minBaseUnits, baseDecimals, baseSymbol);
+        const maxDisplay = formatBaseTokenAmount(maxBaseUnits, baseDecimals, baseSymbol);
         const isMaxReached = project.sold_counter >= project.total_pft_amount;
 
         if (isMaxReached) {
-            statusMessage = `Reached maximum goal of ${maxErg} ${platform.main_token}; currently closed for contributions.`;
+            statusMessage = `Reached maximum goal of ${maxDisplay}; currently closed for contributions.`;
             statusColor = "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
         } 
         else if (deadline_passed) {
             statusMessage = is_min_raised 
-                ? `Reached minimum of ${minErg} ${platform.main_token}; open for contributions up to ${maxErg} ${platform.main_token}.`
-                : `Did not raise minimum of ${minErg} ${platform.main_token} before ${limit_date}; open for contributions up to ${maxErg} ${platform.main_token}.`;
+                ? `Reached minimum of ${minDisplay}; open for contributions up to ${maxDisplay}.`
+                : `Did not raise minimum of ${minDisplay} before ${limit_date}; open for contributions up to ${maxDisplay}.`;
             statusColor = is_min_raised 
                 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
                 : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
         } 
         else {
             statusMessage = is_min_raised
-                ? `Reached minimum of ${minErg} ${platform.main_token}; open for contributions up to ${maxErg} ${platform.main_token}.`
-                : `Aiming to raise a minimum of ${minErg} ${platform.main_token} before ${limit_date}.`;
+                ? `Reached minimum of ${minDisplay}; open for contributions up to ${maxDisplay}.`
+                : `Aiming to raise a minimum of ${minDisplay} before ${limit_date}.`;
             statusColor = is_min_raised 
                 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" 
                 : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
@@ -134,8 +146,8 @@
 
     <!-- Status Message Sticky Bottom -->
     <div class="absolute bottom-16 left-0 w-full px-4">
-        <div class={`${statusColor} p-2 rounded-md text-sm transition-all shadow-sm`}>
-            {statusMessage}
+        <div class={`${statusColor} p-2 rounded-md text-sm transition-all shadow-sm break-words`}>
+            <p class="leading-relaxed">{statusMessage}</p>
         </div>
     </div>
 
@@ -204,6 +216,13 @@
 
     .scrollable-description::-webkit-scrollbar-thumb:hover {
         background: rgba(255, 165, 0, 0.5);
+    }
+
+    /* Ensure proper text wrapping for status messages */
+    .break-words {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
     }
 
     /* Balance Indicator Badge Styles */
