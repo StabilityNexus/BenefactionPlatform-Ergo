@@ -29,9 +29,10 @@
     let tokenAmountToSellPrecise: number;
     let maxTokenAmountToSell: number;
 
-    let daysLimit: number;
-    let daysLimitBlock: number;
-    let daysLimitText: string;
+    let deadlineValue: number;
+    let deadlineUnit: 'days' | 'minutes' = 'days';
+    let deadlineValueBlock: number;
+    let deadlineValueText: string;
 
     let exchangeRateRaw: number;
     let exchangeRatePrecise: number;
@@ -115,7 +116,12 @@
     }
 
     $: {
-        calculateBlockLimit(daysLimit);
+       if (deadlineValue && deadlineValue > 0) {
+            calculateBlockLimit(deadlineValue, deadlineUnit);
+        } else {
+            deadlineValueBlock = undefined;
+            deadlineValueText = "";
+        }
     }
 
     // --- Functions ---
@@ -132,16 +138,28 @@
         }
     }
 
-    async function calculateBlockLimit(days: number) {
-        if (!days || days <= 0) {
-            daysLimitBlock = 0;
-            daysLimitText = '';
+    async function calculateBlockLimit(value: number, unit: 'days' | 'minutes') {
+        if (!platform || !value || value <=0) {
+            deadlineValueBlock = undefined;
+            deadlineValueText = "";
             return;
         }
-        let target_date = new Date();
-        target_date.setTime(target_date.getTime() + days * 24 * 60 * 60 * 1000);
-        daysLimitBlock = await time_to_block(target_date.getTime(), platform);
-        daysLimitText = await block_to_date(daysLimitBlock, platform);
+        try {
+            let target_date = new Date();
+            let milliseconds;
+            if (unit === 'days') {
+                milliseconds = value * 24 * 60 * 60 * 1000;
+            } else { // minutes
+                milliseconds = value * 60 * 1000;
+            }
+            target_date.setTime(target_date.getTime() + milliseconds); 
+            deadlineValueBlock = await time_to_block(target_date.getTime(), platform);
+            deadlineValueText = await block_to_date(deadlineValueBlock, platform);
+        } catch (error) {
+            console.error("Error calculating block limit:", error);
+            deadlineValueBlock = undefined;
+            deadlineValueText = "Error calculating deadline";
+        }
     }
 
     function updateExchangeRate() {
@@ -186,7 +204,7 @@
                 platform.last_version,
                 rewardTokenId,
                 tokenAmountToSellRaw,
-                daysLimitBlock,
+                deadlineValueBlock,
                 Math.round(exchangeRateRaw),
                 projectContent,
                 Math.round(minimumTokenSold),
@@ -287,7 +305,7 @@
                     </Select.Root>
                     <p class="text-sm mt-2 text-muted-foreground">
                         Don't have a token? <a
-                            href="https://tools.mewfinance.com/mint"
+                            href="https://ergo-basics.github.io/token-minter"
                             target="_blank"
                             rel="noopener noreferrer"
                             class="text-orange-400 underline hover:text-orange-300 transition-colors"
@@ -362,17 +380,27 @@
                 </div>
 
                 <div class="form-group">
-                    <Label for="daysLimit" class="text-sm font-medium mb-2 block"
-                        >Duration (Days)</Label
+                    <Label for="deadlineValue" class="text-sm font-medium mb-2 block">
+                        Duration
+                    </Label
                     >
-                    <Input
-                        id="daysLimit"
-                        type="number"
-                        bind:value={daysLimit}
-                        min="1"
-                        placeholder="e.g., 30"
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                    />
+                    <div class="flex space-x-2">
+                        <Input
+                            id="deadlineValue"
+                            type="number"
+                            bind:value={deadlineValue}
+                            min="1"
+                            placeholder="e.g., 30"
+                            class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
+                        />
+                        <select 
+                                bind:value={deadlineUnit} 
+                                class="p-2 border border-slate-500/20 rounded-md bg-transparent text-sm focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                            >
+                                <option value="days">Days</option>
+                                <option value="minutes">Minutes</option>
+                            </select>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -501,7 +529,7 @@
                             !exchangeRateRaw ||
                             !maxGoalPrecise ||
                             !projectTitle ||
-                            !daysLimitBlock ||
+                            !deadlineValueBlock ||
                             formErrors.tokenConflict ||
                             formErrors.goalOrder}
                         class="bg-orange-500 hover:bg-orange-600 text-black border-none py-2 px-6 text-lg font-semibold rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none"
