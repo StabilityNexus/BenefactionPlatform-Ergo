@@ -39,7 +39,9 @@
         const limit_date = await block_to_date(project.block_limit, project.platform);
         
         // Determine base token display info (ERG or other token like SigUSD)
+        console.log("Project base_token_id:", project.base_token_id); // Debug log
         const baseInfo = await getBaseTokenDisplayInfo(project.base_token_id);
+        console.log("Base token info:", baseInfo); // Debug log
         baseSymbol = baseInfo.symbol;
         baseDecimals = baseInfo.decimals;
 

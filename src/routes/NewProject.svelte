@@ -10,6 +10,7 @@
     import { get } from 'svelte/store';
     import { explorer_uri, user_tokens } from '$lib/common/store';
     import { walletConnected } from '$lib/wallet/wallet-manager';
+    import { fetch_projects } from '$lib/ergo/fetch';
 
     let platform = new ErgoPlatform();
 
@@ -51,11 +52,19 @@
     let isSubmitting: boolean = false;
 
     let userTokens: Array<{ tokenId: string; title: string; balance: number; decimals: number }> = [];
+    let existingAPTTokens: Set<string> = new Set(); // APT tokens (project_ids) from existing projects
+    let existingPFTTokens: Set<string> = new Set(); // PFT tokens (token_ids) from existing projects
+    
+    // Filtered tokens that exclude problematic tokens
+    let availableRewardTokens: Array<{ tokenId: string; title: string; balance: number; decimals: number }> = [];
+    let availableBaseTokens: Array<{ tokenId: string; title: string; balance: number; decimals: number }> = [];
 
     // Centralized object for form validation errors
     let formErrors = {
         tokenConflict: null,
-        goalOrder: null
+        goalOrder: null,
+        invalidBaseToken: null,
+        invalidToken: null
     };
 
     // --- Reactive Declarations ---
@@ -98,6 +107,42 @@
         } else {
             formErrors.tokenConflict = null;
         }
+    }
+
+    // Filter tokens for proper usage
+    $: {
+        // Create comprehensive APT token blacklist
+        const allAPTTokens = new Set([...existingAPTTokens]);
+        
+        // Add tokens with "APT" in their name as additional safety
+        for (const token of userTokens) {
+            if (token.title && token.title.includes('APT')) {
+                allAPTTokens.add(token.tokenId);
+            }
+        }
+        
+        // For reward tokens: Exclude all APT tokens, allow PFT tokens
+        availableRewardTokens = userTokens.filter(token => !allAPTTokens.has(token.tokenId));
+        
+        // For base tokens: Exclude both APT and PFT tokens
+        availableBaseTokens = userTokens.filter(token => 
+            !allAPTTokens.has(token.tokenId) && !existingPFTTokens.has(token.tokenId)
+        );
+    }
+
+    // Validation for token usage
+    $: {
+        let tokenError = null;
+        
+        if (rewardTokenId && existingAPTTokens.has(rewardTokenId)) {
+            tokenError = 'Cannot use APT tokens from existing projects as reward tokens.';
+        }
+        
+        if (baseTokenId && (existingAPTTokens.has(baseTokenId) || existingPFTTokens.has(baseTokenId))) {
+            tokenError = 'Cannot use APT/PFT tokens from existing projects as contribution currency.';
+        }
+        
+        formErrors.invalidToken = tokenError;
     }
 
     $: rewardTokenDecimals = userTokens.find((t) => t.tokenId === rewardTokenId)?.decimals || 0;
@@ -177,7 +222,7 @@
     }
 
     async function handleSubmit() {
-        if (rewardTokenId === null || formErrors.tokenConflict || formErrors.goalOrder) {
+        if (rewardTokenId === null || formErrors.tokenConflict || formErrors.goalOrder || formErrors.invalidToken) {
             errorMessage = 'Please correct the errors before submitting.';
             return;
         }
@@ -262,7 +307,30 @@
         }
     }
 
+    async function loadExistingProjectTokens() {
+        try {
+            const projects = await fetch_projects(0);
+            const aptTokens = new Set<string>();
+            const pftTokens = new Set<string>();
+            
+            for (const [projectId, project] of projects) {
+                // Add APT token (project_id) - these should be blocked from reward selection
+                aptTokens.add(projectId);
+                // Add PFT token (token_id) - these should be blocked from base currency selection only
+                pftTokens.add(project.token_id);
+            }
+            
+            existingAPTTokens = aptTokens;
+            existingPFTTokens = pftTokens;
+        } catch (error) {
+            console.error('Error loading existing project tokens:', error);
+        }
+    }
+
     // --- Lifecycle and Subscriptions ---
+
+    // Load existing project tokens on component mount
+    loadExistingProjectTokens();
 
     walletConnected.subscribe((isConnected) => {
         if (isConnected) {
@@ -296,7 +364,7 @@
                             <Select.Value placeholder="Select a token to sell" />
                         </Select.Trigger>
                         <Select.Content>
-                            {#each userTokens as token}
+                            {#each availableRewardTokens as token}
                                 <Select.Item value={token.tokenId}
                                     >{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</Select.Item
                                 >
@@ -341,6 +409,9 @@
                     {#if formErrors.tokenConflict}
                         <p class="text-red-500 text-sm mb-4">{formErrors.tokenConflict}</p>
                     {/if}
+                    {#if formErrors.invalidToken}
+                        <p class="text-red-500 text-sm mb-4">{formErrors.invalidToken}</p>
+                    {/if}
                 </div>
 
                 <div class="form-group">
@@ -353,7 +424,7 @@
                         </Select.Trigger>
                         <Select.Content>
                             <Select.Item value={null}>ERG (default)</Select.Item>
-                            {#each userTokens as token}
+                            {#each availableBaseTokens as token}
                                 <Select.Item value={token.tokenId}>{token.title}</Select.Item>
                             {/each}
                         </Select.Content>

@@ -25,10 +25,12 @@
 
     let showCopyMessage = false;
 
-    let currentVal = project.sold_counter;
-    let min = project.minimum_amount;
-    let max = project.total_pft_amount;
-    let percentage =  parseInt(((currentVal/max)*100).toString())
+    // Make these reactive to project changes - FIXED: Current amount = sold - refunded
+    $: currentVal = project.sold_counter - project.refund_counter;
+    $: min = project.minimum_amount;
+    $: max = project.current_pft_amount;
+    $: percentage = parseInt(((currentVal/max)*100).toString())
+    
 
     // States for amounts
     let show_submit = false;
@@ -76,10 +78,13 @@
         const userTokens = await platform.get_balance();
         
         // Get project token balance
-        userProjectTokenBalance = (userTokens.get(project.token_id) || 0) / Math.pow(10, project.token_details.decimals);
+        const rawProjectTokens = userTokens.get(project.token_id) || 0;
+        const decimalDivisor = Math.pow(10, project.token_details.decimals);
+        userProjectTokenBalance = rawProjectTokens / decimalDivisor;
         
-        // Get temporal token balance
-        userTemporalTokenBalance = (userTokens.get(project.project_id) || 0) / Math.pow(10, project.token_details.decimals);
+        // Get temporal token balance  
+        const rawTemporalTokens = userTokens.get(project.project_id) || 0;
+        userTemporalTokenBalance = rawTemporalTokens / decimalDivisor;
         
         // Calculate maximum contribution amount based on base token balance and available tokens
         const isERGBase = !project.base_token_id || project.base_token_id === "";
@@ -235,12 +240,15 @@
     }
 
     async function buy() {
-        console.log("Buying tokens:", value_submit);
         isSubmitting = true;
 
         try {
             const result = await platform.buy_refund(project, value_submit);
             transactionId = result;
+            
+            if (result) {
+                await refreshProjectFromContract();
+            }
         } catch (error) {
             errorMessage = error.message || "Error occurred while buying tokens";
         } finally {
@@ -260,12 +268,15 @@
     }
 
     async function refund() {
-        console.log("Refunding tokens:", value_submit);
         isSubmitting = true;
 
         try {
             const result = await platform.buy_refund(project, (-1) * value_submit);
             transactionId = result;
+            
+            if (result) {
+                await refreshProjectFromContract();
+            }
         } catch (error) {
             errorMessage = error.message || "Error occurred while refunding tokens";
         } finally {
@@ -281,7 +292,7 @@
         value_submit = 0;
         show_submit = true;
         hide_submit_info = true;
-        submit_amount_label = project.token_details.name
+        submit_amount_label = project.token_details.name;
     }
 
     async function temp_exchange() {
@@ -388,12 +399,48 @@
 
     async function get_user_project_tokens(){
         var user_project_tokens = (await platform.get_balance(project.token_id)).get(project.token_id) ?? 0;
-        project_token_amount.set((user_project_tokens/Math.pow(10, project.token_details.decimals)).toString()+" "+project.token_details.name);
+        const formattedProjectTokens = (user_project_tokens/Math.pow(10, project.token_details.decimals)).toString()+" "+project.token_details.name;
+        project_token_amount.set(formattedProjectTokens);
         
         var temporal_tokens = (await platform.get_balance(project.project_id)).get(project.project_id) ?? 0;
-        temporal_token_amount.set(temporal_tokens/Math.pow(10, project.token_details.decimals))
+        const normalizedTemporalTokens = temporal_tokens/Math.pow(10, project.token_details.decimals);
+        temporal_token_amount.set(normalizedTemporalTokens);
     }
     get_user_project_tokens()
+    
+    // Function to refresh project data from the contract after transactions
+    async function refreshProjectFromContract() {
+        try {
+            // Import the fresh fetch function to bypass cache
+            const { fetch_projects_fresh } = await import('$lib/ergo/fetch');
+            
+            // Fetch the updated project data from the contract (bypassing cache)
+            const updatedProjects = await fetch_projects_fresh();
+            const updatedProject = updatedProjects.get(project.project_id);
+            
+            if (updatedProject) {
+                // Update the project object with new values AND trigger Svelte reactivity
+                project = {
+                    ...project,
+                    sold_counter: updatedProject.sold_counter,
+                    current_value: updatedProject.current_value,
+                    refund_counter: updatedProject.refund_counter,
+                    current_idt_amount: updatedProject.current_idt_amount,
+                    current_pft_amount: updatedProject.current_pft_amount,
+                    box: updatedProject.box
+                };
+                
+                // Also update the project_detail store
+                project_detail.set(project);
+                
+                // Refresh user balances as well
+                await getWalletBalances();
+                await get_user_project_tokens();
+            }
+        } catch (error) {
+            console.error('Error refreshing project data:', error);
+        }
+    }
     
     // Call getWalletBalances initially to set up values
     getWalletBalances();

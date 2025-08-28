@@ -23,18 +23,50 @@ export async function buy_refund(
         Token amount positive means buy action.
         Token amount negative means refund action.
     */
-
-    token_amount = Math.floor(token_amount * Math.pow(10, project.token_details.decimals));
+    
+    
+    // Convert to smallest unit without rounding away from zero (handles negatives correctly)
+    token_amount = Math.trunc(token_amount * Math.pow(10, project.token_details.decimals));
 
     // Calculate base token amount based on project's base token
     const isERGBase = !project.base_token_id || project.base_token_id === "";
     let base_token_amount = Math.abs(token_amount) * project.exchange_rate;
+    
 
     // Get the wallet address (will be the user address)
     const walletPk = await getChangeAddress();
     
     // Get the UTXOs from the current wallet to use as inputs
-    const inputs = [project.box, ...(await window.ergo!.get_utxos())];
+    let walletUtxos = await window.ergo!.get_utxos();
+    
+    // For refunds, ensure we have the project tokens in inputs
+    if (token_amount < 0) {
+        // Check if user has the required project tokens
+        const requiredTokenAmount = Math.abs(token_amount);
+        let hasRequiredTokens = false;
+        
+        
+        for (const utxo of walletUtxos) {
+            if (utxo.assets && utxo.assets.length > 0) {
+                for (const asset of utxo.assets) {
+                    if (asset.tokenId === project.project_id) {
+                        if (Number(asset.amount) >= requiredTokenAmount) {
+                            hasRequiredTokens = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (hasRequiredTokens) break;
+        }
+        
+        
+        if (!hasRequiredTokens) {
+            throw new Error(`Insufficient project tokens for refund. Required: ${requiredTokenAmount}`);
+        }
+    }
+    
+    const inputs = [project.box, ...walletUtxos];
 
     // Calculate ERG value for the contract
     let contractErgValue = project.value;
@@ -43,26 +75,28 @@ export async function buy_refund(
             // Buy: add ERG to contract
             contractErgValue = project.value + base_token_amount;
         } else {
-            // Refund: subtract ERG from contract
-            contractErgValue = project.value - base_token_amount;
+            // Refund: contract retains ERG (user gets ERG from separate output)
+            contractErgValue = project.value; // Keep original ERG in contract
         }
     }
+    
 
     // Building the project output
+    
     let output = new OutputBuilder(
         BigInt(contractErgValue).toString(),
         get_address(project.constants, project.version)
     )
     .addTokens({
         tokenId: project.project_id,
-        amount: BigInt(project.current_idt_amount - token_amount)  // Buy: extract tokens, Refund: add tokens
+        amount: BigInt(project.current_idt_amount - token_amount).toString()  // Buy: extract tokens, Refund: add tokens
     });
 
     // Add PFT tokens if they exist
     if (project.current_pft_amount > 0) {
         output.addTokens({
             tokenId: project.token_id,
-            amount: BigInt(project.current_pft_amount)  // PFT token maintains constant
+            amount: BigInt(project.current_pft_amount).toString()  // PFT token maintains constant
         });
     }
 
@@ -77,21 +111,31 @@ export async function buy_refund(
             }
         }
         
+        
         // Calculate new base token amount
         let newBaseTokenAmount;
         if (token_amount > 0) {
             // Buy: add base tokens to contract
             newBaseTokenAmount = currentBaseTokenAmount + base_token_amount;
         } else {
-            // Refund: subtract base tokens from contract
+            // Refund: subtract base tokens from contract (they go to user)
             newBaseTokenAmount = currentBaseTokenAmount - base_token_amount;
         }
         
-        // Add base token with updated amount
-        output.addTokens({
-            tokenId: project.base_token_id,
-            amount: BigInt(newBaseTokenAmount)
-        });
+        
+        // Ensure we don't have negative base tokens in contract
+        if (newBaseTokenAmount < 0) {
+            throw new Error(`Insufficient base tokens in contract. Available: ${currentBaseTokenAmount}, Required: ${base_token_amount}`);
+        }
+        
+        // Add base token with updated amount only if > 0 to avoid zero-amount token in output
+        if (newBaseTokenAmount > 0) {
+            output.addTokens({
+                tokenId: project.base_token_id,
+                amount: BigInt(newBaseTokenAmount).toString()
+            });
+        } else {
+        }
     }
 
     // Update counters
@@ -134,11 +178,14 @@ export async function buy_refund(
             });
         outputs.push(userOutput);
     } else if (token_amount < 0) {
-        // Refund: user gets base tokens back
+        const refundTokenAmount = Math.abs(token_amount);
+        
+        // For refunds, user needs to provide the project tokens as input
+        // The user output only contains what they receive back (base tokens)
         if (isERGBase) {
             // For ERG refunds, user gets ERG
             let userOutput = new OutputBuilder(
-                (base_token_amount + SAFE_MIN_BOX_VALUE).toString(), // Add minimum box value
+                (BigInt(base_token_amount) + SAFE_MIN_BOX_VALUE).toString(), // Add minimum box value
                 walletPk
             );
             outputs.push(userOutput);
@@ -153,14 +200,33 @@ export async function buy_refund(
         }
     }
 
-    // Building the unsigned transaction
+    // Building the unsigned transaction using Fleet SDK's built-in change handling
     const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
         .from(inputs)
         .to(outputs)
-        .sendChangeTo(walletPk)
+        .sendChangeTo(walletPk)  // Fleet SDK automatically handles ERG and token change
         .payFee(RECOMMENDED_MIN_FEE_VALUE)
         .build()
         .toEIP12Object();
+    
+
+    // Final sanity check: ensure all token amounts in outputs are > 0
+    try {
+        const invalidTokens: Array<{outIndex:number, tokenId:string, amount:string}> = [];
+        (unsignedTransaction.outputs || []).forEach((o: any, idx: number) => {
+            (o.assets || []).forEach((t: any) => {
+                const amt = BigInt(typeof t.amount === 'string' ? t.amount : (t.amount?.toString() ?? '0'));
+                if (amt <= 0n) {
+                    invalidTokens.push({ outIndex: idx, tokenId: t.tokenId, amount: amt.toString() });
+                }
+            });
+        });
+        if (invalidTokens.length > 0) {
+            throw new Error("Transaction has non-positive token amounts in outputs");
+        }
+    } catch (e) {
+        throw e;
+    }
     
     try {
         // Sign the transaction

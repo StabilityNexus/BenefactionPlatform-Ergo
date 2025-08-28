@@ -201,28 +201,33 @@ export async function withdraw(
         );
     }
 
-    // Dev fee output (OUTPUTS(2) in contract) - only if devFeeAmount > 0
-    if (devFeeAmount > 0) {
-        if (isERGBase) {
-            // For ERG-based, dev receives ERG
+    // Dev fee output (OUTPUTS(2) in contract)
+    if (isERGBase) {
+        // For ERG-based, dev receives ERG. A dev fee of 0 would create an invalid output,
+        // but withdrawal amounts are expected to be large enough to always generate a fee.
+        if (devFeeAmount > 0) {
             outputs.push(
                 new OutputBuilder(
                     BigInt(devFeeAmount),
                     devAddress
                 )
             );
-        } else {
-            // For multi-token, dev receives base tokens
-            outputs.push(
-                new OutputBuilder(
-                    SAFE_MIN_BOX_VALUE,  // Minimum ERG for the box
-                    devAddress
-                ).addTokens({
-                    tokenId: project.base_token_id!,
-                    amount: BigInt(devFeeAmount)
-                })
-            );
         }
+    } else {
+        // For multi-token, the dev output box is always created to satisfy the contract.
+        // It receives base tokens only if a fee is generated.
+        const devOutput = new OutputBuilder(
+            SAFE_MIN_BOX_VALUE,  // Minimum ERG for the box
+            devAddress
+        );
+
+        if (devFeeAmount > 0) {
+            devOutput.addTokens({
+                tokenId: project.base_token_id!,
+                amount: BigInt(devFeeAmount)
+            });
+        }
+        outputs.push(devOutput);
     }
 
     // Building the unsigned transaction
