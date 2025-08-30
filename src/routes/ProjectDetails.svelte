@@ -600,15 +600,15 @@
                                maxContributeAmount <= 0 ? (() => {
                                    const isERGBase = !project.base_token_id || project.base_token_id === "";
                                    if (isERGBase) {
-                                       return `Need at least ${(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(4)} ${platform.main_token} to contribute`;
+                                       return `Need at least ${(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9))} ${platform.main_token} to contribute`;
                                    } else {
                                        const baseTokenDecimals = project.base_token_details?.decimals || 0;
                                        const baseTokenName = project.base_token_details?.name || "tokens";
-                                       return `Need at least ${(project.exchange_rate / Math.pow(10, baseTokenDecimals)).toFixed(4)} ${baseTokenName} to contribute`;
+                                       return `Need at least ${(project.exchange_rate / Math.pow(10, baseTokenDecimals))} ${baseTokenName} to contribute`;
                                    }
                                })() :
                                project.sold_counter >= project.total_pft_amount ? "Project has reached maximum funding" :
-                               `You can contribute up to ${maxContributeAmount.toFixed(4)} ${project.token_details.name}`}
+                               `You can contribute up to ${maxContributeAmount} ${project.token_details.name}`}
                     >
                       Contribute
                     </Button>
@@ -620,11 +620,11 @@
                                 Insufficient funds for contribution. Need at least {(() => {
                                     const isERGBase = !project.base_token_id || project.base_token_id === "";
                                     if (isERGBase) {
-                                        return (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(4) + " " + platform.main_token;
+                                        return (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)) + " " + platform.main_token;
                                     } else {
                                         const baseTokenDecimals = project.base_token_details?.decimals || 0;
                                         const baseTokenName = project.base_token_details?.name || "tokens";
-                                        return (project.exchange_rate / Math.pow(10, baseTokenDecimals)).toFixed(4) + " " + baseTokenName;
+                                        return (project.exchange_rate / Math.pow(10, baseTokenDecimals)) + " " + baseTokenName;
                                     }
                                 })()}
                             {/if}
@@ -640,7 +640,7 @@
                                !deadline_passed ? "Refunds available after deadline" :
                                is_min_raised ? "Refunds not available - minimum goal reached" :
                                maxRefundAmount <= 0 ? "You have no tokens to refund" :
-                               `You can refund up to ${maxRefundAmount.toFixed(4)} ${project.token_details.name}`}
+                               `You can refund up to ${maxRefundAmount} ${project.token_details.name}`}
                     >
                       Get a Refund
                     </Button>
@@ -658,7 +658,7 @@
                         title={!$connected ? "Connect your wallet to collect tokens" :
                                !is_min_raised ? "Collection available after minimum goal is reached" :
                                maxCollectAmount <= 0 ? "You have no temporal tokens to collect" :
-                               `You can collect up to ${maxCollectAmount.toFixed(4)} ${project.token_details.name}`}
+                               `You can collect up to ${maxCollectAmount} ${project.token_details.name}`}
                     >
                       Collect {project.token_details.name}
                     </Button>
@@ -691,7 +691,7 @@
                         disabled={!$connected || maxWithdrawTokenAmount <= 0}
                         title={!$connected ? "Connect your wallet to withdraw tokens" :
                                maxWithdrawTokenAmount <= 0 ? "No tokens available for withdrawal" :
-                               `You can withdraw up to ${maxWithdrawTokenAmount.toFixed(4)} ${project.token_details.name}`}
+                               `You can withdraw up to ${maxWithdrawTokenAmount} ${project.token_details.name}`}
                     >
                       Withdraw {project.token_details.name}
                     </Button>
@@ -709,7 +709,7 @@
                         title={!$connected ? `Connect your wallet to collect ${(!project.base_token_id || project.base_token_id === "") ? "ERG" : (project.base_token_details?.name || "tokens")}` :
                                !is_min_raised ? `${(!project.base_token_id || project.base_token_id === "") ? "ERG" : (project.base_token_details?.name || "tokens")} collection available after minimum goal is reached` :
                                maxWithdrawErgAmount <= 0 ? `No ${(!project.base_token_id || project.base_token_id === "") ? "ERG" : (project.base_token_details?.name || "tokens")} available for withdrawal` :
-                               `You can withdraw up to ${maxWithdrawErgAmount.toFixed(4)} ${(!project.base_token_id || project.base_token_id === "") ? platform.main_token : (project.base_token_details?.name || "tokens")}`}
+                               `You can withdraw up to ${maxWithdrawErgAmount} ${(!project.base_token_id || project.base_token_id === "") ? platform.main_token : (project.base_token_details?.name || "tokens")}`}
                     >
                       Collect {(!project.base_token_id || project.base_token_id === "") ? platform.main_token : (project.base_token_details?.name || "tokens")}
                     </Button>
@@ -764,28 +764,28 @@
                                     </p>
                                     <p>
                                         <strong>Available Balance:</strong> 
-                                        {userErgBalance.toFixed(4)} {platform.main_token}
+                                        {userErgBalance} {platform.main_token}
                                     </p>
                                     <p>
                                         <strong>Maximum Contribution:</strong> 
-                                        {maxContributeAmount.toFixed(4)} {project.token_details.name}
+                                        {maxContributeAmount} {project.token_details.name}
                                     </p>
                                 {/if}
                                 {#if info_type_to_show === "dev-collect"}
                                     <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
-                                    <p><strong>Maximum Withdrawal:</strong> {maxWithdrawErgAmount.toFixed(4)} {platform.main_token}</p>
+                                    <p><strong>Maximum Withdrawal:</strong> {maxWithdrawErgAmount} {platform.main_token}</p>
                                 {/if}
                                 {#if info_type_to_show === "dev"}
                                     <p><strong>Current PFT balance:</strong> {project.current_pft_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
-                                    <p><strong>Maximum Withdrawal:</strong> {maxWithdrawTokenAmount.toFixed(4)} {project.token_details.name}</p>
+                                    <p><strong>Maximum Withdrawal:</strong> {maxWithdrawTokenAmount} {project.token_details.name}</p>
                                 {/if}
                                 {#if function_submit === refund}
-                                    <p><strong>Your Token Balance:</strong> {userProjectTokenBalance.toFixed(4)} {project.token_details.name}</p>
-                                    <p><strong>Maximum Refund:</strong> {maxRefundAmount.toFixed(4)} {project.token_details.name}</p>
+                                    <p><strong>Your Token Balance:</strong> {userProjectTokenBalance} {project.token_details.name}</p>
+                                    <p><strong>Maximum Refund:</strong> {maxRefundAmount} {project.token_details.name}</p>
                                 {/if}
                                 {#if function_submit === temp_exchange}
-                                    <p><strong>Your Temporal Token Balance:</strong> {userTemporalTokenBalance.toFixed(4)} APT</p>
-                                    <p><strong>Maximum Collection:</strong> {maxCollectAmount.toFixed(4)} {project.token_details.name}</p>
+                                    <p><strong>Your Temporal Token Balance:</strong> {userTemporalTokenBalance} APT</p>
+                                    <p><strong>Maximum Collection:</strong> {maxCollectAmount} {project.token_details.name}</p>
                                 {/if}
                             </div>
                         
