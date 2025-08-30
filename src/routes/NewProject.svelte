@@ -453,8 +453,7 @@
                 <div class="form-group">
                     <Label for="deadlineValue" class="text-sm font-medium mb-2 block">
                         Duration
-                    </Label
-                    >
+                    </Label>
                     <div class="flex space-x-2">
                         <Input
                             id="deadlineValue"
@@ -466,7 +465,7 @@
                         />
                         <select 
                                 bind:value={deadlineUnit} 
-                                class="p-2 border border-slate-500/20 rounded-md bg-transparent text-sm focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                                class="p-2 border border-orange-500/20 rounded-md bg-transparent text-sm focus:outline-none focus:ring-1 focus:ring-orange-500/20"
                             >
                                 <option value="days">Days</option>
                                 <option value="minutes">Minutes</option>
