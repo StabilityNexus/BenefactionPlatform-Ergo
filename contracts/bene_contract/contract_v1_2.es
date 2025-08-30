@@ -95,7 +95,7 @@
   val baseTokenId = if (selfBaseTokenIdLen == 0L) {
     Coll[Byte]() // Empty collection for ERG
   } else {
-    fromBase16("${base_token_id}") // Base token ID from compile-time constant
+    fromBase16("`+base_token_id+`") // Base token ID from compile-time constant
   }
   val isERGBase = baseTokenId.size == 0
 
@@ -169,7 +169,7 @@
   val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2)
   val mantainValue = selfValue == OUTPUTS(0).value
 
-  val projectAddr: SigmaProp = PK("${owner_addr}")
+  val projectAddr: SigmaProp = PK("`+owner_addr+`")
   
   val isToProjectAddress = {
     val propAndBox: (SigmaProp, Box) = (projectAddr, OUTPUTS(1))
@@ -380,7 +380,7 @@
       val OUT = OUTPUTS(2)
 
       val isToDevAddress = {
-          val isSamePropBytes: Boolean = fromBase16("${dev_fee_contract_bytes_hash}") == blake2b256(OUT.propositionBytes)
+          val isSamePropBytes: Boolean = fromBase16("`+dev_fee_contract_bytes_hash+`") == blake2b256(OUT.propositionBytes)
           
           isSamePropBytes
       }
