@@ -10,6 +10,7 @@ import { get_dev_contract_hash } from "./dev/dev_contract";
 import CONTRACT_V1_0 from '../../../contracts/bene_contract/contract_v1_0.es?raw';
 import CONTRACT_V1_1 from '../../../contracts/bene_contract/contract_v1_1.es?raw';
 import CONTRACT_V1_2 from '../../../contracts/bene_contract/contract_v1_2.es?raw';
+import MINT_CONTRACT from '../../../contracts/mint_contract/mint_idt.es?raw';
 
 export type contract_version = "v1_0" | "v1_1" | "v1_2";
 
@@ -42,7 +43,6 @@ function generate_contract_v1_2(
     .replace(/`\+dev_fee\+`/g, dev_fee.toString())
     .replace(/`\+token_id\+`/g, token_id)
     .replace(/`\+base_token_id\+`/g, base_token_id);
-
 }
 
 function handle_contract_generator(version: contract_version) {
@@ -123,27 +123,7 @@ function get_contract_hash(constants: ConstantContent, version: contract_version
 }
 export function mint_contract_address(constants: ConstantContent, version: contract_version) {
   const contract_bytes_hash = get_contract_hash(constants, version);
-  let contract = `
-{
-  val contractBox = OUTPUTS(0)
-
-  val correctSpend = {
-      val isIDT = SELF.tokens(0)._1 == contractBox.tokens(0)._1
-      val spendAll = SELF.tokens(0)._2 == contractBox.tokens(0)._2
-
-      isIDT && spendAll
-  }
-
-  val correctContract = {
-      fromBase16("`+contract_bytes_hash+`") == blake2b256(contractBox.propositionBytes)
-  }
-
-  sigmaProp(allOf(Coll(
-      correctSpend,
-      correctContract
-  )))
-}
-`
+  let contract = MINT_CONTRACT.replace(/`\+contract_bytes_hash\+`/g, contract_bytes_hash);
 
   let ergoTree = compile(contract, {version: 1, network: network_id})
 
