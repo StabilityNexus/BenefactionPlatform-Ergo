@@ -66,7 +66,7 @@ export function get_dev_contract_address(): string {
 }
 
 export function get_dev_fee(): number {
-    return 5;
+    return 0;  // Should be 5, but needs to update dev_fee_contract first; for now, no dev fees.
 }
 
 function get_template_hash(): string {
