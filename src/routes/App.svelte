@@ -674,7 +674,7 @@
         align-items: center;
     }
 
-    /* Footer Styles - Copied from GoP */
+    /* Footer Styles */
     .page-footer {
         position: fixed;
         bottom: 0;
@@ -687,10 +687,12 @@
         padding-left: 1.5rem;
         padding-right: 1.5rem;
         gap: 1.5rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
         font-size: 0.875rem;
-        color: var(--text-color);
-        background-color: rgba(0, 0, 0, 0.8);
+        color: var(--foreground);
+
+        border-top: 1px solid var(--footer-border-color);
+        background-color: var(--footer-bg-color);
+        
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
     }
@@ -719,7 +721,7 @@
 
     @keyframes scroll-from-right {
         from {
-            transform: translateX(100%);
+            transform: translateX(100vw);
         }
         to {
             transform: translateX(-100%);
