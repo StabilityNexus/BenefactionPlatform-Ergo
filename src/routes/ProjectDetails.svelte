@@ -749,7 +749,7 @@
                     <div class="form-container">
                         <div class="form-info">
                                 {#if info_type_to_show === "buy"}
-                                    <p>
+                                    <p hidden>  <!--   FIX DECIMALS BUG FIRST   -->
                                         <strong>Exchange Rate:</strong> 
                                         {(() => {
                                             const isERGBase = !project.base_token_id || project.base_token_id === "";
@@ -808,11 +808,11 @@
                                 <span class="input-suffix">{submit_amount_label}</span>
                                     </div>
                                     
-                                    {#if ! hide_submit_info}
+                                {#if false}      <!--      {#if !hide_submit_info}     // FIX DECIMALS BUG FIRST -->
                                 <div class="info-badge">
-                                            <Badge type="primary" rounded>{submit_info}</Badge>
-                                        </div>
-                                    {/if}
+                                    <Badge type="primary" rounded>{submit_info}</Badge>
+                                </div>
+                                {/if}
                                     
                                         <Button 
                                             on:click={function_submit} 
