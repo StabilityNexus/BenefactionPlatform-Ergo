@@ -107,7 +107,7 @@ export async function withdraw(
         (extractedBaseAmount === project.value) : 
         (extractedBaseAmount === currentBaseTokenAmount);
     const allTokensWithdrawn = project.current_pft_amount === 0; // No PFT tokens left
-    const isFullWithdrawal = allFundsWithdrawn && allTokensWithdrawn;
+    const isFullWithdrawal = false; // allFundsWithdrawn && allTokensWithdrawn;
     
     console.log("Withdrawal details:", {
         extractedBaseAmount,
@@ -229,6 +229,8 @@ export async function withdraw(
         }
         outputs.push(devOutput);
     }
+
+    console.log(outputs)
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
