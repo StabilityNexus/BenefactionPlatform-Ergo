@@ -773,7 +773,7 @@
                                 {/if}
                                 {#if info_type_to_show === "dev-collect"}
                                     <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
-                                    <p><strong>Maximum Withdrawal:</strong> {maxWithdrawErgAmount} {platform.main_token}</p>
+                                    <p><strong>Maximum Withdrawal:</strong> {maxWithdrawErgAmount} {project.base_token_details?.name || platform.main_token}</p>
                                 {/if}
                                 {#if info_type_to_show === "dev"}
                                     <p><strong>Current PFT balance:</strong> {project.current_pft_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
