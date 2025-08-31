@@ -182,8 +182,8 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
                         if (hasValidSigmaTypes(e.additionalRegisters, version)) {
                             const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "")
 
-                            if (constants === null) { console.log("constants null"); continue; }
-                            if (e.assets.length > 1 && e.assets[1].tokenId !== constants.token_id) { console.log("Constant token error with "+e); continue; }
+                            if (constants === null) { console.warn("constants null"); continue; }
+                            if (e.assets.length > 2 && e.assets[1].tokenId !== constants.token_id) { console.warn("Constant token error with "+constants.token_id); continue; }  // If it has all the tokens, it should contain the PFT token.
 
                             let project_id = e.assets[0].tokenId;
                             let token_id = constants.token_id;
@@ -224,7 +224,7 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
                                 }
                             }
 
-                            projects.set(project_id, {
+                            let project = {
                                 version: version,
                                 platform: new ErgoPlatform(),
                                 box: {
@@ -266,7 +266,9 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
                                 collected_value: collected_value  - Number(SAFE_MIN_BOX_VALUE),
                                 current_value: current_erg_value,
                                 token_details: await fetch_token_details(token_id)
-                            })
+                            }
+                            console.log(constants.token_id, project)
+                            projects.set(project_id, project)
                         }
                     }                
                     params.offset += params.limit;
