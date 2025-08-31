@@ -206,7 +206,7 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
                                 exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
                             }
                             
-                            let current_pft_amount = e.assets.length > 1 ? e.assets[1].amount : 0;
+                            let current_pft_amount = (e.assets.find(asset => asset.tokenId === "abc")?.amount) ?? 0;
                             let total_pft_amount = current_pft_amount + auxiliar_exchange_counter;
                             let unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
                             let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
@@ -267,7 +267,7 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
                                 current_value: current_erg_value,
                                 token_details: await fetch_token_details(token_id)
                             }
-                            console.log(constants.token_id, project)
+                            console.log(project.project_id, project)
                             projects.set(project_id, project)
                         }
                     }                
