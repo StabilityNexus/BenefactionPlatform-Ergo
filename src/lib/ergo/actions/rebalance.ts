@@ -27,12 +27,35 @@ export async function rebalance(
         // Get the wallet address (will be the project address)
         const walletPk = await getChangeAddress();
         
+        // Validate that the connected wallet is the project owner for add/withdraw operations
+        if (token_amount !== 0) {
+            // For rebalance operations, verify wallet is project owner
+            const projectOwnerAddress = project.constants.owner;
+            console.log("Project owner address:", projectOwnerAddress);
+            console.log("Connected wallet address:", walletPk);
+            
+            if (walletPk !== projectOwnerAddress) {
+                console.error("Error: Connected wallet is not the project owner. Owner:", projectOwnerAddress, "Connected:", walletPk);
+                throw new Error("Only the project owner can add or withdraw tokens from the contract");
+            }
+        }
+        
         // Get the UTXOs from the current wallet to use as inputs
         const walletUtxos = await window.ergo!.get_utxos();
         
-        // For adding tokens, we need the project box first, then a wallet UTXO
-        // This ensures INPUTS.size > 1 and INPUTS(1) comes from project address
-        const inputs = [project.box, ...walletUtxos];
+        // For adding tokens (positive amount), we need proper input ordering:
+        // - INPUTS(0): project box
+        // - INPUTS(1): must be from project owner address for isAddTokens validation
+        // For withdrawing tokens (negative amount), standard ordering is fine
+        let inputs;
+        if (token_amount > 0) {
+            // Adding tokens - ensure second input is from project owner
+            // The wallet should be the project owner, so walletUtxos should work
+            inputs = [project.box, ...walletUtxos];
+        } else {
+            // Withdrawing tokens - standard ordering
+            inputs = [project.box, ...walletUtxos];
+        }
 
         // Building the project output
         let contract_output = new OutputBuilder(
@@ -148,15 +171,20 @@ export async function rebalance(
     } catch (error) {
         console.error("Error in rebalance function:", error);
             // Log full prover error dump if available
-            if ((error as any).info) console.error("Prover error info:\n", (error as any).info);
+            if (error && typeof error === 'object' && 'info' in error) {
+                console.error("Prover error info:\n", (error as any).info);
+            }
         
         // Check specific error conditions
-        if (error.message && error.message.includes("R7")) {
-            console.error("R7 register format error - check exchange rate and base token ID length");
-        }
-        
-        if (error.message && error.message.includes("INPUTS")) {
-            console.error("Input validation error - ensure wallet has UTXOs and project box is accessible");
+        if (error && typeof error === 'object' && 'message' in error) {
+            const errorMessage = (error as any).message;
+            if (errorMessage.includes("R7")) {
+                console.error("R7 register format error - check exchange rate and base token ID length");
+            }
+            
+            if (errorMessage.includes("INPUTS")) {
+                console.error("Input validation error - ensure wallet has UTXOs and project box is accessible");
+            }
         }
         
         return null;

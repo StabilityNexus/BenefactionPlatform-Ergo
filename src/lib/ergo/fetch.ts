@@ -33,6 +33,7 @@ function hasValidSigmaTypes(additionalRegisters: any, version: contract_version 
     const expectedTypes = version === "v1_2" ? expectedSigmaTypesV12 : expectedSigmaTypes;
     for (const [key, expectedType] of Object.entries(expectedTypes)) {
         if (additionalRegisters[key] && additionalRegisters[key].sigmaType !== expectedType) {
+            console.log(`Sigma type mismatch for ${version} at ${key}: expected ${expectedType}, got ${additionalRegisters[key]?.sigmaType}`);
             return false;
         }
     }
@@ -153,6 +154,9 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
                 offset: offset,
                 limit: 9,
             };
+            
+            const templateHash = get_template_hash(version);
+            console.log(`Searching for ${version} contracts with template hash:`, templateHash);
 
             while (moreDataAvailable) {
                 const url = get(explorer_uri)+'/api/v1/boxes/unspent/search';
@@ -165,7 +169,7 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                        "ergoTreeTemplateHash": get_template_hash(version),
+                        "ergoTreeTemplateHash": templateHash,
                         "registers": registers,
                         "constants": {},
                         "assets": []
@@ -174,6 +178,7 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
 
                 if (response.ok) {
                     let json_data = await response.json();
+                    console.log(`Found ${json_data.items.length} boxes for version ${version}`);
                     if (json_data.items.length == 0) {
                         moreDataAvailable = false;
                         break;
@@ -206,7 +211,7 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
                                 exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
                             }
                             
-                            let current_pft_amount = (e.assets.find(asset => asset.tokenId === constants.token_id)?.amount) ?? 0;
+                            let current_pft_amount = (e.assets.find((asset: any) => asset.tokenId === constants.token_id)?.amount) ?? 0;
                             let total_pft_amount = current_pft_amount + auxiliar_exchange_counter;
                             let unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
                             let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);

@@ -85,19 +85,33 @@ export class NautilusWalletAdapter extends BaseWalletAdapter {
 
       const addr = address || await this.getChangeAddress();
       
-      // Use the same API endpoint as the existing platform
-      const response = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${addr}/balance/confirmed`);
-      if (!response.ok) {
-        throw new Error(`API request failed with status: ${response.status}`);
+      // Import explorer_uri from store to use the configured endpoint
+      const { get } = await import('svelte/store');
+      const { explorer_uri } = await import('../../common/store');
+      const apiUrl = get(explorer_uri) || 'https://api.ergoplatform.com';
+      
+      // Use the configured API endpoint
+      const response = await fetch(`${apiUrl}/api/v1/addresses/${addr}/balance/confirmed`).catch(err => {
+        console.warn('Balance fetch network error:', err.message);
+        return null;
+      });
+      
+      if (!response || !response.ok) {
+        console.warn(`Balance API request failed`);
+        // Return zero balance on error instead of throwing
+        return {
+          nanoErgs: BigInt(0),
+          tokens: []
+        };
       }
 
       const data = await response.json();
       
       return {
-        nanoErgs: BigInt(data.nanoErgs),
-        tokens: data.tokens.map((token: any) => ({
+        nanoErgs: BigInt(data.nanoErgs || 0),
+        tokens: (data.tokens || []).map((token: any) => ({
           tokenId: token.tokenId,
-          amount: BigInt(token.amount),
+          amount: BigInt(token.amount || 0),
           name: token.name,
           decimals: token.decimals
         }))

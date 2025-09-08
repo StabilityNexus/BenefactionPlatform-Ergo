@@ -90,18 +90,29 @@ export class SafewWalletAdapter extends BaseWalletAdapter {
 
       const addr = address || await this.getChangeAddress();
       
-      const response = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${addr}/balance/confirmed`);
+      // Import explorer_uri from store to use the configured endpoint
+      const { get } = await import('svelte/store');
+      const { explorer_uri } = await import('../../common/store');
+      const apiUrl = get(explorer_uri) || 'https://api.ergoplatform.com';
+      
+      // Use the configured API endpoint
+      const response = await fetch(`${apiUrl}/api/v1/addresses/${addr}/balance/confirmed`);
       if (!response.ok) {
-        throw new Error(`API request failed with status: ${response.status}`);
+        console.error(`Balance API request failed with status: ${response.status}`);
+        // Return zero balance on error instead of throwing
+        return {
+          nanoErgs: BigInt(0),
+          tokens: []
+        };
       }
 
       const data = await response.json();
       
       return {
-        nanoErgs: BigInt(data.nanoErgs),
-        tokens: data.tokens.map((token: any) => ({
+        nanoErgs: BigInt(data.nanoErgs || 0),
+        tokens: (data.tokens || []).map((token: any) => ({
           tokenId: token.tokenId,
-          amount: BigInt(token.amount),
+          amount: BigInt(token.amount || 0),
           name: token.name,
           decimals: token.decimals
         }))

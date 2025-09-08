@@ -164,6 +164,9 @@
       
     selfAmount == outAmount
   }
+  
+  // Helper to check if PFT token exists in the contract
+  val hasPFTToken = SELF.tokens.size > 1
   val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[Coll[Long]].get(0)
   val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[Coll[Long]].get(1)
   val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2)
@@ -172,7 +175,9 @@
   val projectAddr: SigmaProp = PK("`+owner_addr+`")
   
   val isToProjectAddress = {
-    val propAndBox: (SigmaProp, Box) = (projectAddr, OUTPUTS(1))
+    // For full withdrawal, project output is at index 0; for partial, at index 1
+    val projectOutputIndex = if (isSelfReplication) 1 else 0
+    val propAndBox: (SigmaProp, Box) = (projectAddr, OUTPUTS(projectOutputIndex))
     val isSamePropBytes: Boolean = isSigmaPropEqualToBoxProp(propAndBox)
 
     isSamePropBytes
@@ -345,7 +350,7 @@
     val minnerFeeAmount = 1100000  // Pay minner fee with the extracted value allows to withdraw when project address does not have ergs.
     val devFee = `+dev_fee+`
     
-    // Calculate extracted amounts based on base token
+    // Calculate extracted amounts based on base token type
     val extractedBaseAmount: Long = if (isERGBase) {
       // For ERG base token, extract ERG value
       if (selfScript == OUTPUTS(0).propositionBytes) { selfValue - OUTPUTS(0).value } else { selfValue }
@@ -356,6 +361,10 @@
       selfBaseTokens - outputBaseTokens
     }
     
+    // Define these early so they can be used in correctDevFee
+    val allFundsWithdrawn = if (isERGBase) extractedBaseAmount == selfValue else (extractedBaseAmount == getBaseTokenAmount(SELF))
+    val allTokensWithdrawn = !hasPFTToken // There is no PFT in the contract
+    
     // Calculate dev fee and project amounts
     val devFeeAmount = extractedBaseAmount * devFee / 100
     val projectAmountBase = extractedBaseAmount - devFeeAmount
@@ -364,11 +373,13 @@
     val projectAmount = if (isERGBase) projectAmountBase - minnerFeeAmount else projectAmountBase
 
     // Verify correct project amount
+    // Project output index depends on whether contract is replicated
+    val projectOutputIndex = if (isSelfReplication) 1 else 0
     val correctProjectAmount = if (isERGBase) {
-      OUTPUTS(1).value == projectAmount
+      OUTPUTS(projectOutputIndex).value == projectAmount
     } else {
       // For non-ERG tokens, verify the project receives correct token amount
-      val projectTokens = OUTPUTS(1).tokens.filter { (token: (Coll[Byte], Long)) => 
+      val projectTokens = OUTPUTS(projectOutputIndex).tokens.filter { (token: (Coll[Byte], Long)) => 
         token._1 == baseTokenId
       }
       val projectTokenAmount = if (projectTokens.size > 0) projectTokens(0)._2 else 0L
@@ -377,35 +388,43 @@
 
     // Verify correct dev fee
     val correctDevFee = {
-      val OUT = OUTPUTS(2)
+      // Check if dev fee output should exist
+      val shouldHaveDevOutput = devFeeAmount > 0 || !allFundsWithdrawn || !allTokensWithdrawn
+      
+      // Dev output index: for partial withdrawal it's 2, for full withdrawal with fee it's 1
+      val devOutputIndex = if (isSelfReplication) 2 else 1
+      
+      if (shouldHaveDevOutput && OUTPUTS.size > devOutputIndex) {
+        val OUT = OUTPUTS(devOutputIndex)
 
-      val isToDevAddress = {
-          val isSamePropBytes: Boolean = fromBase16("`+dev_fee_contract_bytes_hash+`") == blake2b256(OUT.propositionBytes)
-          
-          isSamePropBytes
-      }
-
-      val isCorrectDevAmount = if (isERGBase) {
-        OUT.value == devFeeAmount
-      } else {
-        // For non-ERG tokens, verify dev receives correct token amount
-        val devTokens = OUT.tokens.filter { (token: (Coll[Byte], Long)) => 
-          token._1 == baseTokenId
+        val isToDevAddress = {
+            val isSamePropBytes: Boolean = fromBase16("`+dev_fee_contract_bytes_hash+`") == blake2b256(OUT.propositionBytes)
+            
+            isSamePropBytes
         }
-        val devTokenAmount = if (devTokens.size > 0) devTokens(0)._2 else 0L
-        devTokenAmount == devFeeAmount
-      }
 
-      allOf(Coll(
-        isCorrectDevAmount,
-        isToDevAddress
-      ))
+        val isCorrectDevAmount = if (isERGBase) {
+          OUT.value == devFeeAmount
+        } else {
+          // For non-ERG tokens, verify dev receives correct token amount
+          val devTokens = OUT.tokens.filter { (token: (Coll[Byte], Long)) => 
+            token._1 == baseTokenId
+          }
+          val devTokenAmount = if (devTokens.size > 0) devTokens(0)._2 else 0L
+          devTokenAmount == devFeeAmount
+        }
+
+        allOf(Coll(
+          isCorrectDevAmount,
+          isToDevAddress
+        ))
+      } else {
+        // For full withdrawal with no fee, no dev output is needed
+        devFeeAmount == 0 && allFundsWithdrawn && allTokensWithdrawn
+      }
     }
 
     val endOrReplicate = {
-      val allFundsWithdrawn = if (isERGBase) extractedBaseAmount == selfValue else (extractedBaseAmount == getBaseTokenAmount(SELF))
-      val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
-
       isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
     }
 
@@ -417,7 +436,7 @@
       auxiliarExchangeCounterRemainsConstant,   
       // mantainValue,                           // Needs to extract value from the contract
       APTokenRemainsConstant,                    // There is no need to modify the auxiliar token, so it must be constant
-      ProofFundingTokenRemainsConstant          // There is no need to modify the proof of funding token, so it must be constant
+      ProofFundingTokenRemainsConstant || !hasPFTToken  // PFT must be constant, unless there's no PFT token at all
     ))
 
     allOf(Coll(
@@ -465,6 +484,16 @@
   
   // > Project owners may add more tokens to the contract at any time.
   val isAddTokens = {
+    
+    // Special handling when adding PFT tokens for the first time (transitioning from 1 token to 2 tokens)
+    val isAddingFirstPFT = !hasPFTToken && OUTPUTS(0).tokens.size == 2
+    
+    // When adding first PFT, ensure it's the correct token ID
+    val correctFirstPFT = if (isAddingFirstPFT) {
+      OUTPUTS(0).tokens(1)._1 == fromBase16("`+token_id+`")
+    } else {
+      true
+    }
 
     val constants = allOf(Coll(
       isSelfReplication,                     // Replicate the contract will be needed always            
@@ -480,8 +509,9 @@
     if (INPUTS.size == 1) false  // To avoid access INPUTS(1) when there is no input, this could be resolved using actions.
     else allOf(Coll(
       constants,
-      isFromProjectAddress,   // Ensures that the tokens come from the project owners.
-      deltaPFTokenAdded > 0   // Ensures that the tokens are added.
+      correctFirstPFT,          // Ensure correct token ID when adding first PFT
+      isFromProjectAddress,     // Ensures that the tokens come from the project owners.
+      deltaPFTokenAdded > 0     // Ensures that the tokens are added.
     ))
   }
   
@@ -561,13 +591,24 @@
       if (SELF.tokens.size == 1) true 
       else SELF.tokens(1)._1 == fromBase16("`+token_id+`")
     
-    val onlyOneOrAnyToken = if (isERGBase) {
+    // Allow proper token configuration:
+    // - ERG base: 1 token (APT only) or 2 tokens (APT + PFT)
+    // - Non-ERG base: 1 token (APT only), 2 tokens (APT + PFT or APT + base), or 3 tokens (APT + PFT + base)
+    val validTokenCount = if (isERGBase) {
       SELF.tokens.size == 1 || SELF.tokens.size == 2
     } else {
-      SELF.tokens.size == 1 || SELF.tokens.size == 2 || SELF.tokens.size == 3
+      SELF.tokens.size >= 1 && SELF.tokens.size <= 3
+    }
+    
+    // For non-ERG base with 2 tokens, ensure second token is either PFT or base token
+    val validSecondToken = if (!isERGBase && SELF.tokens.size == 2) {
+      val secondTokenId = SELF.tokens(1)._1
+      secondTokenId == fromBase16("`+token_id+`") || secondTokenId == baseTokenId
+    } else {
+      true
     }
 
-    correctTokenId && onlyOneOrAnyToken
+    correctTokenId && validTokenCount && validSecondToken
   }
 
   sigmaProp(correctBuild && actions)

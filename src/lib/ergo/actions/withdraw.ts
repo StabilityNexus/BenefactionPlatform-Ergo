@@ -37,8 +37,57 @@ export async function withdraw(
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
     
+    // Validate that the connected wallet is the project owner
+    const projectOwnerAddress = project.constants.owner;
+    console.log("Project owner address:", projectOwnerAddress);
+    console.log("Connected wallet address:", walletPk);
+    
+    if (walletPk !== projectOwnerAddress) {
+        console.error("Error: Connected wallet is not the project owner. Owner:", projectOwnerAddress, "Connected:", walletPk);
+        alert("Only the project owner can withdraw funds from the contract");
+        return null;
+    }
+    
     // Get the UTXOs from the current wallet to use as inputs
-    const inputs = [project.box, ...(await window.ergo!.get_utxos())];
+    const walletUtxos = await window.ergo!.get_utxos();
+    const inputs = [project.box, ...walletUtxos];
+    
+    // Calculate minimum ERG needed for the transaction
+    let minErgNeeded = BigInt(1100000); // Transaction fee
+    
+    if (!isERGBase) {
+        // For token withdrawals, we need ERG for output boxes
+        minErgNeeded += SAFE_MIN_BOX_VALUE; // Project output box (always needed)
+        
+        // Get current base token amount to check withdrawal limits
+        const currentBaseTokenAmount = project.box.assets.find(a => a.tokenId === project.base_token_id)?.amount || 0;
+        const extractedAmount = Math.min(amount, Number(currentBaseTokenAmount));
+        
+        // Check if dev fee output will be created
+        const devFeeAmount = Math.floor(extractedAmount * project.constants.dev_fee / 100);
+        const willReplicate = extractedAmount < Number(currentBaseTokenAmount) || project.current_pft_amount > 0;
+        
+        // Dev output is needed if: devFeeAmount > 0 OR it's a partial withdrawal
+        const shouldHaveDevOutput = devFeeAmount > 0 || willReplicate;
+        if (shouldHaveDevOutput) {
+            minErgNeeded += SAFE_MIN_BOX_VALUE; // Dev output box
+        }
+        
+        // Check if contract will be replicated (partial withdrawal)
+        if (willReplicate) {
+            // Contract replication box already has ERG from project.value
+            // But we still count it in our minimum calculation
+            // The contract box will use its existing ERG value
+        }
+        
+        // Validate that we have enough ERG from inputs
+        const totalErg = inputs.reduce((sum, box) => sum + BigInt(box.value), BigInt(0));
+        if (totalErg < minErgNeeded) {
+            alert(`Insufficient ERG in wallet. Need at least ${Number(minErgNeeded) / 1e9} ERG to cover transaction costs.`);
+            console.error(`Need ${minErgNeeded} nanoERG, but only have ${totalErg} nanoERG available`);
+            return null;
+        }
+    }
 
     // Building the project output
     let outputs: OutputBuilder[] = [];
@@ -107,7 +156,7 @@ export async function withdraw(
         (extractedBaseAmount === project.value) : 
         (extractedBaseAmount === currentBaseTokenAmount);
     const allTokensWithdrawn = project.current_pft_amount === 0; // No PFT tokens left
-    const isFullWithdrawal = false; // allFundsWithdrawn && allTokensWithdrawn;
+    const isFullWithdrawal = allFundsWithdrawn && allTokensWithdrawn;
     
     console.log("Withdrawal details:", {
         extractedBaseAmount,
@@ -139,6 +188,7 @@ export async function withdraw(
         });
     
         // Add PFT tokens if they exist (ProofFundingTokenRemainsConstant)
+        // Important: Must maintain token order - APT first, then PFT if it exists
         if (project.current_pft_amount > 0) {
             contractOutput.addTokens({
                 tokenId: project.token_id,
@@ -179,7 +229,7 @@ export async function withdraw(
     }
     // If isFullWithdrawal is true, no contract output is created (contract ends)
 
-    // Project output (OUTPUTS(1) in contract)
+    // Project output (OUTPUTS(1) for partial withdrawal, OUTPUTS(0) for full withdrawal)
     if (isERGBase) {
         // For ERG-based, project receives ERG
         outputs.push(
@@ -201,33 +251,40 @@ export async function withdraw(
         );
     }
 
-    // Dev fee output (OUTPUTS(2) in contract)
-    if (isERGBase) {
-        // For ERG-based, dev receives ERG. A dev fee of 0 would create an invalid output,
-        // but withdrawal amounts are expected to be large enough to always generate a fee.
-        if (devFeeAmount > 0) {
+    // Dev fee output (OUTPUTS(2) for partial withdrawal, OUTPUTS(1) for full withdrawal with fee)
+    // According to contract logic: shouldHaveDevOutput = devFeeAmount > 0 || !allFundsWithdrawn || !allTokensWithdrawn
+    const shouldHaveDevOutput = devFeeAmount > 0 || !isFullWithdrawal;
+    
+    if (shouldHaveDevOutput && devFeeAmount > 0) {
+        if (isERGBase) {
+            // For ERG-based, dev receives ERG
             outputs.push(
                 new OutputBuilder(
                     BigInt(devFeeAmount),
                     devAddress
                 )
             );
+        } else {
+            // For multi-token, dev receives base tokens
+            outputs.push(
+                new OutputBuilder(
+                    SAFE_MIN_BOX_VALUE,  // Minimum ERG for the box
+                    devAddress
+                ).addTokens({
+                    tokenId: project.base_token_id!,
+                    amount: BigInt(devFeeAmount)
+                })
+            );
         }
-    } else {
-        // For multi-token, the dev output box is always created to satisfy the contract.
-        // It receives base tokens only if a fee is generated.
-        const devOutput = new OutputBuilder(
-            SAFE_MIN_BOX_VALUE,  // Minimum ERG for the box
-            devAddress
+    } else if (shouldHaveDevOutput && devFeeAmount === 0) {
+        // Edge case: partial withdrawal with 0 dev fee still needs an output for contract validation
+        // This happens when the withdrawal amount is very small
+        outputs.push(
+            new OutputBuilder(
+                SAFE_MIN_BOX_VALUE,
+                devAddress
+            )
         );
-
-        if (devFeeAmount > 0) {
-            devOutput.addTokens({
-                tokenId: project.base_token_id!,
-                amount: BigInt(devFeeAmount)
-            });
-        }
-        outputs.push(devOutput);
     }
 
     console.log(outputs)

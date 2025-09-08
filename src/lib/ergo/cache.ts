@@ -220,6 +220,16 @@ export function invalidateUserSpecificCaches(): void {
     console.log('User-specific caches invalidated due to wallet change');
 }
 
+// Clear ALL caches - useful for debugging and forcing fresh data
+export function invalidateAllCaches(): void {
+    projectsCache.invalidateAll();
+    userProjectsCache.invalidateAll();
+    contributionsCache.invalidateAll();
+    walletBalanceCache.invalidateAll();
+    tokenDetailsCache.invalidateAll();
+    console.log('All caches invalidated - forcing fresh data fetch');
+}
+
 // Export for monitoring
 export function getCacheStats(): Record<string, any> {
     return {

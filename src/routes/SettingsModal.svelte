@@ -2,6 +2,8 @@
     import { createEventDispatcher } from 'svelte';
     import { explorer_uri } from "$lib/common/store";
     import { get } from 'svelte/store';
+    import { invalidateAllCaches } from '$lib/ergo/cache';
+    import { RefreshCw } from 'lucide-svelte';
     
     // The 'open' prop is used to control the modal's visibility.
     // Using `export let open = false;` allows the parent component to control it with `bind:open`.
@@ -29,6 +31,17 @@
             explorer_uri.set(newExplorerUri);
         }
         open = false; // Close the modal
+    }
+    
+    /**
+     * Clears all caches and reloads the page
+     */
+    function clearCachesAndReload() {
+        invalidateAllCaches();
+        // Small delay to ensure caches are cleared before reload
+        setTimeout(() => {
+            window.location.reload();
+        }, 100);
     }
 
     /**
@@ -62,6 +75,15 @@
                         bind:value={newExplorerUri}
                         placeholder="e.g. https://api.ergoplatform.com"
                     />
+                </div>
+                
+                <div class="cache-section">
+                    <h3>Cache Management</h3>
+                    <p class="cache-description">Clear all cached data to force fresh data from the blockchain</p>
+                    <button class="button cache-button" on:click={clearCachesAndReload}>
+                        <RefreshCw size={16} />
+                        Clear Cache & Reload
+                    </button>
                 </div>
             </div>
             
@@ -206,5 +228,38 @@
         background-color: #5a5a5a;
         transform: translateY(-2px);
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+    
+    .cache-section {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(255, 165, 0, 0.1);
+    }
+    
+    .cache-section h3 {
+        color: orange;
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+    }
+    
+    .cache-description {
+        color: #a0a0a0;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    
+    .cache-button {
+        background-color: #ff6b35;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+    }
+    
+    .cache-button:hover {
+        background-color: #ff8c42;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(255, 107, 53, 0.4);
     }
 </style>

@@ -86,7 +86,10 @@ export function get_template_hash(version: contract_version): string {
 
   let contract;
   if (version === "v1_2") {
-    contract = handle_contract_generator(version)(random_addr, random_dev_contract, 5, "", "");
+    // For v1_2, we use empty string for base_token_id to represent ERG-based contracts
+    // The template will be the same for both ERG and token-based v1_2 contracts
+    // because the template ignores the actual constant values
+    contract = handle_contract_generator(version)(random_addr, random_dev_contract, 5, "0000000000000000000000000000000000000000000000000000000000000000", "");
   } else {
     contract = handle_contract_generator(version)(random_addr, random_dev_contract, 5, "");
   }
@@ -118,7 +121,7 @@ function get_contract_hash(constants: ConstantContent, version: contract_version
       return uint8ArrayToHex(blake2b256(ergoTree.toBytes()));
   } catch (error) {
       console.error("Error compiling contract:", error);
-      throw new Error(`Failed to compile contract: ${error.message}`);
+      throw new Error(`Failed to compile contract: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 export function mint_contract_address(constants: ConstantContent, version: contract_version) {

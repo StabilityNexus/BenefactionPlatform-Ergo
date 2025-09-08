@@ -103,8 +103,19 @@
             isLoading = false;
             loadProjects(false); // Background refresh
         } else {
+            // Force a fresh load if no cached data
             await loadProjects(true); // Initial load with skeleton
         }
+        
+        // Also listen for cache clear events
+        const handleCacheClear = () => {
+            loadProjects(true);
+        };
+        window.addEventListener('cache-cleared', handleCacheClear);
+        
+        return () => {
+            window.removeEventListener('cache-cleared', handleCacheClear);
+        };
     });
 </script>
 

@@ -154,13 +154,13 @@ export class WalletManager {
       const addresses = await adapter.getAddresses();
       
       // Handle balance fetching with error handling
-      let balance;
+      let balance: WalletBalance = { nanoErgs: BigInt(0), tokens: [] };
       try {
         balance = await adapter.getBalance();
         console.log(`WalletManager: Balance fetched successfully`);
       } catch (error) {
         console.warn(`WalletManager: Balance fetch failed, using default:`, error);
-        balance = { nanoErgs: BigInt(0), tokens: [] };
+        // Don't throw, just use default balance
       }
       
       const networkId = await adapter.getNetworkId();
