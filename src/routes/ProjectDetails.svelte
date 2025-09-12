@@ -158,8 +158,14 @@
         // Calculate maximum collect amount based on user's temporal tokens
         maxCollectAmount = userTemporalTokenBalance;
         
-        // For project owner
-        maxWithdrawTokenAmount = project.current_pft_amount / Math.pow(10, project.token_details.decimals);
+        // For project owner - only unsold tokens are withdrawable
+        {
+            const totalPFT = project.current_pft_amount / Math.pow(10, project.token_details.decimals);
+            const sold = project.sold_counter / Math.pow(10, project.token_details.decimals);
+            const refunded = project.refund_counter / Math.pow(10, project.token_details.decimals);
+            const exchanged = project.auxiliar_exchange_counter / Math.pow(10, project.token_details.decimals);
+            maxWithdrawTokenAmount = Math.max(0, totalPFT - sold + refunded + exchanged);
+        }
         // Maximum tokens owner can add equals their wallet balance of project token
         maxAddTokenAmount = userProjectTokenBalance;
         
@@ -231,18 +237,30 @@
 
     function setupWithdrawTokens() {
         getWalletBalances(); // Refresh balances before opening modal
+        
+        // Calculate actual withdrawable tokens (unsold only)
+        const totalPFT = project.current_pft_amount / Math.pow(10, project.token_details.decimals);
+        const sold = project.sold_counter / Math.pow(10, project.token_details.decimals);
+        const refunded = project.refund_counter / Math.pow(10, project.token_details.decimals);
+        const exchanged = project.auxiliar_exchange_counter / Math.pow(10, project.token_details.decimals);
+        const withdrawable = Math.max(0, totalPFT - sold + refunded + exchanged);
+        
+        // Update max withdrawable before showing modal
+        maxWithdrawTokenAmount = withdrawable;
+        
         info_type_to_show = "dev";
-        label_submit = "How many tokens do you want to withdraw?";
+        label_submit = `How many tokens do you want to withdraw? (Max unsold: ${withdrawable.toFixed(2)} ${project.token_details.name})`;
         function_submit = withdraw_tokens;
         value_submit = 0;
         show_submit = true;
         hide_submit_info = false;
-        submit_amount_label = project.token_details.name
+        submit_amount_label = project.token_details.name;
     }
 
     async function withdraw_tokens() {
         console.log("Withdrawing tokens:", value_submit);
         isSubmitting = true;
+        errorMessage = ""; // Clear previous errors
 
         try {
             const result = await platform.rebalance(project, (-1) * value_submit);
@@ -250,6 +268,18 @@
         } catch (error) {
             console.log(error)
             errorMessage = error.message || "Error occurred while withdrawing tokens";
+            
+            // Show clearer error messages
+            if (errorMessage.includes("Cannot withdraw all PFT tokens")) {
+                // Already has a clear message from rebalance.ts
+            } else if (errorMessage.includes("Prover error")) {
+                // Check if it's because of sold tokens
+                const temporaryTokens = project.current_pft_amount - project.sold_counter + project.refund_counter + project.auxiliar_exchange_counter;
+                const requestedWithdraw = value_submit * Math.pow(10, project.token_details.decimals);
+                if (requestedWithdraw > temporaryTokens) {
+                    errorMessage = `Cannot withdraw ${value_submit} ${project.token_details.name}. Only ${temporaryTokens / Math.pow(10, project.token_details.decimals)} unsold tokens available for withdrawal.`;
+                }
+            }
         } finally {
             isSubmitting = false;
         }
@@ -889,6 +919,18 @@
                                                  function_submit === withdraw_tokens ? maxWithdrawTokenAmount :
                                                  function_submit === withdraw_erg ? maxWithdrawErgAmount : null}
                                             step="0.001"
+                                            on:input={() => {
+                                                // Normalize to number and clamp immediately for withdraw modal
+                                                // This prevents entering values above the allowed unsold amount
+                                                if (typeof value_submit === 'string') {
+                                                    value_submit = parseFloat(value_submit) || 0;
+                                                }
+                                                if (function_submit === withdraw_tokens) {
+                                                    const max = Number(maxWithdrawTokenAmount);
+                                                    if (value_submit > max) value_submit = max;
+                                                    if (value_submit < 0) value_submit = 0;
+                                                }
+                                            }}
                                             class="form-input"
                                         />
                                 <span class="input-suffix">{submit_amount_label}</span>
@@ -914,6 +956,12 @@
                                         >
                                             {isSubmitting ? 'Processing...' : 'Submit'}
                                         </Button>
+                                        
+                                        {#if errorMessage}
+                                            <div class="error-message" style="color: red; margin-top: 10px; white-space: pre-line;">
+                                                {errorMessage}
+                                            </div>
+                                        {/if}
                                     </div>
                         </div>
                     {/if}
