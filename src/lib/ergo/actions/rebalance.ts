@@ -21,15 +21,29 @@ export async function rebalance(
     
     try {
         token_amount = Math.trunc(token_amount * Math.pow(10, project.token_details.decimals));
-        
+
+        // Prevent withdrawing all PFT tokens - the contract requires at least one smallest unit to remain
+        if (token_amount < 0) {
+            const currentPftAmount = project.current_pft_amount;
+            const minimumRemaining = 1; // after conversion to smallest unit
+
+            if (currentPftAmount <= minimumRemaining) {
+                alert("Cannot withdraw tokens because the contract must retain at least one smallest unit of PFT.");
+                return null;
+            }
+
+            if (Math.abs(token_amount) >= currentPftAmount) {
+                console.warn("Adjusting token withdrawal to leave one smallest unit of PFT in the contract.");
+                token_amount = -(currentPftAmount - minimumRemaining);
+            }
+        }
+
         console.log("wants to add ", token_amount)
 
         // Get the wallet address (will be the project address)
         const walletPk = await getChangeAddress();
-        
         // Get the UTXOs from the current wallet to use as inputs
         const walletUtxos = await window.ergo!.get_utxos();
-        
         // For adding tokens, we need the project box first, then a wallet UTXO
         // This ensures INPUTS.size > 1 and INPUTS(1) comes from project address
         const inputs = [project.box, ...walletUtxos];

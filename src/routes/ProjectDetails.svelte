@@ -60,12 +60,16 @@
         if (function_submit === refund) {
             const isERGBase = !project.base_token_id || project.base_token_id === "";
             if (isERGBase) {
-                const baseAmount = value_submit * (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9));
+                // Exchange rate is stored as smallest_base per smallest_token
+                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
+                const baseAmount = value_submit * actualRate;
                 return `Refund: ` + Number(baseAmount).toFixed(10).replace(/\.?0+$/, '') + ` ${platform.main_token}`;
             } else {
                 const baseTokenDecimals = project.base_token_details?.decimals || 0;
                 const baseTokenName = project.base_token_details?.name || "tokens";
-                const baseAmount = value_submit * (project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals));
+                // Exchange rate is stored as smallest_base per smallest_token
+                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
+                const baseAmount = value_submit * actualRate;
                 return `Refund: ` + Number(baseAmount).toFixed(10).replace(/\.?0+$/, '') + ` ${baseTokenName}`;
             }
         }
@@ -73,11 +77,15 @@
         if (function_submit === buy) {
             const isERGBase = !project.base_token_id || project.base_token_id === "";
             if (isERGBase) {
-                const tokens = value_submit / (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9));
+                // Exchange rate is stored as smallest_base per smallest_token
+                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
+                const tokens = value_submit / actualRate;
                 return `Contribution: ` + Number(tokens).toFixed(10).replace(/\.?0+$/, '') + ` ${project.token_details.name}`;
             } else {
                 const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                const tokens = value_submit / (project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals));
+                // Exchange rate is stored as smallest_base per smallest_token
+                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
+                const tokens = value_submit / actualRate;
                 return `Contribution: ` + Number(tokens).toFixed(10).replace(/\.?0+$/, '') + ` ${project.token_details.name}`;
             }
         }
@@ -139,33 +147,77 @@
         }
         
         // Calculate max base tokens needed to buy remaining project tokens
-        const remainingProjectTokens = (project.total_pft_amount - project.sold_counter) / Math.pow(10, project.token_details.decimals);
+        // Must leave at least 1 smallest unit in contract, so subtract (sold_counter + 1) from total
+        const maxSellablePftTokens = Math.max(0, project.total_pft_amount - project.sold_counter - 1);
+        const remainingProjectTokens = maxSellablePftTokens / Math.pow(10, project.token_details.decimals);
         let maxBaseTokensForRemainingTokens;
         
         if (isERGBase) {
-            maxBaseTokensForRemainingTokens = remainingProjectTokens * (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9));
+            // Exchange rate is stored as smallest_base per smallest_token
+            // To get price per regular token: rate * 10^(tokenDecimals - baseDecimals)
+            const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
+            maxBaseTokensForRemainingTokens = remainingProjectTokens * actualRate;
         } else {
             const baseTokenDecimals = project.base_token_details?.decimals || 0;
-            maxBaseTokensForRemainingTokens = remainingProjectTokens * (project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals));
+            // Exchange rate is stored as smallest_base per smallest_token
+            // To get price per regular token: rate * 10^(tokenDecimals - baseTokenDecimals)
+            const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
+            maxBaseTokensForRemainingTokens = remainingProjectTokens * actualRate;
         }
         
         // Maximum contribution in base tokens
-        maxContributeAmount = Math.min(maxBaseTokenContribution, maxBaseTokensForRemainingTokens);
+        // Round to avoid floating point precision issues (e.g., 0.00999999999999999998 instead of 0.01)
+        const rawMaxContribute = Math.min(maxBaseTokenContribution, maxBaseTokensForRemainingTokens);
+        // Round to 12 decimal places to avoid display issues while maintaining precision
+        maxContributeAmount = Math.round(rawMaxContribute * 1e12) / 1e12;
         
         // Calculate maximum refund amount based on user's project tokens
         maxRefundAmount = userTemporalTokenBalance;
         
+        // For calculating decimals
+        const smallestPftUnitFactor = Math.pow(10, project.token_details.decimals);
+        
         // Calculate maximum collect amount based on user's temporal tokens
-        maxCollectAmount = userTemporalTokenBalance;
+        // But also consider contract constraints: must leave at least 1 smallest unit of PFT
+        const availablePftForExchange = Math.max(0, project.current_pft_amount - 1);
+        const availablePftInNormalUnits = availablePftForExchange / smallestPftUnitFactor;
+        
+        // User can collect the minimum of:
+        // 1. Their temporal token balance (APT they own)
+        // 2. Available PFT in contract (minus 1 smallest unit that must remain)
+        maxCollectAmount = Math.min(userTemporalTokenBalance, availablePftInNormalUnits);
+        maxCollectAmount = Math.round(maxCollectAmount * 1e12) / 1e12; // Avoid floating point issues
         
         // For project owner
-        maxWithdrawTokenAmount = project.current_pft_amount / Math.pow(10, project.token_details.decimals);
+        
+        // Calculate maximum withdrawable PFT based on contract constraints
+        // The contract allows withdrawing: PFT.amount - sold_counter + refunded_counter
+        // This represents the unsold PFT tokens
+        const soldTokens = project.sold_counter || 0;
+        const refundedTokens = project.refund_counter || 0;
+        const exchangedTokens = project.auxiliar_exchange_counter || 0;
+        
+        // Maximum withdrawable PFT = current_pft - (sold - refunded - exchanged)
+        // But we also need to leave at least 1 smallest unit in the contract
+        const maxWithdrawableRaw = project.current_pft_amount - (soldTokens - refundedTokens - exchangedTokens);
+        
+        if (maxWithdrawableRaw <= 1) {
+            maxWithdrawTokenAmount = 0;
+        } else {
+            // Leave 1 smallest unit in the contract
+            maxWithdrawTokenAmount = (maxWithdrawableRaw - 1) / smallestPftUnitFactor;
+            // Round to avoid floating point precision issues
+            maxWithdrawTokenAmount = Math.round(maxWithdrawTokenAmount * 1e12) / 1e12;
+        }
+        
         // Maximum tokens owner can add equals their wallet balance of project token
         maxAddTokenAmount = userProjectTokenBalance;
         
         // Calculate max withdraw amount based on base token type
         if (isERGBase) {
-            maxWithdrawErgAmount = project.current_value / Math.pow(10, 9);
+            const rawAmount = project.current_value / Math.pow(10, 9);
+            // Round to avoid floating point precision issues
+            maxWithdrawErgAmount = Math.round(rawAmount * 1e12) / 1e12;
         } else {
             // For non-ERG base tokens, find the base token amount in project box assets
             let baseTokenAmount = 0;
@@ -176,7 +228,9 @@
                 }
             }
             const baseTokenDecimals = project.base_token_details?.decimals || 0;
-            maxWithdrawErgAmount = baseTokenAmount / Math.pow(10, baseTokenDecimals);
+            const rawAmount = baseTokenAmount / Math.pow(10, baseTokenDecimals);
+            // Round to avoid floating point precision issues
+            maxWithdrawErgAmount = Math.round(rawAmount * 1e12) / 1e12;
         }
     }
 
@@ -302,10 +356,15 @@
             const isERGBase = !project.base_token_id || project.base_token_id === "";
             let token_amount = 0;
             if (isERGBase) {
-                token_amount = value_submit / (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9));
+                // Exchange rate is stored as smallest_base per smallest_token
+                // To get price per regular token: rate * 10^tokenDecimals / 10^baseDecimals
+                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
+                token_amount = value_submit / actualRate;
             } else {
                 const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                token_amount = value_submit / (project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals));
+                // Exchange rate is stored as smallest_base per smallest_token
+                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
+                token_amount = value_submit / actualRate;
             }
             const result = await platform.buy_refund(project, token_amount);
             transactionId = result;
@@ -663,7 +722,9 @@
                                maxContributeAmount <= 0 ? (() => {
                                    const isERGBase = !project.base_token_id || project.base_token_id === "";
                                    if (isERGBase) {
-                                       return `Need at least ${(project.exchange_rate * Math.pow(10, project.token_details.decimals - 9))} ${platform.main_token} to contribute`;
+                                       // Exchange rate stored with 9 decimal scaling
+                                       const actualRate = project.exchange_rate / Math.pow(10, 9);
+                                       return `Need at least ${actualRate.toFixed(10).replace(/\.?0+$/, '')} ${platform.main_token} to contribute`;
                                    } else {
                                        const baseTokenDecimals = project.base_token_details?.decimals || 0;
                                        const baseTokenName = project.base_token_details?.name || "tokens";
@@ -683,7 +744,9 @@
                                 Insufficient funds for contribution. Need at least {(() => {
                                     const isERGBase = !project.base_token_id || project.base_token_id === "";
                                     if (isERGBase) {
-                                        return (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)) + " " + platform.main_token;
+                                        // Exchange rate stored with 9 decimal scaling
+                                        const actualRate = project.exchange_rate / Math.pow(10, 9);
+                                        return actualRate.toFixed(10).replace(/\.?0+$/, '') + " " + platform.main_token;
                                     } else {
                                         const baseTokenDecimals = project.base_token_details?.decimals || 0;
                                         const baseTokenName = project.base_token_details?.name || "tokens";
@@ -753,14 +816,14 @@
                         on:click={setupWithdrawTokens}
                         disabled={!$connected || maxWithdrawTokenAmount <= 0}
                         title={!$connected ? "Connect your wallet to withdraw tokens" :
-                               maxWithdrawTokenAmount <= 0 ? "No tokens available for withdrawal" :
+                               maxWithdrawTokenAmount <= 0 ? `All transferable ${project.token_details.name} have been withdrawn; 1 smallest unit must remain.` :
                                `You can withdraw up to ${maxWithdrawTokenAmount} ${project.token_details.name}`}
                     >
                       Withdraw {project.token_details.name}
                     </Button>
                     {#if $connected && maxWithdrawTokenAmount <= 0}
                         <div class="insufficient-funds-message">
-                            No tokens available for withdrawal
+                            All transferable {project.token_details.name} are already withdrawn. One smallest unit stays in the contract to keep it active.
                         </div>
                     {/if}
                     
@@ -812,16 +875,22 @@
                     <div class="form-container">
                         <div class="form-info">
                                 {#if info_type_to_show === "buy"}
-                                    <p>  <!--   FIX DECIMALS BUG FIRST   -->
+                                    <p>
                                         <strong>Exchange Rate:</strong> 
                                         {(() => {
                                             const isERGBase = !project.base_token_id || project.base_token_id === "";
                                             if (isERGBase) {
-                                                return (project.exchange_rate * Math.pow(10, project.token_details.decimals - 9)).toFixed(10).replace(/\.?0+$/, '') + " " + platform.main_token + "/" + project.token_details.name;
+                                                // Exchange rate is stored as smallest_base per smallest_token
+                                                // To get price per regular token: rate * 10^(tokenDecimals - baseDecimals)
+                                                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
+                                                return actualRate.toFixed(10).replace(/\.?0+$/, '') + " " + platform.main_token + "/" + project.token_details.name;
                                             } else {
                                                 const baseTokenDecimals = project.base_token_details?.decimals || 0;
                                                 const baseTokenName = project.base_token_details?.name || "tokens";
-                                                return (project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals)).toFixed(10).replace(/\.?0+$/, '') + " " + baseTokenName + "/" + project.token_details.name;
+                                                // Exchange rate is stored as smallest_base per smallest_token
+                                                // To get price per regular token: rate * 10^(tokenDecimals - baseTokenDecimals)
+                                                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
+                                                return actualRate.toFixed(10).replace(/\.?0+$/, '') + " " + baseTokenName + "/" + project.token_details.name;
                                             }
                                         })()}
                                     </p>
@@ -843,25 +912,31 @@
                                         {(() => {
                                             const isERGBase = !project.base_token_id || project.base_token_id === "";
                                             if (isERGBase) {
-                                                return maxContributeAmount + " " + platform.main_token;
+                                                // Format to remove trailing zeros and limit decimal places
+                                                const formatted = maxContributeAmount.toFixed(10).replace(/\.?0+$/, '');
+                                                return formatted + " " + platform.main_token;
                                             } else {
                                                 const baseTokenName = project.base_token_details?.name || "tokens";
-                                                return maxContributeAmount + " " + baseTokenName;
+                                                const formatted = maxContributeAmount.toFixed(10).replace(/\.?0+$/, '');
+                                                return formatted + " " + baseTokenName;
                                             }
                                         })()}
                                     </p>
+                                    <p class="text-xs text-gray-500 mt-1">*1 smallest unit must remain in contract to keep it active</p>
                                 {/if}
                                 {#if info_type_to_show === "dev-collect"}
-                                    <p><strong>Current ERG balance:</strong> {project.current_value / Math.pow(10, 9)} {platform.main_token}</p>
-                                    <p><strong>Maximum Withdrawal:</strong> {maxWithdrawErgAmount} {project.base_token_details?.name || platform.main_token}</p>
+                                    <p><strong>Current ERG balance:</strong> {(project.current_value / Math.pow(10, 9)).toFixed(10).replace(/\.?0+$/, '')} {platform.main_token}</p>
+                                    <p><strong>Maximum Withdrawal:</strong> {maxWithdrawErgAmount.toFixed(10).replace(/\.?0+$/, '')} {project.base_token_details?.name || platform.main_token}</p>
                                 {/if}
                                 {#if info_type_to_show === "dev"}
                                     {#if function_submit === add_tokens}
-                                        <p><strong>Your Wallet Balance:</strong> {userProjectTokenBalance} {project.token_details.name}</p>
-                                        <p><strong>Maximum Add:</strong> {maxAddTokenAmount} {project.token_details.name}</p>
+                                        <p><strong>Your Wallet Balance:</strong> {userProjectTokenBalance.toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
+                                        <p><strong>Maximum Add:</strong> {maxAddTokenAmount.toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
                                     {:else}
-                                        <p><strong>Current PFT balance:</strong> {project.current_pft_amount / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</p>
-                                        <p><strong>Maximum Withdrawal:</strong> {maxWithdrawTokenAmount} {project.token_details.name}</p>
+                                        <p><strong>Current PFT balance:</strong> {(project.current_pft_amount / Math.pow(10, project.token_details.decimals)).toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
+                                        <p><strong>Sold tokens (locked):</strong> {((project.sold_counter - project.refund_counter - project.auxiliar_exchange_counter) / Math.pow(10, project.token_details.decimals)).toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
+                                        <p><strong>Maximum Withdrawal:</strong> {maxWithdrawTokenAmount.toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
+														<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Note: A minimum of 1 smallest unit of PFT must remain in the contract to keep it active.</p>
                                     {/if}
                                 {/if}
                                 {#if function_submit === refund}
@@ -870,7 +945,8 @@
                                 {/if}
                                 {#if function_submit === temp_exchange}
                                     <p><strong>Your Temporal Token Balance:</strong> {userTemporalTokenBalance} APT</p>
-                                    <p><strong>Maximum Collection:</strong> {maxCollectAmount} {project.token_details.name}</p>
+                                    <p><strong>Available PFT in Contract:</strong> {Math.max(0, (project.current_pft_amount - 1) / Math.pow(10, project.token_details.decimals)).toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
+                                    <p><strong>Maximum Collection:</strong> {maxCollectAmount.toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
                                 {/if}
                             </div>
                         

@@ -20,11 +20,18 @@
     let rewardTokenDecimals: number = 0;
     let rewardTokenName: string = 'Token'; // For the dynamic label
 
-    // Token used for contributions
-    let baseTokenOption: object | null = null;
+    // Token used for contributions - Initialize with ERG as default
+    let baseTokenOption: object | null = null; // null means ERG
     let baseTokenId: string = ''; // Empty string means ERG (default)
-    let baseTokenDecimals: number = 9; // ERG has 9 decimals
+    let baseTokenDecimals: number = 9; // ERG has 9 decimals - DEFAULT
     let baseTokenName: string = 'ERG';
+    
+    // Ensure ERG is default on load
+    $: if (baseTokenOption === undefined) {
+        baseTokenOption = null;
+        baseTokenDecimals = 9;
+        baseTokenName = 'ERG';
+    }
 
     let tokenAmountToSellRaw: number;
     let tokenAmountToSellPrecise: number;
@@ -64,8 +71,13 @@
         tokenConflict: null,
         goalOrder: null,
         invalidBaseToken: null,
-        invalidToken: null
+        invalidToken: null,
+        exchangeRate: null
     };
+    
+    // Exchange rate validation
+    let minViablePrice = 0;
+    let exchangeRateWarning = '';
 
     // --- Reactive Declarations ---
 
@@ -88,15 +100,30 @@
     }
 
     $: {
-        if (baseTokenOption) {
+        if (baseTokenOption && baseTokenOption.value !== null) {
+            // A non-ERG token is selected
             baseTokenId = baseTokenOption.value;
             const baseToken = userTokens.find((t) => t.tokenId === baseTokenId);
             baseTokenDecimals = baseToken?.decimals || 0;
             baseTokenName = baseToken?.title || 'Unknown';
+            console.log('Base token selected:', {
+                baseTokenOption,
+                baseTokenId,
+                baseToken,
+                baseTokenDecimals,
+                baseTokenName
+            });
         } else {
+            // ERG is selected (null value) or nothing is selected
             baseTokenId = ''; // ERG
             baseTokenDecimals = 9;
             baseTokenName = 'ERG';
+            console.log('Base token is ERG (default):', {
+                baseTokenOption,
+                baseTokenId,
+                baseTokenDecimals,
+                baseTokenName
+            });
         }
     }
 
@@ -150,18 +177,49 @@
     $: {
         const token = userTokens.find((t) => t.tokenId === rewardTokenId);
         maxTokenAmountToSell = token ? Number(token.balance) / Math.pow(10, token.decimals) : 0;
-    }
-
-    $: {
         tokenAmountToSellRaw = tokenAmountToSellPrecise * Math.pow(10, rewardTokenDecimals);
     }
 
     $: {
-        exchangeRateRaw = exchangeRatePrecise * Math.pow(10, baseTokenDecimals - rewardTokenDecimals);
+        // Use proper decimal calculation to avoid precision loss
+        // Convert string to number if needed
+        const exchangeRateNum = typeof exchangeRatePrecise === 'string' ? parseFloat(exchangeRatePrecise) : exchangeRatePrecise;
+        
+        // Calculate minimum viable price
+        // The stored rate must be >= 1, so: price * 10^(baseDecimals - tokenDecimals) >= 1
+        // Therefore: price >= 10^(tokenDecimals - baseDecimals)
+        minViablePrice = Math.pow(10, rewardTokenDecimals - baseTokenDecimals);
+        
+        // The contract expects: base_amount = token_amount * exchange_rate
+        // Where both amounts are in smallest units
+        // So exchange_rate = smallest_base_units per smallest_token_unit
+        
+        // Calculate the raw exchange rate
+        exchangeRateRaw = exchangeRateNum * Math.pow(10, baseTokenDecimals - rewardTokenDecimals);
+        
+        // Validation
+        if (exchangeRateNum > 0 && exchangeRateRaw < 1) {
+            formErrors.exchangeRate = `Price too low. Minimum viable price is ${minViablePrice.toFixed(Math.max(0, baseTokenDecimals))} ${baseTokenName} per ${rewardTokenName}`;
+            exchangeRateWarning = `⚠️ Due to smart contract limitations, the minimum price for these tokens is ${minViablePrice.toFixed(Math.max(0, baseTokenDecimals))} ${baseTokenName} per ${rewardTokenName}`;
+            exchangeRateRaw = 0; // Prevent submission with invalid rate
+        } else {
+            formErrors.exchangeRate = null;
+            exchangeRateWarning = '';
+        }
+        
+        console.log('Exchange rate calculation:', {
+            exchangeRatePrecise: exchangeRateNum,
+            baseTokenDecimals,
+            rewardTokenDecimals,
+            minViablePrice,
+            exchangeRateRaw,
+            rounded: Math.round(exchangeRateRaw),
+            isValid: exchangeRateRaw >= 1
+        });
     }
 
     $: {
-       if (deadlineValue && deadlineValue > 0) {
+        if (deadlineValue && deadlineValue > 0) {
             calculateBlockLimit(deadlineValue, deadlineUnit);
         } else {
             deadlineValueBlock = undefined;
@@ -413,7 +471,6 @@
                         <p class="text-red-500 text-sm mb-4">{formErrors.invalidToken}</p>
                     {/if}
                 </div>
-
                 <div class="form-group">
                     <Label for="baseToken" class="text-sm font-medium mb-2 block"
                         >Contribution Currency</Label
@@ -446,8 +503,13 @@
                         step="0.000000001"
                         placeholder="Price in {baseTokenName}"
                         on:input={updateMaxValue}
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
+                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1 {formErrors.exchangeRate ? 'border-red-500' : ''}"
                     />
+                    {#if exchangeRateWarning}
+                        <div class="mt-2 p-2 bg-yellow-100 dark:bg-yellow-900 border border-yellow-300 dark:border-yellow-700 rounded-md">
+                            <p class="text-sm text-yellow-800 dark:text-yellow-200">{exchangeRateWarning}</p>
+                        </div>
+                    {/if}
                 </div>
 
                 <div class="form-group">
