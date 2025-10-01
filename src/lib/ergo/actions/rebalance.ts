@@ -13,7 +13,6 @@ import { get_address } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 import { SColl } from '@fleet-sdk/serializer';
 
-// Function to submit a project to the blockchain
 export async function rebalance(
     project: Project,
     token_amount: number
@@ -22,23 +21,7 @@ export async function rebalance(
     try {
         token_amount = Math.trunc(token_amount * Math.pow(10, project.token_details.decimals));
 
-        // Prevent withdrawing all PFT tokens - the contract requires at least one smallest unit to remain
-        if (token_amount < 0) {
-            const currentPftAmount = project.current_pft_amount;
-            const minimumRemaining = 1; // after conversion to smallest unit
-
-            if (currentPftAmount <= minimumRemaining) {
-                alert("Cannot withdraw tokens because the contract must retain at least one smallest unit of PFT.");
-                return null;
-            }
-
-            if (Math.abs(token_amount) >= currentPftAmount) {
-                console.warn("Adjusting token withdrawal to leave one smallest unit of PFT in the contract.");
-                token_amount = -(currentPftAmount - minimumRemaining);
-            }
-        }
-
-        console.log("wants to add ", token_amount)
+        console.log("wants to add ", token_amount / Math.pow(10, project.token_details.decimals), " tokens of type ", project.token_details.name);
 
         // Get the wallet address (will be the project address)
         const walletPk = await getChangeAddress();
@@ -165,11 +148,11 @@ export async function rebalance(
             if ((error as any).info) console.error("Prover error info:\n", (error as any).info);
         
         // Check specific error conditions
-        if (error.message && error.message.includes("R7")) {
+        if ((error as any).message && (error as any).message.includes("R7")) {
             console.error("R7 register format error - check exchange rate and base token ID length");
         }
         
-        if (error.message && error.message.includes("INPUTS")) {
+        if ((error as any).message && (error as any).message.includes("INPUTS")) {
             console.error("Input validation error - ensure wallet has UTXOs and project box is accessible");
         }
         

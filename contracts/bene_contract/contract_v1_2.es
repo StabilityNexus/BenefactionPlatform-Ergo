@@ -1,10 +1,15 @@
 {
 
 // ===== Contract Description ===== //
-// Name: Bene Fundraising Platform Contract (Multi-Token Support)
+// Name: Bene Fundraising Platform Contract (Multi-Token Support) - FIXED VERSION
 // Description: Enables a project to receive funding in exchange for participation tokens using any base token.
-// Version: 1.2.0
+// Version: 1.2.1 (Fixed: Removed 1 smallest unit requirement)
 // Author: The Stable Order
+
+// ===== CHANGES FROM v1.2.0 =====
+// - Modified isWithdrawUnsoldTokens to allow full PFT withdrawal (using endOrReplicate)
+// - Frontend no longer needs to keep 1 smallest unit
+// - Contract properly terminates when both all funds AND all tokens are withdrawn
 
 // ===== Box Contents ===== //
 // Tokens
@@ -444,15 +449,23 @@
       extractedPFT <= temporalTokens
     }
 
+    // FIXED: Allow termination when all PFT tokens are withdrawn
+    val endOrReplicate = {
+      val allFundsWithdrawn = selfValue == OUTPUTS(0).value
+      val allTokensWithdrawn = SELF.tokens.size == 1 || (OUTPUTS(0).tokens.size == 1 && deltaPFTokenAdded < 0)
+      
+      isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
+    }
+
     val constants = allOf(Coll(
-      isSelfReplication,                         // Replicate the contract will be needed always            
-      // endOrReplicate,                         // The contract can't end with this action
-      soldCounterRemainsConstant,                // Any of the counter needs to be incremented, so all of them (sold, refund and exchange) need to remain constants.
+      // isSelfReplication,                         // FIXED: Changed to endOrReplicate to allow termination
+      endOrReplicate,                               // The contract CAN end with this action if all tokens withdrawn
+      soldCounterRemainsConstant,                   // Any of the counter needs to be incremented, so all of them (sold, refund and exchange) need to remain constants.
       refundCounterRemainsConstant,                       
       auxiliarExchangeCounterRemainsConstant,
-      mantainValue,                              // The value of the contract must not change.
-      APTokenRemainsConstant                     // APT token must be constant.
-      // ProofFundingTokenRemainsConstant        // The PFT is the token that the action tries to withdraw              
+      mantainValue,                                 // The value of the contract must not change.
+      APTokenRemainsConstant                        // APT token must be constant.
+      // ProofFundingTokenRemainsConstant           // The PFT is the token that the action tries to withdraw              
     ))
 
     allOf(Coll(
