@@ -189,6 +189,8 @@ export class WalletManager {
       // Store connection for auto-reconnect
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('ergo_wallet_connection', walletId);
+        // Also store connection timestamp for debugging
+        localStorage.setItem('ergo_wallet_connection_time', new Date().toISOString());
       }
 
       walletStore.setModalOpen(false);
@@ -343,14 +345,16 @@ export class WalletManager {
 
   private startBalanceUpdates() {
     this.stopBalanceUpdates();
+    // Update balance every 60 seconds instead of 30 to reduce API calls
     this.balanceUpdateInterval = setInterval(() => {
       this.refreshBalance();
-    }, 30000); // Update balance every 30 seconds
+    }, 60000);
 
-    // Poll for address changes frequently to update UI promptly
+    // Poll for address changes less frequently (every 5 seconds instead of 3)
+    // to reduce performance impact
     this.addressPollInterval = setInterval(() => {
       void this.checkAddressChange();
-    }, 3000);
+    }, 5000);
   }
 
   private stopBalanceUpdates() {
@@ -373,13 +377,8 @@ export class WalletManager {
     const storedWalletId = localStorage.getItem('ergo_wallet_connection');
     if (storedWalletId) {
       try {
-        const connector = walletConnectors.find(w => w.id === storedWalletId);
-        if (connector) {
-          const adapter = connector.createConnector();
-          if (adapter.isInstalled() && await adapter.isConnected()) {
-            await this.connectWallet(storedWalletId);
-          }
-        }
+        // Attempt to reconnect to the stored wallet
+        await this.connectWallet(storedWalletId);
       } catch (error) {
         console.error('Auto-reconnect failed:', error);
         localStorage.removeItem('ergo_wallet_connection');

@@ -107,7 +107,7 @@ export async function withdraw(
         (extractedBaseAmount === project.value) : 
         (extractedBaseAmount === currentBaseTokenAmount);
     const allTokensWithdrawn = project.current_pft_amount === 0; // No PFT tokens left
-    const isFullWithdrawal = false; // allFundsWithdrawn && allTokensWithdrawn;
+    const isFullWithdrawal = allFundsWithdrawn && allTokensWithdrawn;
     
     console.log("Withdrawal details:", {
         extractedBaseAmount,
