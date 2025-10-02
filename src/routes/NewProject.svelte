@@ -106,24 +106,11 @@
             const baseToken = userTokens.find((t) => t.tokenId === baseTokenId);
             baseTokenDecimals = baseToken?.decimals || 0;
             baseTokenName = baseToken?.title || 'Unknown';
-            console.log('Base token selected:', {
-                baseTokenOption,
-                baseTokenId,
-                baseToken,
-                baseTokenDecimals,
-                baseTokenName
-            });
         } else {
             // ERG is selected (null value) or nothing is selected
             baseTokenId = ''; // ERG
             baseTokenDecimals = 9;
             baseTokenName = 'ERG';
-            console.log('Base token is ERG (default):', {
-                baseTokenOption,
-                baseTokenId,
-                baseTokenDecimals,
-                baseTokenName
-            });
         }
     }
 
@@ -206,16 +193,6 @@
             formErrors.exchangeRate = null;
             exchangeRateWarning = '';
         }
-        
-        console.log('Exchange rate calculation:', {
-            exchangeRatePrecise: exchangeRateNum,
-            baseTokenDecimals,
-            rewardTokenDecimals,
-            minViablePrice,
-            exchangeRateRaw,
-            rounded: Math.round(exchangeRateRaw),
-            isValid: exchangeRateRaw >= 1
-        });
     }
 
     $: {
@@ -265,16 +242,25 @@
         }
     }
 
+    // Flag to prevent circular updates between price and max goal
+    let isUpdating = false;
+
     function updateExchangeRate() {
+        if (isUpdating) return;
         if (maxGoalPrecise && tokenAmountToSellPrecise) {
+            isUpdating = true;
             exchangeRatePrecise = maxGoalPrecise / tokenAmountToSellPrecise;
+            isUpdating = false;
         }
         validateGoalOrder();
     }
 
     function updateMaxValue() {
+        if (isUpdating) return;
         if (tokenAmountToSellPrecise && exchangeRatePrecise) {
+            isUpdating = true;
             maxGoalPrecise = exchangeRatePrecise * tokenAmountToSellPrecise;
+            isUpdating = false;
         }
         validateGoalOrder();
     }
@@ -300,6 +286,21 @@
             description: projectDescription,
             image: projectImage,
             link: projectLink
+        });
+
+        // 🔍 DEBUG: Log what we're about to submit
+        console.log(' SUBMITTING PROJECT TO BLOCKCHAIN:', {
+            'minGoalPrecise (user entered)': minGoalPrecise,
+            'minValueNano (in smallest base units)': minValueNano,
+            'exchangeRateRaw': exchangeRateRaw,
+            'exchangeRateRaw (rounded)': Math.round(exchangeRateRaw),
+            'minimumTokenSold (calculated)': minimumTokenSold,
+            'minimumTokenSold (rounded - SUBMITTED)': Math.round(minimumTokenSold),
+            'tokenAmountToSellRaw': tokenAmountToSellRaw,
+            'baseTokenDecimals': baseTokenDecimals,
+            'rewardTokenDecimals': rewardTokenDecimals,
+            'baseTokenId': baseTokenId,
+            'baseTokenName': baseTokenName
         });
 
         try {
@@ -502,7 +503,7 @@
                         min={0}
                         step="0.000000001"
                         placeholder="Price in {baseTokenName}"
-                        on:input={updateMaxValue}
+                        on:blur={updateMaxValue}
                         class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1 {formErrors.exchangeRate ? 'border-red-500' : ''}"
                     />
                     {#if exchangeRateWarning}
@@ -561,8 +562,7 @@
                         bind:value={maxGoalPrecise}
                         min={minGoalPrecise || 0}
                         placeholder="Maximum amount in {baseTokenName}"
-                        on:input={updateExchangeRate}
-                        on:blur={validateGoalOrder}
+                        on:blur={updateExchangeRate}
                         class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
                     />
                 </div>
