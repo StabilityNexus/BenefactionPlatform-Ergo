@@ -147,8 +147,7 @@
         }
         
         // Calculate max base tokens needed to buy remaining project tokens
-        // Must leave at least 1 smallest unit in contract, so subtract (sold_counter + 1) from total
-        const maxSellablePftTokens = Math.max(0, project.total_pft_amount - project.sold_counter - 1);
+        const maxSellablePftTokens = Math.max(0, project.total_pft_amount - project.sold_counter);
         const remainingProjectTokens = maxSellablePftTokens / Math.pow(10, project.token_details.decimals);
         let maxBaseTokensForRemainingTokens;
         
@@ -178,13 +177,12 @@
         const smallestPftUnitFactor = Math.pow(10, project.token_details.decimals);
         
         // Calculate maximum collect amount based on user's temporal tokens
-        // But also consider contract constraints: must leave at least 1 smallest unit of PFT
-        const availablePftForExchange = Math.max(0, project.current_pft_amount - 1);
+        const availablePftForExchange = Math.max(0, project.current_pft_amount);
         const availablePftInNormalUnits = availablePftForExchange / smallestPftUnitFactor;
         
         // User can collect the minimum of:
         // 1. Their temporal token balance (APT they own)
-        // 2. Available PFT in contract (minus 1 smallest unit that must remain)
+        // 2. Available PFT in contract
         maxCollectAmount = Math.min(userTemporalTokenBalance, availablePftInNormalUnits);
         maxCollectAmount = Math.round(maxCollectAmount * 1e12) / 1e12; // Avoid floating point issues
         
@@ -198,14 +196,12 @@
         const exchangedTokens = project.auxiliar_exchange_counter || 0;
         
         // Maximum withdrawable PFT = current_pft - (sold - refunded - exchanged)
-        // But we also need to leave at least 1 smallest unit in the contract
         const maxWithdrawableRaw = project.current_pft_amount - (soldTokens - refundedTokens - exchangedTokens);
         
-        if (maxWithdrawableRaw <= 1) {
+        if (maxWithdrawableRaw <= 0) {
             maxWithdrawTokenAmount = 0;
         } else {
-            // Leave 1 smallest unit in the contract
-            maxWithdrawTokenAmount = (maxWithdrawableRaw - 1) / smallestPftUnitFactor;
+            maxWithdrawTokenAmount = maxWithdrawableRaw / smallestPftUnitFactor;
             // Round to avoid floating point precision issues
             maxWithdrawTokenAmount = Math.round(maxWithdrawTokenAmount * 1e12) / 1e12;
         }
@@ -816,14 +812,14 @@
                         on:click={setupWithdrawTokens}
                         disabled={!$connected || maxWithdrawTokenAmount <= 0}
                         title={!$connected ? "Connect your wallet to withdraw tokens" :
-                               maxWithdrawTokenAmount <= 0 ? `All transferable ${project.token_details.name} have been withdrawn; 1 smallest unit must remain.` :
+                               maxWithdrawTokenAmount <= 0 ? `All transferable ${project.token_details.name} have been withdrawn.` :
                                `You can withdraw up to ${maxWithdrawTokenAmount} ${project.token_details.name}`}
                     >
                       Withdraw {project.token_details.name}
                     </Button>
                     {#if $connected && maxWithdrawTokenAmount <= 0}
                         <div class="insufficient-funds-message">
-                            All transferable {project.token_details.name} are already withdrawn. One smallest unit stays in the contract to keep it active.
+                            All transferable {project.token_details.name} are already withdrawn.
                         </div>
                     {/if}
                     
@@ -922,7 +918,6 @@
                                             }
                                         })()}
                                     </p>
-                                    <p class="text-xs text-gray-500 mt-1">*1 smallest unit must remain in contract to keep it active</p>
                                 {/if}
                                 {#if info_type_to_show === "dev-collect"}
                                     <p><strong>Current ERG balance:</strong> {(project.current_value / Math.pow(10, 9)).toFixed(10).replace(/\.?0+$/, '')} {platform.main_token}</p>
@@ -936,7 +931,6 @@
                                         <p><strong>Current PFT balance:</strong> {(project.current_pft_amount / Math.pow(10, project.token_details.decimals)).toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
                                         <p><strong>Sold tokens (locked):</strong> {((project.sold_counter - project.refund_counter - project.auxiliar_exchange_counter) / Math.pow(10, project.token_details.decimals)).toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
                                         <p><strong>Maximum Withdrawal:</strong> {maxWithdrawTokenAmount.toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
-														<p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Note: A minimum of 1 smallest unit of PFT must remain in the contract to keep it active.</p>
                                     {/if}
                                 {/if}
                                 {#if function_submit === refund}
@@ -945,7 +939,7 @@
                                 {/if}
                                 {#if function_submit === temp_exchange}
                                     <p><strong>Your Temporal Token Balance:</strong> {userTemporalTokenBalance} APT</p>
-                                    <p><strong>Available PFT in Contract:</strong> {Math.max(0, (project.current_pft_amount - 1) / Math.pow(10, project.token_details.decimals)).toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
+                                    <p><strong>Available PFT in Contract:</strong> {Math.max(0, project.current_pft_amount / Math.pow(10, project.token_details.decimals)).toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
                                     <p><strong>Maximum Collection:</strong> {maxCollectAmount.toFixed(10).replace(/\.?0+$/, '')} {project.token_details.name}</p>
                                 {/if}
                             </div>
