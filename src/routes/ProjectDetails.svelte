@@ -11,6 +11,7 @@
     import { Label } from "$lib/components/ui/label/index.js";
     import { Badge, badgeVariants } from "$lib/components/ui/badge/index.js";
     import { get } from "svelte/store";
+    import ForumThread from "$lib/components/ForumThread.svelte";
 
     import { onDestroy } from 'svelte';
 
@@ -991,6 +992,11 @@
                 </div>
             </div>
         {/if}
+    
+    <!-- Forum/Discussions Section -->
+    <div class="forum-section">
+        <ForumThread projectId={project.project_id} />
+    </div>
 </div>
 
 <style>
@@ -1488,5 +1494,22 @@
         color: #ff6347;
         font-size: 0.875rem;
         text-align: center;
+    }
+
+    /* Forum Section */
+    .forum-section {
+        grid-column: 1 / -1;
+        margin-top: 3rem;
+        padding: 2rem;
+        background: var(--card);
+        border-radius: 0.5rem;
+        border: 1px solid var(--border);
+    }
+
+    @media (max-width: 767px) {
+        .forum-section {
+            padding: 1rem;
+            margin-top: 2rem;
+        }
     }
 </style>

@@ -55,7 +55,7 @@ function generate_contract(): string {
 export function get_dev_contract_hash(): string {
     return uint8ArrayToHex(
         blake2b256(
-            compile(generate_contract(), {version: 1, network: network_id}).toBytes()  // Compile contract to ergo tree
+            compile(generate_contract(), {version: 1, network: network_id}).bytes  // Compile contract to ergo tree
         )                                                         // Blake2b256 hash of contract bytes
     );
 }
@@ -71,7 +71,7 @@ export function get_dev_fee(): number {
 
 function get_template_hash(): string {
     let contract = generate_contract();
-    return hex.encode(sha256(compile(contract, {version: 1, network: network_id}).template.toBytes()))
+    return hex.encode(sha256(compile(contract, {version: 1, network: network_id}).template))
   }
 
 export async function download_dev() {
