@@ -19,6 +19,7 @@
 	import { ThumbsUp, ThumbsDown, UserPlus, Reply, Flag } from "lucide-svelte";
 	import { getScore, type Comment } from "$lib/ergo/forum/commentObject";
 	import * as jdenticon from "jdenticon";
+    import { web_explorer_uri_tx } from '$lib/ergo/envs';
 
 	// Global ergo wallet connector
 	declare const ergo: any;
@@ -61,7 +62,6 @@
 		postError = null;
 		try {
 			const txId = await createProfileBox();
-			postError = `Profile creation transaction sent! TX: ${txId}. Please wait ~2 minutes for confirmation.`;
 		} catch (err: any) {
 			console.error("Error creating profile:", err);
 			postError = err?.message || "Failed to create profile";
@@ -79,8 +79,6 @@
 			await postComment(newCommentText, sentiment ?? false);
 			newCommentText = "";
 			sentiment = null;
-			await handleLoadThreads();
-			postError = "Comment posted! It will appear after blockchain confirmation (~2 minutes).";
 		} catch (err: any) {
 			console.error("Error posting comment:", err);
 			postError = err?.message || "Failed to post comment";
@@ -99,8 +97,6 @@
 			replyText = "";
 			replySentiment = null;
 			replyingToId = null;
-			await handleLoadThreads();
-			postError = "Reply posted! It will appear after blockchain confirmation (~2 minutes).";
 		} catch (err: any) {
 			console.error("Error posting reply:", err);
 			postError = err?.message || "Failed to post reply";
@@ -114,8 +110,6 @@
 		postError = null;
 		try {
 			await flagSpam(commentId);
-			await handleLoadThreads();
-			postError = "Spam flag submitted! It will process after blockchain confirmation (~2 minutes).";
 		} catch (err: any) {
 			console.error("Error flagging spam:", err);
 			postError = err?.message || "Failed to flag spam";
@@ -275,18 +269,44 @@
 							</div>
 							
 							<div class="flex-1 min-w-0">
-								<div class="flex items-center gap-2 mb-2">
-									<span class="text-sm font-medium">
-										{comment.authorProfileTokenId.slice(0, 8)}...
+								<div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
+									<span class="text-sm font-medium text-primary">
+										@{comment.authorProfileTokenId.slice(0, 6)}
 									</span>
-									<span class="text-xs text-muted-foreground">
-										{new Date(comment.timestamp).toLocaleString()}
-									</span>
+
+									<a 
+										class="flex items-center text-xs text-muted-foreground gap-1 cursor-pointer"
+										style="margin-right: 2rem;"
+										href={web_explorer_uri_tx + comment.tx}
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										#{comment.id.slice(0, 6)}
+										<svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 3h7v7m0-7L10 14m-4 0H3v-7a2 2 0 012-2h7z" />
+										</svg>
+									</a>
+
 									{#if comment.sentiment}
 										<ThumbsUp class="w-3 h-3 text-green-500" />
 									{:else}
 										<ThumbsDown class="w-3 h-3 text-red-500" />
 									{/if}
+
+									<span class="text-xs text-muted-foreground">
+										{#if comment.posting}
+											<a 
+												href={web_explorer_uri_tx + comment.tx}
+												target="_blank"
+												rel="noopener noreferrer"
+												class="text-blue-400 hover:underline pulse-animate"
+											>
+												Posting...
+											</a>
+										{:else}
+											{new Date(comment.timestamp).toLocaleString()}
+										{/if}
+									</span>
 								</div>
 								
 								<div class="prose prose-sm max-w-none">
