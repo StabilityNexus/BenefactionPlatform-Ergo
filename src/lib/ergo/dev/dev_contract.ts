@@ -135,7 +135,37 @@ export async function execute_dev(box) {
         let jm = w['jm']
         let order = w['order']
 
-        distributeFunds(box, bruno, lgd, jm, order, 32, 32, 32, 4, box.value);
+        // Check if this is a token distribution (R4 contains token ID)
+        let tokenId: string | undefined = undefined;
+        let totalAmount = box.value;
+
+        if (box.additionalRegisters && box.additionalRegisters.R4) {
+            const r4Value = box.additionalRegisters.R4;
+            
+            if (r4Value.startsWith('0e')) {
+                // Parse Coll[Byte]: 0e[length][data]
+                const lengthByte = r4Value.substring(2, 4);
+                const lengthValue = parseInt(lengthByte, 16);
+                const extractedTokenId = r4Value.substring(4, 4 + (lengthValue * 2));
+                
+                // Validate token ID is 32 bytes (64 hex chars)
+                if (extractedTokenId && extractedTokenId.length === 64) {
+                    tokenId = extractedTokenId;
+                    
+                    // Find the token amount in box assets
+                    if (box.assets) {
+                        for (const asset of box.assets) {
+                            if (asset.tokenId === tokenId) {
+                                totalAmount = Number(asset.amount);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        distributeFunds(box, bruno, lgd, jm, order, 32, 32, 32, 4, totalAmount, tokenId);
     } catch (e) {
         console.error("Error executing action:", e.message);
     }

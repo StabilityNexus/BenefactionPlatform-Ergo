@@ -10,7 +10,7 @@ import { type Project } from '../../common/project';
 import { get_address } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 import { get_dev_contract_address } from '../dev/dev_contract';
-import { SColl, SPair } from '@fleet-sdk/serializer';
+import { SColl, SPair, SByte } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
 export async function withdraw(
@@ -227,6 +227,14 @@ export async function withdraw(
                 amount: BigInt(devFeeAmount)
             });
         }
+        
+        // Set R4 register with token ID as Coll[Byte] so dev fee contract can identify token distributions
+        // Convert hex string to byte array
+        const tokenIdBytes = project.base_token_id!.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16));
+        devOutput.setAdditionalRegisters({
+            R4: SColl(SByte, tokenIdBytes).toHex()
+        });
+        
         outputs.push(devOutput);
     }
 

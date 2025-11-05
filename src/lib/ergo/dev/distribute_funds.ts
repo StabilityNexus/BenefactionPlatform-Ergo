@@ -15,16 +15,27 @@ export async function distributeFunds(
     lgdShare: number,
     jmShare: number,
     orderShare: number,
-    totalAmount: number
+    totalAmount: number,
+    tokenId?: string
 ): Promise<string | null> {
     try {
         await (new ErgoPlatform).connect();
 
-        let inputs = [box];
-
         const minerFeeAmount = 1100000;
+        const isTokenDistribution = !!tokenId;
+        const SAFE_MIN_BOX_VALUE = 1000000; // Minimum ERG for token boxes
 
-        totalAmount -= minerFeeAmount;
+        // For token distributions, we need wallet UTXOs to cover ERG for outputs
+        let inputs = [box];
+        if (isTokenDistribution && window.ergo) {
+            const walletUtxos = await window.ergo!.get_utxos();
+            inputs = [box, ...walletUtxos];
+        }
+
+        // Only subtract miner fee from ERG distributions
+        if (!isTokenDistribution) {
+            totalAmount -= minerFeeAmount;
+        }
 
         // Calculate individual shares
         const brunoAmount = Math.floor((brunoShare / 100) * totalAmount);
@@ -46,26 +57,52 @@ export async function distributeFunds(
         }
 
         // Build outputs for each recipient
-        const outputs = [
-            new OutputBuilder(BigInt(brunoAmount), brunoAddress),
-            new OutputBuilder(BigInt(lgdAmount), lgdAddress),
-            new OutputBuilder(BigInt(jmAmount), jmAddress),
-            new OutputBuilder(BigInt(orderAmount), orderAddress)
-        ];
+        const outputs = [];
+        
+        if (isTokenDistribution) {
+            // Token distribution - each output needs minimum ERG + tokens
+            outputs.push(
+                new OutputBuilder(BigInt(SAFE_MIN_BOX_VALUE), brunoAddress)
+                    .addTokens({ tokenId, amount: BigInt(brunoAmount) })
+            );
+            outputs.push(
+                new OutputBuilder(BigInt(SAFE_MIN_BOX_VALUE), lgdAddress)
+                    .addTokens({ tokenId, amount: BigInt(lgdAmount) })
+            );
+            outputs.push(
+                new OutputBuilder(BigInt(SAFE_MIN_BOX_VALUE), jmAddress)
+                    .addTokens({ tokenId, amount: BigInt(jmAmount) })
+            );
+            outputs.push(
+                new OutputBuilder(BigInt(SAFE_MIN_BOX_VALUE), orderAddress)
+                    .addTokens({ tokenId, amount: BigInt(orderAmount) })
+            );
+        } else {
+            // ERG distribution
+            outputs.push(new OutputBuilder(BigInt(brunoAmount), brunoAddress));
+            outputs.push(new OutputBuilder(BigInt(lgdAmount), lgdAddress));
+            outputs.push(new OutputBuilder(BigInt(jmAmount), jmAddress));
+            outputs.push(new OutputBuilder(BigInt(orderAmount), orderAddress));
+        }
+
+        // Get wallet address for change
+        const changeAddress = isTokenDistribution && window.ergo 
+            ? await window.ergo!.get_change_address()
+            : get_dev_contract_address();
 
         // Build and sign the transaction
-        const unsignedTransaction = await new TransactionBuilder(await ergo.get_current_height())
+        const unsignedTransaction = await new TransactionBuilder(await window.ergo!.get_current_height())
             .from(inputs)
             .to(outputs)
             .payFee(BigInt(minerFeeAmount))
-            .sendChangeTo(get_dev_contract_address())
+            .sendChangeTo(changeAddress)  // For tokens: send change to wallet, for ERG: to dev contract
             .build()
             .toEIP12Object();
 
-        const signedTransaction = await ergo.sign_tx(unsignedTransaction);
+        const signedTransaction = await window.ergo!.sign_tx(unsignedTransaction);
 
         // Submit the transaction
-        const transactionId = await ergo.submit_tx(signedTransaction);
+        const transactionId = await window.ergo!.submit_tx(signedTransaction);
 
         console.log("Transaction ID:", transactionId);
         return transactionId;
