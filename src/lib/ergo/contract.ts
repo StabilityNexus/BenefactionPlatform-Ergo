@@ -90,7 +90,7 @@ export function get_template_hash(version: contract_version): string {
   } else {
     contract = handle_contract_generator(version)(random_addr, random_dev_contract, 5, "");
   }
-  return hex.encode(sha256(compile(contract, {version: 1, network: network_id}).template.toBytes()))
+  return hex.encode(sha256(compile(contract, {version: 1, network: network_id}).template))
 }
 
 function get_contract_hash(constants: ConstantContent, version: contract_version): string {
@@ -115,10 +115,10 @@ function get_contract_hash(constants: ConstantContent, version: contract_version
           network: network_id
       });
 
-      return uint8ArrayToHex(blake2b256(ergoTree.toBytes()));
-  } catch (error) {
+      return uint8ArrayToHex(blake2b256(ergoTree.bytes));
+  } catch (error: any) {
       console.error("Error compiling contract:", error);
-      throw new Error(`Failed to compile contract: ${error.message}`);
+      throw new Error(`Failed to compile contract: ${error?.message || error}`);
   }
 }
 export function mint_contract_address(constants: ConstantContent, version: contract_version) {

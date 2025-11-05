@@ -382,7 +382,7 @@
         border-radius: 16px;
         box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.1);
-        overflow: hidden;
+        overflow: visible;
     }
 
     /* Logo Styles */
@@ -624,22 +624,30 @@
     
     @media (max-width: 768px) {
         .navbar-content {
-            gap: 0.25rem;
+            gap: 0.5rem;
             justify-content: space-between;
+            flex-wrap: nowrap;
         }
         
         .logo-text {
             font-size: 1.35rem;
         }
         
+        .logo-container {
+            order: 1;
+            flex-shrink: 0;
+        }
+        
         .user-section {
             background: transparent;
             padding: 0.25rem;
-            gap: 0;
+            gap: 0.5rem;
             margin-left: auto; 
             order: 2; 
             display: flex;
             align-items: center;
+            flex-shrink: 1;
+            min-width: 0;
         }
         
         /* Removed unused .wallet-button selector */
@@ -648,11 +656,17 @@
         .theme-toggle {
             display: none;
         }
+        
+        /* Hide settings button on very small screens */
+        .settings-button {
+            display: none;
+        }
 
         /* Position mobile menu button at the extreme right */
         .mobile-menu-button {
-            margin-left: 0;
+            margin-left: 0.5rem;
             order: 3; /* Always at the end */
+            flex-shrink: 0; /* Never shrink the menu button */
         }
     }
 
@@ -760,5 +774,23 @@
 
     .settings-button:hover {
         background-color: rgba(255, 165, 0, 0.1);
+    }
+
+    /* Mobile-specific wallet button styles */
+    @media (max-width: 768px) {
+        :global(.wallet-connected-button),
+        :global(.wallet-connect-button) {
+            max-width: 180px;
+            font-size: 0.85rem;
+            padding: 0.4rem 0.6rem;
+        }
+        
+        :global(.wallet-connected-button .font-mono) {
+            font-size: 0.75rem;
+        }
+        
+        :global(.wallet-connected-button .text-xs) {
+            display: none;
+        }
     }
 </style>
