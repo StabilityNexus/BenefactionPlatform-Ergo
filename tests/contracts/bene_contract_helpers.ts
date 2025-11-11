@@ -1,6 +1,6 @@
 import { MockChain } from "@fleet-sdk/mock-chain";
 import { compile } from "@fleet-sdk/compiler";
-import { RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
+import { RECOMMENDED_MIN_FEE_VALUE, ErgoAddress } from "@fleet-sdk/core";
 import { blake2b256 } from "@fleet-sdk/crypto";
 import * as fs from "fs";
 import * as path from "path";
@@ -159,15 +159,18 @@ export function setupBeneTestContext(
   // STEP 8: Compile the Bene smart contract with actual values replacing placeholders
   const ownerAddress = projectOwner.address.toString();
   
-  // STEP 8a: Create dev fee contract (simple contract that accepts any transaction)
+  // STEP 8a: Convert owner address to ErgoTree hex for P2S/P2PK support
+  const ownerErgoTree = ErgoAddress.fromBase58(ownerAddress).ergoTree;
+  
+  // STEP 8b: Create dev fee contract (simple contract that accepts any transaction)
   const devFeeContract = compile(`{ sigmaProp(true) }`);        // Always returns true (for testing)
-  const devFeeContractBytes = devFeeContract.toBytes();          // Convert to bytes
+  const devFeeContractBytes = devFeeContract.bytes;              // Get bytes property (not method!)
   const devFeeContractHashBytes = blake2b256(devFeeContractBytes); // Hash the contract
   const devFeeContractHash = uint8ArrayToHex(devFeeContractHashBytes); // Convert to hex string
 
   // STEP 8b: Replace all placeholders in contract template with actual values
   const beneContractSource = BENE_CONTRACT_V1_2_TEMPLATE
-    .replace(/`\+owner_addr\+`/g, ownerAddress)                          // Insert owner's address
+    .replace(/`\+owner_ergotree\+`/g, ownerErgoTree)                     // Insert owner's ErgoTree (P2S/P2PK support)
     .replace(/`\+dev_fee_contract_bytes_hash\+`/g, devFeeContractHash)  // Insert dev fee contract hash
     .replace(/`\+dev_fee\+`/g, devFeePercentage.toString())             // Insert 5% fee
     .replace(/`\+token_id\+`/g, pftTokenId)                             // Insert PFT token ID

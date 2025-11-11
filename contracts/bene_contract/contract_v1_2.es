@@ -40,7 +40,7 @@
 // - Base token ID is stored in R8 constants JSON under "base_token_id" field
 
 // ===== Compile Time Constants ===== //
-// $owner_addr: Base58 address of the contract owner.
+// $owner_ergotree: ErgoTree bytes (hex) of the contract owner (supports both P2PK and P2S).
 // $dev_fee_contract_bytes_hash: Blake2b-256 base16 string hash of the dev fee contract proposition bytes.
 // $dev_fee: Percentage fee allocated to the developer (e.g., 5 for 5%).
 // $token_id: Unique string identifier for the proof-of-funding token.
@@ -174,20 +174,46 @@
   val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2)
   val mantainValue = selfValue == OUTPUTS(0).value
 
-  val projectAddr: SigmaProp = PK("`+owner_addr+`")
+  // -- P2S/P2PK SUPPORT (Based on Game of Prompts pattern) --
+  // Project owner address as ErgoTree bytes (can be P2PK or P2S)
+  val projectErgoTree = fromBase16("`+owner_ergotree+`")
+  val P2PK_ERGOTREE_PREFIX = fromBase16("0008cd")
+  
+  // Check if project address is P2PK or P2S by examining the prefix
+  val isProjectP2PK = if (projectErgoTree.size >= 3) {
+    projectErgoTree.slice(0, 3) == P2PK_ERGOTREE_PREFIX
+  } else {
+    false
+  }
+  
+  // Create SigmaProp for project address
+  val projectAddr: SigmaProp = if (isProjectP2PK) {
+    // For P2PK: Extract the public key and create SigmaProp with proveDlog
+    val pkContent = projectErgoTree.slice(3, projectErgoTree.size)
+    proveDlog(decodePoint(pkContent))
+  } else {
+    // For P2S: We check proposition bytes directly in the validation functions
+    sigmaProp(true) // Placeholder, actual check happens in isToProjectAddress/isFromProjectAddress
+  }
   
   val isToProjectAddress = {
-    val propAndBox: (SigmaProp, Box) = (projectAddr, OUTPUTS(1))
-    val isSamePropBytes: Boolean = isSigmaPropEqualToBoxProp(propAndBox)
-
-    isSamePropBytes
+    if (isProjectP2PK) {
+      // For P2PK: Check if OUTPUTS(1) belongs to project address
+      OUTPUTS(1).propositionBytes == projectErgoTree
+    } else {
+      // For P2S: Check if ANY output has the project's proposition bytes
+      OUTPUTS.exists({ (box: Box) => box.propositionBytes == projectErgoTree })
+    }
   }
 
   val isFromProjectAddress = {
-    val propAndBox: (SigmaProp, Box) = (projectAddr, INPUTS(1))
-    val isSamePropBytes: Boolean = isSigmaPropEqualToBoxProp(propAndBox)
-    
-    isSamePropBytes
+    if (isProjectP2PK) {
+      // For P2PK: Check if INPUTS(1) belongs to project address
+      INPUTS(1).propositionBytes == projectErgoTree
+    } else {
+      // For P2S: Check if ANY input has the project's proposition bytes (Game of Prompts pattern)
+      INPUTS.exists({ (box: Box) => box.propositionBytes == projectErgoTree })
+    }
   }
 
   // Amount of PFT tokens added to the contract. In case of negative value, means that the token have been extracted.
