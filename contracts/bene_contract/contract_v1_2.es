@@ -57,30 +57,6 @@
     proof_funding_token_amount - sold + refunded + exchanged
   }
 
-  def isSigmaPropEqualToBoxProp(propAndBox: (SigmaProp, Box)): Boolean = {
-
-    val prop: SigmaProp = propAndBox._1
-    val box: Box = propAndBox._2
-
-    val propBytes: Coll[Byte] = prop.propBytes
-    val treeBytes: Coll[Byte] = box.propositionBytes
-
-    if (treeBytes(0) == 0) {
-
-        (treeBytes == propBytes)
-
-    } else {
-
-        // offset = 1 + <number of VLQ encoded bytes to store propositionBytes.size>
-        val offset = if (treeBytes.size > 127) 3 else 2
-        (propBytes.slice(1, propBytes.size) == treeBytes.slice(offset, treeBytes.size))
-
-    }
-
-  }
-
-
-
   val selfId = SELF.tokens(0)._1
   val selfAPT = SELF.tokens(0)._2
   val selfValue = SELF.value
@@ -174,46 +150,38 @@
   val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2)
   val mantainValue = selfValue == OUTPUTS(0).value
 
-  // -- P2S/P2PK SUPPORT (Based on Game of Prompts pattern) --
   // Project owner address as ErgoTree bytes (can be P2PK or P2S)
-  val projectErgoTree = fromBase16("`+owner_ergotree+`")
+  val ownerErgoTree = fromBase16("`+owner_ergotree+`")
   val P2PK_ERGOTREE_PREFIX = fromBase16("0008cd")
   
   // Check if project address is P2PK or P2S by examining the prefix
-  val isProjectP2PK = if (projectErgoTree.size >= 3) {
-    projectErgoTree.slice(0, 3) == P2PK_ERGOTREE_PREFIX
+  val isProjectP2PK = if (ownerErgoTree.size >= 3) {
+    ownerErgoTree.slice(0, 3) == P2PK_ERGOTREE_PREFIX
   } else {
     false
   }
   
   // Create SigmaProp for project address
-  val projectAddr: SigmaProp = if (isProjectP2PK) {
-    // For P2PK: Extract the public key and create SigmaProp with proveDlog
-    val pkContent = projectErgoTree.slice(3, projectErgoTree.size)
-    proveDlog(decodePoint(pkContent))
-  } else {
-    // For P2S: We check proposition bytes directly in the validation functions
-    sigmaProp(true) // Placeholder, actual check happens in isToProjectAddress/isFromProjectAddress
-  }
+
   
   val isToProjectAddress = {
-    if (isProjectP2PK) {
-      // For P2PK: Check if OUTPUTS(1) belongs to project address
-      OUTPUTS(1).propositionBytes == projectErgoTree
-    } else {
-      // For P2S: Check if ANY output has the project's proposition bytes
-      OUTPUTS.exists({ (box: Box) => box.propositionBytes == projectErgoTree })
-    }
+    OUTPUTS(1).propositionBytes == ownerErgoTree  // TODO dynamic index
   }
 
-  val isFromProjectAddress = {
-    if (isProjectP2PK) {
-      // For P2PK: Check if INPUTS(1) belongs to project address
-      INPUTS(1).propositionBytes == projectErgoTree
+  val ownerAuthentication: SigmaProp = {
+
+    val projectAddr: SigmaProp = if (isProjectP2PK) {
+      // For P2PK: Extract the public key and create SigmaProp with proveDlog
+      val pkContent = ownerErgoTree.slice(3, ownerErgoTree.size)
+      proveDlog(decodePoint(pkContent))
     } else {
-      // For P2S: Check if ANY input has the project's proposition bytes (Game of Prompts pattern)
-      INPUTS.exists({ (box: Box) => box.propositionBytes == projectErgoTree })
+      // For P2S: We check proposition bytes directly on INPUTS
+      sigmaProp(false)
     }
+
+    val signedByInput: SigmaProp = sigmaProp(INPUTS.exists({(box: Box) => box.propositionBytes == ownerErgoTree}))
+
+    signedByInput || projectAddr
   }
 
   // Amount of PFT tokens added to the contract. In case of negative value, means that the token have been extracted.
@@ -244,7 +212,7 @@
 
   // Validation for purchasing Tokens
   // > People should be allowed to exchange base tokens for APT tokens until there are no more tokens left (even if the deadline has passed).
-  val isBuyTokens = {
+  val isBuyTokens: SigmaProp = {
 
     // Delta of tokens removed from the box
     val deltaTokenRemoved = {
@@ -290,16 +258,16 @@
       ProofFundingTokenRemainsConstant           // PFT needs to be constant
     ))
 
-    allOf(Coll(
+    sigmaProp(allOf(Coll(
       constants,
       onlyTemporaryUnsoldTokens,     // Since the amount of APT is equal to the emission amount of PFT (+1), not necessarily equal to the contract amount, it must be ensured that the APT sold can be exchanged in the future.
       correctExchange,               // Ensures that the proportion between the APTs and base token moved is the same following the R7 ratio.
       incrementSoldCounterCorrectly  // Ensures that the R6 first value is incremented in proportion to the exchange value moved.
-    ))
+    )))
   }
 
   // Validation for refunding tokens
-  val isRefundTokens = {
+  val isRefundTokens: SigmaProp = {
  
     // > People should be allowed to exchange tokens for base tokens if and only if the deadline has passed and the minimum number of tokens has not been sold.
     val canBeRefund = {
@@ -361,16 +329,16 @@
     ))
 
     // The contract returns the equivalent base token value for the returned tokens
-    allOf(Coll(
+    sigmaProp(allOf(Coll(
       constants,
       canBeRefund,                            // Ensures that the refund conditions are satisfied.
       incrementRefundCounterCorrectly,        // Ensures increment the refund counter correctly in proportion with the exchanged amount.
       correctExchange                         // Ensures that the value extracted and the APTs added are proportional following the R7 exchange ratio.
-    ))
+    )))
   }
 
   // Validation for withdrawing funds by project owners
-  val isWithdrawFunds = {
+  val isWithdrawFunds: SigmaProp = {
     // Anyone can withdraw the funds to the project address.
     
     val minnerFeeAmount = 1100000  // Pay minner fee with the extracted value allows to withdraw when project address does not have ergs.
@@ -451,17 +419,17 @@
       ProofFundingTokenRemainsConstant          // There is no need to modify the proof of funding token, so it must be constant
     ))
 
-    allOf(Coll(
+    sigmaProp(allOf(Coll(
       constants,
       minimumReached,           // Project owners are allowed to withdraw base tokens if and only if the minimum number of tokens has been sold.
       isToProjectAddress,       // Only to the project address
       correctDevFee,            // Ensures that the dev fee amount and dev address are correct
       correctProjectAmount      // Ensures the correct project amount.
-    ))
+    )))
   }
 
   // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens = {
+  val isWithdrawUnsoldTokens: SigmaProp = {
     // Calculate that only are sold the amount of PFT that are available, in other case, will be problems on the APT -> PFT exchange.
     val onlyUnsold = {
 
@@ -494,16 +462,16 @@
       // ProofFundingTokenRemainsConstant           // The PFT is the token that the action tries to withdraw              
     ))
 
-    allOf(Coll(
+    sigmaProp(allOf(Coll(
       constants,
       isToProjectAddress,
       deltaPFTokenAdded < 0,  // A negative value means that PFT are extracted.
       onlyUnsold  // Ensures that only extracts the token amount that has not been buyed.
-    ))
+    ))) && ownerAuthentication
   }
   
   // > Project owners may add more tokens to the contract at any time.
-  val isAddTokens = {
+  val isAddTokens: SigmaProp = {
 
     val constants = allOf(Coll(
       isSelfReplication,                     // Replicate the contract will be needed always            
@@ -516,16 +484,14 @@
       // ProofFundingTokenRemainsConstant,   // Adds PFT tokens, so can't remain constant             
     ))
 
-    if (INPUTS.size == 1) false  // To avoid access INPUTS(1) when there is no input, this could be resolved using actions.
-    else allOf(Coll(
+    sigmaProp(allOf(Coll(
       constants,
-      isFromProjectAddress,   // Ensures that the tokens come from the project owners.
       deltaPFTokenAdded > 0   // Ensures that the tokens are added.
-    ))
+    )) ) && ownerAuthentication
   }
   
   // Exchange APT (token that identies the project used as temporary funding token) with PFT (proof-of-funding token)
-  val isExchangeFundingTokens = {
+  val isExchangeFundingTokens: SigmaProp = {
 
     val deltaTemporaryFundingTokenAdded = {
       val selfTFT = SELF.tokens(0)._2
@@ -576,22 +542,21 @@
       // ProofFundingTokenRemainsConstant,                  // PFT will change
     ))
 
-    allOf(Coll(
+    sigmaProp(allOf(Coll(
       constants,
       minimumReached,                        // Only can exchange when the refund action is not, and will not be, possible
       incrementExchangeCounterCorrectly,     // Ensures that the exchange counter is incremented in proportion to the APT added and the PFT extracted.
       correctExchange                        // Ensures that the APT added and the PFT extracted amounts are equal.
-    ))
+    )))
   }
 
-  val actions = anyOf(Coll(
-    isBuyTokens,
-    isRefundTokens,
-    isWithdrawFunds,
-    isWithdrawUnsoldTokens,
-    isAddTokens,
+  val actions =
+    isBuyTokens ||
+    isRefundTokens ||
+    isWithdrawFunds ||
+    isWithdrawUnsoldTokens ||
+    isAddTokens ||
     isExchangeFundingTokens
-  ))
 
   // Validates that the contract was build correctly. Otherwise, it cannot be used.
   val correctBuild = {
@@ -609,5 +574,5 @@
     correctTokenId && onlyOneOrAnyToken
   }
 
-  sigmaProp(correctBuild && actions)
+  sigmaProp(correctBuild) && actions
 }
