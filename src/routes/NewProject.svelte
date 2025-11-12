@@ -10,7 +10,7 @@
     import { get } from 'svelte/store';
     import { explorer_uri, user_tokens } from '$lib/common/store';
     import { walletConnected } from '$lib/wallet/wallet-manager';
-    import { fetch_projects } from '$lib/ergo/fetch';
+    import { fetchProjects } from '$lib/ergo/fetch';
 
     let platform = new ErgoPlatform();
 
@@ -368,7 +368,7 @@
 
     async function loadExistingProjectTokens() {
         try {
-            const projects = await fetch_projects(0);
+            const projects = await fetchProjects();
             const aptTokens = new Set<string>();
             const pftTokens = new Set<string>();
             

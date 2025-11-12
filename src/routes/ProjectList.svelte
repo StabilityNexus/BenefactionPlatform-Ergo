@@ -3,126 +3,191 @@
     import ProjectCardSkeleton from './ProjectCardSkeleton.svelte';
     import { type Project } from '$lib/common/project';
     import { projects } from '$lib/common/store';
+    import { fetchProjects } from '$lib/ergo/fetch';
     import * as Alert from '$lib/components/ui/alert';
     import { Loader2, Search, Filter } from 'lucide-svelte';
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { get } from 'svelte/store';
     import { Input } from '$lib/components/ui/input';
     import { Button } from '$lib/components/ui/button';
-    import { getFilteredProjects, type FilterOptions } from '$lib/ergo/dataAccess';
     import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 
-    let listedProjects: Map<string, Project> | null = null;
+    let allFetchedItems: Map<string, Project> = new Map();
+    let listedItems: Map<string, Project> | null = null;
     let errorMessage: string | null = null;
-    let isLoading: boolean = true;
-    let isRefreshing: boolean = false;
+    let isLoadingApi: boolean = true;
+    let isFiltering: boolean = false;
+    let totalProjectsCount: number = 0;
+
     let searchQuery: string = '';
     let sortBy: 'newest' | 'oldest' | 'amount' | 'name' = 'newest';
-    let hideTestProjects: boolean = true; // State for the new filter
+    let hideTestProjects: boolean = true;
     let filterOpen = false;
-    let debounceTimer: NodeJS.Timeout;
+    let debouncedSearch: any;
 
-    export let filterProject: ((project: any) => Promise<boolean>) | null = null;
+    export let filterProject: ((project: Project) => Promise<boolean>) | null = null;
 
-    async function loadProjects(showLoading: boolean = true) {
-        try {
-            if (showLoading && !listedProjects) {
-                isLoading = true;
-            } else {
-                isRefreshing = true;
-            }
+    async function applyFiltersAndSearch(sourceItems: Map<string, Project>) {
+        const filteredItemsMap = new Map<string, Project>();
 
-            const filterOptions: FilterOptions = {
-                searchQuery: searchQuery || undefined,
-                sortBy: sortBy
-            };
+        if (typeof sourceItems.entries !== 'function') {
+            console.error('applyFiltersAndSearch received non-Map sourceItems:', sourceItems);
+            listedItems = new Map();
+            return;
+        }
 
-            let filteredProjectsMap = await getFilteredProjects(filterOptions);
-
-            // New filter logic to hide projects containing "test"
-            if (hideTestProjects) {
-                const nonTestProjects = new Map<string, Project>();
-                for (const [id, project] of filteredProjectsMap.entries()) {
-                    // Assuming project has 'name' and 'description' properties
-                    const name = project.content.title || '';
-                    const description = project.content.description || '';
-                    if (!name.toLowerCase().includes('test') && !description.toLowerCase().includes('test')) {
-                        nonTestProjects.set(id, project);
-                    }
-                }
-                filteredProjectsMap = nonTestProjects;
-            }
+        for (const [id, item] of sourceItems.entries()) {
+            let shouldAdd = true;
 
             if (filterProject) {
-                const customFiltered = new Map<string, Project>();
-                for (const [id, project] of filteredProjectsMap.entries()) {
-                    if (await filterProject(project)) {
-                        customFiltered.set(id, project);
-                    }
+                shouldAdd = await filterProject(item);
+            }
+
+            if (shouldAdd && hideTestProjects) {
+                const name = item.content.title?.toLowerCase() || '';
+                const description = item.content.description?.toLowerCase() || '';
+                if (name.includes('test') || description.includes('test')) {
+                    shouldAdd = false;
                 }
-                filteredProjectsMap = customFiltered;
             }
 
-            listedProjects = filteredProjectsMap;
-
-            if (get(projects).size === 0 && filteredProjectsMap.size > 0) {
-                projects.set(filteredProjectsMap);
+            if (shouldAdd && searchQuery) {
+                const searchLower = searchQuery.toLowerCase();
+                const titleMatch = item.content.title?.toLowerCase().includes(searchLower) ?? false;
+                const descriptionMatch =
+                    item.content.description?.toLowerCase().includes(searchLower) ?? false;
+                shouldAdd = titleMatch || descriptionMatch;
             }
+
+            if (shouldAdd) {
+                filteredItemsMap.set(id, item);
+            }
+        }
+
+        const sortedItemsArray = Array.from(filteredItemsMap.entries());
+
+        switch (sortBy) {
+            case 'newest':
+                sortedItemsArray.sort(
+                    ([, a], [, b]) =>
+                        (b.content.creationTimestamp ?? 0) - (a.content.creationTimestamp ?? 0)
+                );
+                break;
+            case 'oldest':
+                sortedItemsArray.sort(
+                    ([, a], [, b]) =>
+                        (a.content.creationTimestamp ?? 0) - (b.content.creationTimestamp ?? 0)
+                );
+                break;
+            case 'amount':
+                sortedItemsArray.sort(
+                    ([, a], [, b]) => (b.content.targetAmount ?? 0) - (a.content.targetAmount ?? 0)
+                );
+                break;
+            case 'name':
+                sortedItemsArray.sort(([, a], [, b]) =>
+                    (a.content.title || '').localeCompare(b.content.title || '')
+                );
+                break;
+        }
+
+        listedItems = new Map(sortedItemsArray);
+    }
+
+    async function loadInitialItems() {
+        errorMessage = null;
+        try {
+            await fetchProjects();
         } catch (error: any) {
-            errorMessage = error.message || 'Error occurred while fetching projects';
-        } finally {
-            isLoading = false;
-            isRefreshing = false;
+            console.error('Error fetching projects:', error);
+            errorMessage = error.message || 'An error occurred while fetching projects.';
         }
     }
 
-    function handleSearchChange() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            loadProjects(false);
+    const unsubscribeProjects = projects.subscribe(async (value) => {
+        allFetchedItems = value.data instanceof Map ? value.data : new Map();
+
+        console.log(value);
+
+        totalProjectsCount = allFetchedItems.size;
+
+        await applyFiltersAndSearch(allFetchedItems);
+        if (isLoadingApi) isLoadingApi = false;
+    });
+
+    $: if (searchQuery !== undefined) {
+        clearTimeout(debouncedSearch);
+        debouncedSearch = setTimeout(async () => {
+            isFiltering = true;
+            await applyFiltersAndSearch(allFetchedItems);
+            isFiltering = false;
         }, 300);
     }
 
-    // Reactive statements to reload projects when filters change
-    $: if (searchQuery !== undefined) {
-        handleSearchChange();
+    async function handleSortChange(newSort: 'newest' | 'oldest' | 'amount' | 'name') {
+        isFiltering = true;
+        sortBy = newSort;
+        await applyFiltersAndSearch(allFetchedItems);
+        isFiltering = false;
     }
 
-    $: if (sortBy) {
-        loadProjects(false);
+    async function handleTestFilterToggle() {
+        isFiltering = true;
+        hideTestProjects = !hideTestProjects;
+        await applyFiltersAndSearch(allFetchedItems);
+        isFiltering = false;
     }
 
-    $: if (hideTestProjects !== undefined) {
-        loadProjects(false);
-    }
+    onMount(() => {
+        const cachedData = get(projects).data;
 
-    onMount(async () => {
-        const cachedProjects = get(projects);
-        if (cachedProjects && cachedProjects.size > 0) {
-            listedProjects = cachedProjects;
-            isLoading = false;
-            loadProjects(false); // Background refresh
+        // Decide whether to show the initial loader.
+        // Show it if the cache is NOT a Map, or if it is an empty Map.
+        if (!(cachedData instanceof Map) || cachedData.size === 0) {
+            isLoadingApi = true;
         } else {
-            await loadProjects(true); // Initial load with skeleton
+            // If there is data, the 'subscribe' has already run synchronously,
+            // populated 'allFetchedItems', and set 'isLoadingApi = false'.
+            // No need to do anything here.
         }
+
+        // Always start the load.
+        // If the cache was empty, it's the initial load.
+        // If the cache had data, it's a background refresh.
+        loadInitialItems();
+    });
+
+    onDestroy(() => {
+        unsubscribeProjects();
+        if (debouncedSearch) clearTimeout(debouncedSearch);
     });
 </script>
 
 <div class="project-container">
     <h2 class="project-title"><slot /></h2>
 
+    <div class="counts-row">
+        <div class="badge">Total projects: {totalProjectsCount}</div>
+        {#if listedItems}
+            <div class="badge muted">Showing: {Array.from(listedItems).length}</div>
+        {/if}
+    </div>
+
     <div class="search-container mb-6">
         <div class="relative mx-auto flex w-full max-w-md gap-2">
             <div class="relative flex-1">
-                <Search
-                    class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-500/70"
-                />
+                <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-500/70" />
                 <Input
                     type="text"
                     placeholder="Search projects..."
                     bind:value={searchQuery}
-                    class="w-full rounded-lg border-orange-500/20 bg-background/80 pl-10 backdrop-blur-lg transition-all duration-200 focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20"
+                    class="w-full rounded-lg border-orange-500/20 bg-background/80 pl-10 pr-10 backdrop-blur-lg transition-all duration-200 focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20"
                 />
+                {#if isFiltering}
+                    <Loader2
+                        class="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-orange-500"
+                    />
+                {/if}
             </div>
             <DropdownMenu.Root bind:open={filterOpen}>
                 <DropdownMenu.Trigger asChild let:builder>
@@ -138,58 +203,59 @@
                 <DropdownMenu.Content class="w-56" align="end">
                     <DropdownMenu.Label>Sort By</DropdownMenu.Label>
                     <DropdownMenu.Separator />
-                    <DropdownMenu.Item class={sortBy === 'newest' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'newest'}>
+                    <DropdownMenu.Item
+                        class={sortBy === 'newest' ? 'bg-orange-500/10' : ''}
+                        on:click={() => handleSortChange('newest')}
+                    >
                         {sortBy === 'newest' ? '✓ ' : ''}Newest First
                     </DropdownMenu.Item>
-                    <DropdownMenu.Item class={sortBy === 'oldest' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'oldest'}>
+                    <DropdownMenu.Item
+                        class={sortBy === 'oldest' ? 'bg-orange-500/10' : ''}
+                        on:click={() => handleSortChange('oldest')}
+                    >
                         {sortBy === 'oldest' ? '✓ ' : ''}Oldest First
                     </DropdownMenu.Item>
-                    <DropdownMenu.Item class={sortBy === 'amount' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'amount'}>
+                    <DropdownMenu.Item
+                        class={sortBy === 'amount' ? 'bg-orange-500/10' : ''}
+                        on:click={() => handleSortChange('amount')}
+                    >
                         {sortBy === 'amount' ? '✓ ' : ''}Highest Value
                     </DropdownMenu.Item>
-                    <DropdownMenu.Item class={sortBy === 'name' ? 'bg-orange-500/10' : ''} on:click={() => sortBy = 'name'}>
+                    <DropdownMenu.Item
+                        class={sortBy === 'name' ? 'bg-orange-500/10' : ''}
+                        on:click={() => handleSortChange('name')}
+                    >
                         {sortBy === 'name' ? '✓ ' : ''}Alphabetical
                     </DropdownMenu.Item>
-                    
-                    <!-- New filter option -->
+
                     <DropdownMenu.Separator />
                     <DropdownMenu.Label>Filters</DropdownMenu.Label>
-                    <DropdownMenu.Item on:click={() => hideTestProjects = !hideTestProjects}>
+                    <DropdownMenu.Item on:click={handleTestFilterToggle}>
                         <div class="flex items-center">
                             <span class="mr-2 w-4">{hideTestProjects ? '✓' : ''}</span>
                             <span>Hide "Test" Projects</span>
                         </div>
                     </DropdownMenu.Item>
-
                 </DropdownMenu.Content>
             </DropdownMenu.Root>
         </div>
     </div>
 
     {#if errorMessage}
-        <Alert.Root>
-            <Alert.Description>
-                {errorMessage}
-            </Alert.Description>
+        <Alert.Root class="my-4 border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300">
+            <Alert.Description class="text-center">{errorMessage}</Alert.Description>
         </Alert.Root>
     {/if}
 
-    {#if isRefreshing && listedProjects}
-        <div class="refresh-indicator">
-            <Loader2 class="h-4 w-4 animate-spin text-orange-500" />
-            <span class="text-sm text-orange-500">Updating...</span>
-        </div>
-    {/if}
-
-    {#if isLoading}
+    {#if isLoadingApi}
         <div class="projects-grid">
             {#each Array(6) as _}
                 <ProjectCardSkeleton />
             {/each}
         </div>
-    {:else if listedProjects && Array.from(listedProjects).length > 0}
+    {:else if listedItems && Array.from(listedItems).length > 0}
         <div class="projects-grid">
-            {#each Array.from(listedProjects) as [projectId, projectData]}
+            {#each Array.from(listedItems) as [projectId, projectData] (projectId)}
                 <div class="project-card">
                     <ProjectCard project={projectData} />
                 </div>
@@ -210,6 +276,24 @@
 </div>
 
 <style>
+    .counts-row {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+    }
+    .badge {
+        padding: 0.35rem 0.6rem;
+        border-radius: 999px;
+        background: var(--muted);
+        color: var(--foreground);
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+    .badge.muted {
+        opacity: 0.8;
+    }
+
     .project-container {
         display: flex;
         flex-direction: column;
@@ -287,20 +371,6 @@
         border-radius: 8px;
         border: 1px solid rgba(255, 165, 0, 0.1);
         max-width: 500px;
-    }
-
-    .refresh-indicator {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        background: rgba(255, 165, 0, 0.1);
-        border-radius: 20px;
-        margin-bottom: 1rem;
-        width: fit-content;
-        margin-left: auto;
-        margin-right: auto;
     }
 
     @media (max-width: 768px) {

@@ -1,7 +1,6 @@
 // src/ergo/platform.ts
 import type { Platform } from '../common/platform';
 import type { Project } from '../common/project';
-import { fetch_projects } from './fetch';
 import { submit_project } from './actions/submit';
 import { withdraw } from './actions/withdraw';
 import { buy_refund } from './actions/buy_refund';
@@ -158,6 +157,6 @@ export class ErgoPlatform implements Platform {
     }
 
     async fetch(offset: number = 0): Promise<Map<string, Project>> {
-        return await fetch_projects(offset);
+        return await new Map();
     }
 }

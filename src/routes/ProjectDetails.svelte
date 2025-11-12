@@ -531,10 +531,10 @@
     async function refreshProjectFromContract() {
         try {
             // Import the fresh fetch function to bypass cache
-            const { fetch_projects_fresh } = await import('$lib/ergo/fetch');
+            const { fetchProjects_fresh } = await import('$lib/ergo/fetch');
             
             // Fetch the updated project data from the contract (bypassing cache)
-            const updatedProjects = await fetch_projects_fresh();
+            const updatedProjects = await fetchProjects_fresh();
             const updatedProject = updatedProjects.get(project.project_id);
             
             if (updatedProject) {

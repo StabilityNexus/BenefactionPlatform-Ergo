@@ -1,14 +1,10 @@
-/**
-    https://api.ergoplatform.com/api/v1/docs/#operation/postApiV1BoxesUnspentSearch
-*/
-
 import { type Box, SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
 import { type Project, type TokenEIP4, getConstantContent, getProjectContent } from "../common/project";
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
 import { type contract_version, get_template_hash } from "./contract";
-import { projectsCache, tokenDetailsCache } from "./cache";
-import { explorer_uri } from "$lib/common/store";
+import { tokenDetailsCache } from "./cache";
+import { explorer_uri, projects } from "$lib/common/store";
 import { get } from "svelte/store";
 
 const expectedSigmaTypes = {
@@ -28,6 +24,12 @@ const expectedSigmaTypesV12 = {
     R8: 'Coll[SByte]',
     R9: 'Coll[SByte]'
 };
+
+// Cache duration (e.g. 5 minutes)
+const CACHE_DURATION_MS = 1000 * 60 * 5;
+
+// Variable to track an ongoing request
+let inFlightFetch: Promise<Map<string, Project>> | null = null;
 
 function hasValidSigmaTypes(additionalRegisters: any, version: contract_version = "v1_0"): boolean {
     const expectedTypes = version === "v1_2" ? expectedSigmaTypesV12 : expectedSigmaTypes;
@@ -138,33 +140,30 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
 }
 
 // Internal function for fetching projects from blockchain
-async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<string, Project>> {
+export async function fetchProjectsFromBlockchain() {
+    console.log("Fetch projects from blockchain");
+    const registers = {};
+    let moreDataAvailable;
+
+    const versions: contract_version[] = ["v1_0", "v1_1", "v1_2"];
+
     try {
-        let projects = new Map<string, Project>();
-        let registers = {};
-        let moreDataAvailable;
-
-        const versions: contract_version[] = ["v1_0", "v1_1", "v1_2"];
-
         for (const version of versions) {
-            
             moreDataAvailable = true;
             let params = {
-                offset: offset,
-                limit: 9,
+                offset: 0, // Starts at 0 for each version
+                limit: 100, // Increased limit for fewer requests
             };
 
             while (moreDataAvailable) {
-                const url = get(explorer_uri)+'/api/v1/boxes/unspent/search';
+                const url = get(explorer_uri) + '/api/v1/boxes/unspent/search';
                 const response = await fetch(url + '?' + new URLSearchParams({
                     offset: params.offset.toString(),
                     limit: params.limit.toString(),
                 }), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
                         "ergoTreeTemplateHash": get_template_hash(version),
                         "registers": registers,
                         "constants": {},
@@ -172,135 +171,152 @@ async function fetchProjectsFromBlockchain(offset: number = 0): Promise<Map<stri
                     }),
                 });
 
-                if (response.ok) {
-                    let json_data = await response.json();
-                    if (json_data.items.length == 0) {
-                        moreDataAvailable = false;
-                        break;
-                    }
-                    for (const e of json_data.items) {
-                        if (hasValidSigmaTypes(e.additionalRegisters, version)) {
-                            const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "")
-
-                            if (constants === null) { console.warn("constants null"); continue; }
-                            if (e.assets.length > 2 && e.assets[1].tokenId !== constants.token_id) { console.warn("Constant token error with "+constants.token_id); continue; }  // If it has all the tokens, it should contain the PFT token.
-
-                            let project_id = e.assets[0].tokenId;
-                            let token_id = constants.token_id;
-                            let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
-                            
-                            // Handle different R7 register formats
-                            let exchange_rate: number;
-                            let base_token_id = "";
-                            
-                            if (version === "v1_2") {
-                                // v1_2 format: R7 = [exchange_rate, base_token_id_len]
-                                let [rate, base_token_id_len] = JSON.parse(e.additionalRegisters.R7.renderedValue);
-                                exchange_rate = parseInt(rate);
-                                // Get base_token_id from constants if length > 0
-                                if (base_token_id_len > 0 && constants.base_token_id) {
-                                    base_token_id = constants.base_token_id;
-                                }
-                            } else {
-                                // v1_0 and v1_1 format: R7 = exchange_rate (ERG only)
-                                exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
-                            }
-                            
-                            let current_pft_amount = (e.assets.find(asset => asset.tokenId === constants.token_id)?.amount) ?? 0;
-                            let total_pft_amount = current_pft_amount + auxiliar_exchange_counter;
-                            let unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
-                            let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
-                            let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
-                            let block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
-                            let collected_value = (token_amount_sold * exchange_rate);
-
-                            // Fetch base token details if it's not ERG
-                            let base_token_details = undefined;
-                            if (base_token_id && base_token_id !== "") {
-                                try {
-                                    base_token_details = await fetch_token_details(base_token_id);
-                                } catch (error) {
-                                    console.warn(`Failed to fetch base token details for ${base_token_id}:`, error);
-                                }
-                            }
-
-                            let project = {
-                                version: version,
-                                platform: new ErgoPlatform(),
-                                box: {
-                                    boxId: e.boxId,
-                                    value: e.value,
-                                    assets: e.assets,
-                                    ergoTree: e.ergoTree,
-                                    creationHeight: e.creationHeight,
-                                    additionalRegisters: Object.entries(e.additionalRegisters).reduce((acc, [key, value]) => {
-                                        acc[key] = (value as any).serializedValue;
-                                        return acc;
-                                    }, {} as {
-                                        [key: string]: string;
-                                    }),
-                                    index: e.index,
-                                    transactionId: e.transactionId
-                                },
-                                project_id: project_id,
-                                current_idt_amount: e.assets[0].amount,
-                                token_id: constants.token_id,
-                                base_token_id: base_token_id,
-                                base_token_details: base_token_details,
-                                block_limit: block_limit,
-                                minimum_amount: minimum_token_amount,
-                                maximum_amount: total_pft_amount,
-                                total_pft_amount: total_pft_amount,
-                                current_pft_amount: current_pft_amount,
-                                unsold_pft_amount: unsold_pft_amount,
-                                refund_counter: refunded_token_amount,
-                                sold_counter: token_amount_sold,
-                                auxiliar_exchange_counter: auxiliar_exchange_counter,
-                                exchange_rate: exchange_rate,
-                                content: getProjectContent(
-                                    token_id.slice(0, 8), 
-                                    hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ""
-                                ),
-                                constants: constants,
-                                value: e.value,
-                                collected_value: collected_value  - Number(SAFE_MIN_BOX_VALUE),
-                                current_value: current_erg_value,
-                                token_details: await fetch_token_details(token_id)
-                            }
-                            console.log(project.project_id, project)
-                            projects.set(project_id, project)
-                        }
-                    }                
-                    params.offset += params.limit;
-                } 
-                else {
+                if (!response.ok) {
                     console.error('Error while making the POST request');
-                    return new Map();
+                    moreDataAvailable = false; // Stop loop on error
+                    break;
                 }
+                
+                const json_data = await response.json();
+                
+                if (!json_data.items || json_data.items.length === 0) {
+                    moreDataAvailable = false;
+                    break;
+                }
+
+                for (const e of json_data.items) {
+                    if (hasValidSigmaTypes(e.additionalRegisters, version)) {
+                        const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "");
+
+                        if (constants === null) { console.warn("constants null"); continue; }
+                        if (e.assets.length > 2 && e.assets[1].tokenId !== constants.token_id) { console.warn("Constant token error with " + constants.token_id); continue; }
+
+                        let project_id = e.assets[0].tokenId;
+                        let token_id = constants.token_id;
+                        let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
+
+                        let exchange_rate: number;
+                        let base_token_id = "";
+
+                        if (version === "v1_2") {
+                            let [rate, base_token_id_len] = JSON.parse(e.additionalRegisters.R7.renderedValue);
+                            exchange_rate = parseInt(rate);
+                            if (base_token_id_len > 0 && constants.base_token_id) {
+                                base_token_id = constants.base_token_id;
+                            }
+                        } else {
+                            exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
+                        }
+
+                        let current_pft_amount = (e.assets.find(asset => asset.tokenId === constants.token_id)?.amount) ?? 0;
+                        let total_pft_amount = current_pft_amount + auxiliar_exchange_counter;
+                        let unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
+                        let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
+                        let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
+                        let block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
+                        let collected_value = (token_amount_sold * exchange_rate);
+
+                        let base_token_details = undefined;
+                        if (base_token_id && base_token_id !== "") {
+                            try {
+                                base_token_details = await fetch_token_details(base_token_id);
+                            } catch (error) {
+                                console.warn(`Failed to fetch base token details for ${base_token_id}:`, error);
+                            }
+                        }
+
+                        const project: Project = {
+                            version: version,
+                            platform: new ErgoPlatform(),
+                            box: {
+                                boxId: e.boxId,
+                                value: e.value,
+                                assets: e.assets,
+                                ergoTree: e.ergoTree,
+                                creationHeight: e.creationHeight,
+                                additionalRegisters: Object.entries(e.additionalRegisters).reduce((acc, [key, value]) => {
+                                    acc[key] = (value as any).serializedValue;
+                                    return acc;
+                                }, {} as { [key: string]: string; }),
+                                index: e.index,
+                                transactionId: e.transactionId
+                            },
+                            project_id: project_id,
+                            current_idt_amount: e.assets[0].amount,
+                            token_id: constants.token_id,
+                            base_token_id: base_token_id,
+                            base_token_details: base_token_details,
+                            block_limit: block_limit,
+                            minimum_amount: minimum_token_amount,
+                            maximum_amount: total_pft_amount,
+                            total_pft_amount: total_pft_amount,
+                            current_pft_amount: current_pft_amount,
+                            unsold_pft_amount: unsold_pft_amount,
+                            refund_counter: refunded_token_amount,
+                            sold_counter: token_amount_sold,
+                            auxiliar_exchange_counter: auxiliar_exchange_counter,
+                            exchange_rate: exchange_rate,
+                            content: getProjectContent(
+                                token_id.slice(0, 8),
+                                hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ""
+                            ),
+                            constants: constants,
+                            value: e.value,
+                            collected_value: collected_value - Number(SAFE_MIN_BOX_VALUE),
+                            current_value: current_erg_value,
+                            token_details: await fetch_token_details(token_id)
+                        };
+                        const current = get(projects).data;
+                        current.set(project_id, project)
+                        projects.set({data: current, last_fetch: get(projects).last_fetch});
+                    }
+                }
+                params.offset += params.limit;
             }
         }
-        return projects;
     } catch (error) {
         console.error('Error while making the POST request:', error);
-        return new Map();
+        return new Map(); // Returns empty map in case of error
     }
 }
 
-// Fetch with caching enabled
-export async function fetch_projects(offset: number = 0): Promise<Map<string, Project>> {
-    // Use cache with the offset as part of the key
-    const cacheKey = `projects_offset_${offset}`;
+export async function fetchProjects(force: boolean = false): Promise<Map<string, Project>> {
     
-    return await projectsCache.get(
-        cacheKey,
-        () => fetchProjectsFromBlockchain(offset),
-        5 * 60 * 1000 // 5 minutes TTL
-    );
-}
+    const current = get(projects);
 
-// Force refresh projects (bypasses cache)
-export async function fetch_projects_fresh(offset: number = 0): Promise<Map<string, Project>> {
-    const cacheKey = `projects_offset_${offset}`;
-    projectsCache.invalidate(cacheKey);
-    return await fetch_projects(offset);
+    // 1. Return cached data if valid and not forced
+    if (!force && (Date.now() - current.last_fetch < CACHE_DURATION_MS)) {
+        return current.data;
+    }
+
+    // 2. If a request is in progress, return its promise
+    if (inFlightFetch) {
+        return inFlightFetch;
+    }
+
+    // 3. Start the fetch operation
+    inFlightFetch = (async () => {
+        try {
+            if (force) {
+                console.log("[fetchProjects] Forcing reload, clearing store...");
+                projects.set({ data: new Map(), last_fetch: Date.now() });
+            } else {
+                projects.update(current => ({ ...current, last_fetch: Date.now() }));
+            }
+
+            await fetchProjectsFromBlockchain();
+
+            return get(projects).data;
+
+        } catch (error) {
+            console.error("Critical error during fetchProjects:", error);
+            // In case of error, return the data we had before the failure
+            return get(projects).data;
+        } finally {
+            // 4. Release the lock for future requests
+            inFlightFetch = null;
+        }
+    })();
+
+    return inFlightFetch;
 }

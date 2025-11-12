@@ -3,7 +3,7 @@
  * Provides filtering and search capabilities for blockchain data
  */
 
-import { fetch_projects } from './fetch';
+import { fetchProjects } from './fetch';
 import { projectIndex } from './memoryIndex';
 import type { Project } from '../common/project';
 import { projectsCache, userProjectsCache, contributionsCache } from './cache';
@@ -33,7 +33,7 @@ export async function getFilteredProjects(options: FilterOptions = {}): Promise<
         
         // Trigger background refresh if cache is stale
         if (projectsCache.isStale(cacheKey)) {
-            fetch_projects(0).then(freshProjects => {
+            fetchProjects(0).then(freshProjects => {
                 if (freshProjects.size > 0) {
                     projectIndex.buildIndex(freshProjects);
                 }
@@ -41,7 +41,7 @@ export async function getFilteredProjects(options: FilterOptions = {}): Promise<
         }
     } else {
         // No cache, fetch synchronously
-        projects = await fetch_projects(0);
+        projects = await fetchProjects();
     }
     
     // Build or update the index
