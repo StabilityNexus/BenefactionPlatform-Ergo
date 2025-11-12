@@ -24,21 +24,21 @@ export const BENE_CONTRACT_V1_2_TEMPLATE = fs.readFileSync(
 // TOKEN CONFIGURATION: Configure ALL parameters for the token you're testing
 // ⚠️ CRITICAL: exchangeRate = FUNDING_GOAL / TOTAL_PFT_TOKENS must be >= 1 (BigInt truncates!)
 
-// --- OPTION 1: ERG (9 decimals) ---
-// export const BASE_TOKEN = "";
-// export const BASE_TOKEN_NAME = "ERG";
-// export const BASE_TOKEN_DECIMALS = 9;
-// export const FUNDING_GOAL = 100_000_000_000n;  // 100 ERG = 100 * 10^9
-// export const TOTAL_PFT_TOKENS = 100_000n;       // 100,000 tokens
-// exchangeRate = 100,000,000,000 / 100,000 = 1,000,000 nanoERG per token ✅
+export const TOTAL_PFT_TOKENS = 100_000n;       // 100,000 tokens
 
-// --- OPTION 2: SigmaUSD (2 decimals) ---
+// --- ERG ---
+export const ERG_BASE_TOKEN = "";
+export const ERG_BASE_TOKEN_NAME = "ERG";
+export const ERG_BASE_TOKEN_DECIMALS = 9;
+export const ERG_FUNDING_GOAL = 100_000_000_000n;  // 100 ERG = 100 * 10^9
+// exchangeRate = 100,000,000,000 / 100,000 = 1,000,000 nanoERG per token
+
+// --- SigmaUSD ---
 export const BASE_TOKEN = "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04";
 export const BASE_TOKEN_NAME = "SigmaUSD";
 export const BASE_TOKEN_DECIMALS = 2;
 export const FUNDING_GOAL = 10_000_000n;  // 100,000 SigUSD = 100,000 * 10^2
-export const TOTAL_PFT_TOKENS = 100_000n; // 100,000 tokens
-// exchangeRate = 10,000,000 / 100,000 = 100 = 1.00 SigUSD per token ✅
+// exchangeRate = 10,000,000 / 100,000 = 100 = 1.00 SigUSD per token
 
 
 // ===== Test Context Setup ===== //
@@ -86,7 +86,7 @@ export function setupBeneTestContext(
   const buyer = mockChain.newParty("Buyer");                // User who will buy tokens
 
   // STEP 3: Define project parameters (using values from configuration above)
-  const fundingGoal = FUNDING_GOAL;                  // From config: varies by token decimals
+  const fundingGoal = ERG_FUNDING_GOAL;                  // From config: varies by token decimals
   const totalPFTokens = TOTAL_PFT_TOKENS;            // From config: total tokens to sell
   const exchangeRate = fundingGoal / totalPFTokens;  // Calculated price per token (MUST be >= 1!)
   const minimumTokensSold = totalPFTokens / 2n;      // Minimum threshold: 50% (owner chooses - can be any value)
@@ -104,14 +104,14 @@ export function setupBeneTestContext(
   }
 
   // LOGGING: Display test configuration (only once per test run)
-  const decimalDivisor = 10 ** BASE_TOKEN_DECIMALS;  // Use actual decimals from config
+  const decimalDivisor = 10 ** ERG_BASE_TOKEN_DECIMALS;  // Use actual decimals from config
 
   // Only log configuration if this is the first time setup is called
   if (!(globalThis as any).__beneTestConfigLogged) {
     console.log("\n" + "=".repeat(80));
     console.log("BENE CONTRACT TEST CONFIGURATION");
     console.log("=".repeat(80));
-    console.log(`Payment Token:        ${baseTokenName} (${BASE_TOKEN_DECIMALS} decimals) ${baseTokenId === "" ? "[native ERG]" : ""}`);
+    console.log(`Payment Token:        ${baseTokenName} (${ERG_BASE_TOKEN_DECIMALS} decimals) ${baseTokenId === "" ? "[native ERG]" : ""}`);
     if (baseTokenId !== "") {
       console.log(`   Token ID:             ${baseTokenId.substring(0, 20)}...${baseTokenId.substring(baseTokenId.length - 10)}`);
     }
@@ -195,7 +195,7 @@ export function setupBeneTestContext(
     baseTokenId,         // Payment token ID ("" for ERG)
     baseTokenName,       // Human-readable name ("ERG", "SigUSD", etc.)
     baseTokenIdLen,      // Token ID length in bytes (0 or 32)
-    baseTokenDecimals: BASE_TOKEN_DECIMALS,  // Number of decimals (9 for ERG, 2 for SigUSD, etc.)
+    baseTokenDecimals: ERG_BASE_TOKEN_DECIMALS,  // Number of decimals (9 for ERG, 2 for SigUSD, etc.)
     isErgMode,           // true if accepting ERG, false if accepting custom token
     fundingGoal,         // Total amount to raise
     exchangeRate,        // Price per APT token

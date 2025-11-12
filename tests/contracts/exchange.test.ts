@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
 import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
-import { setupBeneTestContext, BASE_TOKEN, BASE_TOKEN_NAME, type BeneTestContext } from "./bene_contract_helpers";
+import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext } from "./bene_contract_helpers";
 
 // EXECUTION FLOW:
 // 1. beforeEach() → Creates blockchain + project box with MINIMUM REACHED (50k tokens sold)
@@ -22,7 +22,7 @@ describe("Bene Contract v1.2 - Exchange APT → PFT", () => {
   // SETUP: Runs before each test
   beforeEach(() => {
     // STEP 1: Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
-    ctx = setupBeneTestContext(BASE_TOKEN, BASE_TOKEN_NAME);
+    ctx = setupBeneTestContext(ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME);
 
     // STEP 2: Create project box with MINIMUM FUNDING REACHED
     // IMPORTANT: Exchange only works when sold >= minimumTokensSold

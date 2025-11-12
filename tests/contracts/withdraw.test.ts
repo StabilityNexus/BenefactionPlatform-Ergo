@@ -9,7 +9,7 @@ import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } fro
 import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
 import { compile } from "@fleet-sdk/compiler";
-import { setupBeneTestContext, BASE_TOKEN, BASE_TOKEN_NAME, type BeneTestContext } from "./bene_contract_helpers";
+import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext } from "./bene_contract_helpers";
 
 // EXECUTION FLOW:
 // Withdraw Funds: Owner can withdraw raised funds if minimum reached (split: project + dev fee)
@@ -21,7 +21,7 @@ describe("Bene Contract v1.2 - Withdraw", () => {
   // SETUP: Initialize test context
   beforeEach(() => {
     // Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
-    ctx = setupBeneTestContext(BASE_TOKEN, BASE_TOKEN_NAME);
+    ctx = setupBeneTestContext(ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME);
   });
 
   describe("Withdraw Funds", () => {

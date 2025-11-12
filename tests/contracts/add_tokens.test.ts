@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
 import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
-import { setupBeneTestContext, BASE_TOKEN, BASE_TOKEN_NAME, type BeneTestContext } from "./bene_contract_helpers";
+import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext } from "./bene_contract_helpers";
 
 describe("Bene Contract v1.2 - Add Tokens", () => {
   let ctx: BeneTestContext;
@@ -10,7 +10,7 @@ describe("Bene Contract v1.2 - Add Tokens", () => {
 
   beforeEach(() => {
     // Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
-    ctx = setupBeneTestContext(BASE_TOKEN, BASE_TOKEN_NAME);
+    ctx = setupBeneTestContext(ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME);
 
     // Create project box with some tokens sold
     const soldTokens = 10_000n;

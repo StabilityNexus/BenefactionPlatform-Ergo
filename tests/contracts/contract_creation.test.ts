@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
 import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
-import { setupBeneTestContext, BASE_TOKEN, BASE_TOKEN_NAME, type BeneTestContext } from "./bene_contract_helpers";
+import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext } from "./bene_contract_helpers";
 
 // EXECUTION FLOW:
 // 1. beforeEach() → Creates fresh mock blockchain with setupBeneTestContext()
@@ -19,7 +19,7 @@ describe("Bene Contract v1.2 - Project Creation", () => {
   // SETUP: Runs before each test to create a fresh mock blockchain
   beforeEach(() => {
     // Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
-    ctx = setupBeneTestContext(BASE_TOKEN, BASE_TOKEN_NAME);
+    ctx = setupBeneTestContext(ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME);
   });
 
   describe("Project Creation", () => {
