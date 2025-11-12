@@ -1,7 +1,6 @@
-
 import { type ConstantContent } from "$lib/common/project";
 import { compile } from "@fleet-sdk/compiler";
-import { Network } from "@fleet-sdk/core";
+import { Network, ErgoAddress } from "@fleet-sdk/core";
 import { sha256, hex, blake2b256 } from "@fleet-sdk/crypto";
 import { uint8ArrayToHex } from "./utils";
 import { network_id } from "./envs";
@@ -37,8 +36,11 @@ function generate_contract_v1_2(
   token_id: string, 
   base_token_id: string = ""
 ): string {
+  // Convert address to ErgoTree hex for P2S/P2PK support
+  const ownerErgoTree = ErgoAddress.fromBase58(owner_addr).ergoTree;
+  
   return CONTRACT_V1_2
-  .replace(/`\+owner_addr\+`/g, owner_addr)
+    .replace(/`\+owner_ergotree\+`/g, ownerErgoTree)
     .replace(/`\+dev_fee_contract_bytes_hash\+`/g, dev_fee_contract_bytes_hash)
     .replace(/`\+dev_fee\+`/g, dev_fee.toString())
     .replace(/`\+token_id\+`/g, token_id)
