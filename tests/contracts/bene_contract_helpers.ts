@@ -34,10 +34,10 @@ export const ERG_FUNDING_GOAL = 100_000_000_000n;  // 100 ERG = 100 * 10^9
 // exchangeRate = 100,000,000,000 / 100,000 = 1,000,000 nanoERG per token
 
 // --- SigmaUSD ---
-export const BASE_TOKEN = "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04";
-export const BASE_TOKEN_NAME = "SigmaUSD";
-export const BASE_TOKEN_DECIMALS = 2;
-export const FUNDING_GOAL = 10_000_000n;  // 100,000 SigUSD = 100,000 * 10^2
+export const USD_BASE_TOKEN = "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04";
+export const USD_BASE_TOKEN_NAME = "SigmaUSD";
+export const USD_BASE_TOKEN_DECIMALS = 2;
+export const USD_FUNDING_GOAL = 10_000_000n;  // 100,000 SigUSD = 100,000 * 10^2
 // exchangeRate = 10,000,000 / 100,000 = 100 = 1.00 SigUSD per token
 
 
