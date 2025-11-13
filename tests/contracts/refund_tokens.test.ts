@@ -453,7 +453,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
 
   it("should fail to refund at exact deadline (HEIGHT == R4)", () => {
     // ARRANGE: Jump to exact deadline block (equal to R4). Contract requires HEIGHT > R4.
-    ctx.mockChain.jumpTo(ctx.deadlineBlock); // exactly R4
+    ctx.mockChain.jumpTo(ctx.deadlineBlock -1); // exactly R4 (Fleet SDK's MockChain.execute() validates transactions at HEIGHT + 1, not at the current height.)
 
     const buyerTokenBox = ctx.buyer.utxos
       .toArray()
