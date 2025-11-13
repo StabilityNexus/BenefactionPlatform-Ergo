@@ -40,13 +40,14 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
           // { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },   There are no PFTs on contract.  All PFT were exchanged with their respectives APTs
         ];
       
-      let value = RECOMMENDED_MIN_FEE_VALUE;
+      let value = SAFE_MIN_BOX_VALUE;
 
       if (!ctx.isErgMode) {
         assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds})
       }
       else {
         value += collectedFunds;
+        collectedFunds = value;  // Must be divided considering SAFE_MIN_BOX_VALUE too.
       }
 
       ctx.beneContract.addUTxOs({

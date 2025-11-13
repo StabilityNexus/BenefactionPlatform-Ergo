@@ -359,10 +359,7 @@
     
     // Calculate dev fee and project amounts
     val devFeeAmount = extractedBaseAmount * devFee / 100
-    val projectAmountBase = extractedBaseAmount - devFeeAmount
-    
-    // For ERG, also subtract miner fee from project amount. For base tokens, miner fee payed by the tx. executor
-    val projectAmount = if (isERGBase) projectAmountBase - minnerFeeAmount else projectAmountBase
+    val projectAmount = extractedBaseAmount - devFeeAmount
 
     val ownerOutputs = OUTPUTS.filter({(box: Box) => box.propositionBytes == ownerErgoTree})
     val devFeeOutputs = OUTPUTS.filter({(box: Box) => blake2b256(box.propositionBytes) == fromBase16("`+dev_fee_contract_bytes_hash+`")})
@@ -575,5 +572,5 @@
     correctTokenId && onlyOneOrAnyToken
   }
 
-  sigmaProp(correcttrueBuild) && actions
+  sigmaProp(correctBuild) && actions
 }
