@@ -21,7 +21,6 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
   let collectedFunds: bigint;
 
   describe("Full withdraw funds after minimum reached", () => {
-
     beforeEach(() => {
 
       // Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
@@ -115,6 +114,206 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
 
       // ASSERT: Transaction should SUCCESS (minimum reached)
       expect(result).toBe(true);
+
+    });
+
+    it("should fail if owner tries to get more funds", () => {
+
+      const devFeeAmount = ((collectedFunds * BigInt(ctx.devFeePercentage)) / 100n) - 1n;
+      const projectAmount = (collectedFunds - devFeeAmount);
+      const devFeeContract = compile(`{ sigmaProp(true) }`);
+
+      let projectValue: bigint;
+      let projectAssets: OneOrMore<TokenAmount<Amount>> | TokensCollection;
+      let devFeeValue: bigint;
+      let devFeeAssets: OneOrMore<TokenAmount<Amount>> | TokensCollection;
+
+      if (ctx.isErgMode) {
+        projectValue = projectAmount;
+        projectAssets = [];
+
+        devFeeValue = devFeeAmount;
+        devFeeAssets = [];
+
+      } else {
+        projectValue = SAFE_MIN_BOX_VALUE;
+        projectAssets = [
+          { tokenId: ctx.baseTokenId, amount: projectAmount }
+        ];
+
+        devFeeValue = SAFE_MIN_BOX_VALUE;
+        devFeeAssets = [
+          { tokenId: ctx.baseTokenId, amount: devFeeAmount }
+        ];
+      }
+
+      // ACT: Try to withdraw funds even though minimum not reached
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
+        .to([
+          // Output 1: Owner tries to receive project funds
+          new OutputBuilder(projectValue, ctx.projectOwner.address).addTokens(projectAssets),
+          // Output 2: Dev fee contract
+          new OutputBuilder(devFeeValue, devFeeContract).addTokens(devFeeAssets),
+        ])
+        .sendChangeTo(ctx.projectOwner.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner], throw: false });
+
+      // ASSERT: Transaction should SUCCESS (minimum reached)
+      expect(result).toBe(false);
+
+    });
+
+    it("should fail if dev tries to get more funds", () => {
+
+      const devFeeAmount = ((collectedFunds * BigInt(ctx.devFeePercentage)) / 100n) + 1n;
+      const projectAmount = (collectedFunds - devFeeAmount);
+      const devFeeContract = compile(`{ sigmaProp(true) }`);
+
+      let projectValue: bigint;
+      let projectAssets: OneOrMore<TokenAmount<Amount>> | TokensCollection;
+      let devFeeValue: bigint;
+      let devFeeAssets: OneOrMore<TokenAmount<Amount>> | TokensCollection;
+
+      if (ctx.isErgMode) {
+        projectValue = projectAmount;
+        projectAssets = [];
+
+        devFeeValue = devFeeAmount;
+        devFeeAssets = [];
+
+      } else {
+        projectValue = SAFE_MIN_BOX_VALUE;
+        projectAssets = [
+          { tokenId: ctx.baseTokenId, amount: projectAmount }
+        ];
+
+        devFeeValue = SAFE_MIN_BOX_VALUE;
+        devFeeAssets = [
+          { tokenId: ctx.baseTokenId, amount: devFeeAmount }
+        ];
+      }
+
+      // ACT: Try to withdraw funds even though minimum not reached
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
+        .to([
+          // Output 1: Owner tries to receive project funds
+          new OutputBuilder(projectValue, ctx.projectOwner.address).addTokens(projectAssets),
+          // Output 2: Dev fee contract
+          new OutputBuilder(devFeeValue, devFeeContract).addTokens(devFeeAssets),
+        ])
+        .sendChangeTo(ctx.projectOwner.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner], throw: false });
+
+      // ASSERT: Transaction should SUCCESS (minimum reached)
+      expect(result).toBe(false);
+
+    });
+
+    it("should fail if owner address is incorrect", () => {
+
+      const devFeeAmount = ((collectedFunds * BigInt(ctx.devFeePercentage)) / 100n);
+      const projectAmount = (collectedFunds - devFeeAmount);
+      const devFeeContract = compile(`{ sigmaProp(true) }`);
+
+      let projectValue: bigint;
+      let projectAssets: OneOrMore<TokenAmount<Amount>> | TokensCollection;
+      let devFeeValue: bigint;
+      let devFeeAssets: OneOrMore<TokenAmount<Amount>> | TokensCollection;
+
+      if (ctx.isErgMode) {
+        projectValue = projectAmount;
+        projectAssets = [];
+
+        devFeeValue = devFeeAmount;
+        devFeeAssets = [];
+
+      } else {
+        projectValue = SAFE_MIN_BOX_VALUE;
+        projectAssets = [
+          { tokenId: ctx.baseTokenId, amount: projectAmount }
+        ];
+
+        devFeeValue = SAFE_MIN_BOX_VALUE;
+        devFeeAssets = [
+          { tokenId: ctx.baseTokenId, amount: devFeeAmount }
+        ];
+      }
+
+      // ACT: Try to withdraw funds even though minimum not reached
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
+        .to([
+          // Output 1: Owner tries to receive project funds
+          new OutputBuilder(projectValue, compile(`{ sigmaProp(HEIGHT == 1) }`)).addTokens(projectAssets),
+          // Output 2: Dev fee contract
+          new OutputBuilder(devFeeValue, devFeeContract).addTokens(devFeeAssets),
+        ])
+        .sendChangeTo(ctx.projectOwner.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner], throw: false });
+
+      // ASSERT: Transaction should SUCCESS (minimum reached)
+      expect(result).toBe(false);
+
+    });
+
+    it("should fail if dev address is incorrect", () => {
+
+      const devFeeAmount = ((collectedFunds * BigInt(ctx.devFeePercentage)) / 100n);
+      const projectAmount = (collectedFunds - devFeeAmount);
+      const devFeeContract = compile(`{ sigmaProp(HEIGHT == 1) }`);
+
+      let projectValue: bigint;
+      let projectAssets: OneOrMore<TokenAmount<Amount>> | TokensCollection;
+      let devFeeValue: bigint;
+      let devFeeAssets: OneOrMore<TokenAmount<Amount>> | TokensCollection;
+
+      if (ctx.isErgMode) {
+        projectValue = projectAmount;
+        projectAssets = [];
+
+        devFeeValue = devFeeAmount;
+        devFeeAssets = [];
+
+      } else {
+        projectValue = SAFE_MIN_BOX_VALUE;
+        projectAssets = [
+          { tokenId: ctx.baseTokenId, amount: projectAmount }
+        ];
+
+        devFeeValue = SAFE_MIN_BOX_VALUE;
+        devFeeAssets = [
+          { tokenId: ctx.baseTokenId, amount: devFeeAmount }
+        ];
+      }
+
+      // ACT: Try to withdraw funds even though minimum not reached
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
+        .to([
+          // Output 1: Owner tries to receive project funds
+          new OutputBuilder(projectValue, ctx.projectOwner.address).addTokens(projectAssets),
+          // Output 2: Dev fee contract
+          new OutputBuilder(devFeeValue, devFeeContract).addTokens(devFeeAssets),
+        ])
+        .sendChangeTo(ctx.projectOwner.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner], throw: false });
+
+      // ASSERT: Transaction should SUCCESS (minimum reached)
+      expect(result).toBe(false);
 
     });
   });
@@ -217,5 +416,4 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
 
     });
   });
-
 });
