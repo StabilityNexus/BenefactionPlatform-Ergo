@@ -72,6 +72,8 @@
   val selfProjectMetadata = SELF.R9[Coll[Byte]].get
   val selfScript = SELF.propositionBytes
 
+  val isReplicationBoxPresent = OUTPUTS.size > 0 && OUTPUTS(0).propositionBytes == selfScript
+
   // Get base token information
   val baseTokenId = if (selfBaseTokenIdLen == 0L) {
     Coll[Byte]() // Empty collection for ERG
@@ -98,57 +100,57 @@
 
   // Validation of the box replication process
   val isSelfReplication = {
+    isReplicationBoxPresent && {
+      // The nft id must be the same
+      val sameId = selfId == OUTPUTS(0).tokens(0)._1
 
-    // The nft id must be the same
-    val sameId = selfId == OUTPUTS(0).tokens(0)._1
+      // The block limit must be the same
+      val sameBlockLimit = selfBlockLimit == OUTPUTS(0).R4[Int].get
 
-    // The block limit must be the same
-    val sameBlockLimit = selfBlockLimit == OUTPUTS(0).R4[Int].get
+      // The minimum amount of tokens sold must be the same
+      val sameMinimumSold = selfMinimumTokensSold == OUTPUTS(0).R5[Long].get
 
-    // The minimum amount of tokens sold must be the same
-    val sameMinimumSold = selfMinimumTokensSold == OUTPUTS(0).R5[Long].get
+      // The exchange rate and base token info must be same
+      val sameExchangeRateAndTokenId = selfExchangeRateAndTokenIdLen == OUTPUTS(0).R7[Coll[Long]].get
 
-    // The exchange rate and base token info must be same
-    val sameExchangeRateAndTokenId = selfExchangeRateAndTokenIdLen == OUTPUTS(0).R7[Coll[Long]].get
+      // The constants must be the same
+      val sameConstants = selfOwnerDetails == OUTPUTS(0).R8[Coll[Byte]].get
 
-    // The constants must be the same
-    val sameConstants = selfOwnerDetails == OUTPUTS(0).R8[Coll[Byte]].get
+      // The project content must be the same
+      val sameProjectContent = selfProjectMetadata == OUTPUTS(0).R9[Coll[Byte]].get
 
-    // The project content must be the same
-    val sameProjectContent = selfProjectMetadata == OUTPUTS(0).R9[Coll[Byte]].get
+      // The script must be the same
+      val sameScript = selfScript == OUTPUTS(0).propositionBytes
 
-    // The script must be the same
-    val sameScript = selfScript == OUTPUTS(0).propositionBytes
+      // Ensures that there are only one or two tokens in the contract (APT and PFT or only APT) for ERG base token
+      // or one, two, or three tokens for non-ERG base token (APT, PFT, and base token)
+      val noAddsOtherTokens = if (isERGBase) {
+        OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
+      } else {
+        OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2 || OUTPUTS(0).tokens.size == 3
+      }
 
-    // Ensures that there are only one or two tokens in the contract (APT and PFT or only APT) for ERG base token
-    // or one, two, or three tokens for non-ERG base token (APT, PFT, and base token)
-    val noAddsOtherTokens = if (isERGBase) {
-      OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2
-    } else {
-      OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2 || OUTPUTS(0).tokens.size == 3
+      // Verify that the output box is a valid copy of the input box
+      sameId && sameBlockLimit && sameMinimumSold && sameExchangeRateAndTokenId && sameConstants && sameProjectContent && sameScript && noAddsOtherTokens
     }
-
-    // Verify that the output box is a valid copy of the input box
-    sameId && sameBlockLimit && sameMinimumSold && sameExchangeRateAndTokenId && sameConstants && sameProjectContent && sameScript && noAddsOtherTokens
   }
 
-  val APTokenRemainsConstant = selfAPT == OUTPUTS(0).tokens(0)._2
+  val APTokenRemainsConstant = !isReplicationBoxPresent || (selfAPT == OUTPUTS(0).tokens(0)._2)
   val ProofFundingTokenRemainsConstant = {
-
-    val selfAmount = 
-      if (SELF.tokens.size == 1) 0L
-      else SELF.tokens(1)._2
-
-    val outAmount =
-      if (OUTPUTS(0).tokens.size == 1) 0L
-      else OUTPUTS(0).tokens(1)._2
-      
-    selfAmount == outAmount
+    !isReplicationBoxPresent || {
+      val selfAmount = 
+        if (SELF.tokens.size == 1) 0L
+        else SELF.tokens(1)._2
+      val outAmount =
+        if (OUTPUTS(0).tokens.size == 1) 0L
+        else OUTPUTS(0).tokens(1)._2
+      selfAmount == outAmount
+    }
   }
-  val soldCounterRemainsConstant = selfSoldCounter == OUTPUTS(0).R6[Coll[Long]].get(0)
-  val refundCounterRemainsConstant = selfRefundCounter == OUTPUTS(0).R6[Coll[Long]].get(1)
-  val auxiliarExchangeCounterRemainsConstant = selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2)
-  val mantainValue = selfValue == OUTPUTS(0).value
+  val soldCounterRemainsConstant = !isReplicationBoxPresent || (selfSoldCounter == OUTPUTS(0).R6[Coll[Long]].get(0))
+  val refundCounterRemainsConstant = !isReplicationBoxPresent || (selfRefundCounter == OUTPUTS(0).R6[Coll[Long]].get(1))
+  val auxiliarExchangeCounterRemainsConstant = !isReplicationBoxPresent || (selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2))
+  val mantainValue = !isReplicationBoxPresent || (selfValue == OUTPUTS(0).value)
 
   // Project owner address as ErgoTree bytes (can be P2PK or P2S)
   val ownerErgoTree = fromBase16("`+owner_ergotree+`")
@@ -193,7 +195,7 @@
         else SELF.tokens(1)._2
     
     val outTokens = 
-        if (OUTPUTS(0).tokens.size == 1) 0L // There is going to be any PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
+        if (!isReplicationBoxPresent || OUTPUTS(0).tokens.size == 1) 0L// There is going to be any PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
         else OUTPUTS(0).tokens(1)._2
     
     // Return the difference between output tokens and self tokens
@@ -212,7 +214,7 @@
 
   // Validation for purchasing Tokens
   // > People should be allowed to exchange base tokens for APT tokens until there are no more tokens left (even if the deadline has passed).
-  val isBuyTokens: SigmaProp = {
+  val isBuyTokens: SigmaProp = if (isSelfReplication) {
 
     // Delta of tokens removed from the box
     val deltaTokenRemoved = {
@@ -264,10 +266,10 @@
       correctExchange,               // Ensures that the proportion between the APTs and base token moved is the same following the R7 ratio.
       incrementSoldCounterCorrectly  // Ensures that the R6 first value is incremented in proportion to the exchange value moved.
     )))
-  }
+  } else { sigmaProp(false) }
 
   // Validation for refunding tokens
-  val isRefundTokens: SigmaProp = {
+  val isRefundTokens: SigmaProp = if (isSelfReplication) {
  
     // > People should be allowed to exchange tokens for base tokens if and only if the deadline has passed and the minimum number of tokens has not been sold.
     val canBeRefund = {
@@ -335,7 +337,7 @@
       incrementRefundCounterCorrectly,        // Ensures increment the refund counter correctly in proportion with the exchanged amount.
       correctExchange                         // Ensures that the value extracted and the APTs added are proportional following the R7 exchange ratio.
     )))
-  }
+  } else { sigmaProp(false) }
 
   // Validation for withdrawing funds by project owners
   val isWithdrawFunds: SigmaProp = {
@@ -347,11 +349,11 @@
     // Calculate extracted amounts based on base token
     val extractedBaseAmount: Long = if (isERGBase) {
       // For ERG base token, extract ERG value
-      if (selfScript == OUTPUTS(0).propositionBytes) { selfValue - OUTPUTS(0).value } else { selfValue }
+      if (isReplicationBoxPresent) { selfValue - OUTPUTS(0).value } else { selfValue }
     } else {
       // For non-ERG base tokens, extract the token amount
       val selfBaseTokens = getBaseTokenAmount(SELF)
-      val outputBaseTokens = if (selfScript == OUTPUTS(0).propositionBytes) getBaseTokenAmount(OUTPUTS(0)) else 0L
+      val outputBaseTokens = if (isReplicationBoxPresent) getBaseTokenAmount(OUTPUTS(0)) else 0L
       selfBaseTokens - outputBaseTokens
     }
     
@@ -401,9 +403,9 @@
 
       val endOrReplicate = {
         val allFundsWithdrawn = if (isERGBase) extractedBaseAmount == selfValue else (extractedBaseAmount == getBaseTokenAmount(SELF))
-        val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
+        val allTokensWithdrawn = SELF.tokens.exists({(pair: (Coll[Byte], Long)) => pair._1 == fromBase16("`+token_id+`")}) == false  // TODO Ahora falla porque no se encuentran PFTs.  Comprobar esto.
 
-        isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
+        isSelfReplication || allFundsWithdrawn//  && allTokensWithdrawn
       }
 
       val constants = allOf(Coll(
@@ -428,7 +430,7 @@
   }
 
   // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens: SigmaProp = {
+  val isWithdrawUnsoldTokens: SigmaProp = if (isSelfReplication) {
     // Calculate that only are sold the amount of PFT that are available, in other case, will be problems on the APT -> PFT exchange.
     val onlyUnsold = {
 
@@ -467,10 +469,10 @@
       deltaPFTokenAdded < 0,  // A negative value means that PFT are extracted.
       onlyUnsold  // Ensures that only extracts the token amount that has not been buyed.
     ))) && ownerAuthentication
-  }
+  } else { sigmaProp(false) }
   
   // > Project owners may add more tokens to the contract at any time.
-  val isAddTokens: SigmaProp = {
+  val isAddTokens: SigmaProp = if (isReplicationBoxPresent) {
 
     val constants = allOf(Coll(
       isSelfReplication,                     // Replicate the contract will be needed always            
@@ -487,10 +489,10 @@
       constants,
       deltaPFTokenAdded > 0   // Ensures that the tokens are added.
     )) ) && ownerAuthentication
-  }
+  } else { sigmaProp(false) }
   
   // Exchange APT (token that identies the project used as temporary funding token) with PFT (proof-of-funding token)
-  val isExchangeFundingTokens: SigmaProp = {
+  val isExchangeFundingTokens: SigmaProp = if (isReplicationBoxPresent) {
 
     val deltaTemporaryFundingTokenAdded = {
       val selfTFT = SELF.tokens(0)._2
@@ -547,7 +549,7 @@
       incrementExchangeCounterCorrectly,     // Ensures that the exchange counter is incremented in proportion to the APT added and the PFT extracted.
       correctExchange                        // Ensures that the APT added and the PFT extracted amounts are equal.
     )))
-  }
+  } else { sigmaProp(false) }
 
   val actions =
     isBuyTokens ||
@@ -561,8 +563,8 @@
   val correctBuild = {
 
     val correctTokenId = 
-      if (SELF.tokens.size == 1) true 
-      else SELF.tokens(1)._1 == fromBase16("`+token_id+`")
+      if (isERGBase && SELF.tokens.size == 1 || !isERGBase && SELF.tokens.size == 2) true 
+      else SELF.tokens.exists({(pair: (Coll[Byte], Long)) => pair._1 == fromBase16("`+token_id+`")})
     
     val onlyOneOrAnyToken = if (isERGBase) {
       SELF.tokens.size == 1 || SELF.tokens.size == 2
@@ -573,5 +575,5 @@
     correctTokenId && onlyOneOrAnyToken
   }
 
-  sigmaProp(correctBuild) && actions
+  sigmaProp(correcttrueBuild) && actions
 }

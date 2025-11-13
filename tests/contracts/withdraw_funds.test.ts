@@ -21,7 +21,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
   let collectedFunds: bigint;
 
 
-  describe("After minimum reached", () => {
+  describe("Full withdraw funds after minimum reached", () => {
 
     beforeEach(() => {
 
@@ -37,7 +37,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
 
       let assets = [
           { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-          { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
+          // { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },   There are no PFTs on contract.  All PFT were exchanged with their respectives APTs
         ];
       
       let value = RECOMMENDED_MIN_FEE_VALUE;
@@ -68,7 +68,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-   it("should pass full withdraw funds after minimum reached", () => {
+    it("should pass", () => {
 
       const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n;
       const projectAmount = collectedFunds - devFeeAmount;
@@ -118,12 +118,60 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       expect(result).toBe(true);
 
     });
+  });
 
-/*
-    it("should pass full withdraw funds after minimum reached", () => {
+  /*
+  describe("Full withdraw before minimum reached", () => {
+
+    beforeEach(() => {
+      // Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
+      ctx = setupBeneTestContext(mode.token, mode.tokenName);
+
+      // STEP 1: Fund project owner with ERG for transaction fees
+      ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n });  // 10 ERG for fees
+
+      // STEP 2: Create project box with MINIMUM REACHED (successful campaign)
+      const soldTokens = ctx.minimumTokensSold - 1n;          // Minimum not reached
+      const collectedFunds = soldTokens * ctx.exchangeRate; 
+
+      let assets = [
+          { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+          { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
+        ];
+      
+      let value = RECOMMENDED_MIN_FEE_VALUE;
+
+      if (!ctx.isErgMode) {
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds})
+      }
+      else {
+        value += collectedFunds;
+      }
+
+      ctx.beneContract.addUTxOs({
+        value: value,
+        ergoTree: ctx.beneErgoTree.toHex(),
+        assets: assets,
+        creationHeight: ctx.mockChain.height - 100,
+        additionalRegisters: {
+          R4: SInt(ctx.deadlineBlock).toHex(),
+          R5: SLong(ctx.minimumTokensSold).toHex(),
+          R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
+          R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+        },
+      });
+
+      // STEP 3: Get reference to project box
+      projectBox = ctx.beneContract.utxos.toArray()[0];
+    });
+
+    it("should fail to withdraw funds before minimum is reached", () => {
+      // ARRANGE: Create scenario where minimum NOT reached (failed campaign)
       ctx.beneContract.utxos.clear();  // Clear existing box
-      const soldTokens = ctx.minimumTokensSold *2n;
-      const collectedFunds = soldTokens * ctx.exchangeRate;  // Only 100 ERG collected
+      const soldTokens = ctx.minimumTokensSold / 2n;       // Only 25,000 sold (need 50,000)
+      const collectedFunds = soldTokens * ctx.exchangeRate;  // Only 25 ERG collected
 
       ctx.beneContract.addUTxOs({
         value: RECOMMENDED_MIN_FEE_VALUE + collectedFunds,
@@ -145,9 +193,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       });
 
       const boxBelowMin = ctx.beneContract.utxos.toArray()[0];
-      const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n;
-      const projectAmount = collectedFunds - devFeeAmount;
-      const devFeeContract = compile(`{ sigmaProp(true) }`);
+      const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n;  // 5% of 25 ERG = 1.25 ERG
+      const projectAmount = collectedFunds - devFeeAmount;                          // 25 - 1.25 = 23.75 ERG
+      const devFeeContract = compile(`{ sigmaProp(true) }`);  // Simple dev fee contract
 
       // ACT: Try to withdraw funds even though minimum not reached
       const transaction = new TransactionBuilder(ctx.mockChain.height)
@@ -167,136 +215,22 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
               R9: boxBelowMin.additionalRegisters.R9,
             }),
           // Output 1: Owner tries to receive project funds
-          new OutputBuilder(projectAmount, ctx.projectOwner.address),
+          new OutputBuilder(projectAmount, ctx.projectOwner.address),  // 23.75 ERG
           // Output 2: Dev fee contract
-          new OutputBuilder(devFeeAmount, devFeeContract),
+          new OutputBuilder(devFeeAmount, devFeeContract),  // 1.25 ERG
         ])
         .sendChangeTo(ctx.projectOwner.address)
         .payFee(RECOMMENDED_MIN_FEE_VALUE)
         .build();
 
       // Execute with throw: false to capture failure
-      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner] });
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner], throw: false });
 
-      // ASSERT: Transaction should SUCCESS (minimum reached)
-      expect(result).toBe(true);
-    }); */
-
+      // ASSERT: Transaction should FAIL (minimum not reached)
+      expect(result).toBe(false);  // Contract rejects withdrawal when minimum not reached
     });
 
-
-    /*
-    describe("Before minimum reached", () => {
-
-      beforeEach(() => {
-        // Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
-        ctx = setupBeneTestContext(mode.token, mode.tokenName);
-
-        // STEP 1: Fund project owner with ERG for transaction fees
-        ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n });  // 10 ERG for fees
-
-        // STEP 2: Create project box with MINIMUM REACHED (successful campaign)
-        const soldTokens = ctx.minimumTokensSold - 1n;          // Minimum not reached
-        const collectedFunds = soldTokens * ctx.exchangeRate; 
-
-        let assets = [
-            { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-            { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
-          ];
-        
-        let value = RECOMMENDED_MIN_FEE_VALUE;
-
-        if (!ctx.isErgMode) {
-          assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds})
-        }
-        else {
-          value += collectedFunds;
-        }
-
-        ctx.beneContract.addUTxOs({
-          value: value,
-          ergoTree: ctx.beneErgoTree.toHex(),
-          assets: assets,
-          creationHeight: ctx.mockChain.height - 100,
-          additionalRegisters: {
-            R4: SInt(ctx.deadlineBlock).toHex(),
-            R5: SLong(ctx.minimumTokensSold).toHex(),
-            R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
-            R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
-            R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
-          },
-        });
-
-        // STEP 3: Get reference to project box
-        projectBox = ctx.beneContract.utxos.toArray()[0];
-      });
-
-      it("should fail to withdraw funds before minimum is reached", () => {
-        // ARRANGE: Create scenario where minimum NOT reached (failed campaign)
-        ctx.beneContract.utxos.clear();  // Clear existing box
-        const soldTokens = ctx.minimumTokensSold / 2n;       // Only 25,000 sold (need 50,000)
-        const collectedFunds = soldTokens * ctx.exchangeRate;  // Only 25 ERG collected
-
-        ctx.beneContract.addUTxOs({
-          value: RECOMMENDED_MIN_FEE_VALUE + collectedFunds,
-          ergoTree: ctx.beneErgoTree.toHex(),
-          assets: [
-            { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-            { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
-            // TODO DEBERÍAMOS AGREGAR SIGUSD SI ERGMODE IS FALSE
-          ],
-          creationHeight: ctx.mockChain.height - 100,
-          additionalRegisters: {
-            R4: SInt(ctx.deadlineBlock).toHex(),
-            R5: SLong(ctx.minimumTokensSold).toHex(),
-            R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
-            R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
-            R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
-          },
-        });
-
-        const boxBelowMin = ctx.beneContract.utxos.toArray()[0];
-        const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n;  // 5% of 25 ERG = 1.25 ERG
-        const projectAmount = collectedFunds - devFeeAmount;                          // 25 - 1.25 = 23.75 ERG
-        const devFeeContract = compile(`{ sigmaProp(true) }`);  // Simple dev fee contract
-
-        // ACT: Try to withdraw funds even though minimum not reached
-        const transaction = new TransactionBuilder(ctx.mockChain.height)
-          .from([boxBelowMin, ...ctx.projectOwner.utxos.toArray()])
-          .to([
-            new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.beneErgoTree)
-              .addTokens([
-                { tokenId: ctx.projectNftId, amount: boxBelowMin.assets[0].amount },
-                { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
-              ])
-              .setAdditionalRegisters({
-                R4: SInt(ctx.deadlineBlock).toHex(),
-                R5: SLong(ctx.minimumTokensSold).toHex(),
-                R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
-                R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
-                R8: boxBelowMin.additionalRegisters.R8,
-                R9: boxBelowMin.additionalRegisters.R9,
-              }),
-            // Output 1: Owner tries to receive project funds
-            new OutputBuilder(projectAmount, ctx.projectOwner.address),  // 23.75 ERG
-            // Output 2: Dev fee contract
-            new OutputBuilder(devFeeAmount, devFeeContract),  // 1.25 ERG
-          ])
-          .sendChangeTo(ctx.projectOwner.address)
-          .payFee(RECOMMENDED_MIN_FEE_VALUE)
-          .build();
-
-        // Execute with throw: false to capture failure
-        const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner], throw: false });
-
-        // ASSERT: Transaction should FAIL (minimum not reached)
-        expect(result).toBe(false);  // Contract rejects withdrawal when minimum not reached
-      });
-
-    });
-
-    */
+  });
+  */
 
 });
