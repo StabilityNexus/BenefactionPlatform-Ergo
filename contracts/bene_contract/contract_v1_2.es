@@ -362,70 +362,69 @@
     // For ERG, also subtract miner fee from project amount. For base tokens, miner fee payed by the tx. executor
     val projectAmount = if (isERGBase) projectAmountBase - minnerFeeAmount else projectAmountBase
 
-    // Verify correct project amount
-    val correctProjectAmount = if (isERGBase) {
-      OUTPUTS(1).value == projectAmount
-    } else {
-      // For non-ERG tokens, verify the project receives correct token amount
-      val projectTokens = OUTPUTS(1).tokens.filter { (token: (Coll[Byte], Long)) => 
-        token._1 == baseTokenId
-      }
-      val projectTokenAmount = if (projectTokens.size > 0) projectTokens(0)._2 else 0L
-      projectTokenAmount == projectAmount
-    }
+    val ownerOutputs = OUTPUTS.filter({(box: Box) => box.propositionBytes == ownerErgoTree})
+    val devFeeOutputs = OUTPUTS.filter({(box: Box) => blake2b256(box.propositionBytes) == fromBase16("`+dev_fee_contract_bytes_hash+`")})
 
-    // Verify correct dev fee
-    val correctDevFee = {
-      val OUT = OUTPUTS(2)
+    if (ownerOutputs.size > 0 && devFeeOutputs.size > 0) {
+      val ownerOutput = ownerOutputs(0)
+      val devFeeOutput = devFeeOutputs(0)
 
-      val isToDevAddress = {
-          val isSamePropBytes: Boolean = fromBase16("`+dev_fee_contract_bytes_hash+`") == blake2b256(OUT.propositionBytes)
-          
-          isSamePropBytes
-      }
-
-      val isCorrectDevAmount = if (isERGBase) {
-        OUT.value == devFeeAmount
-      } else {
-        // For non-ERG tokens, verify dev receives correct token amount
-        val devTokens = OUT.tokens.filter { (token: (Coll[Byte], Long)) => 
+      // Verify correct project amount
+      val correctProjectAmount = if (isERGBase) {
+        ownerOutput.value == projectAmount
+      } 
+      else {
+        // For non-ERG tokens, verify the project receives correct token amount
+        val projectTokens = ownerOutput.tokens.filter { (token: (Coll[Byte], Long)) => 
           token._1 == baseTokenId
         }
-        val devTokenAmount = if (devTokens.size > 0) devTokens(0)._2 else 0L
-        devTokenAmount == devFeeAmount
+        val projectTokenAmount = if (projectTokens.size > 0) projectTokens(0)._2 else 0L
+        projectTokenAmount == projectAmount
       }
 
-      allOf(Coll(
-        isCorrectDevAmount,
-        isToDevAddress
+      // Verify correct dev fee
+      val correctDevFee = {
+
+        if (isERGBase) {
+          devFeeOutput.value == devFeeAmount
+        } 
+        
+        else {
+          // For non-ERG tokens, verify dev receives correct token amount
+          val devTokens = devFeeOutput.tokens.filter { (token: (Coll[Byte], Long)) => 
+            token._1 == baseTokenId
+          }
+          val devTokenAmount = if (devTokens.size > 0) devTokens(0)._2 else 0L
+          devTokenAmount == devFeeAmount
+        }
+      }
+
+      val endOrReplicate = {
+        val allFundsWithdrawn = if (isERGBase) extractedBaseAmount == selfValue else (extractedBaseAmount == getBaseTokenAmount(SELF))
+        val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
+
+        isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
+      }
+
+      val constants = allOf(Coll(
+        // isSelfReplication,                     
+        endOrReplicate,                             // Replicate the contract in case of partial withdraw
+        soldCounterRemainsConstant,                 // Any of the counter needs to be incremented, so all of them (sold, refund and exchange) need to remain constants.
+        refundCounterRemainsConstant,                       
+        auxiliarExchangeCounterRemainsConstant,   
+        // mantainValue,                           // Needs to extract value from the contract
+        APTokenRemainsConstant,                    // There is no need to modify the auxiliar token, so it must be constant
+        ProofFundingTokenRemainsConstant           // There is no need to modify the proof of funding token, so it must be constant
       ))
+
+      sigmaProp(allOf(Coll(
+        constants,
+        minimumReached,           // Project owners are allowed to withdraw base tokens if and only if the minimum number of tokens has been sold.
+        correctDevFee,            // Ensures that the dev fee amount and dev address are correct
+        correctProjectAmount      // Ensures the correct project amount.
+      )))
     }
-
-    val endOrReplicate = {
-      val allFundsWithdrawn = if (isERGBase) extractedBaseAmount == selfValue else (extractedBaseAmount == getBaseTokenAmount(SELF))
-      val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
-
-      isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
-    }
-
-    val constants = allOf(Coll(
-      // isSelfReplication,                     
-      endOrReplicate,                             // Replicate the contract in case of partial withdraw
-      soldCounterRemainsConstant,                 // Any of the counter needs to be incremented, so all of them (sold, refund and exchange) need to remain constants.
-      refundCounterRemainsConstant,                       
-      auxiliarExchangeCounterRemainsConstant,   
-      // mantainValue,                           // Needs to extract value from the contract
-      APTokenRemainsConstant,                    // There is no need to modify the auxiliar token, so it must be constant
-      ProofFundingTokenRemainsConstant          // There is no need to modify the proof of funding token, so it must be constant
-    ))
-
-    sigmaProp(allOf(Coll(
-      constants,
-      minimumReached,           // Project owners are allowed to withdraw base tokens if and only if the minimum number of tokens has been sold.
-      isToProjectAddress,       // Only to the project address
-      correctDevFee,            // Ensures that the dev fee amount and dev address are correct
-      correctProjectAmount      // Ensures the correct project amount.
-    )))
+    else { sigmaProp(false) }
   }
 
   // > Project owners may withdraw unsold tokens from the contract at any time.
