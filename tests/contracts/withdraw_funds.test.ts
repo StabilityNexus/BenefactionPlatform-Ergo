@@ -20,7 +20,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
   let soldTokens: bigint;
   let collectedFunds: bigint;
 
-  describe("Full withdraw funds after minimum reached", () => {
+  describe("Withdraw funds after minimum reached", () => {
     beforeEach(() => {
 
       // Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
@@ -56,7 +56,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
         additionalRegisters: {
           R4: SInt(ctx.deadlineBlock).toHex(),
           R5: SLong(ctx.minimumTokensSold).toHex(),
-          R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
+          R6: SColl(SLong, [soldTokens, 0n, ctx.totalPFTokens]).toHex(),
           R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
           R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
           R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
@@ -67,7 +67,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it("should pass", () => {
+    it("should pass full withdraw", () => {
 
       const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n;
       const projectAmount = collectedFunds - devFeeAmount;
@@ -101,6 +101,81 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
         .to([
+          // Output 0: Owner tries to receive project funds
+          new OutputBuilder(projectValue, ctx.projectOwner.address).addTokens(projectAssets),
+          // Output 1: Dev fee contract
+          new OutputBuilder(devFeeValue, devFeeContract).addTokens(devFeeAssets),
+        ])
+        .sendChangeTo(ctx.projectOwner.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner] });
+
+      // ASSERT: Transaction should SUCCESS (minimum reached)
+      expect(result).toBe(true);
+
+    });
+
+    it("should pass partial withdraw", () => {
+
+      const remainingAmount = collectedFunds/2n;      
+      const devFeeAmount = (collectedFunds/2n * BigInt(ctx.devFeePercentage)) / 100n;
+      const projectAmount = collectedFunds/2n - devFeeAmount;
+      const devFeeContract = compile(`{ sigmaProp(true) }`);
+
+      let remainingValue: bigint;
+      let remainingAssets: OneOrMore<TokenAmount<Amount>> | TokensCollection;
+      let projectValue: bigint;
+      let projectAssets: OneOrMore<TokenAmount<Amount>> | TokensCollection;
+      let devFeeValue: bigint;
+      let devFeeAssets: OneOrMore<TokenAmount<Amount>> | TokensCollection;
+
+      if (ctx.isErgMode) {
+        remainingValue = remainingAmount;
+        remainingAssets = [
+          { tokenId: ctx.projectNftId, amount: projectBox.assets[0].amount },
+        ];
+
+        projectValue = projectAmount;
+        projectAssets = [];
+
+        devFeeValue = devFeeAmount;
+        devFeeAssets = [];
+
+      } else {
+        remainingValue = SAFE_MIN_BOX_VALUE;
+        remainingAssets = [
+          { tokenId: ctx.projectNftId, amount: projectBox.assets[0].amount },
+          { tokenId: ctx.baseTokenId, amount: remainingAmount}
+        ];
+
+        projectValue = SAFE_MIN_BOX_VALUE;
+        projectAssets = [
+          { tokenId: ctx.baseTokenId, amount: projectAmount }
+        ];
+
+        devFeeValue = SAFE_MIN_BOX_VALUE;
+        devFeeAssets = [
+          { tokenId: ctx.baseTokenId, amount: devFeeAmount }
+        ];
+      }
+
+      // ACT: Try to withdraw funds even though minimum not reached
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
+        .to([
+          // Output 0: Self contract
+           new OutputBuilder(remainingValue, ctx.beneErgoTree)
+            .addTokens(remainingAssets)
+            .setAdditionalRegisters({
+              R4: SInt(ctx.deadlineBlock).toHex(),
+              R5: SLong(ctx.minimumTokensSold).toHex(),
+              R6: SColl(SLong, [soldTokens, 0n, ctx.totalPFTokens]).toHex(),
+              R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+              R8: projectBox.additionalRegisters.R8,
+              R9: projectBox.additionalRegisters.R9,
+            }),
           // Output 1: Owner tries to receive project funds
           new OutputBuilder(projectValue, ctx.projectOwner.address).addTokens(projectAssets),
           // Output 2: Dev fee contract
@@ -151,9 +226,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
         .to([
-          // Output 1: Owner tries to receive project funds
+          // Output 0: Owner tries to receive project funds
           new OutputBuilder(projectValue, ctx.projectOwner.address).addTokens(projectAssets),
-          // Output 2: Dev fee contract
+          // Output 1: Dev fee contract
           new OutputBuilder(devFeeValue, devFeeContract).addTokens(devFeeAssets),
         ])
         .sendChangeTo(ctx.projectOwner.address)
@@ -201,9 +276,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
         .to([
-          // Output 1: Owner tries to receive project funds
+          // Output 0: Owner tries to receive project funds
           new OutputBuilder(projectValue, ctx.projectOwner.address).addTokens(projectAssets),
-          // Output 2: Dev fee contract
+          // Output 1: Dev fee contract
           new OutputBuilder(devFeeValue, devFeeContract).addTokens(devFeeAssets),
         ])
         .sendChangeTo(ctx.projectOwner.address)
@@ -251,9 +326,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
         .to([
-          // Output 1: Owner tries to receive project funds
+          // Output 0: Owner tries to receive project funds
           new OutputBuilder(projectValue, compile(`{ sigmaProp(HEIGHT == 1) }`)).addTokens(projectAssets),
-          // Output 2: Dev fee contract
+          // Output 1: Dev fee contract
           new OutputBuilder(devFeeValue, devFeeContract).addTokens(devFeeAssets),
         ])
         .sendChangeTo(ctx.projectOwner.address)
@@ -301,9 +376,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
         .to([
-          // Output 1: Owner tries to receive project funds
+          // Output 0: Owner tries to receive project funds
           new OutputBuilder(projectValue, ctx.projectOwner.address).addTokens(projectAssets),
-          // Output 2: Dev fee contract
+          // Output 1: Dev fee contract
           new OutputBuilder(devFeeValue, devFeeContract).addTokens(devFeeAssets),
         ])
         .sendChangeTo(ctx.projectOwner.address)
@@ -318,7 +393,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
     });
   });
 
-  describe("Full withdraw funds before minimum reached", () => {
+  describe("Withdraw funds before minimum reached", () => {
 
     beforeEach(() => {
 
@@ -366,7 +441,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it("should fail", () => {
+    it("should fail full withdraw", () => {
 
       const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n;
       const projectAmount = collectedFunds - devFeeAmount;
@@ -400,9 +475,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
         .to([
-          // Output 1: Owner tries to receive project funds
+          // Output 0: Owner tries to receive project funds
           new OutputBuilder(projectValue, ctx.projectOwner.address).addTokens(projectAssets),
-          // Output 2: Dev fee contract
+          // Output 1: Dev fee contract
           new OutputBuilder(devFeeValue, devFeeContract).addTokens(devFeeAssets),
         ])
         .sendChangeTo(ctx.projectOwner.address)
