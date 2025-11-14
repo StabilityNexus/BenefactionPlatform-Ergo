@@ -31,10 +31,11 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
   describe("Withdraw Unsold Tokens", () => {
     let projectBox: Box; // Contract box
 
-    const soldTokens = 10_000n; // 10,000 tokens sold (90k unsold)
+    let soldTokens: bigint
 
     beforeEach(() => {
       // STEP 1: Create project box with partial token sales
+      soldTokens = ctx.totalPFTokens/2n; // Half of the PFTs has been sold.
       const collectedFunds = soldTokens * ctx.exchangeRate;
 
       let assets = [
@@ -102,7 +103,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
             .setAdditionalRegisters({
               R4: SInt(ctx.deadlineBlock).toHex(),
               R5: SLong(ctx.minimumTokensSold).toHex(),
-              R6: SColl(SLong, [10_000n, 0n, 0n]).toHex(), // Counters unchanged
+              R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(), // Counters unchanged
               R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
               R8: projectBox.additionalRegisters.R8,
               R9: projectBox.additionalRegisters.R9,
@@ -230,4 +231,6 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       expect(result).toBe(false);
     });
   });
+
+  // describe("End contract considering that there are no base tokens and all PFTs are withdrawn", () => {});
 });
