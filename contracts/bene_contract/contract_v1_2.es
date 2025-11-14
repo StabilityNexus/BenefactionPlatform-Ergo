@@ -427,7 +427,7 @@
   }
 
   // > Project owners may withdraw unsold tokens from the contract at any time.
-  val isWithdrawUnsoldTokens: SigmaProp = if (isSelfReplication) {
+  val isWithdrawUnsoldTokens: SigmaProp = {
     // Calculate that only are sold the amount of PFT that are available, in other case, will be problems on the APT -> PFT exchange.
     val onlyUnsold = {
 
@@ -466,7 +466,7 @@
       deltaPFTokenAdded < 0,  // A negative value means that PFT are extracted.
       onlyUnsold  // Ensures that only extracts the token amount that has not been buyed.
     ))) && ownerAuthentication
-  } else { sigmaProp(false) }
+  }
   
   // > Project owners may add more tokens to the contract at any time.
   val isAddTokens: SigmaProp = if (isReplicationBoxPresent) {
