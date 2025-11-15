@@ -161,7 +161,17 @@
   val soldCounterRemainsConstant = !isReplicationBoxPresent || (selfSoldCounter == OUTPUTS(0).R6[Coll[Long]].get(0))
   val refundCounterRemainsConstant = !isReplicationBoxPresent || (selfRefundCounter == OUTPUTS(0).R6[Coll[Long]].get(1))
   val auxiliarExchangeCounterRemainsConstant = !isReplicationBoxPresent || (selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2))
-  val mantainValue = !isReplicationBoxPresent || (selfValue == OUTPUTS(0).value)
+  val mantainValue = !isReplicationBoxPresent || ({
+    selfValue == OUTPUTS(0).value &&
+    {
+      if (isERGBase) { true }
+      else {
+        val selfBaseAmount = getBaseTokenAmount(SELF)
+        val outBaseAmount = getBaseTokenAmount(OUTPUTS(0))
+        selfBaseAmount == outBaseAmount
+      }
+    }
+  })
 
   // Project owner address as ErgoTree bytes (can be P2PK or P2S)
   val ownerErgoTree = fromBase16("`+owner_ergotree+`")
