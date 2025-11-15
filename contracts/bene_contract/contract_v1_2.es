@@ -141,12 +141,20 @@
   val APTokenRemainsConstant = !isReplicationBoxPresent || (selfAPT == OUTPUTS(0).tokens(0)._2)
   val ProofFundingTokenRemainsConstant = {
     !isReplicationBoxPresent || {
-      val selfAmount = 
-        if (SELF.tokens.size == 1) 0L
-        else SELF.tokens(1)._2
-      val outAmount =
-        if (OUTPUTS(0).tokens.size == 1) 0L
-        else OUTPUTS(0).tokens(1)._2
+      val selfAmount = {
+        val pfts = SELF.tokens.filter { (token: (Coll[Byte], Long)) => 
+          token._1 == fromBase16("`+token_id+`")
+        }
+        if (pfts.size > 0) { pfts(0)._2 } else { 0L }
+      }
+
+      val outAmount = {
+        val pfts = OUTPUTS(0).tokens.filter { (token: (Coll[Byte], Long)) => 
+          token._1 == fromBase16("`+token_id+`")
+        }
+        if (pfts.size > 0) { pfts(0)._2 } else { 0L }
+      }
+
       selfAmount == outAmount
     }
   }
@@ -404,9 +412,9 @@
 
       val endOrReplicate = {
         val allFundsWithdrawn = if (isERGBase) extractedBaseAmount == selfValue else (extractedBaseAmount == getBaseTokenAmount(SELF))
-        val allTokensWithdrawn = SELF.tokens.exists({(pair: (Coll[Byte], Long)) => pair._1 == fromBase16("`+token_id+`")}) == false  // TODO Ahora falla porque no se encuentran PFTs.  Comprobar esto.
+        val allTokensWithdrawn = SELF.tokens.exists({(pair: (Coll[Byte], Long)) => pair._1 == fromBase16("`+token_id+`")}) == false
 
-        isSelfReplication || allFundsWithdrawn//  && allTokensWithdrawn <- TODO
+        isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
       }
 
       val constants = allOf(Coll(
