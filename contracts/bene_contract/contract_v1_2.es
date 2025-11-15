@@ -49,7 +49,10 @@
   def temporaryFundingTokenAmountOnContract(contract: Box): Long = {
     // APT amount that serves as temporary funding token that is currently on the contract available to exchange.
 
-    val proof_funding_token_amount = if (contract.tokens.size == 1) 0L else contract.tokens(1)._2
+    val pfts = contract.tokens.filter { (token: (Coll[Byte], Long)) => 
+      token._1 == fromBase16("`+token_id+`")
+    }
+    val proof_funding_token_amount = if (pfts.size > 0) { pfts(0)._2 } else { 0L }
     val sold                       = contract.R6[Coll[Long]].get(0)
     val refunded                   = contract.R6[Coll[Long]].get(1)
     val exchanged                   = contract.R6[Coll[Long]].get(2)  // If the exchanged APT -> PFT amount is not accounted for, it will result in double-counting the sold amount.
@@ -165,11 +168,6 @@
   
   // Create SigmaProp for project address
 
-  
-  val isToProjectAddress = {
-    OUTPUTS(1).propositionBytes == ownerErgoTree  // TODO dynamic index
-  }
-
   val ownerAuthentication: SigmaProp = {
 
     val projectAddr: SigmaProp = if (isProjectP2PK) {
@@ -188,15 +186,21 @@
 
   // Amount of PFT tokens added to the contract. In case of negative value, means that the token have been extracted.
   val deltaPFTokenAdded = {
-
-    // Calculate the difference in token amounts
-    val selfTokens = 
-        if (SELF.tokens.size == 1) 0L // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
-        else SELF.tokens(1)._2
+    val selfTokens = {
+      val pfts = SELF.tokens.filter { (token: (Coll[Byte], Long)) => 
+        token._1 == fromBase16("`+token_id+`")
+      }
+      if (pfts.size > 0) { pfts(0)._2 } else { 0L }
+    }
     
-    val outTokens = 
-        if (!isReplicationBoxPresent || OUTPUTS(0).tokens.size == 1) 0L// There is going to be any PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
-        else OUTPUTS(0).tokens(1)._2
+    val outTokens = if (isReplicationBoxPresent) {
+        val pfts = OUTPUTS(0).tokens.filter { (token: (Coll[Byte], Long)) => 
+          token._1 == fromBase16("`+token_id+`")
+        }
+        if (pfts.size > 0) { pfts(0)._2 } else { 0L }
+    } else {
+      0L // There is no self replicant box, so all the current PFT tokens are extracted.
+    }
     
     // Return the difference between output tokens and self tokens
     outTokens - selfTokens
@@ -327,7 +331,7 @@
       auxiliarExchangeCounterRemainsConstant,     // Auxiliar counter needs to be constant.
       // mantainValue,                            // Needs to extract value (for ERG) or maintain value (for tokens)     
       // APTokenRemainsConstant,                  // Needs to add Auxiliar tokens.
-      ProofFundingTokenRemainsConstant           // PFT needs to be constant.
+      ProofFundingTokenRemainsConstant            // PFT needs to be constant.
     ))
 
     // The contract returns the equivalent base token value for the returned tokens
@@ -402,7 +406,7 @@
         val allFundsWithdrawn = if (isERGBase) extractedBaseAmount == selfValue else (extractedBaseAmount == getBaseTokenAmount(SELF))
         val allTokensWithdrawn = SELF.tokens.exists({(pair: (Coll[Byte], Long)) => pair._1 == fromBase16("`+token_id+`")}) == false  // TODO Ahora falla porque no se encuentran PFTs.  Comprobar esto.
 
-        isSelfReplication || allFundsWithdrawn//  && allTokensWithdrawn
+        isSelfReplication || allFundsWithdrawn//  && allTokensWithdrawn <- TODO
       }
 
       val constants = allOf(Coll(
@@ -430,23 +434,18 @@
   val isWithdrawUnsoldTokens: SigmaProp = {
     // Calculate that only are sold the amount of PFT that are available, in other case, will be problems on the APT -> PFT exchange.
     val onlyUnsold = {
-
       // The amount of PFT token that has been extracted from the contract
       val extractedPFT = -deltaPFTokenAdded 
-
       // Current APT tokens without the one used for project identification     (remember that the APT amount is equal to the PFT emission amount + 1, because the 1 is for be always inside the contract)
       val temporalTokens = temporaryFundingTokenAmountOnContract(SELF)
-
       // Only can extract an amount sufficient lower to allow the exchange APT -> PFT
       extractedPFT <= temporalTokens
     }
 
-    // FIXED: Allow termination when all PFT tokens are withdrawn
-    val endOrReplicate = {
-      val allFundsWithdrawn = selfValue == OUTPUTS(0).value
-      val allTokensWithdrawn = SELF.tokens.size == 1 || (OUTPUTS(0).tokens.size == 1 && deltaPFTokenAdded < 0)
-      
-      isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
+    // Allow termination when all PFT tokens are withdrawn
+    val endOrReplicate = { 
+      val ended = OUTPUTS.exists({(box: Box) => box.propositionBytes == SELF.propositionBytes}) == false  // No recreated
+      isSelfReplication || ended
     }
 
     val constants = allOf(Coll(
@@ -462,10 +461,9 @@
 
     sigmaProp(allOf(Coll(
       constants,
-      isToProjectAddress,
       deltaPFTokenAdded < 0,  // A negative value means that PFT are extracted.
       onlyUnsold  // Ensures that only extracts the token amount that has not been buyed.
-    ))) && ownerAuthentication
+    ))) && ownerAuthentication  // Ensures that only extracts unsold PFTs the owner.   Not necesaryly to it's own address.
   }
   
   // > Project owners may add more tokens to the contract at any time.
