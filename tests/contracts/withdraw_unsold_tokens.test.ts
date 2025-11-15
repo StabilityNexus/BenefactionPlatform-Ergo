@@ -30,12 +30,13 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
 
   describe("Withdraw Unsold Tokens with any APT sold exchanged for PFTs", () => {
     let projectBox: Box; // Contract box
-    let soldTokens: bigint
+    let soldTokens: bigint;
+    let collectedFunds: bigint;
 
     beforeEach(() => {
       // STEP 1: Create project box with partial token sales
       soldTokens = ctx.totalPFTokens/2n; // Half of the total PFTs has been sold.
-      const collectedFunds = soldTokens * ctx.exchangeRate;
+      collectedFunds = soldTokens * ctx.exchangeRate;
 
       let assets = [
         { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
@@ -86,6 +87,14 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       // Fund project owner for transaction (contract validates INPUTS(1) is owner)
       ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n }); // 10 ERG for fees
 
+      const assets = [
+              { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+              { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
+            ];
+      if (!ctx.isErgMode) {
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds })
+      }
+
       // ACT: Build token withdrawal transaction
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         // INPUTS: Contract box + owner box (contract checks INPUTS(1) for authorization)
@@ -95,10 +104,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
           // Output 0: Updated contract (fewer PFT tokens)
           // Value and collected funds (ERG or USD token) are unchanged
           new OutputBuilder(projectBox.value, ctx.beneErgoTree)
-            .addTokens([
-              { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-              { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
-            ])
+            .addTokens(assets)
             .setAdditionalRegisters({
               R4: SInt(ctx.deadlineBlock).toHex(),
               R5: SLong(ctx.minimumTokensSold).toHex(),
@@ -172,6 +178,14 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       // Fund project owner for transaction (contract validates INPUTS(1) is owner)
       ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n }); // 10 ERG for fees
 
+      const assets = [
+             //  { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+              { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
+            ];
+      if (!ctx.isErgMode) {
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds })
+      }
+
       // ACT: Build token withdrawal transaction
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         // INPUTS: Contract box + owner box (contract checks INPUTS(1) for authorization)
@@ -181,10 +195,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
           // Output 0: Updated contract (fewer PFT tokens)
           // Value and collected funds (ERG or USD token) are unchanged
           new OutputBuilder(projectBox.value, ctx.beneErgoTree)
-            .addTokens([
-              // { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-              { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
-            ])
+            .addTokens(assets)
             .setAdditionalRegisters({
               R4: SInt(ctx.deadlineBlock).toHex(),
               R5: SLong(ctx.minimumTokensSold).toHex(),
@@ -223,6 +234,14 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       // Fund project owner for transaction (contract validates INPUTS(1) is owner)
       ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n }); // 10 ERG for fees
 
+      const assets = [
+              { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+              { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
+            ];
+      if (!ctx.isErgMode) {
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds })
+      }
+
       // ACT: Build token withdrawal transaction
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         // INPUTS: Contract box + owner box (contract checks INPUTS(1) for authorization)
@@ -232,10 +251,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
           // Output 0: Updated contract (fewer PFT tokens)
           // Value and collected funds (ERG or USD token) are unchanged
           new OutputBuilder(projectBox.value, ctx.beneErgoTree)
-            .addTokens([
-              { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-              { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
-            ])
+            .addTokens(assets)
             .setAdditionalRegisters({
               R4: SInt(ctx.deadlineBlock).toHex(),
               R5: SLong(ctx.minimumTokensSold).toHex(),
