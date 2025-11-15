@@ -28,7 +28,7 @@
 // R4: Int                   The block height until which withdrawals or refunds are disallowed. After this height, they are permitted.
 // R5: Long                  The minimum number of tokens that must be sold to trigger certain actions (e.g., withdrawals).
 // R6: Coll[Long]            The total number of tokens sold, the total number of tokens refunded and the total number of APT changed per PFT so far.
-// R7: Coll[Long]            [Base token exchange rate (base token per PFT), Base token ID length] - if length is 0, base token is ERG
+// R7: Long                  Base token exchange rate (base token per PFT)
 // R8: Coll[Byte]            Base58-encoded JSON string containing the contract owner's details including base token ID.
 // R9: Coll[Byte]            Base58-encoded JSON string containing project metadata, including "title" and "description".
 
@@ -54,9 +54,7 @@
   val selfSoldCounter = SELF.R6[Coll[Long]].get(0)
   val selfRefundCounter = SELF.R6[Coll[Long]].get(1)
   val selfAuxiliarExchangeCounter = SELF.R6[Coll[Long]].get(2)
-  val selfExchangeRateAndTokenIdLen = SELF.R7[Coll[Long]].get
-  val selfExchangeRate = selfExchangeRateAndTokenIdLen(0)
-  val selfBaseTokenIdLen = selfExchangeRateAndTokenIdLen(1)
+  val selfExchangeRate = SELF.R7[Long].get
   val selfOwnerDetails = SELF.R8[Coll[Byte]].get
   val selfProjectMetadata = SELF.R9[Coll[Byte]].get
   val selfScript = SELF.propositionBytes
@@ -64,11 +62,7 @@
   val isReplicationBoxPresent = OUTPUTS.size > 0 && OUTPUTS(0).propositionBytes == selfScript
 
   // Get base token information
-  val baseTokenId = if (selfBaseTokenIdLen == 0L) {
-    Coll[Byte]() // Empty collection for ERG
-  } else {
-    fromBase16("`+base_token_id+`") // Base token ID from compile-time constant
-  }
+  val baseTokenId = fromBase16("`+base_token_id+`")
   val isERGBase = baseTokenId.size == 0
 
   // HELP FUNCTIONS
@@ -115,7 +109,7 @@
       val sameMinimumSold = selfMinimumTokensSold == OUTPUTS(0).R5[Long].get
 
       // The exchange rate and base token info must be same
-      val sameExchangeRateAndTokenId = selfExchangeRateAndTokenIdLen == OUTPUTS(0).R7[Coll[Long]].get
+      val sameExchangeRate = selfExchangeRate == OUTPUTS(0).R7[Long].get
 
       // The constants must be the same
       val sameConstants = selfOwnerDetails == OUTPUTS(0).R8[Coll[Byte]].get
@@ -135,7 +129,7 @@
       }
 
       // Verify that the output box is a valid copy of the input box
-      sameId && sameBlockLimit && sameMinimumSold && sameExchangeRateAndTokenId && sameConstants && sameProjectContent && sameScript && noAddsOtherTokens
+      sameId && sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript && noAddsOtherTokens
     }
   }
 

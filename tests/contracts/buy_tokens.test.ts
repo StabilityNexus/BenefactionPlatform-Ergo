@@ -36,7 +36,7 @@ describe("Bene Contract v1.2 - Buy APT Tokens with ERG", () => {
         R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline block
         R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum: 50k tokens
         R6: SColl(SLong, [0n, 0n, 0n]).toHex(),                            // Counters: [0 sold, 0 refunded, 0 exchanged]
-        R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),  // [price: 1M, token_len: 0]
+        R7: SLong(ctx.exchangeRate).toHex(),  // [price: 1M, token_len: 0]
         R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),            // Owner details (empty)
         R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),            // Metadata (empty)
       },
@@ -83,7 +83,7 @@ describe("Bene Contract v1.2 - Buy APT Tokens with ERG", () => {
       R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
       R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
       R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
-      R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),  // Price (unchanged)
+      R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
       R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
       R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
     });
@@ -173,7 +173,7 @@ describe("Bene Contract v1.2 - Buy APT Tokens with ERG", () => {
             R4: SInt(ctx.deadlineBlock).toHex(),
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),       // Claims 10k sold
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+            R7: SLong(ctx.exchangeRate).toHex(),
             R8: projectBox.additionalRegisters.R8,
             R9: projectBox.additionalRegisters.R9,
           }),
@@ -231,7 +231,7 @@ describe("Bene Contract v1.2 - Buy APT Tokens with ERG", () => {
       R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
       R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
       R6: SColl(SLong, [tokensToBuy, 5n, 0n]).toHex(),                   // Counters: [10k sold, 5 refunded, 0 exchanged]
-      R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),  // Price (unchanged)
+      R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
       R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
       R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
     });
@@ -296,7 +296,7 @@ describe("Bene Contract v1.2 - Buy APT Tokens with ERG", () => {
       R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
       R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
       R6: SColl(SLong, [tokensToBuy, 0n, 5n]).toHex(),                   // Counters: [10k sold, 5 refunded, 0 exchanged]
-      R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),  // Price (unchanged)
+      R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
       R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
       R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
     });
@@ -347,7 +347,7 @@ describe("Bene Contract v1.2 - Buy APT Tokens with SigmaUSD", () => {
         R4: SInt(ctx.deadlineBlock).toHex(),
         R5: SLong(ctx.minimumTokensSold).toHex(),
         R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
-        R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(), // len = 32
+        R7: SLong(ctx.exchangeRate).toHex(), // len = 32
         R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
       },
@@ -388,7 +388,7 @@ describe("Bene Contract v1.2 - Buy APT Tokens with SigmaUSD", () => {
       R4: SInt(ctx.deadlineBlock).toHex(),
       R5: SLong(ctx.minimumTokensSold).toHex(),
       R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),
-      R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+      R7: SLong(ctx.exchangeRate).toHex(),
       R8: projectBox.additionalRegisters.R8,
       R9: projectBox.additionalRegisters.R9,
     });
@@ -456,7 +456,7 @@ describe("Bene Contract v1.2 - Buy APT Tokens with SigmaUSD", () => {
             R4: SInt(ctx.deadlineBlock).toHex(),
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+            R7: SLong(ctx.exchangeRate).toHex(),
             R8: projectBox.additionalRegisters.R8,
             R9: projectBox.additionalRegisters.R9,
           }),
@@ -491,7 +491,7 @@ describe("Bene Contract v1.2 - Buy APT Tokens with SigmaUSD", () => {
       R4: SInt(ctx.deadlineBlock).toHex(),
       R5: SLong(ctx.minimumTokensSold).toHex(),
       R6: SColl(SLong, [5000n, 0n, 0n]).toHex(), // Wrong
-      R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+      R7: SLong(ctx.exchangeRate).toHex(),
       R8: projectBox.additionalRegisters.R8,
       R9: projectBox.additionalRegisters.R9,
     });
@@ -530,7 +530,7 @@ describe("Bene Contract v1.2 - Buy APT Tokens with SigmaUSD", () => {
       R4: SInt(ctx.deadlineBlock).toHex(),
       R5: SLong(ctx.minimumTokensSold).toHex(),
       R6: SColl(SLong, [tokensToBuy, 1n, 0n]).toHex(), // Should be 0
-      R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+      R7: SLong(ctx.exchangeRate).toHex(),
       R8: projectBox.additionalRegisters.R8,
       R9: projectBox.additionalRegisters.R9,
     });

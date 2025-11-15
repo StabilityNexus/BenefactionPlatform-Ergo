@@ -53,7 +53,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline: block 800,200
         R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum: 50,000
         R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),                    // [25k sold, 0 refunded, 0 exchanged]
-        R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),  // [price, token_len]
+        R7: SLong(ctx.exchangeRate).toHex(),  // [price, token_len]
         R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
       },
@@ -139,7 +139,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
             R4: SInt(ctx.deadlineBlock).toHex(),
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, tokensToRefund, 0n]).toHex(),  // [25k sold, 5k refunded, 0 exchanged]
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+            R7: SLong(ctx.exchangeRate).toHex(),
             R8: projectBox.additionalRegisters.R8,
             R9: projectBox.additionalRegisters.R9,
           }),
@@ -231,7 +231,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
             R4: SInt(ctx.deadlineBlock).toHex(),
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, firstRefundTokens, 0n]).toHex(),
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+            R7: SLong(ctx.exchangeRate).toHex(),
             R8: projectBox.additionalRegisters.R8,
             R9: projectBox.additionalRegisters.R9,
           }),
@@ -280,7 +280,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
             R4: SInt(ctx.deadlineBlock).toHex(),
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, cumulativeRefund, 0n]).toHex(),
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+            R7: SLong(ctx.exchangeRate).toHex(),
             R8: updatedContractAfter1.additionalRegisters.R8,
             R9: updatedContractAfter1.additionalRegisters.R9,
           }),
@@ -346,7 +346,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
             R4: SInt(ctx.deadlineBlock).toHex(),
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, tokensToRefund, 0n]).toHex(),
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+            R7: SLong(ctx.exchangeRate).toHex(),
             R8: projectBox.additionalRegisters.R8,
             R9: projectBox.additionalRegisters.R9,
           }),
@@ -387,7 +387,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         R4: SInt(ctx.deadlineBlock).toHex(),
         R5: SLong(ctx.minimumTokensSold).toHex(),
         R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(), // Minimum reached!
-        R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+        R7: SLong(ctx.exchangeRate).toHex(),
         R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
       },
@@ -433,7 +433,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
             R4: SInt(ctx.deadlineBlock).toHex(),
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, tokensToRefund, 0n]).toHex(),  // Try to record refund
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+            R7: SLong(ctx.exchangeRate).toHex(),
             R8: boxMinReached.additionalRegisters.R8,
             R9: boxMinReached.additionalRegisters.R9,
           }),
@@ -491,7 +491,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
             R4: SInt(ctx.deadlineBlock).toHex(),
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, tokensToRefund, 0n]).toHex(),
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+            R7: SLong(ctx.exchangeRate).toHex(),
             R8: projectBox.additionalRegisters.R8,
             R9: projectBox.additionalRegisters.R9,
           }),
@@ -553,7 +553,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
             R4: SInt(ctx.deadlineBlock).toHex(),
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, tokensToRefund, 0n]).toHex(),
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+            R7: SLong(ctx.exchangeRate).toHex(),
             R8: projectBox.additionalRegisters.R8,
             R9: projectBox.additionalRegisters.R9,
           }),
@@ -614,7 +614,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
             R5: SLong(ctx.minimumTokensSold).toHex(),
             // WRONG COUNTER intentionally
             R6: SColl(SLong, [soldTokens, wrongRefundCounter, 0n]).toHex(),
-            R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+            R7: SLong(ctx.exchangeRate).toHex(),
             R8: projectBox.additionalRegisters.R8,
             R9: projectBox.additionalRegisters.R9,
           }),

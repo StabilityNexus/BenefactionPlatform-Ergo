@@ -53,7 +53,6 @@ export interface BeneTestContext {
   pftTokenId: string;
   baseTokenId: string;
   baseTokenName: string;
-  baseTokenIdLen: bigint;
   baseTokenDecimals: number;
   isErgMode: boolean;
   fundingGoal: bigint;
@@ -135,7 +134,6 @@ export function setupBeneTestContext(
   }
 
   // STEP 4: Calculate payment mode flags
-  const baseTokenIdLen = BigInt(baseTokenId.length / 2);  // Token ID length in bytes: 0 for ERG, 32 for custom token
   const isErgMode = baseTokenId === "";                   // true = accept ERG, false = accept custom token
 
   // STEP 5: Fund the buyer with ERG for transaction fees
@@ -194,7 +192,6 @@ export function setupBeneTestContext(
     pftTokenId,          // PFT token ID
     baseTokenId,         // Payment token ID ("" for ERG)
     baseTokenName,       // Human-readable name ("ERG", "SigUSD", etc.)
-    baseTokenIdLen,      // Token ID length in bytes (0 or 32)
     baseTokenDecimals: ERG_BASE_TOKEN_DECIMALS,  // Number of decimals (9 for ERG, 2 for SigUSD, etc.)
     isErgMode,           // true if accepting ERG, false if accepting custom token
     fundingGoal,         // Total amount to raise

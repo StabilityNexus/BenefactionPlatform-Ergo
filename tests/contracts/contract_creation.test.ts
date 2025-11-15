@@ -57,7 +57,7 @@ describe("Bene Contract v1.2 - Project Creation", () => {
           R4: SInt(ctx.deadlineBlock).toHex(),                              // Deadline: block 800,200
           R5: SLong(ctx.minimumTokensSold).toHex(),                         // Minimum to sell: 50,000 tokens
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(),                           // Counters: [sold, refunded, exchanged] = [0, 0, 0]
-          R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(), // [price, token_id_length] = [1M, 0]
+          R7: SLong(ctx.exchangeRate).toHex(), // [price, token_id_length] = [1M, 0]
           R8: SColl(SByte, stringToBytes("utf8", ownerDetails)).toHex(),    // Owner details (JSON)
           R9: SColl(SByte, stringToBytes("utf8", projectMetadata)).toHex(), // Project metadata (JSON)
         },
