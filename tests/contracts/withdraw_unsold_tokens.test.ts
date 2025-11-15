@@ -28,14 +28,13 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
     ctx = setupBeneTestContext(mode.token, mode.tokenName);
   });
 
-  describe("Withdraw Unsold Tokens", () => {
+  describe("Withdraw Unsold Tokens with any APT sold exchanged for PFTs", () => {
     let projectBox: Box; // Contract box
-
     let soldTokens: bigint
 
     beforeEach(() => {
       // STEP 1: Create project box with partial token sales
-      soldTokens = ctx.totalPFTokens/2n; // Half of the PFTs has been sold.
+      soldTokens = ctx.totalPFTokens/2n; // Half of the total PFTs has been sold.
       const collectedFunds = soldTokens * ctx.exchangeRate;
 
       let assets = [
@@ -62,7 +61,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
         additionalRegisters: {
           R4: SInt(ctx.deadlineBlock).toHex(),
           R5: SLong(ctx.minimumTokensSold).toHex(),
-          R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(), // [10k sold, 0, 0]
+          R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
           R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
           R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
@@ -127,6 +126,36 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       const updatedBox = ctx.beneContract.utxos.toArray()[0];
       const updatedPft = updatedBox.assets.find((t) => t.tokenId === ctx.pftTokenId);
       expect(updatedPft?.amount).toEqual(remainingPFT); // Contract has 50k PFT remaining
+    });
+
+    it("should fail fully withdrawing unsold PFT tokens, because there are contributors with their APTs sold that will want to exchange them for PFTs", () => {
+
+      // ARRANGE: Owner wants to withdraw 50k unsold PFT tokens
+      const tokensToWithdraw = ctx.totalPFTokens - soldTokens;
+
+      // Fund project owner for transaction (contract validates INPUTS(1) is owner)
+      ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n }); // 10 ERG for fees
+
+      // ACT: Build token withdrawal transaction
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        // INPUTS: Contract box + owner box (contract checks INPUTS(1) for authorization)
+        .from([projectBox, ...ctx.projectOwner.utxos.toArray()]) // INPUTS(0)=contract, INPUTS(1)=owner
+        // OUTPUTS:
+        .to([
+          // Output 0: Owner receives unsold PFT (contract checks OUTPUTS(1))
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.projectOwner.address).addTokens([
+            { tokenId: ctx.pftTokenId, amount: tokensToWithdraw },
+          ]),
+        ])
+        .sendChangeTo(ctx.projectOwner.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      // Execute transaction (contract validates owner authorization)
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner], throw: false });
+
+
+      expect(result).toBe(false);
     });
 
     it("should fail trying to avoid APTs", () => {
@@ -232,5 +261,158 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
     });
   });
 
-  // describe("End contract considering that there are no base tokens and all PFTs are withdrawn", () => {});
+  describe("Withdraw unsold tokens with all sold APT changed per PFTs ", () => {
+    let projectBox: Box; // Contract box
+    let soldTokens: bigint
+
+    beforeEach(() => {
+      // STEP 1: Create project box with partial token sales
+      soldTokens = ctx.totalPFTokens/2n; // Half of the total PFTs has been sold.
+      const collectedFunds = soldTokens * ctx.exchangeRate;
+
+      let assets = [
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }, // 100k PFT total
+      ];
+
+      let value = RECOMMENDED_MIN_FEE_VALUE;
+
+      // Handle collected funds based on mode
+      if (!ctx.isErgMode) {
+        // USD Mode: Add funds as a token
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds });
+      } else {
+        // ERG Mode: Add funds to the box value
+        value += collectedFunds;
+      }
+
+      ctx.beneContract.addUTxOs({
+        value: value,
+        ergoTree: ctx.beneErgoTree.toHex(),
+        assets: assets,
+        creationHeight: ctx.mockChain.height - 100,
+        additionalRegisters: {
+          R4: SInt(ctx.deadlineBlock).toHex(),
+          R5: SLong(ctx.minimumTokensSold).toHex(),
+          R6: SColl(SLong, [soldTokens, 0n, soldTokens]).toHex(),
+          R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+        },
+      });
+
+      // STEP 2: Get reference to project box
+      projectBox = ctx.beneContract.utxos.toArray()[0];
+    });
+
+    it("should allow fully withdrawing unsold PFT tokens", () => {
+
+      // ARRANGE: Owner wants to withdraw all the unsold PFT tokens
+      const tokensToWithdraw = ctx.totalPFTokens - soldTokens;
+
+      // Fund project owner for transaction (contract validates INPUTS(1) is owner)
+      ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n }); // 10 ERG for fees
+
+      // ACT: Build token withdrawal transaction
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        // INPUTS: Contract box + owner box (contract checks INPUTS(1) for authorization)
+        .from([projectBox, ...ctx.projectOwner.utxos.toArray()]) // INPUTS(0)=contract, INPUTS(1)=owner
+        // OUTPUTS:
+        .to([
+          // Output 0: Owner receives unsold PFT (contract checks OUTPUTS(1))
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.projectOwner.address).addTokens([
+            { tokenId: ctx.pftTokenId, amount: tokensToWithdraw },
+          ]),
+        ])
+        .sendChangeTo(ctx.projectOwner.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      // Execute transaction (contract validates owner authorization)
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner] });
+
+
+      expect(result).toBe(true); // Transaction valid
+      expect(ctx.beneContract.utxos.length).toEqual(0);
+    });
+  });
+
+  describe("Withdraw unsold tokens with all sold APT changed per PFTs after minimum raised and some APT refunded before minimum raised", () => {
+    let projectBox: Box; // Contract box
+    let soldTokens: bigint
+
+    beforeEach(() => {
+      // STEP 1: Create project box with partial token sales
+      soldTokens = ctx.totalPFTokens/2n; // Half of the total PFTs has been sold. (Adquired APTs)
+      const refundedTokens = soldTokens/2n; // Half of the APTs where refunded from their funds. 
+      const exchangedTokens = soldTokens - refundedTokens; // The rest of the APTs where exchanged per PFTs
+      const collectedFunds = exchangedTokens * ctx.exchangeRate;  // Exchanged funds can be retired, but not the refunded funds.
+
+      let assets = [
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }, // 100k PFT total
+      ];
+
+      let value = RECOMMENDED_MIN_FEE_VALUE;
+
+      // Handle collected funds based on mode
+      if (!ctx.isErgMode) {
+        // USD Mode: Add funds as a token
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds });
+      } else {
+        // ERG Mode: Add funds to the box value
+        value += collectedFunds;
+      }
+
+      ctx.beneContract.addUTxOs({
+        value: value,
+        ergoTree: ctx.beneErgoTree.toHex(),
+        assets: assets,
+        creationHeight: ctx.mockChain.height - 100,
+        additionalRegisters: {
+          R4: SInt(ctx.deadlineBlock).toHex(),
+          R5: SLong(ctx.minimumTokensSold).toHex(),
+          R6: SColl(SLong, [soldTokens, refundedTokens, exchangedTokens]).toHex(),
+          R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+        },
+      });
+
+      // STEP 2: Get reference to project box
+      projectBox = ctx.beneContract.utxos.toArray()[0];
+    });
+
+    it("should allow fully withdrawing unsold PFT tokens", () => {
+
+      // ARRANGE: Owner wants to withdraw all the unsold PFT tokens
+      const tokensToWithdraw = ctx.totalPFTokens - soldTokens;
+
+      // Fund project owner for transaction (contract validates INPUTS(1) is owner)
+      ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n }); // 10 ERG for fees
+
+      // ACT: Build token withdrawal transaction
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        // INPUTS: Contract box + owner box (contract checks INPUTS(1) for authorization)
+        .from([projectBox, ...ctx.projectOwner.utxos.toArray()]) // INPUTS(0)=contract, INPUTS(1)=owner
+        // OUTPUTS:
+        .to([
+          // Output 0: Owner receives unsold PFT (contract checks OUTPUTS(1))
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.projectOwner.address).addTokens([
+            { tokenId: ctx.pftTokenId, amount: tokensToWithdraw },
+          ]),
+        ])
+        .sendChangeTo(ctx.projectOwner.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      // Execute transaction (contract validates owner authorization)
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner] });
+
+
+      expect(result).toBe(true); // Transaction valid
+      expect(ctx.beneContract.utxos.length).toEqual(0);
+    });
+  });
+
 });
