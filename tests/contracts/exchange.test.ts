@@ -433,4 +433,262 @@ describe.each(baseModes)("Bene Contract v1.2 - Exchange APT → PFT (%s)", (mode
       expect(result).toBe(false);
     });
   })
+
+  describe("Some APT exchanged", () => {
+
+    let projectBox: Box;       
+    let soldTokens: bigint;
+    let alreadyExchanged: bigint; 
+
+    beforeEach(() => {
+      ctx = setupBeneTestContext(mode.token, mode.tokenName);
+
+      soldTokens = ctx.minimumTokensSold; 
+      alreadyExchanged = 5_000n;          
+      const collectedFunds = soldTokens * ctx.exchangeRate;
+
+      let value = RECOMMENDED_MIN_FEE_VALUE;
+      const assets = [
+          { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens + alreadyExchanged },
+          { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens - alreadyExchanged },
+        ];
+
+      if (!ctx.isErgMode) {
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds });
+      }
+      else {
+        value += collectedFunds;
+      }
+
+      ctx.beneContract.addUTxOs({
+        value: value,
+        ergoTree: ctx.beneErgoTree.toHex(),
+        assets: assets,
+        creationHeight: ctx.mockChain.height - 100,
+        additionalRegisters: {
+          R4: SInt(ctx.deadlineBlock).toHex(),
+          R5: SLong(ctx.minimumTokensSold).toHex(),                          
+          R6: SColl(SLong, [soldTokens, 0n, alreadyExchanged]).toHex(),      
+          R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+        },
+      });
+
+      const aptToExchange = 10_000n;
+      ctx.buyer.addUTxOs({
+        value: 10_000_000_000n,
+        ergoTree: ctx.buyer.address.ergoTree,
+        assets: [{ tokenId: ctx.projectNftId, amount: aptToExchange }],
+        creationHeight: ctx.mockChain.height - 50,
+        additionalRegisters: {},
+      });
+
+      projectBox = ctx.beneContract.utxos.toArray()[0];
+    });
+
+    it("should allow exchanging APT tokens for PFT tokens", () => {
+      const buyerAPTBox = ctx.buyer.utxos
+        .toArray()
+        .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))!;
+      const aptToExchange = buyerAPTBox.assets[0].amount;
+
+      const currentExchangeCounter = alreadyExchanged;                    
+      const newExchangeCounter = currentExchangeCounter + aptToExchange;  
+
+      const newAPTAmount = BigInt(projectBox.assets[0].amount) + aptToExchange;
+      const newPFTAmount = BigInt(projectBox.assets[1].amount) - aptToExchange;
+
+      const contractAssets = [
+              { tokenId: ctx.projectNftId, amount: newAPTAmount },
+              { tokenId: ctx.pftTokenId, amount: newPFTAmount },
+            ];
+
+      if (!ctx.isErgMode) {
+        const currentBaseTokenAmount = projectBox.assets.find((asset) => asset.tokenId === ctx.baseTokenId)!.amount;
+        contractAssets.push({ tokenId: ctx.baseTokenId, amount: BigInt(currentBaseTokenAmount) });
+      }
+
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, buyerAPTBox])
+        .to([
+          new OutputBuilder(projectBox.value, ctx.beneErgoTree)
+            .addTokens(contractAssets)
+            .setAdditionalRegisters({
+              R4: SInt(ctx.deadlineBlock).toHex(),
+              R5: SLong(ctx.minimumTokensSold).toHex(),
+              R6: SColl(SLong, [soldTokens, 0n, newExchangeCounter]).toHex(),
+              R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+              R8: projectBox.additionalRegisters.R8,
+              R9: projectBox.additionalRegisters.R9,
+            }),
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
+            { tokenId: ctx.pftTokenId, amount: aptToExchange },
+          ]),
+        ])
+        .sendChangeTo(ctx.buyer.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer] });
+
+      expect(result).toBe(true);
+      expect(ctx.beneContract.utxos.length).toEqual(1);
+
+      const updatedBox = ctx.beneContract.utxos.toArray()[0];
+      expect(updatedBox.assets[0].amount).toEqual(newAPTAmount);
+      expect(updatedBox.assets[1].amount).toEqual(newPFTAmount);
+
+      const buyerPFTBox = ctx.buyer.utxos
+        .toArray()
+        .find((box) => box.assets.some((asset) => asset.tokenId === ctx.pftTokenId));
+      expect(buyerPFTBox).toBeDefined();
+      expect(buyerPFTBox!.assets[0].amount).toEqual(aptToExchange);
+    });
+
+    it("should fail when exchange ratio is incorrect", () => {
+      const buyerAPTBox = ctx.buyer.utxos
+        .toArray()
+        .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))!;
+      const aptToExchange = buyerAPTBox.assets[0].amount;
+      const pftToExtract = aptToExchange * 2n;
+      
+      const currentExchangeCounter = alreadyExchanged;                    
+      const newExchangeCounter = currentExchangeCounter + pftToExtract;   
+
+      const newAPTAmount = BigInt(projectBox.assets[0].amount) + aptToExchange;
+      const newPFTAmount = BigInt(projectBox.assets[1].amount) - pftToExtract;
+
+      const contractAssets = [
+              { tokenId: ctx.projectNftId, amount: newAPTAmount },
+              { tokenId: ctx.pftTokenId, amount: newPFTAmount },
+            ];
+
+      if (!ctx.isErgMode) {
+        const currentBaseTokenAmount = projectBox.assets.find((asset) => asset.tokenId === ctx.baseTokenId)!.amount;
+        contractAssets.push({ tokenId: ctx.baseTokenId, amount: BigInt(currentBaseTokenAmount) });
+      }
+
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, buyerAPTBox])
+        .to([
+          new OutputBuilder(projectBox.value, ctx.beneErgoTree)
+            .addTokens(contractAssets)
+            .setAdditionalRegisters({
+              R4: SInt(ctx.deadlineBlock).toHex(),
+              R5: SLong(ctx.minimumTokensSold).toHex(),
+              R6: SColl(SLong, [soldTokens, 0n, newExchangeCounter]).toHex(),
+              R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+              R8: projectBox.additionalRegisters.R8,
+              R9: projectBox.additionalRegisters.R9,
+            }),
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
+            { tokenId: ctx.pftTokenId, amount: pftToExtract },
+          ]),
+        ])
+        .sendChangeTo(ctx.buyer.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
+
+      expect(result).toBe(false);
+    });
+
+    it("should fail when tries to avoid increment exchange counter", () => {
+      const buyerAPTBox = ctx.buyer.utxos
+        .toArray()
+        .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))!;
+      const aptToExchange = buyerAPTBox.assets[0].amount;
+      
+      const newExchangeCounter = alreadyExchanged;
+
+      const newAPTAmount = BigInt(projectBox.assets[0].amount) + aptToExchange;
+      const newPFTAmount = BigInt(projectBox.assets[1].amount) - aptToExchange;
+
+      const contractAssets = [
+              { tokenId: ctx.projectNftId, amount: newAPTAmount },
+              { tokenId: ctx.pftTokenId, amount: newPFTAmount },
+            ];
+
+      if (!ctx.isErgMode) {
+        const currentBaseTokenAmount = projectBox.assets.find((asset) => asset.tokenId === ctx.baseTokenId)!.amount;
+        contractAssets.push({ tokenId: ctx.baseTokenId, amount: BigInt(currentBaseTokenAmount) });
+      }
+
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, buyerAPTBox])
+        .to([
+          new OutputBuilder(projectBox.value, ctx.beneErgoTree)
+            .addTokens(contractAssets)
+            .setAdditionalRegisters({
+              R4: SInt(ctx.deadlineBlock).toHex(),
+              R5: SLong(ctx.minimumTokensSold).toHex(),
+              R6: SColl(SLong, [soldTokens, 0n, newExchangeCounter]).toHex(),
+              R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+              R8: projectBox.additionalRegisters.R8,
+              R9: projectBox.additionalRegisters.R9,
+            }),
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
+            { tokenId: ctx.pftTokenId, amount: aptToExchange },
+          ]),
+        ])
+        .sendChangeTo(ctx.buyer.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
+
+      expect(result).toBe(false);
+    });
+
+    it("should fail when tries to modify refund counter", () => {
+      const buyerAPTBox = ctx.buyer.utxos
+        .toArray()
+        .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))!;
+      const aptToExchange = buyerAPTBox.assets[0].amount;
+      
+      const currentExchangeCounter = alreadyExchanged;                    
+      const newExchangeCounter = currentExchangeCounter + aptToExchange;
+
+      const newAPTAmount = BigInt(projectBox.assets[0].amount) + aptToExchange;
+      const newPFTAmount = BigInt(projectBox.assets[1].amount) - aptToExchange;
+
+      const contractAssets = [
+              { tokenId: ctx.projectNftId, amount: newAPTAmount },
+              { tokenId: ctx.pftTokenId, amount: newPFTAmount },
+            ];
+
+      if (!ctx.isErgMode) {
+        const currentBaseTokenAmount = projectBox.assets.find((asset) => asset.tokenId === ctx.baseTokenId)!.amount;
+        contractAssets.push({ tokenId: ctx.baseTokenId, amount: BigInt(currentBaseTokenAmount) });
+      }
+
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, buyerAPTBox])
+        .to([
+          new OutputBuilder(projectBox.value, ctx.beneErgoTree)
+            .addTokens(contractAssets)
+            .setAdditionalRegisters({
+              R4: SInt(ctx.deadlineBlock).toHex(),
+              R5: SLong(ctx.minimumTokensSold).toHex(),
+              R6: SColl(SLong, [soldTokens, 1n, newExchangeCounter]).toHex(),
+              R7: SColl(SLong, [ctx.exchangeRate, ctx.baseTokenIdLen]).toHex(),
+              R8: projectBox.additionalRegisters.R8,
+              R9: projectBox.additionalRegisters.R9,
+            }),
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
+            { tokenId: ctx.pftTokenId, amount: aptToExchange },
+          ]),
+        ])
+        .sendChangeTo(ctx.buyer.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
+
+      expect(result).toBe(false);
+    });
+  });
+
 });
