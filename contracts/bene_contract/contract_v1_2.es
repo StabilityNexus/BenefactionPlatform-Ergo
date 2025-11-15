@@ -46,20 +46,6 @@
 // $token_id: Unique string identifier for the proof-of-funding token.
 // $base_token_id: Base token ID for contributions (empty string for ERG).
 
-  def temporaryFundingTokenAmountOnContract(contract: Box): Long = {
-    // APT amount that serves as temporary funding token that is currently on the contract available to exchange.
-
-    val pfts = contract.tokens.filter { (token: (Coll[Byte], Long)) => 
-      token._1 == fromBase16("`+token_id+`")
-    }
-    val proof_funding_token_amount = if (pfts.size > 0) { pfts(0)._2 } else { 0L }
-    val sold                       = contract.R6[Coll[Long]].get(0)
-    val refunded                   = contract.R6[Coll[Long]].get(1)
-    val exchanged                   = contract.R6[Coll[Long]].get(2)  // If the exchanged APT -> PFT amount is not accounted for, it will result in double-counting the sold amount.
-
-    proof_funding_token_amount - sold + refunded + exchanged
-  }
-
   val selfId = SELF.tokens(0)._1
   val selfAPT = SELF.tokens(0)._2
   val selfValue = SELF.value
@@ -85,7 +71,22 @@
   }
   val isERGBase = baseTokenId.size == 0
 
-  // Helper function to get base token amount from contract
+  // HELP FUNCTIONS
+
+  def temporaryFundingTokenAmountOnContract(contract: Box): Long = {
+    // APT amount that serves as temporary funding token that is currently on the contract available to exchange.
+
+    val pfts = contract.tokens.filter { (token: (Coll[Byte], Long)) => 
+      token._1 == fromBase16("`+token_id+`")
+    }
+    val proof_funding_token_amount = if (pfts.size > 0) { pfts(0)._2 } else { 0L }
+    val sold                       = contract.R6[Coll[Long]].get(0)
+    val refunded                   = contract.R6[Coll[Long]].get(1)
+    val exchanged                   = contract.R6[Coll[Long]].get(2)  // If the exchanged APT -> PFT amount is not accounted for, it will result in double-counting the sold amount.
+
+    proof_funding_token_amount - sold + refunded + exchanged
+  }
+
   def getBaseTokenAmount(box: Box): Long = {
     if (isERGBase) {
       box.value
