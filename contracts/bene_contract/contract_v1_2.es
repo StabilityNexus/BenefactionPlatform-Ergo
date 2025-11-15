@@ -536,8 +536,8 @@
     }
 
     val constants = allOf(Coll(
-      // isSelfReplication,                        
-      endOrReplicate,                                       // The contract could be finalized on after this action, so it only check self replication in case of partial withdraw
+      isSelfReplication,                        
+      // endOrReplicate,
       soldCounterRemainsConstant,                           // Sold counter must be constant
       refundCounterRemainsConstant,                         // Refund counter must be constant
       // auxiliarExchangeCounterRemainsConstant,            // Auxiliar tokens are added to the contract to be exchanged with PFT
