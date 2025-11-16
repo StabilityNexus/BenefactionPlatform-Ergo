@@ -145,7 +145,7 @@ export async function fetchProjectsFromBlockchain() {
     const registers = {};
     let moreDataAvailable;
 
-    const versions: contract_version[] = ["v1_0", "v1_1", "v1_2"];
+    const versions: contract_version[] = ["v1_2"] //  ["v1_0", "v1_1", "v1_2"];
 
     try {
         for (const version of versions) {
@@ -186,6 +186,7 @@ export async function fetchProjectsFromBlockchain() {
 
                 for (const e of json_data.items) {
                     if (hasValidSigmaTypes(e.additionalRegisters, version)) {
+                        console.log(e)
                         const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "");
 
                         if (constants === null) { console.warn("constants null"); continue; }

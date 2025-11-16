@@ -46,6 +46,12 @@
 // $token_id: Unique string identifier for the proof-of-funding token.
 // $base_token_id: Base token ID for contributions (empty string for ERG).
 
+  val ownerErgoTree = fromBase16("`+owner_ergotree+`")
+  val devFeeContractBytesHash = fromBase16("`+dev_fee_contract_bytes_hash+`")
+  val devFee = `+dev_fee+`
+  val pftTokenId = fromBase16("`+token_id+`")
+  val baseTokenId = fromBase16("`+base_token_id+`")
+
   val selfId = SELF.tokens(0)._1
   val selfAPT = SELF.tokens(0)._2
   val selfValue = SELF.value
@@ -62,7 +68,6 @@
   val isReplicationBoxPresent = OUTPUTS.size > 0 && OUTPUTS(0).propositionBytes == selfScript
 
   // Get base token information
-  val baseTokenId = fromBase16("`+base_token_id+`")
   val isERGBase = baseTokenId.size == 0
 
   // HELP FUNCTIONS
@@ -71,7 +76,7 @@
     // APT amount that serves as temporary funding token that is currently on the contract available to exchange.
 
     val pfts = contract.tokens.filter { (token: (Coll[Byte], Long)) => 
-      token._1 == fromBase16("`+token_id+`")
+      token._1 == pftTokenId
     }
     val proof_funding_token_amount = if (pfts.size > 0) { pfts(0)._2 } else { 0L }
     val sold                       = contract.R6[Coll[Long]].get(0)
@@ -138,14 +143,14 @@
     !isReplicationBoxPresent || {
       val selfAmount = {
         val pfts = SELF.tokens.filter { (token: (Coll[Byte], Long)) => 
-          token._1 == fromBase16("`+token_id+`")
+          token._1 == pftTokenId
         }
         if (pfts.size > 0) { pfts(0)._2 } else { 0L }
       }
 
       val outAmount = {
         val pfts = OUTPUTS(0).tokens.filter { (token: (Coll[Byte], Long)) => 
-          token._1 == fromBase16("`+token_id+`")
+          token._1 == pftTokenId
         }
         if (pfts.size > 0) { pfts(0)._2 } else { 0L }
       }
@@ -169,7 +174,6 @@
   })
 
   // Project owner address as ErgoTree bytes (can be P2PK or P2S)
-  val ownerErgoTree = fromBase16("`+owner_ergotree+`")
   val P2PK_ERGOTREE_PREFIX = fromBase16("0008cd")
   
   // Check if project address is P2PK or P2S by examining the prefix
@@ -201,14 +205,14 @@
   val deltaPFTokenAdded = {
     val selfTokens = {
       val pfts = SELF.tokens.filter { (token: (Coll[Byte], Long)) => 
-        token._1 == fromBase16("`+token_id+`")
+        token._1 == pftTokenId
       }
       if (pfts.size > 0) { pfts(0)._2 } else { 0L }
     }
     
     val outTokens = if (isReplicationBoxPresent) {
         val pfts = OUTPUTS(0).tokens.filter { (token: (Coll[Byte], Long)) => 
-          token._1 == fromBase16("`+token_id+`")
+          token._1 == pftTokenId
         }
         if (pfts.size > 0) { pfts(0)._2 } else { 0L }
     } else {
@@ -361,7 +365,6 @@
     // Anyone can withdraw the funds to the project address.
     
     val minnerFeeAmount = 1100000  // Pay minner fee with the extracted value allows to withdraw when project address does not have ergs.
-    val devFee = `+dev_fee+`
     
     // Calculate extracted amounts based on base token
     val extractedBaseAmount: Long = if (isERGBase) {
@@ -379,7 +382,7 @@
     val projectAmount = extractedBaseAmount - devFeeAmount
 
     val ownerOutputs = OUTPUTS.filter({(box: Box) => box.propositionBytes == ownerErgoTree})
-    val devFeeOutputs = OUTPUTS.filter({(box: Box) => blake2b256(box.propositionBytes) == fromBase16("`+dev_fee_contract_bytes_hash+`")})
+    val devFeeOutputs = OUTPUTS.filter({(box: Box) => blake2b256(box.propositionBytes) == devFeeContractBytesHash})
 
     if (ownerOutputs.size > 0 && devFeeOutputs.size > 0) {
       val ownerOutput = ownerOutputs(0)
@@ -417,7 +420,7 @@
 
       val endOrReplicate = {
         val allFundsWithdrawn = if (isERGBase) extractedBaseAmount == selfValue else (extractedBaseAmount == getBaseTokenAmount(SELF))
-        val allTokensWithdrawn = SELF.tokens.exists({(pair: (Coll[Byte], Long)) => pair._1 == fromBase16("`+token_id+`")}) == false
+        val allTokensWithdrawn = SELF.tokens.exists({(pair: (Coll[Byte], Long)) => pair._1 == pftTokenId}) == false
 
         isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
       }
@@ -572,7 +575,7 @@
 
     val correctTokenId = 
       if (isERGBase && SELF.tokens.size == 1 || !isERGBase && SELF.tokens.size == 2) true 
-      else SELF.tokens.exists({(pair: (Coll[Byte], Long)) => pair._1 == fromBase16("`+token_id+`")})
+      else SELF.tokens.exists({(pair: (Coll[Byte], Long)) => pair._1 == pftTokenId})
     
     val onlyOneOrAnyToken = if (isERGBase) {
       SELF.tokens.size == 1 || SELF.tokens.size == 2

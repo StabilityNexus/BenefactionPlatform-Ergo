@@ -5,7 +5,8 @@ import {
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
-    type Box
+    type Box,
+    BOX_VALUE_PER_BYTE
 } from '@fleet-sdk/core';
 import { SColl, SInt } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
@@ -123,30 +124,69 @@ export async function submit_project(
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = [mint_box, ...await window.ergo!.get_utxos()];
 
+    const r4Hex = SInt(blockLimit).toHex();
+    const r5Hex = SLong(BigInt(minimumSold)).toHex();
+    const r6Hex = SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex();
+    const r7Hex = SLong(BigInt(exchangeRate)).toHex();
+    const r8Hex = SString(JSON.stringify(addressContent));
+    const r9Hex = SString(projectContent);
+
+    const BASE_BOX_OVERHEAD = 60;          // approx. bytes (header, value, creationHeight, etc.)
+    const PER_TOKEN_BYTES = 40;            // approximate per token: 32 (id) + 8 (amount)
+    const PER_REGISTER_OVERHEAD = 1;       // bytes per register index/header
+    const SIZE_MARGIN = 120;               // safety margin in bytes
+
+    // tamaño registros (sumando overhead por registro)
+    let registersBytes = 0;
+    for (const h of [r4Hex, r5Hex, r6Hex, r7Hex, r8Hex, r9Hex]) {
+        const hexBytesLen = (hexStr: string): number => {
+            if (!hexStr) return 0;
+            const stripHexPrefix = (h: string) => h?.startsWith('0x') ? h.slice(2) : h;
+            const h = stripHexPrefix(hexStr);
+            return Math.ceil(h.length / 2);
+        };
+        const len = hexBytesLen(h);
+        registersBytes += len + PER_REGISTER_OVERHEAD;
+    }
+
+    const ergoTreeAddress = get_address(addressContent, version);
+
+    const totalEstimatedSize = BigInt(
+        BASE_BOX_OVERHEAD
+        + ergoTreeAddress.length
+        + PER_TOKEN_BYTES * 3        
+        + registersBytes
+        + SIZE_MARGIN
+    );
+
+    let minRequiredValue = BOX_VALUE_PER_BYTE * totalEstimatedSize;
+    if (minRequiredValue < SAFE_MIN_BOX_VALUE) {
+        minRequiredValue = SAFE_MIN_BOX_VALUE;
+    }
+
     // Building the project output
-    let outputBuilder = new OutputBuilder(
-        SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-        get_address(addressContent, version)    // Address of the project contract
+    let outputs: OutputBuilder[] = [new OutputBuilder(
+        minRequiredValue,                       // Minimum value in ERG that a box can have
+        ergoTreeAddress        // Address of the project contract
     )
-    .addTokens({
-        tokenId: project_id,
-        amount: BigInt(id_token_amount)  // The mint contract force to spend all the id_token_amount
-    })
-    .addTokens({
-        tokenId: token_id ?? "",
-        amount: token_amount.toString()
-    });
-
-    outputBuilder.setAdditionalRegisters({
-        R4: SInt(blockLimit).toHex(),                                    // Block limit for withdrawals/refunds
-        R5: SLong(BigInt(minimumSold)).toHex(),                          // Minimum sold
-        R6: SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex(),     // [Tokens sold counter, Tokens refunded counter, Exchange counter]
-        R7: SLong(BigInt(exchangeRate)).toHex(),                         // [Exchange rate base_token/PFT, Base token ID length]
-        R8: SString(JSON.stringify(addressContent)),                     // Owner address, dev address, dev fee, and base token ID
-        R9: SString(projectContent)                                      // Project content
-    });
-
-    let outputs: OutputBuilder[] = [outputBuilder];
+    .addTokens([
+        {
+            tokenId: project_id,
+            amount: BigInt(id_token_amount)     // The mint contract force to spend all the id_token_amount
+        },
+        {
+            tokenId: token_id ?? "",
+            amount: token_amount.toString()
+        }
+    ])
+    .setAdditionalRegisters({
+        R4: r4Hex,
+        R5: r5Hex,
+        R6: r6Hex,
+        R7: r7Hex,
+        R8: r8Hex,
+        R9: r9Hex
+    })];
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
