@@ -55,7 +55,7 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
             amount: BigInt(amount),
             name: title+" APT",    // A pro for use IDT (identity token) and TFT (temporal funding token) with the same token is that the TFT token that the user holds has the same id than the project.  This allows the user to verify the exact project in case than two projects has the same name.
             decimals: decimals, 
-            description: "Temporal-funding Token for the " + title + " project. Please, exchange the APT for the project token on Bene once the deadline has passed."
+            description: "Temporal-funding Token for the " + title + " project."
           }) 
     ]
 
@@ -82,8 +82,6 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
         throw new Error("Mint tx failed.")
     }
 
-    console.log("Token created "+ (await fetch_token_details(inputs[0].boxId)).name)
-    console.log("Token minted id: "+inputs[0].boxId)
     return box
 }
 
@@ -114,7 +112,7 @@ export async function submit_project(
 
     // Get token emission amount.
     let token_data = await get_token_data(token_id);
-    let id_token_amount = token_data["amount"];  // TODO Should be +1 because of the id token?  TODO CHECK THIS.
+    let id_token_amount = token_data["amount"] + 1;
 
     // Build the mint tx.
     let mint_box = await mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"]);
@@ -139,28 +137,14 @@ export async function submit_project(
         amount: token_amount.toString()
     });
 
-    // For v1_2 contracts, use the new register format with base token support
-    if (version === "v1_2") {
-        const base_token_id_len = base_token_id ? base_token_id.length / 2 : 0; // Hex string length / 2
-        outputBuilder.setAdditionalRegisters({
-           R4: SInt(blockLimit).toHex(),                              // Block limit for withdrawals/refunds
-           R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
-           R6: SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex(),     // [Tokens sold counter, Tokens refunded counter, Exchange counter]
-           R7: SColl(SLong, [BigInt(exchangeRate), BigInt(base_token_id_len)]).toHex(),  // [Exchange rate base_token/PFT, Base token ID length]
-           R8: SString(JSON.stringify(addressContent)),               // Owner address, dev address, dev fee, and base token ID
-           R9: SString(projectContent)                                // Project content
-        });
-    } else {
-        // Legacy format for v1_0 and v1_1
-        outputBuilder.setAdditionalRegisters({
-           R4: SInt(blockLimit).toHex(),                              // Block limit for withdrawals/refunds
-           R5: SLong(BigInt(minimumSold)).toHex(),                    // Minimum sold
-           R6: SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex(),     // [Tokens sold counter, Tokens refunded counter, Exchange counter]
-           R7: SLong(BigInt(exchangeRate)).toHex(),                   // Exchange rate ERG/Token
-           R8: SString(JSON.stringify(addressContent)),               // Owner address, dev address and dev fee
-           R9: SString(projectContent)                                // Project content
-        });
-    }
+    outputBuilder.setAdditionalRegisters({
+        R4: SInt(blockLimit).toHex(),                                    // Block limit for withdrawals/refunds
+        R5: SLong(BigInt(minimumSold)).toHex(),                          // Minimum sold
+        R6: SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex(),     // [Tokens sold counter, Tokens refunded counter, Exchange counter]
+        R7: SLong(BigInt(exchangeRate)).toHex(),                         // [Exchange rate base_token/PFT, Base token ID length]
+        R8: SString(JSON.stringify(addressContent)),                     // Owner address, dev address, dev fee, and base token ID
+        R9: SString(projectContent)                                      // Project content
+    });
 
     let outputs: OutputBuilder[] = [outputBuilder];
 
