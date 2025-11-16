@@ -142,29 +142,15 @@ export async function buy_refund(
     let sold_counter = BigInt(token_amount > 0 ? project.sold_counter + token_amount : project.sold_counter);
     let refund_counter = BigInt(token_amount < 0 ? project.refund_counter + Math.abs(token_amount) : project.refund_counter);
     
-    // Handle different register formats based on contract version
-    if (project.version === "v1_2") {
-        // v1_2 uses new register format with base token support
-        const base_token_id_len = project.base_token_id ? project.base_token_id.length / 2 : 0;
-        output.setAdditionalRegisters({
-            R4: SInt(project.block_limit).toHex(),
-            R5: SLong(BigInt(project.minimum_amount)).toHex(),
-            R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),
-            R7: SColl(SLong, [BigInt(project.exchange_rate), BigInt(base_token_id_len)]).toHex(),
-            R8: SString(project.constants.raw ?? ""),
-            R9: SString(project.content.raw)
-        });
-    } else {
-        // Legacy format for v1_0 and v1_1 (ERG only)
-        output.setAdditionalRegisters({
-            R4: SInt(project.block_limit).toHex(),
-            R5: SLong(BigInt(project.minimum_amount)).toHex(),
-            R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),
-            R7: SLong(BigInt(project.exchange_rate)).toHex(),
-            R8: SString(project.constants.raw ?? ""),
-            R9: SString(project.content.raw)
-        });
-    }
+    const base_token_id_len = project.base_token_id ? project.base_token_id.length / 2 : 0;
+    output.setAdditionalRegisters({
+        R4: SInt(project.block_limit).toHex(),
+        R5: SLong(BigInt(project.minimum_amount)).toHex(),
+        R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),
+        R7: SLong(BigInt(project.exchange_rate)).toHex(),
+        R8: SString(project.constants.raw ?? ""),
+        R9: SString(project.content.raw)
+    });
     
     let outputs = [output];
 

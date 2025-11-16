@@ -155,26 +155,14 @@ export async function withdraw(
         }
     
         // Set registers - all counters remain constant for withdrawal
-        if (project.version === "v1_2") {
-            const base_token_id_len = project.base_token_id ? project.base_token_id.length / 2 : 0;
-            contractOutput.setAdditionalRegisters({
-                R4: SInt(project.block_limit).toHex(),
-                R5: SLong(BigInt(project.minimum_amount)).toHex(),
-                R6: SColl(SLong, [BigInt(project.sold_counter), BigInt(project.refund_counter), BigInt(project.auxiliar_exchange_counter)]).toHex(),
-                R7: SColl(SLong, [BigInt(project.exchange_rate), BigInt(base_token_id_len)]).toHex(),
-                R8: SString(project.constants.raw ?? ""),
-                R9: SString(project.content.raw)
-            });
-        } else {
-            contractOutput.setAdditionalRegisters({
-                R4: SInt(project.block_limit).toHex(),
-                R5: SLong(BigInt(project.minimum_amount)).toHex(),
-                R6: SColl(SLong, [BigInt(project.sold_counter), BigInt(project.refund_counter), BigInt(project.auxiliar_exchange_counter)]).toHex(),
-                R7: SLong(BigInt(project.exchange_rate)).toHex(),
-                R8: SString(project.constants.raw ?? ""),
-                R9: SString(project.content.raw)
-            });
-        }
+        contractOutput.setAdditionalRegisters({
+            R4: SInt(project.block_limit).toHex(),
+            R5: SLong(BigInt(project.minimum_amount)).toHex(),
+            R6: SColl(SLong, [BigInt(project.sold_counter), BigInt(project.refund_counter), BigInt(project.auxiliar_exchange_counter)]).toHex(),
+            R7: SLong(BigInt(project.exchange_rate)).toHex(),
+            R8: SString(project.constants.raw ?? ""),
+            R9: SString(project.content.raw)
+        });
         outputs.push(contractOutput);
     }
     // If isFullWithdrawal is true, no contract output is created (contract ends)
