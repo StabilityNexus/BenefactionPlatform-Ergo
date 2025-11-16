@@ -29,7 +29,7 @@
 // R5: Long                  The minimum number of tokens that must be sold to trigger certain actions (e.g., withdrawals).
 // R6: Coll[Long]            The total number of tokens sold, the total number of tokens refunded and the total number of APT changed per PFT so far.
 // R7: Long                  Base token exchange rate (base token per PFT)
-// R8: Coll[Byte]            Base58-encoded JSON string containing the contract owner's details including base token ID.
+// R8: Coll[Byte]            Owner reputation proof.
 // R9: Coll[Byte]            Base58-encoded JSON string containing project metadata, including "title" and "description".
 
 // ===== Multi-Token Support ===== //
