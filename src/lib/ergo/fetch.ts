@@ -145,7 +145,7 @@ export async function fetchProjectsFromBlockchain() {
     const registers = {};
     let moreDataAvailable;
 
-    const versions: contract_version[] = ["v1_2"];
+    const versions: contract_version[] = ["v1_2", "v1_0"];
 
     try {
         for (const version of versions) {
