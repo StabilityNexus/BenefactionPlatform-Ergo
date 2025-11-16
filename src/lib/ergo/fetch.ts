@@ -155,8 +155,7 @@ export async function fetchProjectsFromBlockchain() {
                 limit: 100, // Increased limit for fewer requests
             };
 
-            const template = get_template_hash(version);
-            console.log("Template ", template)
+            let template = get_template_hash(version);
 
             while (moreDataAvailable) {
                 const url = get(explorer_uri) + '/api/v1/boxes/unspent/search';
@@ -181,8 +180,6 @@ export async function fetchProjectsFromBlockchain() {
                 }
                 
                 const json_data = await response.json();
-
-                console.log("Json data ", json_data)
                 
                 if (!json_data.items || json_data.items.length === 0) {
                     moreDataAvailable = false;
@@ -190,7 +187,7 @@ export async function fetchProjectsFromBlockchain() {
                 }
 
                 for (const e of json_data.items) {
-                    if (hasValidSigmaTypes(e.additionalRegisters, version)) {
+                    if (true || hasValidSigmaTypes(e.additionalRegisters, version)) {
                         console.log(e)
                         const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "");
 
@@ -201,18 +198,8 @@ export async function fetchProjectsFromBlockchain() {
                         let token_id = constants.token_id;
                         let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
 
-                        let exchange_rate: number;
-                        let base_token_id = "";
-
-                        if (version === "v1_2") {
-                            let [rate, base_token_id_len] = JSON.parse(e.additionalRegisters.R7.renderedValue);
-                            exchange_rate = parseInt(rate);
-                            if (base_token_id_len > 0 && constants.base_token_id) {
-                                base_token_id = constants.base_token_id;
-                            }
-                        } else {
-                            exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
-                        }
+                        let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
+                        let base_token_id = constants.base_token_id ?? "";
 
                         let current_pft_amount = (e.assets.find(asset => asset.tokenId === constants.token_id)?.amount) ?? 0;
                         let total_pft_amount = current_pft_amount + auxiliar_exchange_counter;

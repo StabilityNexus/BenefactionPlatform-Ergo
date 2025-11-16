@@ -4,7 +4,7 @@ import { Network, ErgoAddress } from "@fleet-sdk/core";
 import { sha256, hex, blake2b256 } from "@fleet-sdk/crypto";
 import { uint8ArrayToHex } from "./utils";
 import { network_id } from "./envs";
-import { get_dev_contract_hash } from "./dev/dev_contract";
+import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from "./dev/dev_contract";
 
 import CONTRACT_V1_0 from '../../../contracts/bene_contract/contract_v1_0.es?raw';
 import CONTRACT_V1_1 from '../../../contracts/bene_contract/contract_v1_1.es?raw';
@@ -74,22 +74,26 @@ export function get_ergotree_hex(constants: ConstantContent, version: contract_v
     } else {
         contract = handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id);
     }
-    let ergoTree = compile(contract, {version: 1, network: network_id})
-
+    let ergoTree = compile(contract, {version: 1, network: network_id});
+    
     return ergoTree.toHex();
 }
 
 export function get_template_hash(version: contract_version): string {
-  const random_mainnet_addr = "9f3iPJTiciBYA6DnTeGy98CvrwyEhiP7wNrhDrQ1QeKPRhTmaqQ";
-  const random_testnet_addr = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
-  let random_addr = network_id == "mainnet" ? random_mainnet_addr : random_testnet_addr;
-  const random_dev_contract = uint8ArrayToHex(blake2b256("9a3d2f6b"));
+  const random_constants = {
+        "owner": "9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T",  // RANDOM
+        "dev_addr": get_dev_contract_address(),   // RANDOM
+        "dev_hash": get_dev_contract_hash(),   // RANDOM
+        "dev_fee": 5,    //  RANDOM
+        "token_id": "",   // RANDOM
+        "base_token_id": "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717" // RANDOM
+    }
 
   let contract;
   if (version === "v1_2") {
-    contract = handle_contract_generator(version)(random_addr, random_dev_contract, 5, "", "");
+      contract = handle_contract_generator(version)(random_constants.owner, random_constants.dev_hash ?? get_dev_contract_hash(), random_constants.dev_fee, random_constants.token_id, random_constants.base_token_id || "");
   } else {
-    contract = handle_contract_generator(version)(random_addr, random_dev_contract, 5, "");
+      contract = handle_contract_generator(version)(random_constants.owner, random_constants.dev_hash ?? get_dev_contract_hash(), random_constants.dev_fee, random_constants.token_id);
   }
 
   let ergoTree = compile(contract, {version: 1, network: network_id});
