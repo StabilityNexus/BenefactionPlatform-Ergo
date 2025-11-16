@@ -73,7 +73,6 @@ export async function rebalance(
         }
 
         // Set additional registers based on contract version
-        const base_token_id_len = project.base_token_id ? project.base_token_id.length / 2 : 0;
         contract_output.setAdditionalRegisters({
             R4: SInt(project.block_limit).toHex(),
             R5: SLong(BigInt(project.minimum_amount)).toHex(),

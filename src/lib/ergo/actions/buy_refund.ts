@@ -142,7 +142,6 @@ export async function buy_refund(
     let sold_counter = BigInt(token_amount > 0 ? project.sold_counter + token_amount : project.sold_counter);
     let refund_counter = BigInt(token_amount < 0 ? project.refund_counter + Math.abs(token_amount) : project.refund_counter);
     
-    const base_token_id_len = project.base_token_id ? project.base_token_id.length / 2 : 0;
     output.setAdditionalRegisters({
         R4: SInt(project.block_limit).toHex(),
         R5: SLong(BigInt(project.minimum_amount)).toHex(),
