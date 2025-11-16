@@ -3,7 +3,6 @@ import { type Project, type TokenEIP4, getConstantContent, getProjectContent } f
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
 import { type contract_version, get_template_hash } from "./contract";
-import { tokenDetailsCache } from "./cache";
 import { explorer_uri, projects } from "$lib/common/store";
 import { get } from "svelte/store";
 
@@ -42,47 +41,38 @@ function hasValidSigmaTypes(additionalRegisters: any, version: contract_version 
 }
 
 export async function fetch_token_details(id: string): Promise<TokenEIP4> {
-    // Use cache for token details
-    const cacheKey = `token_${id}`;
-    
-    return await tokenDetailsCache.get(
-        cacheKey,
-        async () => {
-            const url = get(explorer_uri)+'/api/v1/tokens/'+id;
-            const response = await fetch(url, {
-                method: 'GET',
-            });
+    const url = get(explorer_uri)+'/api/v1/tokens/'+id;
+    const response = await fetch(url, {
+        method: 'GET',
+    });
 
-            try{
-                if (response.ok) {
-                    let json_data = await response.json();
-                    if (json_data['type'] == 'EIP-004') {
-                        return {
-                            "name": json_data['name'],
-                            "description": json_data['description'],
-                            "decimals": json_data['decimals'],
-                            "emissionAmount": json_data['emissionAmount']
-                        }
-                    }
-                    else if (json_data['type'] == null) {
-                        return {
-                            "name": id.slice(0,6),
-                            "description": "",
-                            "decimals": 0,
-                            "emissionAmount": json_data['emissionAmount']
-                        }
-                    }
+    try{
+        if (response.ok) {
+            let json_data = await response.json();
+            if (json_data['type'] == 'EIP-004') {
+                return {
+                    "name": json_data['name'],
+                    "description": json_data['description'],
+                    "decimals": json_data['decimals'],
+                    "emissionAmount": json_data['emissionAmount']
                 }
-            } catch {}
-            return {
-                'name': 'token',
-                'description': "",
-                'decimals': 0,
-                'emissionAmount': null
-            };
-        },
-        30 * 60 * 1000 // 30 minutes TTL for token details
-    );
+            }
+            else if (json_data['type'] == null) {
+                return {
+                    "name": id.slice(0,6),
+                    "description": "",
+                    "decimals": 0,
+                    "emissionAmount": json_data['emissionAmount']
+                }
+            }
+        }
+    } catch {}
+    return {
+        'name': 'token',
+        'description': "",
+        'decimals': 0,
+        'emissionAmount': null
+    };
 }
 
 export async function wait_until_confirmation(tx_id: string): Promise<Box | null> {

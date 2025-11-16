@@ -1,7 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { walletAddress } from '$lib/wallet/wallet-manager';
-  import { invalidateUserSpecificCaches } from '$lib/ergo/cache';
   import * as Dialog from "$lib/components/ui/dialog";
   import { Button } from "$lib/components/ui/button";
   import * as Alert from "$lib/components/ui/alert";
@@ -22,17 +21,14 @@
   }
   
   function handleAddressChange() {
-    // Invalidate user-specific caches immediately
-    invalidateUserSpecificCaches();
     showRefreshDialog = true;
   }
   
   async function handleSoftRefresh() {
     isRefreshing = true;
     showRefreshDialog = false;
+  
     
-    // Invalidate all caches and reload current page data
-    invalidateUserSpecificCaches();
     
     // Trigger a soft refresh by navigating to the same page
     // This will cause components to re-fetch data
@@ -46,8 +42,8 @@
   }
   
   function handleHardRefresh() {
-    // Clear all caches and do a full page reload
-    invalidateUserSpecificCaches();
+    
+    
     
     // Store a flag in sessionStorage to show a success message after reload
     sessionStorage.setItem('wallet_address_changed', 'true');
