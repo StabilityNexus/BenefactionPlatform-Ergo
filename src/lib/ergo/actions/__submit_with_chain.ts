@@ -8,7 +8,7 @@ import {
 } from '@fleet-sdk/core';
 import { SInt, SPair } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
-import { type contract_version, get_address, mint_contract_address } from '../contract';
+import { type contract_version, get_ergotree_hex, mint_contract_address } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 import { type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
@@ -66,7 +66,7 @@ export async function submit_project(
 
     let contractOutput = new OutputBuilder(
             SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-            get_address(addressContent, version)    // Address of the project contract
+            get_ergotree_hex(addressContent, version)    // Address of the project contract
         )
         .addTokens({
             tokenId: inputs[0].boxId,

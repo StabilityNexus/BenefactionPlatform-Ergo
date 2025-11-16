@@ -10,7 +10,7 @@ import {
 } from '@fleet-sdk/core';
 import { SColl, SInt } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
-import { type contract_version, get_address, mint_contract_address } from '../contract';
+import { type contract_version, get_ergotree_hex, mint_contract_address } from '../contract';
 import { type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
@@ -149,7 +149,7 @@ export async function submit_project(
         registersBytes += len + PER_REGISTER_OVERHEAD;
     }
 
-    const ergoTreeAddress = get_address(addressContent, version);
+    const ergoTreeAddress = get_ergotree_hex(addressContent, version);
 
     const totalEstimatedSize = BigInt(
         BASE_BOX_OVERHEAD

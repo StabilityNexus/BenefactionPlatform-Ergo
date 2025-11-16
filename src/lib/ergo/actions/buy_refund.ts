@@ -9,7 +9,7 @@ import {
 
 import { SString } from '../utils';
 import { type Project } from '../../common/project';
-import { get_address } from '../contract';
+import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 import { SColl } from '@fleet-sdk/serializer';
 
@@ -85,7 +85,7 @@ export async function buy_refund(
     
     let output = new OutputBuilder(
         BigInt(contractErgValue).toString(),
-        get_address(project.constants, project.version)
+        get_ergotree_hex(project.constants, project.version)
     )
     .addTokens({
         tokenId: project.project_id,

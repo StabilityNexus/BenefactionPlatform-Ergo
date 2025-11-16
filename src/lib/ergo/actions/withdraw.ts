@@ -7,7 +7,7 @@ import {
 } from '@fleet-sdk/core';
 import { SString } from '../utils';
 import { type Project } from '../../common/project';
-import { get_address } from '../contract';
+import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 import { get_dev_contract_address } from '../dev/dev_contract';
 import { SColl, SPair, SByte } from '@fleet-sdk/serializer';
@@ -132,7 +132,7 @@ export async function withdraw(
         
         const contractOutput = new OutputBuilder(
             remainingErg,
-            get_address(project.constants, project.version)
+            get_ergotree_hex(project.constants, project.version)
         ).addTokens({
             tokenId: project.project_id,
             amount: BigInt(project.current_idt_amount) // APT remains constant

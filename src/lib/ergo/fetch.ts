@@ -145,7 +145,7 @@ export async function fetchProjectsFromBlockchain() {
     const registers = {};
     let moreDataAvailable;
 
-    const versions: contract_version[] = ["v1_2"] //  ["v1_0", "v1_1", "v1_2"];
+    const versions: contract_version[] = ["v1_2"];
 
     try {
         for (const version of versions) {
@@ -154,6 +154,9 @@ export async function fetchProjectsFromBlockchain() {
                 offset: 0, // Starts at 0 for each version
                 limit: 100, // Increased limit for fewer requests
             };
+
+            const template = get_template_hash(version);
+            console.log("Template ", template)
 
             while (moreDataAvailable) {
                 const url = get(explorer_uri) + '/api/v1/boxes/unspent/search';
@@ -164,7 +167,7 @@ export async function fetchProjectsFromBlockchain() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        "ergoTreeTemplateHash": get_template_hash(version),
+                        "ergoTreeTemplateHash": template,
                         "registers": registers,
                         "constants": {},
                         "assets": []
@@ -178,6 +181,8 @@ export async function fetchProjectsFromBlockchain() {
                 }
                 
                 const json_data = await response.json();
+
+                console.log("Json data ", json_data)
                 
                 if (!json_data.items || json_data.items.length === 0) {
                     moreDataAvailable = false;

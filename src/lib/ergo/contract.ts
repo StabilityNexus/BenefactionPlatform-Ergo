@@ -65,7 +65,7 @@ function handle_contract_generator(version: contract_version) {
   return f
 }
 
-export function get_address(constants: ConstantContent, version: contract_version) {
+export function get_ergotree_hex(constants: ConstantContent, version: contract_version) {
 
     // In case that dev_hash is undefined, we try to use the current contract hash. But the tx will fail if the hash is different.
     let contract;
@@ -76,8 +76,7 @@ export function get_address(constants: ConstantContent, version: contract_versio
     }
     let ergoTree = compile(contract, {version: 1, network: network_id})
 
-    let network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
-    return ergoTree.toAddress(network).toString();
+    return ergoTree.toHex();
 }
 
 export function get_template_hash(version: contract_version): string {
@@ -92,7 +91,10 @@ export function get_template_hash(version: contract_version): string {
   } else {
     contract = handle_contract_generator(version)(random_addr, random_dev_contract, 5, "");
   }
-  return hex.encode(sha256(compile(contract, {version: 1, network: network_id}).template))
+
+  let ergoTree = compile(contract, {version: 1, network: network_id});
+  let templateBytes = ergoTree.template;
+  return uint8ArrayToHex(sha256(templateBytes));
 }
 
 function get_contract_hash(constants: ConstantContent, version: contract_version): string {
