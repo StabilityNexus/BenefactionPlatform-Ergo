@@ -562,29 +562,10 @@
     )))
   } else { sigmaProp(false) }
 
-  val actions =
-    isBuyTokens ||
-    isRefundTokens ||
-    isWithdrawFunds ||
-    isWithdrawUnsoldTokens ||
-    isAddTokens ||
-    isExchangeFundingTokens
-
-  // Validates that the contract was build correctly. Otherwise, it cannot be used.
-  val correctBuild = {
-
-    val correctTokenId = 
-      if (isERGBase && SELF.tokens.size == 1 || !isERGBase && SELF.tokens.size == 2) true 
-      else SELF.tokens.exists({(pair: (Coll[Byte], Long)) => pair._1 == pftTokenId})
-    
-    val onlyOneOrAnyToken = if (isERGBase) {
-      SELF.tokens.size == 1 || SELF.tokens.size == 2
-    } else {
-      SELF.tokens.size == 1 || SELF.tokens.size == 2 || SELF.tokens.size == 3
-    }
-
-    correctTokenId && onlyOneOrAnyToken
-  }
-
-  sigmaProp(correctBuild) && actions
+  isBuyTokens ||
+  isRefundTokens ||
+  isWithdrawFunds ||
+  isWithdrawUnsoldTokens ||
+  isAddTokens ||
+  isExchangeFundingTokens
 }
