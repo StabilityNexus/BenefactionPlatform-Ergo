@@ -22,7 +22,6 @@ const baseModes = [
 
 describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mode) => {
 
-  /*
   describe("Withdraw Unsold Tokens with any APT sold exchanged for PFTs", () => {
     let ctx: BeneTestContext;
     let projectBox: Box; // Contract box
@@ -434,8 +433,6 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       expect(ctx.beneContract.utxos.length).toEqual(0);
     });
   });
-
-  */
 
   describe("Withdraw unsold tokens with complex owner script authorization", () => {
     let ctx: BeneTestContext;
