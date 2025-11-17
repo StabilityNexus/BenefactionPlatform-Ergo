@@ -141,9 +141,6 @@ export class MemoryIndex {
             case 'oldest':
                 filtered.sort((a, b) => a.project.box.creationHeight - b.project.box.creationHeight);
                 break;
-            case 'amount':
-                filtered.sort((a, b) => b.project.collected_value - a.project.collected_value);
-                break;
             case 'name':
                 filtered.sort((a, b) => 
                     (a.project.content?.title || '').localeCompare(b.project.content?.title || '')

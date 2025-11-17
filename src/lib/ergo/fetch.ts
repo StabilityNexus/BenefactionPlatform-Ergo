@@ -178,7 +178,6 @@ export async function fetchProjectsFromBlockchain() {
 
                 for (const e of json_data.items) {
                     if (true || hasValidSigmaTypes(e.additionalRegisters, version)) {
-                        console.log(e)
                         const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "");
 
                         if (constants === null) { console.warn("constants null"); continue; }
@@ -197,7 +196,6 @@ export async function fetchProjectsFromBlockchain() {
                         let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
                         let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
                         let block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
-                        let collected_value = (token_amount_sold * exchange_rate);
 
                         let base_token_details = undefined;
                         if (base_token_id && base_token_id !== "") {
@@ -208,6 +206,9 @@ export async function fetchProjectsFromBlockchain() {
                             }
                         }
 
+                        if (project_id != "11e2d211b8ce996c105da29357c629007a1919cb2fd02cf52964fd4566fe54b1") {
+                            continue
+                        }
                         const project: Project = {
                             version: version,
                             platform: new ErgoPlatform(),
@@ -245,10 +246,11 @@ export async function fetchProjectsFromBlockchain() {
                             ),
                             constants: constants,
                             value: e.value,
-                            collected_value: collected_value - Number(SAFE_MIN_BOX_VALUE),
                             current_value: current_erg_value,
                             token_details: await fetch_token_details(token_id)
                         };
+
+                        console.log(project)
                         const current = get(projects).data;
                         current.set(project_id, project)
                         projects.set({data: current, last_fetch: get(projects).last_fetch});

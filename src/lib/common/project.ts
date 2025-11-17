@@ -40,7 +40,6 @@ export interface Project {
     minimum_amount: number,
     maximum_amount: number,
     value: number,  // Real exact value
-    collected_value: number,  // Value collected
     current_value: number,  // Current value - contract reserves (ex: min box value on ergo)
     total_pft_amount: number,
     current_pft_amount: number,
