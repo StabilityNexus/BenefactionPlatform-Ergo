@@ -206,9 +206,6 @@ export async function fetchProjectsFromBlockchain() {
                             }
                         }
 
-                        if (project_id != "11e2d211b8ce996c105da29357c629007a1919cb2fd02cf52964fd4566fe54b1") {
-                            continue
-                        }
                         const project: Project = {
                             version: version,
                             platform: new ErgoPlatform(),
@@ -250,7 +247,6 @@ export async function fetchProjectsFromBlockchain() {
                             token_details: await fetch_token_details(token_id)
                         };
 
-                        console.log(project)
                         const current = get(projects).data;
                         current.set(project_id, project)
                         projects.set({data: current, last_fetch: get(projects).last_fetch});
