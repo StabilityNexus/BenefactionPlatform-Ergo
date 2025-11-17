@@ -75,13 +75,14 @@ export interface BeneTestContext {
 // - Specific funding amounts (tests override defaults as needed)
 export function setupBeneTestContext(
   baseTokenId: string,      // PAYMENT token: "" for ERG mode, or token ID for custom token mode
-  baseTokenName: string     
+  baseTokenName: string,
+  ownerAddress: ErgoAddress|null = null     
 ): BeneTestContext {
   // STEP 1: Initialize mock blockchain at block height 800,000
   const mockChain = new MockChain({ height: 800_000 });
 
   // STEP 2: Create mock participants (wallets/addresses) on the blockchain
-  const projectOwner = mockChain.newParty("ProjectOwner");  // Creator of the fundraising project
+  const projectOwner = mockChain.newParty("ProjectOwner");  // Creator of the fundraising project (in case ownerAddress is provided, this party is simply used to execute transactions)
   const buyer = mockChain.newParty("Buyer");                // User who will buy tokens
 
   // STEP 3: Define project parameters (using values from configuration above)
@@ -154,11 +155,15 @@ export function setupBeneTestContext(
   const projectNftId = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";  // APT token ID (hardcoded for testing)
   const pftTokenId = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";    // PFT/reward token ID (hardcoded for testing)
 
-  // STEP 8: Compile the Bene smart contract with actual values replacing placeholders
-  const ownerAddress = projectOwner.address.toString();
+   // STEP 8: Compile the Bene smart contract with actual values replacing placeholders
+   // In case is not provided, use the projectOwner. If is provided, the actual project owner will not be added into the contract.
+  if (ownerAddress === null) {
+    const ownerAddressStr = projectOwner.address.toString();
+    ownerAddress = ErgoAddress.fromBase58(ownerAddressStr)
+  }
   
   // STEP 8a: Convert owner address to ErgoTree hex for P2S/P2PK support
-  const ownerErgoTree = ErgoAddress.fromBase58(ownerAddress).ergoTree;
+  const ownerErgoTree = ownerAddress.ergoTree;
   
   // STEP 8b: Create dev fee contract (simple contract that accepts any transaction)
   const devFeeContract = compile(`{ sigmaProp(true) }`);        // Always returns true (for testing)
