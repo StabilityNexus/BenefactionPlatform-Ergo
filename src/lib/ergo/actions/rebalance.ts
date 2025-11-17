@@ -53,7 +53,7 @@ export async function rebalance(
         }
         
         // Handle base tokens for v1_2 multitoken contracts
-        if (project.version === "v1_2" && project.base_token_id && project.base_token_id !== "") {
+        if (project.base_token_id && project.base_token_id !== "") {
             // Find current base token amount in the project box
             let currentBaseTokenAmount = 0;
             for (const token of project.box.assets) {
