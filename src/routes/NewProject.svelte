@@ -350,255 +350,291 @@
 </script>
 
 <div>
-    <div class="container mx-auto py-4">
-        <h2 class="project-title">Raise Funds for a New Project</h2>
+    <div class="container mx-auto py-8 px-4 max-w-4xl">
+        <div class="text-center mb-10">
+            <h2 class="project-title">Start Your Fundraising</h2>
+            <p class="text-muted-foreground mt-2">Complete the steps below to launch your project on Ergo</p>
+        </div>
 
-        <div class="form-container bg-background/80 backdrop-blur-lg rounded-xl p-6 mb-6">
-            <div class="form-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-3">
-                    <h3 class="text-xl font-semibold mb-4 text-orange-400">
-                        Step 1: Configure the Token You Will Sell
-                    </h3>
+        <div class="flex items-center justify-center mb-12 relative">
+            <div class="absolute h-1 bg-orange-900/30 w-[calc(66%+2.5rem)] top-4 -translate-y-1/2 z-0 rounded-full"></div>
+            <div class="flex justify-between w-2/3 relative z-10">
+                <div class="flex flex-col items-center gap-2">
+                    <div class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-orange-500 text-black font-bold flex items-center justify-center shadow-[0_0_15px_rgba(249,115,22,0.5)] z-10 ring-4 ring-background">1</div>
+                    <span class="text-xs font-medium text-orange-400 uppercase tracking-wider bg-background px-2 rounded">Tokens</span>
                 </div>
-
-                <div class="form-group">
-                    <Label for="rewardToken" class="text-sm font-medium mb-2 block"
-                        >Project Token (for rewards)</Label
-                    >
-                    <Select.Root bind:selected={rewardTokenOption} required>
-                        <Select.Trigger class="w-full border-orange-500/20 focus:border-orange-500/40">
-                            <Select.Value placeholder="Select a token to sell" />
-                        </Select.Trigger>
-                        <Select.Content class="max-h-[300px] overflow-y-auto">
-                            {#each availableRewardTokens as token}
-                                <Select.Item value={token.tokenId}
-                                    >{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</Select.Item
-                                >
-                            {/each}
-                        </Select.Content>
-                    </Select.Root>
-                    <p class="text-sm mt-2 text-muted-foreground">
-                        Don't have a token? <a
-                            href="https://ergo-basics.github.io/token-minter"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="text-orange-400 underline hover:text-orange-300 transition-colors"
-                            >Create one here</a
-                        >.
-                    </p>
+                <div class="flex flex-col items-center gap-2">
+                    <div class="w-8 h-8 md:w-10 md:h-10 rounded-full {baseTokenOption || maxGoalPrecise ? 'bg-orange-500 text-black' : 'bg-zinc-900 text-orange-500/50 border border-orange-500/20'} font-bold flex items-center justify-center transition-colors duration-300 z-10 ring-4 ring-background">2</div>
+                    <span class="text-xs font-medium {baseTokenOption || maxGoalPrecise ? 'text-orange-400' : 'text-muted-foreground'} uppercase tracking-wider bg-background px-2 rounded">Terms</span>
                 </div>
-
-                <div class="form-group">
-                    <Label for="tokenAmountToSell" class="text-sm font-medium mb-2 block"
-                        >Total Amount for Sale</Label
-                    >
-                    <Input
-                        type="number"
-                        id="tokenAmountToSell"
-                        bind:value={tokenAmountToSellPrecise}
-                        max={maxTokenAmountToSell}
-                        step={1 / Math.pow(10, rewardTokenDecimals)}
-                        min={0}
-                        placeholder="e.g., 1,000,000"
-                        on:input={updateMaxValue}
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                    />
+                <div class="flex flex-col items-center gap-2">
+                    <div class="w-8 h-8 md:w-10 md:h-10 rounded-full {projectTitle ? 'bg-orange-500 text-black' : 'bg-zinc-900 text-orange-500/50 border border-orange-500/20'} font-bold flex items-center justify-center transition-colors duration-300 z-10 ring-4 ring-background">3</div>
+                    <span class="text-xs font-medium {projectTitle ? 'text-orange-400' : 'text-muted-foreground'} uppercase tracking-wider bg-background px-2 rounded">Details</span>
                 </div>
+            </div>
+        </div>
 
-                <div class="lg:col-span-3" />
-                <hr class="lg:col-span-3 my-6 border-orange-500/20" />
-
-                <div class="lg:col-span-3">
-                    <h3 class="text-xl font-semibold mb-4 text-orange-400">
-                        Step 2: Define the Fundraising Terms
-                    </h3>
-                    {#if formErrors.tokenConflict}
-                        <p class="text-red-500 text-sm mb-4">{formErrors.tokenConflict}</p>
-                    {/if}
-                    {#if formErrors.invalidToken}
-                        <p class="text-red-500 text-sm mb-4">{formErrors.invalidToken}</p>
-                    {/if}
-                </div>
-                <div class="form-group">
-                    <Label for="baseToken" class="text-sm font-medium mb-2 block"
-                        >Contribution Currency</Label
-                    >
-                    <Select.Root bind:selected={baseTokenOption}>
-                        <Select.Trigger class="w-full border-orange-500/20 focus:border-orange-500/40">
-                            <Select.Value placeholder="Select currency" />
-                        </Select.Trigger>
-                        <Select.Content class="max-h-[300px] overflow-y-auto">
-                            <Select.Item value={null}>ERG (default)</Select.Item>
-                            {#each availableBaseTokens as token}
-                                <Select.Item value={token.tokenId}>{token.title}</Select.Item>
-                            {/each}
-                        </Select.Content>
-                    </Select.Root>
-                    <p class="text-sm mt-2 text-muted-foreground">
-                        Contributors will pay with this currency.
-                    </p>
-                </div>
-
-                <div class="form-group">
-                    <Label for="exchangeRate" class="text-sm font-medium mb-2 block"
-                        >Price ({baseTokenName} per {rewardTokenName})</Label
-                    >
-                    <Input
-                        type="number"
-                        id="exchangeRate"
-                        bind:value={exchangeRatePrecise}
-                        min={0}
-                        step="0.000000001"
-                        placeholder="Price in {baseTokenName}"
-                        on:blur={updateMaxValue}
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1 {formErrors.exchangeRate ? 'border-red-500' : ''}"
-                    />
-                    {#if exchangeRateWarning}
-                        <div class="mt-2 p-2 bg-yellow-100 dark:bg-yellow-900 border border-yellow-300 dark:border-yellow-700 rounded-md">
-                            <p class="text-sm text-yellow-800 dark:text-yellow-200">{exchangeRateWarning}</p>
-                        </div>
-                    {/if}
-                </div>
-
-                <div class="form-group">
-                    <Label for="deadlineValue" class="text-sm font-medium mb-2 block">
-                        Duration
-                    </Label>
-                    <div class="flex space-x-2">
-                        <Input
-                            id="deadlineValue"
-                            type="number"
-                            bind:value={deadlineValue}
-                            min="1"
-                            placeholder="e.g., 30"
-                            class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                        />
-                        <select 
-                                bind:value={deadlineUnit} 
-                                class="p-2 border border-orange-500/20 rounded-md bg-transparent text-sm focus:outline-none focus:ring-1 focus:ring-orange-500/20"
-                            >
-                                <option value="days">Days</option>
-                                <option value="minutes">Minutes</option>
-                            </select>
+        <div class="space-y-8">
+            <div class="step-card bg-card/50 backdrop-blur-sm border border-orange-500/10 rounded-xl p-6 md:p-8 shadow-lg relative overflow-hidden group">
+                <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-500 to-transparent opacity-50"></div>
+                <h3 class="text-xl font-semibold mb-6 text-orange-400 flex items-center gap-2">
+                    <span class="opacity-50">01.</span> Token Configuration
+                </h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <Label for="rewardToken" class="text-sm font-medium mb-2 block text-foreground/90">Reward Token</Label>
+                        <Select.Root bind:selected={rewardTokenOption} required>
+                            <Select.Trigger class="w-full bg-background/50 border-orange-500/20 hover:border-orange-500/40 transition-colors">
+                                <Select.Value placeholder="Select token to sell" />
+                            </Select.Trigger>
+                            <Select.Content class="max-h-[300px] overflow-y-auto border-orange-500/20 bg-background/95 backdrop-blur-xl">
+                                {#each availableRewardTokens as token}
+                                    <Select.Item value={token.tokenId} class="hover:bg-orange-500/10 cursor-pointer">
+                                        <div class="flex flex-col">
+                                            <span class="font-medium">{token.title}</span>
+                                            <span class="text-xs text-muted-foreground">Balance: {token.balance / Math.pow(10, token.decimals)}</span>
+                                        </div>
+                                    </Select.Item>
+                                {/each}
+                            </Select.Content>
+                        </Select.Root>
+                        <p class="text-xs mt-2 text-muted-foreground">
+                            Don't have a token? <a href="https://ergo-basics.github.io/token-minter" target="_blank" rel="noopener noreferrer" class="text-orange-400 underline hover:text-orange-300">Create one</a>.
+                        </p>
                     </div>
-                </div>
-
-                <div class="form-group">
-                    <Label for="minGoal" class="text-sm font-medium mb-2 block"
-                        >Minimum Goal (in {baseTokenName})</Label
-                    >
-                    <Input
-                        type="number"
-                        id="minGoal"
-                        bind:value={minGoalPrecise}
-                        max={maxGoalPrecise}
-                        min={0}
-                        placeholder="Minimum amount in {baseTokenName}"
-                        on:blur={validateGoalOrder}
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                    />
-                </div>
-
-                <div class="form-group">
-                    <Label for="maxGoal" class="text-sm font-medium mb-2 block"
-                        >Maximum Goal (in {baseTokenName})</Label
-                    >
-                    <Input
-                        type="number"
-                        id="maxGoal"
-                        bind:value={maxGoalPrecise}
-                        min={minGoalPrecise || 0}
-                        placeholder="Maximum amount in {baseTokenName}"
-                        on:blur={updateExchangeRate}
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                    />
-                </div>
-
-                <div class="lg:col-span-3">
-                    {#if formErrors.goalOrder}
-                        <p class="text-red-500 text-sm -mt-4">{formErrors.goalOrder}</p>
-                    {/if}
-                </div>
-
-                <hr class="lg:col-span-3 my-6 border-orange-500/20" />
-
-                <div class="lg:col-span-3">
-                    <h3 class="text-xl font-semibold mb-4 text-orange-400">
-                        Step 3: Describe Your Project
-                    </h3>
-                </div>
-
-                <div class="form-group">
-                    <Label for="projectTitle" class="text-sm font-medium mb-2 block">Project Title</Label
-                    >
-                    <Input
-                        type="text"
-                        id="projectTitle"
-                        bind:value={projectTitle}
-                        placeholder="Enter the project title"
-                        required
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                    />
-                </div>
-
-                <div class="form-group">
-                    <Label for="projectImage" class="text-sm font-medium mb-2 block"
-                        >Project Image URL</Label
-                    >
-                    <Input
-                        type="text"
-                        id="projectImage"
-                        bind:value={projectImage}
-                        placeholder="https://..."
-                        required
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                    />
-                </div>
-
-                <div class="form-group">
-                    <Label for="projectLink" class="text-sm font-medium mb-2 block"
-                        >Project Link</Label
-                    >
-                    <Input
-                        type="text"
-                        id="projectLink"
-                        bind:value={projectLink}
-                        placeholder="https://..."
-                        required
-                        class="w-full border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                    />
-                </div>
-
-                <div class="form-group lg:col-span-3">
-                    <Label for="projectDescription" class="text-sm font-medium mb-2 block"
-                        >Project Description</Label
-                    >
-                    <Textarea
-                        id="projectDescription"
-                        bind:value={projectDescription}
-                        placeholder="Tell about your project..."
-                        required
-                        class="w-full h-28 lg:h-32 border-orange-500/20 focus:border-orange-500/40 focus:ring-orange-500/20 focus:ring-1"
-                    />
+    
+                    <div class="form-group">
+                        <Label for="tokenAmountToSell" class="text-sm font-medium mb-2 block text-foreground/90">Amount for Sale</Label>
+                        <div class="relative">
+                            <Input
+                                type="number"
+                                id="tokenAmountToSell"
+                                bind:value={tokenAmountToSellPrecise}
+                                max={maxTokenAmountToSell}
+                                step={1 / Math.pow(10, rewardTokenDecimals)}
+                                min={0}
+                                placeholder="0.00"
+                                on:input={updateMaxValue}
+                                class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 pr-20"
+                            />
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-orange-500/70 pointer-events-none truncate max-w-[70px] text-right">
+                                {rewardTokenName}
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="form-actions mt-6 flex justify-center">
-                {#if transactionId}
-                    <div
-                        class="result bg-background/80 backdrop-blur-lg border border-orange-500/20 rounded-lg p-4 w-full max-w-xl"
-                    >
-                        <p class="text-center">
-                            <strong>Transaction ID:</strong>
-                            <a
-                                href="{web_explorer_uri_tx + transactionId}"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="text-orange-400 hover:text-orange-300 underline transition-colors"
-                            >
-                                {transactionId}
-                            </a>
+            <div class="step-card bg-card/50 backdrop-blur-sm border border-orange-500/10 rounded-xl p-6 md:p-8 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-500 to-transparent opacity-50"></div>
+                <h3 class="text-xl font-semibold mb-6 text-orange-400 flex items-center gap-2">
+                    <span class="opacity-50">02.</span> Financial Terms
+                </h3>
+
+                {#if formErrors.tokenConflict || formErrors.invalidToken}
+                    <div class="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                        <p class="text-red-400 text-sm text-center font-medium">
+                            {formErrors.tokenConflict || formErrors.invalidToken}
                         </p>
+                    </div>
+                {/if}
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group md:col-span-2">
+                        <Label for="baseToken" class="text-sm font-medium mb-2 block text-foreground/90">Contribution Currency</Label>
+                        <Select.Root bind:selected={baseTokenOption}>
+                            <Select.Trigger class="w-full bg-background/50 border-orange-500/20 hover:border-orange-500/40 transition-colors">
+                                <Select.Value placeholder="Select currency" />
+                            </Select.Trigger>
+                            <Select.Content class="max-h-[300px] overflow-y-auto border-orange-500/20 bg-background/95 backdrop-blur-xl">
+                                <Select.Item value={null} class="hover:bg-orange-500/10 cursor-pointer font-medium">ERG (Ergo)</Select.Item>
+                                {#each availableBaseTokens as token}
+                                    <Select.Item value={token.tokenId} class="hover:bg-orange-500/10 cursor-pointer">{token.title}</Select.Item>
+                                {/each}
+                            </Select.Content>
+                        </Select.Root>
+                    </div>
+
+                    <div class="form-group">
+                        <Label for="exchangeRate" class="text-sm font-medium mb-2 block text-foreground/90">Token Price</Label>
+                        <div class="relative">
+                            <Input
+                                type="number"
+                                id="exchangeRate"
+                                bind:value={exchangeRatePrecise}
+                                min={0}
+                                step="0.000000001"
+                                placeholder="0.00"
+                                on:blur={updateMaxValue}
+                                class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 pr-32 {formErrors.exchangeRate ? 'border-red-500 focus:ring-red-500/20' : ''}"
+                            />
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-orange-500/70 pointer-events-none">
+                                {baseTokenName} / 1 {rewardTokenName.substring(0,4)}
+                            </span>
+                        </div>
+                        {#if exchangeRateWarning}
+                            <p class="text-xs text-yellow-500 mt-2 bg-yellow-500/10 p-2 rounded">{exchangeRateWarning}</p>
+                        {/if}
+                    </div>
+
+                    <div class="form-group">
+                        <Label for="deadlineValue" class="text-sm font-medium mb-2 block text-foreground/90">Duration</Label>
+                        <div class="flex space-x-2">
+                            <Input
+                                id="deadlineValue"
+                                type="number"
+                                bind:value={deadlineValue}
+                                min="1"
+                                placeholder="30"
+                                class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
+                            />
+                            <div class="relative min-w-[110px]">
+                                <select 
+                                    bind:value={deadlineUnit} 
+                                    class="w-full h-10 px-3 py-2 bg-background/50 border border-orange-500/20 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 appearance-none"
+                                >
+                                    <option value="days">Days</option>
+                                    <option value="minutes">Minutes</option>
+                                </select>
+                                <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500/70">
+                                    <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <Label for="minGoal" class="text-sm font-medium mb-2 block text-foreground/90">Minimum Goal</Label>
+                        <div class="relative">
+                            <Input
+                                type="number"
+                                id="minGoal"
+                                bind:value={minGoalPrecise}
+                                max={maxGoalPrecise}
+                                min={0}
+                                placeholder="0.00"
+                                on:blur={validateGoalOrder}
+                                class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 pr-20 {formErrors.goalOrder ? 'border-red-500' : ''}"
+                            />
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-orange-500/70 pointer-events-none">
+                                {baseTokenName}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <Label for="maxGoal" class="text-sm font-medium mb-2 block text-foreground/90">Maximum Goal</Label>
+                        <div class="relative">
+                            <Input
+                                type="number"
+                                id="maxGoal"
+                                bind:value={maxGoalPrecise}
+                                min={minGoalPrecise || 0}
+                                placeholder="0.00"
+                                on:blur={updateExchangeRate}
+                                class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 pr-20"
+                            />
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-orange-500/70 pointer-events-none">
+                                {baseTokenName}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    {#if formErrors.goalOrder}
+                        <p class="text-red-400 text-sm md:col-span-2 text-center font-medium">{formErrors.goalOrder}</p>
+                    {/if}
+                </div>
+            </div>
+
+            <div class="step-card bg-card/50 backdrop-blur-sm border border-orange-500/10 rounded-xl p-6 md:p-8 shadow-lg relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-orange-500 to-transparent opacity-50"></div>
+                <h3 class="text-xl font-semibold mb-6 text-orange-400 flex items-center gap-2">
+                    <span class="opacity-50">03.</span> Project Details
+                </h3>
+
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="form-group">
+                        <Label for="projectTitle" class="text-sm font-medium mb-2 block text-foreground/90">Title</Label>
+                        <Input
+                            type="text"
+                            id="projectTitle"
+                            bind:value={projectTitle}
+                            placeholder="Name of your project"
+                            required
+                            class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
+                        />
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="form-group">
+                            <Label for="projectImage" class="text-sm font-medium mb-2 block text-foreground/90">Image URL</Label>
+                            <div class="relative">
+                                <Input
+                                    type="text"
+                                    id="projectImage"
+                                    bind:value={projectImage}
+                                    placeholder="https://example.com/image.png"
+                                    required
+                                    class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 pl-9"
+                                />
+                                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                </div>
+                            </div>
+                        </div>
+    
+                        <div class="form-group">
+                            <Label for="projectLink" class="text-sm font-medium mb-2 block text-foreground/90">Website / Link</Label>
+                            <div class="relative">
+                                <Input
+                                    type="text"
+                                    id="projectLink"
+                                    bind:value={projectLink}
+                                    placeholder="https://yourproject.com"
+                                    required
+                                    class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 pl-9"
+                                />
+                                <div class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <Label for="projectDescription" class="text-sm font-medium mb-2 block text-foreground/90">Description</Label>
+                        <Textarea
+                            id="projectDescription"
+                            bind:value={projectDescription}
+                            placeholder="Describe your project goals, roadmap, and vision..."
+                            required
+                            class="w-full h-32 bg-background/50 border-orange-500/20 focus:border-orange-500/50 resize-none"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions mt-10 flex flex-col items-center justify-center gap-4">
+                {#if errorMessage && !transactionId}
+                    <div class="w-full max-w-md bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center animate-pulse">
+                        <p class="text-red-400 font-medium">{errorMessage}</p>
+                    </div>
+                {/if}
+
+                {#if transactionId}
+                    <div class="result bg-green-500/10 border border-green-500/20 rounded-xl p-6 w-full max-w-xl text-center shadow-lg shadow-green-500/5">
+                        <h4 class="text-green-400 font-bold text-lg mb-2">Success!</h4>
+                        <p class="text-sm text-muted-foreground mb-3">Your project has been submitted to the blockchain.</p>
+                        <a
+                            href="{web_explorer_uri_tx + transactionId}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors bg-orange-500/5 px-4 py-2 rounded-lg border border-orange-500/20 hover:border-orange-500/40"
+                        >
+                            <span>View Transaction</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        </a>
                     </div>
                 {:else}
                     <Button
@@ -611,77 +647,37 @@
                             !deadlineValueBlock ||
                             formErrors.tokenConflict ||
                             formErrors.goalOrder}
-                        class="bg-orange-500 hover:bg-orange-600 text-black border-none py-2 px-6 text-lg font-semibold rounded-lg transition-all duration-200 hover:scale-[1.02] hover:shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none"
+                        class="w-full max-w-xs bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-black border-none h-12 text-lg font-bold rounded-lg shadow-lg shadow-orange-500/20 transition-all duration-200 hover:scale-[1.02] hover:shadow-orange-500/40 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none disabled:grayscale"
                     >
-                        {isSubmitting ? 'Submitting Project...' : 'Submit Project'}
+                        {isSubmitting ? 'Submitting Project...' : 'Launch Project'}
                     </Button>
                 {/if}
             </div>
-
-            {#if errorMessage && !transactionId}
-                <div
-                    class="error mt-4 bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center"
-                >
-                    <p class="text-red-500">{errorMessage}</p>
-                </div>
-            {/if}
         </div>
     </div>
 </div>
 
 <style>
-    .container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 10px 15px;
-        overflow-y: auto;
-        scrollbar-color: rgba(255, 255, 255, 0) rgba(0, 0, 0, 0);
-    }
     .project-title {
-        text-align: center;
-        font-size: 2.2rem;
-        margin: 20px 0 30px;
+        font-size: 2.5rem;
         color: orange;
         font-family: 'Russo One', sans-serif;
         letter-spacing: 0.02em;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        position: relative;
+        text-shadow: 0 0 40px rgba(255, 165, 0, 0.2);
     }
-    .project-title::after {
-        content: '';
-        position: absolute;
-        bottom: -10px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100px;
-        height: 3px;
-        background: linear-gradient(
-            90deg,
-            rgba(255, 165, 0, 0),
-            rgba(255, 165, 0, 1),
-            rgba(255, 165, 0, 0)
-        );
+    
+    .step-card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    .form-container {
-        animation: fadeIn 0.5s ease-in;
+
+    .step-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px -10px rgba(255, 165, 0, 0.1);
     }
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    .form-group {
-        margin-bottom: 0;
-    }
+
     @media (max-width: 768px) {
         .project-title {
             font-size: 1.8rem;
-            margin: 15px 0 25px;
         }
     }
 </style>
