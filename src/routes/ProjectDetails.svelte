@@ -742,145 +742,165 @@
             </div>
         </div>
 
-            <!-- User Actions -->
-        {#if $connected}
-            <div class="actions-section">
-                <h2 class="actions-title">Actions</h2>
-                <div class="action-buttons">
-                    <Button 
-                        class="action-btn primary" 
-                        style="background-color: #FFA500; color: black;" 
-                        on:click={setupBuy} 
-                        disabled={!$connected || maxContributeAmount <= 0 || project.sold_counter >= project.total_pft_amount}
-                        title={!$connected ? "Connect your wallet to contribute" : 
-                               maxContributeAmount <= 0 ? (() => {
-                                   const isERGBase = !project.base_token_id || project.base_token_id === "";
-                                   if (isERGBase) {
-                                       // Exchange rate stored with 9 decimal scaling
-                                       const actualRate = project.exchange_rate / Math.pow(10, 9);
-                                       return `Need at least ${actualRate.toFixed(10).replace(/\.?0+$/, '')} ${platform.main_token} to contribute`;
-                                   } else {
-                                       const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                                       const baseTokenName = project.base_token_details?.name || "tokens";
-                                       return `Need at least ${(project.exchange_rate / Math.pow(10, baseTokenDecimals))} ${baseTokenName} to contribute`;
-                                   }
-                               })() :
-                               project.sold_counter >= project.total_pft_amount ? "Project has reached maximum funding" :
-                               `You can contribute up to ${maxContributeAmount} ${project.token_details.name}`}
-                    >
-                      Contribute
-                    </Button>
-                    {#if $connected && maxContributeAmount <= 0 && project.sold_counter < project.total_pft_amount}
-                        <div class="insufficient-funds-message">
-                            {#if userErgBalance <= 0}
-                                Insufficient funds for contribution. You need {platform.main_token} in your wallet.
-                            {:else}
-                                Insufficient funds for contribution. Need at least {(() => {
+        <!-- User Actions -->
+
+        <div class="actions-section">
+            <h2 class="actions-title">Actions</h2>
+            <div class="action-buttons">
+                
+                <!-- CONTRIBUTE BUTTON -->
+                <Button 
+                    class="action-btn primary" 
+                    style="background-color: #FFA500; color: black;" 
+                    on:click={setupBuy} 
+                    disabled={
+                        !$connected || 
+                        maxContributeAmount <= 0 || 
+                        project.sold_counter >= project.total_pft_amount
+                    }
+                    title={
+                        !$connected 
+                            ? "Connect your wallet to contribute"
+                            : maxContributeAmount <= 0
+                                ? (() => {
                                     const isERGBase = !project.base_token_id || project.base_token_id === "";
                                     if (isERGBase) {
-                                        // Exchange rate stored with 9 decimal scaling
                                         const actualRate = project.exchange_rate / Math.pow(10, 9);
-                                        return actualRate.toFixed(10).replace(/\.?0+$/, '') + " " + platform.main_token;
+                                        return `Insufficient funds. Need at least ${actualRate
+                                            .toFixed(10)
+                                            .replace(/\.?0+$/, '')} ${platform.main_token}`;
                                     } else {
                                         const baseTokenDecimals = project.base_token_details?.decimals || 0;
                                         const baseTokenName = project.base_token_details?.name || "tokens";
-                                        return (project.exchange_rate / Math.pow(10, baseTokenDecimals)) + " " + baseTokenName;
+                                        return `Insufficient funds. Need at least ${
+                                            project.exchange_rate / Math.pow(10, baseTokenDecimals)
+                                        } ${baseTokenName}`;
                                     }
-                                })()}
-                            {/if}
-                        </div>
-                    {/if}
-                    
-                    <Button 
-                        class="action-btn" 
-                        style="background-color: #FF8C00; color: black;" 
-                        on:click={setupRefund} 
-                        disabled={!$connected || !(deadline_passed && !is_min_raised) || maxRefundAmount <= 0}
-                        title={!$connected ? "Connect your wallet to get refund" :
-                               !deadline_passed ? "Refunds available after deadline" :
-                               is_min_raised ? "Refunds not available - minimum goal reached" :
-                               maxRefundAmount <= 0 ? "You have no tokens to refund" :
-                               `You can refund up to ${maxRefundAmount} ${project.token_details.name}`}
-                    >
-                      Get a Refund
-                    </Button>
-                    {#if $connected && maxRefundAmount <= 0 && (deadline_passed && !is_min_raised)}
-                        <div class="insufficient-funds-message">
-                            No tokens available for refund
-                        </div>
-                    {/if}
-                    
-                    <Button 
-                        class="action-btn" 
-                        style="background-color: #FF8C00; color: black;" 
-                        on:click={setupTempExchange} 
-                        disabled={!$connected || !is_min_raised || maxCollectAmount <= 0}
-                        title={!$connected ? "Connect your wallet to collect tokens" :
-                               !is_min_raised ? "Collection available after minimum goal is reached" :
-                               maxCollectAmount <= 0 ? "You have no temporal tokens to collect" :
-                               `You can collect up to ${maxCollectAmount} ${project.token_details.name}`}
-                    >
-                      Collect {project.token_details.name}
-                    </Button>
-                    {#if $connected && maxCollectAmount <= 0 && is_min_raised}
-                        <div class="insufficient-funds-message">
-                            No temporal tokens available for collection
-                        </div>
-                    {/if}
-                </div>
+                                })()
+                                : project.sold_counter >= project.total_pft_amount
+                                    ? "Project has reached maximum funding"
+                                    : `You can contribute up to ${maxContributeAmount} ${project.token_details.name}`
+                    }
+                >
+                Contribute
+                </Button>
+
+                <!-- REFUND BUTTON -->
+                <Button 
+                    class="action-btn" 
+                    style="background-color: #FF8C00; color: black;" 
+                    on:click={setupRefund} 
+                    disabled={
+                        !$connected || 
+                        !(deadline_passed && !is_min_raised) || 
+                        maxRefundAmount <= 0
+                    }
+                    title={
+                        !$connected
+                            ? "Connect your wallet to get refund"
+                            : !deadline_passed
+                                ? "Refunds are available after the deadline"
+                                : is_min_raised
+                                    ? "Refunds are not available because the minimum goal was reached"
+                                    : maxRefundAmount <= 0
+                                        ? "You have no tokens to refund"
+                                        : `You can refund up to ${maxRefundAmount} ${project.token_details.name}`
+                    }
+                >
+                Get a Refund
+                </Button>
+
+                <!-- COLLECT BUTTON -->
+                <Button 
+                    class="action-btn" 
+                    style="background-color: #FF8C00; color: black;" 
+                    on:click={setupTempExchange} 
+                    disabled={
+                        !$connected || 
+                        !is_min_raised || 
+                        maxCollectAmount <= 0
+                    }
+                    title={
+                        !$connected
+                            ? "Connect your wallet to collect tokens"
+                            : !is_min_raised
+                                ? "Collection available after minimum goal is reached"
+                                : maxCollectAmount <= 0
+                                    ? "You have no temporal tokens to collect"
+                                    : `You can collect up to ${maxCollectAmount} ${project.token_details.name}`
+                    }
+                >
+                Collect {project.token_details.name}
+                </Button>
+
             </div>
-        {/if}
+        </div>
       
-            <!-- Project Owner Actions -->
-      {#if $connected && is_owner}
+        <!-- Project Owner Actions -->
+        {#if is_owner}
             <div class="actions-section owner">
                 <h2 class="actions-title">Owner Actions</h2>
                 <div class="action-buttons">
+
+                    <!-- ADD TOKENS -->
                     <Button 
                         class="action-btn" 
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupAddTokens}
+                        title={`Add more ${project.token_details.name} to the sale`}
                     >
-                      Add {project.token_details.name}
+                    Add {project.token_details.name}
                     </Button>
-                    
+
+                    <!-- WITHDRAW TOKENS -->
                     <Button 
                         class="action-btn" 
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupWithdrawTokens}
                         disabled={!$connected || maxWithdrawTokenAmount <= 0}
-                        title={!$connected ? "Connect your wallet to withdraw tokens" :
-                               maxWithdrawTokenAmount <= 0 ? `All transferable ${project.token_details.name} have been withdrawn.` :
-                               `You can withdraw up to ${maxWithdrawTokenAmount} ${project.token_details.name}`}
+                        title={
+                            !$connected
+                                ? "Connect your wallet to withdraw tokens"
+                                : maxWithdrawTokenAmount <= 0
+                                    ? `All transferable ${project.token_details.name} have been withdrawn`
+                                    : `You can withdraw up to ${maxWithdrawTokenAmount} ${project.token_details.name}`
+                        }
                     >
-                      Withdraw {project.token_details.name}
+                    Withdraw {project.token_details.name}
                     </Button>
-                    {#if $connected && maxWithdrawTokenAmount <= 0}
-                        <div class="insufficient-funds-message">
-                            All transferable {project.token_details.name} are already withdrawn.
-                        </div>
-                    {/if}
-                    
+
+                    <!-- WITHDRAW BASE TOKEN / ERG -->
                     <Button 
                         class="action-btn" 
                         style="background-color: #FF8C00; color: black;" 
                         on:click={setupWithdrawErg} 
                         disabled={!$connected || !is_min_raised || maxWithdrawErgAmount <= 0}
-                        title={!$connected ? `Connect your wallet to collect ${(!project.base_token_id || project.base_token_id === "") ? "ERG" : (project.base_token_details?.name || "tokens")}` :
-                               !is_min_raised ? `${(!project.base_token_id || project.base_token_id === "") ? "ERG" : (project.base_token_details?.name || "tokens")} collection available after minimum goal is reached` :
-                               maxWithdrawErgAmount <= 0 ? `No ${(!project.base_token_id || project.base_token_id === "") ? "ERG" : (project.base_token_details?.name || "tokens")} available for withdrawal` :
-                               `You can withdraw up to ${maxWithdrawErgAmount} ${(!project.base_token_id || project.base_token_id === "") ? platform.main_token : (project.base_token_details?.name || "tokens")}`}
+                        title={
+                            !$connected
+                                ? `Connect your wallet to collect ${(!project.base_token_id || project.base_token_id === "") 
+                                    ? "ERG" 
+                                    : (project.base_token_details?.name || "tokens")}`
+                                : !is_min_raised
+                                    ? `${(!project.base_token_id || project.base_token_id === "") 
+                                        ? "ERG" 
+                                        : (project.base_token_details?.name || "tokens")} collection available only after minimum goal is reached`
+                                    : maxWithdrawErgAmount <= 0
+                                        ? `No ${(!project.base_token_id || project.base_token_id === "") 
+                                            ? "ERG" 
+                                            : (project.base_token_details?.name || "tokens")} available for withdrawal`
+                                        : `You can withdraw up to ${maxWithdrawErgAmount} ${(!project.base_token_id || project.base_token_id === "") 
+                                            ? platform.main_token 
+                                            : (project.base_token_details?.name || "tokens")}`
+                        }
                     >
-                      Collect {(!project.base_token_id || project.base_token_id === "") ? platform.main_token : (project.base_token_details?.name || "tokens")}
+                    Collect {(!project.base_token_id || project.base_token_id === "") 
+                            ? platform.main_token 
+                            : (project.base_token_details?.name || "tokens")}
                     </Button>
-                    {#if $connected && (!is_min_raised || maxWithdrawErgAmount <= 0)}
-                        <div class="insufficient-funds-message">
-                            {!is_min_raised ? 'Minimum funding goal not reached' : `No ${(!project.base_token_id || project.base_token_id === "") ? "ERG" : (project.base_token_details?.name || "tokens")} available for withdrawal`}
-                        </div>
-                    {/if}
+
                 </div>
             </div>
-      {/if}
+        {/if}
         </div>
     </div>
 
