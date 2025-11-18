@@ -441,7 +441,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
     let ownerContract: ErgoTree;
 
     beforeEach(() => {
-      ownerContract = compile(`{ sigmaProp(false) }`);
+      ownerContract = compile(`{ sigmaProp(HEIGHT > 1) }`);
 
       ctx = setupBeneTestContext(mode.token, mode.tokenName, ownerContract.toAddress());
 

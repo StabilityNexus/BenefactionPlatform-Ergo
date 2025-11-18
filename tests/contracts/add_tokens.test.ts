@@ -267,7 +267,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
     let ownerContract: ErgoTree;
 
     beforeEach(() => {
-      ownerContract = compile(`{ sigmaProp(false) }`);
+      ownerContract = compile(`{ sigmaProp(HEIGHT > 1) }`);
       
       ctx = setupBeneTestContext(mode.token, mode.tokenName, ownerContract.toAddress());
 
