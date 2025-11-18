@@ -39,68 +39,105 @@
     let info_type_to_show: "buy"|"dev"|"dev-collect"|"" = "";
     let function_submit: ((event?: any) => Promise<void>) | null = null;
     let value_submit = 0;
-    let submit_info = "";
+    let submit_info = {
+        prefix: "",
+        amount: "",
+        token: ""
+    };
+
     let hide_submit_info = false;
     let submit_amount_label = "";
 
     $: submit_info = (() => {
+        const cleanAmount = (num) => 
+            Number(num).toFixed(10).replace(/\.?0+$/, '');
+
         if (function_submit === add_tokens) {
-            return `Add: ` + Number(value_submit).toFixed(10).replace(/\. ?0+$/, '') + ` ${project.token_details.name}`;
+            return {
+                prefix: "Add:",
+                amount: cleanAmount(value_submit),
+                token: project.token_details.name
+            };
         }
         
         if (function_submit === withdraw_tokens) {
-            return `Withdraw: ` + Number(value_submit).toFixed(10).replace(/\.?0+$/, '') + ` ${project.token_details.name}`;
+            return {
+                prefix: "Withdraw:",
+                amount: cleanAmount(value_submit),
+                token: project.token_details.name
+            };
         }
         
         if (function_submit === withdraw_erg) {
             const isERGBase = !project.base_token_id || project.base_token_id === "";
-            const tokenName = isERGBase ? platform.main_token : (project.base_token_details?.name || "tokens");
-            return `Withdraw: ` + Number(value_submit).toFixed(10).replace(/\.?0+$/, '') + ` ${tokenName}`;
+            const tokenName = isERGBase 
+                ? platform.main_token 
+                : (project.base_token_details?.name || "tokens");
+
+            return {
+                prefix: "Withdraw:",
+                amount: cleanAmount(value_submit),
+                token: tokenName
+            };
         }
         
         if (function_submit === refund) {
             const isERGBase = !project.base_token_id || project.base_token_id === "";
+            
+            let baseAmount, tokenName;
+
             if (isERGBase) {
-                // Exchange rate is stored as smallest_base per smallest_token
                 const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
-                const baseAmount = value_submit * actualRate;
-                return `Refund: ` + Number(baseAmount).toFixed(10).replace(/\.?0+$/, '') + ` ${platform.main_token}`;
+                baseAmount = value_submit * actualRate;
+                tokenName = platform.main_token;
             } else {
                 const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                const baseTokenName = project.base_token_details?.name || "tokens";
-                // Exchange rate is stored as smallest_base per smallest_token
+                tokenName = project.base_token_details?.name || "tokens";
                 const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
-                const baseAmount = value_submit * actualRate;
-                return `Refund: ` + Number(baseAmount).toFixed(10).replace(/\.?0+$/, '') + ` ${baseTokenName}`;
+                baseAmount = value_submit * actualRate;
             }
+
+            return {
+                prefix: "Refund:",
+                amount: cleanAmount(baseAmount),
+                token: tokenName
+            };
         }
 
         if (function_submit === buy) {
             const isERGBase = !project.base_token_id || project.base_token_id === "";
+            let tokens;
+
             if (isERGBase) {
-                // Exchange rate is stored as smallest_base per smallest_token
                 const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
-                const tokens = value_submit / actualRate;
-                return `Contribution: ` + Number(tokens).toFixed(10).replace(/\.?0+$/, '') + ` ${project.token_details.name}`;
+                tokens = value_submit / actualRate;
             } else {
                 const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                // Exchange rate is stored as smallest_base per smallest_token
                 const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
-                const tokens = value_submit / actualRate;
-                return `Contribution: ` + Number(tokens).toFixed(10).replace(/\.?0+$/, '') + ` ${project.token_details.name}`;
+                tokens = value_submit / actualRate;
             }
+
+            return {
+                prefix: "You will receive:",
+                amount: cleanAmount(tokens),
+                token: project.token_details.name
+            };
         }
 
         if (function_submit === temp_exchange) {
-            return `Exchange: ` + Number(value_submit).toFixed(10).replace(/\.?0+$/, '') + ` ${project.token_details.name}`;
+            return {
+                prefix: "Exchange:",
+                amount: cleanAmount(value_submit),
+                token: project.token_details.name
+            };
         }
 
-        // Default fallback
-        return `Action: ` + Number(value_submit).toFixed(10).replace(/\.?0+$/, '') + ` tokens`;
-    })()
-
-    // Show info badge only when value_submit > 0
-    $: show_submit_info = value_submit > 0;
+        return {
+            prefix: "Action:",
+            amount: cleanAmount(value_submit),
+            token: "tokens"
+        };
+    })();
 
     let daysValue = 0;
     let hoursValue = 0;
@@ -851,6 +888,8 @@
         {#if show_submit}
     <div class="modal-overlay">
         <div class="actions-form" style="{$mode === 'light' ? 'background: white;' : 'background: #2a2a2a;'}">
+            <!-- svelte-ignore a11y-click-events-have-key-events -->
+            <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div class="close-button" on:click={close_submit_form}>
                     &times;
                 </div>
@@ -945,47 +984,49 @@
                                 {/if}
                             </div>
                         
-                        <div class="form-content">
-                            <Label for="amount-input" class="form-label">{label_submit}</Label>
-                            <div class="input-container">
-                                        <Input
-                                            id="amount-input"
-                                            type="number"
-                                            bind:value={value_submit}
-                                            min="0"
-                                            max={function_submit === buy ? maxContributeAmount : 
-                                                 function_submit === refund ? maxRefundAmount : 
-                                                 function_submit === temp_exchange ? maxCollectAmount :
-                                                 function_submit === add_tokens ? maxAddTokenAmount :
-                                                 function_submit === withdraw_tokens ? maxWithdrawTokenAmount :
-                                                 function_submit === withdraw_erg ? maxWithdrawErgAmount : null}
-                                            step="0.001"
-                                            class="form-input"
-                                        />
-                                <span class="input-suffix">{submit_amount_label}</span>
-                                    </div>
-                                    
-                                {#if !hide_submit_info && value_submit > 0}
-                                <div class="info-badge">
-                                    <Badge type="primary" rounded>{submit_info}</Badge>
+                            <div class="form-content">
+                                <Label for="amount-input" class="form-label">{label_submit}</Label>
+                                <div class="input-container">
+                                            <Input
+                                                id="amount-input"
+                                                type="number"
+                                                bind:value={value_submit}
+                                                min="0"
+                                                max={function_submit === buy ? maxContributeAmount : 
+                                                    function_submit === refund ? maxRefundAmount : 
+                                                    function_submit === temp_exchange ? maxCollectAmount :
+                                                    function_submit === add_tokens ? maxAddTokenAmount :
+                                                    function_submit === withdraw_tokens ? maxWithdrawTokenAmount :
+                                                    function_submit === withdraw_erg ? maxWithdrawErgAmount : null}
+                                                step="0.001"
+                                                class="form-input"
+                                            />
+                                        <span class="input-suffix">{submit_amount_label}</span>
                                 </div>
+                                    
+                                {#if !hide_submit_info}
+                                    <Label for="amount-input" class="form-label">{submit_info.prefix}</Label>
+                                    <div class="input-container">
+                                        <Input disabled={true} type="number" value={submit_info.amount} class="form-input"/>
+                                        <span class="input-suffix">{submit_info.token}</span>
+                                    </div>
                                 {/if}
                                     
-                                        <Button 
-                                            on:click={function_submit} 
-                                            disabled={isSubmitting || value_submit <= 0 || 
-                                                     (function_submit === buy && value_submit > maxContributeAmount) ||
-                                                     (function_submit === refund && value_submit > maxRefundAmount) ||
-                                                     (function_submit === temp_exchange && value_submit > maxCollectAmount) ||
-                                                     (function_submit === add_tokens && value_submit > maxAddTokenAmount) ||
-                                                     (function_submit === withdraw_tokens && value_submit > maxWithdrawTokenAmount) ||
-                                                     (function_submit === withdraw_erg && value_submit > maxWithdrawErgAmount)}
-                                            class="submit-btn"
-                                            style="background-color: #FF8C00; color: black;"
-                                        >
-                                            {isSubmitting ? 'Processing...' : 'Submit'}
-                                        </Button>
-                                    </div>
+                                <Button 
+                                    on:click={function_submit} 
+                                    disabled={isSubmitting || value_submit <= 0 || 
+                                                (function_submit === buy && value_submit > maxContributeAmount) ||
+                                                (function_submit === refund && value_submit > maxRefundAmount) ||
+                                                (function_submit === temp_exchange && value_submit > maxCollectAmount) ||
+                                                (function_submit === add_tokens && value_submit > maxAddTokenAmount) ||
+                                                (function_submit === withdraw_tokens && value_submit > maxWithdrawTokenAmount) ||
+                                                (function_submit === withdraw_erg && value_submit > maxWithdrawErgAmount)}
+                                    class="submit-btn"
+                                    style="background-color: #FF8C00; color: black;"
+                                >
+                                    {isSubmitting ? 'Processing...' : 'Submit'}
+                                </Button>
+                            </div>
                         </div>
                     {/if}
             </div>
@@ -1277,140 +1318,196 @@
     }
 
     /* Modal Styles */
+
+    /* --- Modal Overlay --- */
     .modal-overlay {
         position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: rgba(0, 0, 0, 0.7);
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(6px);
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 1000;
+        z-index: 2000;
+        transition: opacity 0.3s ease;
     }
 
+    /* --- Modal Box --- */
     .actions-form {
         position: relative;
-        width: 90%;
-        max-width: 600px;
-        border-radius: 12px;
-        padding: 2rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        width: 95%;
+        max-width: 540px;
+        border-radius: 20px;
+        padding: 2.5rem;
+        background: linear-gradient(145deg, rgba(30, 30, 30, 0.95), rgba(20, 20, 20, 0.95));
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        animation: popup 0.3s ease-out;
+        border: 1px solid rgba(255, 152, 0, 0.15);
     }
 
+    /* Animación sutil al abrir */
+    @keyframes popup {
+        from {
+            opacity: 0;
+            transform: translateY(15px) scale(0.97);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    /* --- Close Button --- */
     .close-button {
         position: absolute;
-        top: 1rem;
-        right: 1.5rem;
-        font-size: 1.5rem;
+        top: 1.2rem;
+        right: 1.2rem;
+        font-size: 1.8rem;
         cursor: pointer;
-        width: 30px;
-        height: 30px;
+        width: 40px;
+        height: 40px;
         display: flex;
         justify-content: center;
         align-items: center;
         border-radius: 50%;
-        transition: background-color 0.2s;
+        background: rgba(255, 255, 255, 0.08);
+        transition: background 0.2s, transform 0.2s;
+        color: #ccc;
     }
-
     .close-button:hover {
-        background-color: rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.15);
+        transform: rotate(90deg);
     }
 
-    .centered-form {
-        width: 100%;
-    }
-
-    .form-container {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-    }
-
+    /* --- Info Box --- */
     .form-info {
-        background-color: rgba(255, 255, 255, 0.05);
-        padding: 0.75rem;
-        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 1.2rem 1.4rem;
+        border-radius: 12px;
+        border-left: 5px solid #ff9800;
+        line-height: 1.5;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
     }
 
-    .form-content {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
+    /* --- Labels --- */
     .form-label {
         font-size: 1.1rem;
-        font-weight: 500;
+        font-weight: 600;
         margin-bottom: 0.5rem;
         text-align: center;
+        color: #f5f5f5;
     }
 
+    /* --- Input Container --- */
     .input-container {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: 1rem;
+        margin-bottom: 1rem;
     }
 
+    /* --- Input --- */
     .form-input {
         flex: 1;
-        padding: 0.75rem;
-        border-radius: 4px;
+        padding: 1rem 1.2rem;
+        border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.2);
-        background-color: rgba(255, 255, 255, 0.05);
-        color: inherit;
-        font-size: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 1.05rem;
+        color: #fff;
+        transition: border 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus {
+        outline: none;
+        background: rgba(255, 255, 255, 0.18);
+        border-color: #ff9800;
+        box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
     }
 
+    /* --- Suffix (e.g., ERG) --- */
     .input-suffix {
-        font-size: 0.9rem;
-        font-weight: 500;
-        min-width: 50px;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #ffb74d;
+        padding-right: 1rem;
     }
 
+    /* --- Info Badge --- */
     .info-badge {
-        margin-top: 0.5rem;
+        margin-top: 1rem;
+        padding: 1rem 1.2rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.1);
+        font-size: 1.05rem;
+        color: #fff;
         text-align: center;
     }
 
+    /* --- Submit Button --- */
     .submit-btn {
-        color: black;
+        width: 100%;
+        padding: 1rem 1.5rem;
+        border-radius: 14px;
         border: none;
-        padding: 0.75rem 1.5rem;
-        border-radius: 4px;
-        font-weight: 600;
-        margin-top: 1rem;
+        background: linear-gradient(135deg, #ffa726, #fb8c00);
+        font-size: 1.1rem;
+        font-weight: 700;
         cursor: pointer;
-        transition: all 0.2s ease;
-        align-self: center;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-top: 1.5rem;
+        color: #1a1a1a;
+        transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
     }
-
     .submit-btn:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(255, 152, 0, 0.4);
+        background: linear-gradient(135deg, #ffb74d, #ff9100);
     }
-
     .submit-btn:active:not(:disabled) {
         transform: translateY(0);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 10px rgba(255, 152, 0, 0.3);
+    }
+    .submit-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
     }
 
+    /* --- Result & Error --- */
+    .result, .error {
+        text-align: center;
+        padding: 1.4rem;
+        font-size: 1.05rem;
+        border-radius: 12px;
+        margin-top: 1rem;
+    }
     .result {
-        text-align: center;
-        padding: 1rem;
+        background: rgba(76, 175, 80, 0.15);
+        color: #4caf50;
     }
-
-    .transaction-link {
-        color: #FF8C00;
-        text-decoration: underline;
-    }
-
     .error {
-        color: #EF5350;
-        text-align: center;
-        padding: 1rem;
+        background: rgba(244, 67, 54, 0.15);
+        color: #f44336;
+    }
+
+    /* --- Responsive Adjustments --- */
+    @media (max-width: 480px) {
+        .actions-form {
+            padding: 2rem 1.8rem;
+            width: 98%;
+        }
+        .form-label {
+            font-size: 1rem;
+        }
+        .form-input {
+            font-size: 1rem;
+            padding: 0.9rem 1.1rem;
+        }
+        .submit-btn {
+            font-size: 1rem;
+            padding: 0.9rem 1.3rem;
+        }
     }
 
     /* Animation */
