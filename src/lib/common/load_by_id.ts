@@ -1,10 +1,10 @@
-import { type Platform } from "./platform";
 import { type Project } from "./project";
 import { project_detail } from "./store";
+import { fetchProjects } from "$lib/ergo/fetch";
 
-export async function loadProjectById(projectId: string, platform: Platform) {
+export async function loadProjectById(projectId: string) {
     try {
-        const projects: Map<string, Project> = await platform.fetch();
+        const projects: Map<string, Project> = await fetchProjects(true);
         const project = projects.get(projectId);
         
         if (!project) {
