@@ -14,19 +14,16 @@
 
     let platform = new ErgoPlatform();
 
-    // Token being sold/offered as a reward
     let rewardTokenOption: object | null = null;
     let rewardTokenId: string | null = null;
     let rewardTokenDecimals: number = 0;
-    let rewardTokenName: string = 'Token'; // For the dynamic label
+    let rewardTokenName: string = 'Token';
 
-    // Token used for contributions - Initialize with ERG as default
-    let baseTokenOption: object | null = null; // null means ERG
-    let baseTokenId: string = ''; // Empty string means ERG (default)
-    let baseTokenDecimals: number = 9; // ERG has 9 decimals - DEFAULT
+    let baseTokenOption: object | null = null;
+    let baseTokenId: string = '';
+    let baseTokenDecimals: number = 9;
     let baseTokenName: string = 'ERG';
     
-    // Ensure ERG is default on load
     $: if (baseTokenOption === undefined) {
         baseTokenOption = null;
         baseTokenDecimals = 9;
@@ -45,7 +42,6 @@
     let exchangeRateRaw: number;
     let exchangeRatePrecise: number;
 
-    // Fundraising goals in the base currency
     let maxGoalPrecise: number;
     let minGoalPrecise: number;
 
@@ -59,14 +55,12 @@
     let isSubmitting: boolean = false;
 
     let userTokens: Array<{ tokenId: string; title: string; balance: number; decimals: number }> = [];
-    let existingAPTTokens: Set<string> = new Set(); // APT tokens (project_ids) from existing projects
-    let existingPFTTokens: Set<string> = new Set(); // PFT tokens (token_ids) from existing projects
+    let existingAPTTokens: Set<string> = new Set();
+    let existingPFTTokens: Set<string> = new Set();
     
-    // Filtered tokens that exclude problematic tokens
     let availableRewardTokens: Array<{ tokenId: string; title: string; balance: number; decimals: number }> = [];
     let availableBaseTokens: Array<{ tokenId: string; title: string; balance: number; decimals: number }> = [];
 
-    // Centralized object for form validation errors
     let formErrors = {
         tokenConflict: null,
         goalOrder: null,
@@ -75,11 +69,8 @@
         exchangeRate: null
     };
     
-    // Exchange rate validation
     let minViablePrice = 0;
     let exchangeRateWarning = '';
-
-    // --- Reactive Declarations ---
 
     $: {
         if (rewardTokenOption) {
@@ -89,7 +80,6 @@
         }
     }
 
-    // Reactively updates the reward token name
     $: {
         if (rewardTokenId) {
             const token = userTokens.find((t) => t.tokenId === rewardTokenId);
@@ -101,20 +91,17 @@
 
     $: {
         if (baseTokenOption && baseTokenOption.value !== null) {
-            // A non-ERG token is selected
             baseTokenId = baseTokenOption.value;
             const baseToken = userTokens.find((t) => t.tokenId === baseTokenId);
             baseTokenDecimals = baseToken?.decimals || 0;
             baseTokenName = baseToken?.title || 'Unknown';
         } else {
-            // ERG is selected (null value) or nothing is selected
-            baseTokenId = ''; // ERG
+            baseTokenId = '';
             baseTokenDecimals = 9;
             baseTokenName = 'ERG';
         }
     }
 
-    // Validation for token conflict
     $: {
         if (rewardTokenId && baseTokenId && rewardTokenId === baseTokenId) {
             formErrors.tokenConflict = 'The Project Token and Contribution Currency cannot be the same.';
@@ -123,28 +110,22 @@
         }
     }
 
-    // Filter tokens for proper usage
     $: {
-        // Create comprehensive APT token blacklist
         const allAPTTokens = new Set([...existingAPTTokens]);
         
-        // Add tokens with "APT" in their name as additional safety
         for (const token of userTokens) {
             if (token.title && token.title.includes('APT')) {
                 allAPTTokens.add(token.tokenId);
             }
         }
         
-        // For reward tokens: Exclude all APT tokens, allow PFT tokens
         availableRewardTokens = userTokens.filter(token => !allAPTTokens.has(token.tokenId));
         
-        // For base tokens: Exclude both APT and PFT tokens
         availableBaseTokens = userTokens.filter(token => 
             !allAPTTokens.has(token.tokenId) && !existingPFTTokens.has(token.tokenId)
         );
     }
 
-    // Validation for token usage
     $: {
         let tokenError = null;
         
@@ -168,27 +149,16 @@
     }
 
     $: {
-        // Use proper decimal calculation to avoid precision loss
-        // Convert string to number if needed
         const exchangeRateNum = typeof exchangeRatePrecise === 'string' ? parseFloat(exchangeRatePrecise) : exchangeRatePrecise;
         
-        // Calculate minimum viable price
-        // The stored rate must be >= 1, so: price * 10^(baseDecimals - tokenDecimals) >= 1
-        // Therefore: price >= 10^(tokenDecimals - baseDecimals)
         minViablePrice = Math.pow(10, rewardTokenDecimals - baseTokenDecimals);
         
-        // The contract expects: base_amount = token_amount * exchange_rate
-        // Where both amounts are in smallest units
-        // So exchange_rate = smallest_base_units per smallest_token_unit
-        
-        // Calculate the raw exchange rate
         exchangeRateRaw = exchangeRateNum * Math.pow(10, baseTokenDecimals - rewardTokenDecimals);
         
-        // Validation
         if (exchangeRateNum > 0 && exchangeRateRaw < 1) {
             formErrors.exchangeRate = `Price too low. Minimum viable price is ${minViablePrice.toFixed(Math.max(0, baseTokenDecimals))} ${baseTokenName} per ${rewardTokenName}`;
             exchangeRateWarning = `⚠️ Due to smart contract limitations, the minimum price for these tokens is ${minViablePrice.toFixed(Math.max(0, baseTokenDecimals))} ${baseTokenName} per ${rewardTokenName}`;
-            exchangeRateRaw = 0; // Prevent submission with invalid rate
+            exchangeRateRaw = 0;
         } else {
             formErrors.exchangeRate = null;
             exchangeRateWarning = '';
@@ -203,8 +173,6 @@
             deadlineValueText = "";
         }
     }
-
-    // --- Functions ---
 
     function validateGoalOrder() {
         if (
@@ -229,7 +197,7 @@
             let milliseconds;
             if (unit === 'days') {
                 milliseconds = value * 24 * 60 * 60 * 1000;
-            } else { // minutes
+            } else {
                 milliseconds = value * 60 * 1000;
             }
             target_date.setTime(target_date.getTime() + milliseconds); 
@@ -242,7 +210,6 @@
         }
     }
 
-    // Flag to prevent circular updates between price and max goal
     let isUpdating = false;
 
     function updateExchangeRate() {
@@ -286,21 +253,6 @@
             description: projectDescription,
             image: projectImage,
             link: projectLink
-        });
-
-        // 🔍 DEBUG: Log what we're about to submit
-        console.log(' SUBMITTING PROJECT TO BLOCKCHAIN:', {
-            'minGoalPrecise (user entered)': minGoalPrecise,
-            'minValueNano (in smallest base units)': minValueNano,
-            'exchangeRateRaw': exchangeRateRaw,
-            'exchangeRateRaw (rounded)': Math.round(exchangeRateRaw),
-            'minimumTokenSold (calculated)': minimumTokenSold,
-            'minimumTokenSold (rounded - SUBMITTED)': Math.round(minimumTokenSold),
-            'tokenAmountToSellRaw': tokenAmountToSellRaw,
-            'baseTokenDecimals': baseTokenDecimals,
-            'rewardTokenDecimals': rewardTokenDecimals,
-            'baseTokenId': baseTokenId,
-            'baseTokenName': baseTokenName
         });
 
         try {
@@ -373,9 +325,7 @@
             const pftTokens = new Set<string>();
             
             for (const [projectId, project] of projects) {
-                // Add APT token (project_id) - these should be blocked from reward selection
                 aptTokens.add(projectId);
-                // Add PFT token (token_id) - these should be blocked from base currency selection only
                 pftTokens.add(project.token_id);
             }
             
@@ -386,9 +336,6 @@
         }
     }
 
-    // --- Lifecycle and Subscriptions ---
-
-    // Load existing project tokens on component mount
     loadExistingProjectTokens();
 
     walletConnected.subscribe((isConnected) => {
@@ -422,7 +369,7 @@
                         <Select.Trigger class="w-full border-orange-500/20 focus:border-orange-500/40">
                             <Select.Value placeholder="Select a token to sell" />
                         </Select.Trigger>
-                        <Select.Content>
+                        <Select.Content class="max-h-[300px] overflow-y-auto">
                             {#each availableRewardTokens as token}
                                 <Select.Item value={token.tokenId}
                                     >{token.title} (Balance: {token.balance / Math.pow(10, token.decimals)})</Select.Item
@@ -480,7 +427,7 @@
                         <Select.Trigger class="w-full border-orange-500/20 focus:border-orange-500/40">
                             <Select.Value placeholder="Select currency" />
                         </Select.Trigger>
-                        <Select.Content>
+                        <Select.Content class="max-h-[300px] overflow-y-auto">
                             <Select.Item value={null}>ERG (default)</Select.Item>
                             {#each availableBaseTokens as token}
                                 <Select.Item value={token.tokenId}>{token.title}</Select.Item>
