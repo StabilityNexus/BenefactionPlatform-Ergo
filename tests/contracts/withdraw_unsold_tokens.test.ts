@@ -494,7 +494,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
         assets: [],
         additionalRegisters: {}
       })
-      const ownerScriptBox = customOwnerContract.utxos.toArray()[0];
+      const ownerScriptBox = customOwnerContract.utxos.toArray()[0]; // TODO CHECK - This box is omitted by the transaction in ERG case.
 
       // ARRANGE: Owner wants to withdraw all the unsold PFT tokens
       const tokensToWithdraw = ctx.totalPFTokens - soldTokens;

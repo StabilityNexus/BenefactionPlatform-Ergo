@@ -302,7 +302,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
         assets: [],
         additionalRegisters: {}
       })
-      const ownerScriptBox = customOwnerContract.utxos.toArray()[0];
+      const ownerScriptBox = customOwnerContract.utxos.toArray()[0];  // TODO CHECK - This box is omitted by the transaction in both cases (ERG and USD)
 
       // Arrange
       const tokensToAdd = 50_000n;
