@@ -6,8 +6,8 @@ import { uint8ArrayToHex } from "./utils";
 import { network_id } from "./envs";
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from "./dev/dev_contract";
 
-import CONTRACT_V1_0 from '../../../contracts/bene_contract/contract_v1_0.es?raw';
-import CONTRACT_V1_1 from '../../../contracts/bene_contract/contract_v1_1.es?raw';
+import CONTRACT_V1_0 from '../../../contracts/bene_contract/deprecated/contract_v1_0.es?raw';
+import CONTRACT_V1_1 from '../../../contracts/bene_contract/deprecated/contract_v1_1.es?raw';
 import CONTRACT_V1_2 from '../../../contracts/bene_contract/contract_v1_2.es?raw';
 import MINT_CONTRACT from '../../../contracts/mint_contract/mint_idt.es?raw';
 
