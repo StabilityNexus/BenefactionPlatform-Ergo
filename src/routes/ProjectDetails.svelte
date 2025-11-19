@@ -14,6 +14,7 @@
     import ForumThread from "$lib/components/ForumThread.svelte";
 
     import { onDestroy } from 'svelte';
+    import { fetchProjects } from "$lib/ergo/fetch";
 
 
     let project: Project = $project_detail;
@@ -567,11 +568,9 @@
     // Function to refresh project data from the contract after transactions
     async function refreshProjectFromContract() {
         try {
-            // Import the fresh fetch function to bypass cache
-            const { fetchProjects_fresh } = await import('$lib/ergo/fetch');
             
             // Fetch the updated project data from the contract (bypassing cache)
-            const updatedProjects = await fetchProjects_fresh();
+            const updatedProjects = await fetchProjects();
             const updatedProject = updatedProjects.get(project.project_id);
             
             if (updatedProject) {
