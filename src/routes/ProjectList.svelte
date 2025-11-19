@@ -70,13 +70,13 @@
             case 'newest':
                 sortedItemsArray.sort(
                     ([, a], [, b]) =>
-                        (b.content.creationTimestamp ?? 0) - (a.content.creationTimestamp ?? 0)
+                        (b.box.creationHeight ?? 0) - (a.box.creationHeight ?? 0)
                 );
                 break;
             case 'oldest':
                 sortedItemsArray.sort(
                     ([, a], [, b]) =>
-                        (a.content.creationTimestamp ?? 0) - (b.content.creationTimestamp ?? 0)
+                        (a.box.creationHeight ?? 0) - (b.box.creationHeight ?? 0)
                 );
                 break;
             case 'amount':

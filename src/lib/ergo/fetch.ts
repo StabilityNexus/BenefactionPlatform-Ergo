@@ -19,7 +19,7 @@ const expectedSigmaTypesV12 = {
     R4: 'SInt',
     R5: 'SLong',
     R6: 'Coll[SLong]',
-    R7: 'Coll[SLong]', // For v1_2: [exchange_rate, base_token_id_len]
+    R7: 'SLong', // For v1_2: [exchange_rate, base_token_id_len]
     R8: 'Coll[SByte]',
     R9: 'Coll[SByte]'
 };
@@ -135,7 +135,7 @@ export async function fetchProjectsFromBlockchain() {
     const registers = {};
     let moreDataAvailable;
 
-    const versions: contract_version[] = ["v1_2", "v1_0"];
+    const versions: contract_version[] = ["v1_2", "v1_1", "v1_0"];
 
     try {
         for (const version of versions) {
@@ -177,7 +177,7 @@ export async function fetchProjectsFromBlockchain() {
                 }
 
                 for (const e of json_data.items) {
-                    if (true || hasValidSigmaTypes(e.additionalRegisters, version)) {
+                    if (hasValidSigmaTypes(e.additionalRegisters, version)) {
                         const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "");
 
                         if (constants === null) { console.warn("constants null"); continue; }
@@ -250,6 +250,8 @@ export async function fetchProjectsFromBlockchain() {
                         const current = get(projects).data;
                         current.set(project_id, project)
                         projects.set({data: current, last_fetch: get(projects).last_fetch});
+                    } else {
+                        console.warn(`Box ${e.boxId} has invalid sigma types, skipping.`);
                     }
                 }
                 params.offset += params.limit;

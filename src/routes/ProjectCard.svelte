@@ -8,6 +8,7 @@
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { mode } from "mode-watcher";
     import { getBaseTokenDisplayInfo, formatBaseTokenAmount } from "$lib/ergo/token_utils";
+    import Badge from "$lib/components/ui/badge/badge.svelte";
     
     export let project: Project;
 
@@ -86,6 +87,8 @@
                    class={badgeVariants({ variant: "outline" })}>
                    Contract version: {project.version.replace("_", ".")}
                 </a>
+                <!-- svelte-ignore a11y-missing-attribute -->
+                <a class={badgeVariants({ variant: "outline" })}>Creation height: {project.box.creationHeight}</a>
             </div>
         </div>
 
