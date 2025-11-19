@@ -83,7 +83,8 @@
     val refunded                   = contract.R6[Coll[Long]].get(1)
     val exchanged                   = contract.R6[Coll[Long]].get(2)  // If the exchanged APT -> PFT amount is not accounted for, it will result in double-counting the sold amount.
 
-    proof_funding_token_amount - sold + refunded + exchanged
+    val calculation = proof_funding_token_amount - sold + refunded + exchanged
+    if (calculation < 0L) 0L else calculation
   }
 
   def getBaseTokenAmount(box: Box): Long = {
