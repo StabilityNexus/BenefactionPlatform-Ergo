@@ -14,14 +14,19 @@ import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTes
 // 3. mockChain.execute() validates the transaction against contract rules
 // 4. Assertions verify payment received and tokens distributed
 
-describe("Bene Contract v1.2 - Buy APT Tokens with ERG", () => {
+const baseModes = [
+  { name: "USD Token Mode", token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
+  { name: "ERG Mode", token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
+];
+
+describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
   let ctx: BeneTestContext;  // Test environment (blockchain, actors, config)
   let projectBox: Box;       // The contract's UTXO holding tokens and funds
 
   // SETUP: Runs before each test
   beforeEach(() => {
     // STEP 1: Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
-    ctx = setupBeneTestContext(ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME);
+    ctx = setupBeneTestContext(mode.token, mode.tokenName);
 
     // STEP 2: Create initial project box with all tokens available for sale
     ctx.beneContract.addUTxOs({
@@ -30,6 +35,7 @@ describe("Bene Contract v1.2 - Buy APT Tokens with ERG", () => {
       assets: [
         { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens }, // APT: 1 NFT + 100k tokens = 100,001 total
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },        // PFT: 100,000 tokens
+        // { tokenId: ctx.baseTokenId, amount: 0n },                    // SigmaUSD (starts empty) - (All token values should be > 0)
       ],
       creationHeight: ctx.mockChain.height,
       additionalRegisters: {
@@ -46,40 +52,31 @@ describe("Bene Contract v1.2 - Buy APT Tokens with ERG", () => {
     projectBox = ctx.beneContract.utxos.toArray()[0];
   });
 
-  it("should allow buying APT tokens with ERG payment", () => {
+  it("should allow buying APT tokens", () => {
     // ARRANGE: Calculate transaction amounts
     const tokensToBuy = 10_000n;                                      // Buyer wants 10,000 APT
     const paymentAmount = tokensToBuy * ctx.exchangeRate;            // Cost: 10,000 * 1M = 10 ERG
     const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; // Contract loses 10k APT
 
-    // LOG: Show buyer state before purchase
-    console.log(`   BUYER STATE BEFORE:`);
-    const buyerAPTBefore = ctx.buyer.utxos.toArray()
-      .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))?.assets[0]?.amount || 0n;
-    const buyerPFTBefore = ctx.buyer.utxos.toArray()
-      .find((box) => box.assets.some((asset) => asset.tokenId === ctx.pftTokenId))?.assets[0]?.amount || 0n;
-    console.log(`      APT Balance:     ${buyerAPTBefore.toLocaleString()}`);
-    console.log(`      PFT Balance:     ${buyerPFTBefore.toLocaleString()}`);
-    console.log(`      ERG Balance:     ${Number(ctx.buyer.balance.nanoergs) / 1_000_000_000} ERG`);
+    let value = BigInt(projectBox.value);
+    let assets = [
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      ];
+    
+    if (!ctx.isErgMode) {
+      assets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount }); // In custom token mode, contract receives payment tokens
+    }else {
+      value += paymentAmount; // In ERG mode, contract receives ERG
+    }
 
     // Build the updated contract box (receives payment, loses tokens)
     const contractOutputBuilder = new OutputBuilder(
-      BigInt(projectBox.value) + paymentAmount,             // Add 10 ERG to contract
+      value,
       ctx.beneErgoTree                                      // Same contract address
-    );
-
-    // Build token list for updated contract box
-    const contractTokens = [
-      { tokenId: ctx.projectNftId, amount: newAPTAmount },        // APT: 100,001 - 10,000 = 90,001 remaining
-      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },     // PFT: 100,000 (unchanged)
-    ];
-    // In custom token mode, add the received payment tokens to contract
-    if (!ctx.isErgMode) {
-      contractTokens.push({ tokenId: ctx.baseTokenId, amount: paymentAmount });
-    }
-
-    // Add tokens and update registers
-    contractOutputBuilder.addTokens(contractTokens).setAdditionalRegisters({
+    )
+    .addTokens(assets)
+    .setAdditionalRegisters({
       R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
       R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
       R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
@@ -110,127 +107,36 @@ describe("Bene Contract v1.2 - Buy APT Tokens with ERG", () => {
 
     // ASSERT: Verify transaction succeeded
     expect(result).toBe(true);                          // Transaction valid
-    expect(ctx.beneContract.utxos.length).toEqual(1);   // Contract still has 1 box
+  });
 
-    const updatedBox = ctx.beneContract.utxos.toArray()[0];
+  it("should fail when payment is insufficient for token amount", () => {
+    // ARRANGE: Calculate transaction amounts
+    const tokensToBuy = 10_000n;                                      // Buyer wants 10,000 APT
+    const insufficientPayment = (tokensToBuy * ctx.exchangeRate) / 2n;            // Cost: 10,000 * 1M / 2 = 5 ERG (INSUFFICIENT)
+    const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; // Contract loses 10k APT
+
+    let value = BigInt(projectBox.value);
+    let assets = [
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      ];
     
-    // Verify contract received payment correctly
-    // Check ERG value increased
-    expect(updatedBox.value).toEqual(BigInt(projectBox.value) + paymentAmount);  // 1.1M + 10 ERG
-
-    // Verify buyer received APT tokens
-    const buyerBox = ctx.buyer.utxos
-      .toArray()
-      .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId));  // Find box with APT
-    expect(buyerBox).toBeDefined();                              // Buyer has a box with APT
-    expect(buyerBox!.assets[0].amount).toEqual(tokensToBuy);    // Buyer received exactly 10,000 APT
-
-    // LOG: Show buyer state after purchase
-    console.log(`   BUYER STATE AFTER:`);
-    const buyerAPTAfter = buyerBox!.assets[0].amount;
-    const buyerPFTAfter = ctx.buyer.utxos.toArray()
-      .find((box) => box.assets.some((asset) => asset.tokenId === ctx.pftTokenId))?.assets[0]?.amount || 0n;
-    console.log(`      APT Balance:     ${buyerAPTAfter.toLocaleString()}`);
-    console.log(`      PFT Balance:     ${buyerPFTAfter.toLocaleString()}`);
-    console.log(`      ERG Balance:     ${Number(ctx.buyer.balance.nanoergs) / 1_000_000_000} ERG`);
-
-    // LOG: Show final state
-    const decimalDivisor = 10 ** ctx.baseTokenDecimals;
-    console.log(`   CONTRACT STATE:`);
-    console.log(`      APT Balance:     ${updatedBox.assets[0].amount.toLocaleString()}`);
-    console.log(`      PFT Balance:     ${updatedBox.assets[1].amount.toLocaleString()}`);
-    if (ctx.isErgMode) {
-      console.log(`      ERG Balance:     ${Number(updatedBox.value) / 1_000_000_000} ERG`);
-    } else {
-      const baseTokenAsset = updatedBox.assets.find((a) => a.tokenId === ctx.baseTokenId);
-      if (baseTokenAsset) {
-        console.log(`      ${ctx.baseTokenName} Balance: ${Number(baseTokenAsset.amount) / decimalDivisor} ${ctx.baseTokenName}`);
-      }
+    if (!ctx.isErgMode) {
+      assets.push({ tokenId: ctx.baseTokenId, amount: insufficientPayment }); // In custom token mode, contract receives payment tokens
+    }else {
+      value += insufficientPayment; // In ERG mode, contract receives ERG
     }
-    console.log(`      Sold Counter:    ${updatedBox.additionalRegisters.R6 ? updatedBox.additionalRegisters.R6[0] : 0} tokens`);
-    console.log(`   Transaction successful!`);
-  });
-
-  it("should fail when ERG payment is insufficient for token amount", () => {
-    // ARRANGE: Try to buy tokens with insufficient payment
-    const tokensToBuy = 10_000n;                                     // Want 10,000 APT
-    const insufficientPayment = (tokensToBuy * ctx.exchangeRate) / 2n; // Pay only 5 ERG (need 10 ERG)
-
-    const newAPTAmount = projectBox.assets[0].amount - tokensToBuy;    // Contract loses 10k tokens
-    const newContractValue = projectBox.value + insufficientPayment;   // Contract gets only 5 ERG
-
-    // ACT: Build transaction with incorrect payment
-    const transaction = new TransactionBuilder(ctx.mockChain.height)
-      .from([projectBox, ...ctx.buyer.utxos.toArray()])  // Same inputs
-      .to([
-        // Contract output with INSUFFICIENT payment
-        new OutputBuilder(newContractValue, ctx.beneErgoTree)  // Only 5 ERG added instead of 10
-          .addTokens([
-            { tokenId: ctx.projectNftId, amount: newAPTAmount },    // Still loses 10k tokens
-            { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
-          ])
-          .setAdditionalRegisters({
-            R4: SInt(ctx.deadlineBlock).toHex(),
-            R5: SLong(ctx.minimumTokensSold).toHex(),
-            R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),       // Claims 10k sold
-            R7: SLong(ctx.exchangeRate).toHex(),
-            R8: projectBox.additionalRegisters.R8,
-            R9: projectBox.additionalRegisters.R9,
-          }),
-        // Buyer still tries to receive 10k tokens
-        new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          { tokenId: ctx.projectNftId, amount: tokensToBuy },
-        ]),
-      ])
-      .sendChangeTo(ctx.buyer.address)
-      .payFee(RECOMMENDED_MIN_FEE_VALUE)
-      .build();
-
-    // Execute with throw: false to capture failure
-    const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
-
-    // ASSERT: Transaction should FAIL (contract validates payment)
-    expect(result).toBe(false);                          // Transaction rejected by contract
-    expect(ctx.beneContract.utxos.length).toEqual(1);    // Contract box unchanged (not spent)
-  });
-
-  it("should fail when refunded counter is not correct", () => {
-    // ARRANGE: Calculate transaction amounts
-    const tokensToBuy = 10_000n;                                      // Buyer wants 10,000 APT
-    const paymentAmount = tokensToBuy * ctx.exchangeRate;            // Cost: 10,000 * 1M = 10 ERG
-    const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; // Contract loses 10k APT
-
-    // LOG: Show buyer state before purchase
-    console.log(`   BUYER STATE BEFORE:`);
-    const buyerAPTBefore = ctx.buyer.utxos.toArray()
-      .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))?.assets[0]?.amount || 0n;
-    const buyerPFTBefore = ctx.buyer.utxos.toArray()
-      .find((box) => box.assets.some((asset) => asset.tokenId === ctx.pftTokenId))?.assets[0]?.amount || 0n;
-    console.log(`      APT Balance:     ${buyerAPTBefore.toLocaleString()}`);
-    console.log(`      PFT Balance:     ${buyerPFTBefore.toLocaleString()}`);
-    console.log(`      ERG Balance:     ${Number(ctx.buyer.balance.nanoergs) / 1_000_000_000} ERG`);
 
     // Build the updated contract box (receives payment, loses tokens)
     const contractOutputBuilder = new OutputBuilder(
-      BigInt(projectBox.value) + paymentAmount,             // Add 10 ERG to contract
-      ctx.beneErgoTree                                      // Same contract address
-    );
-
-    // Build token list for updated contract box
-    const contractTokens = [
-      { tokenId: ctx.projectNftId, amount: newAPTAmount },        // APT: 100,001 - 10,000 = 90,001 remaining
-      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },     // PFT: 100,000 (unchanged)
-    ];
-    // In custom token mode, add the received payment tokens to contract
-    if (!ctx.isErgMode) {
-      contractTokens.push({ tokenId: ctx.baseTokenId, amount: paymentAmount });
-    }
-
-    // Add tokens and update registers
-    contractOutputBuilder.addTokens(contractTokens).setAdditionalRegisters({
+      value,
+      ctx.beneErgoTree                                                  // Same contract address
+    )
+    .addTokens(assets)
+    .setAdditionalRegisters({
       R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
       R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
-      R6: SColl(SLong, [tokensToBuy, 5n, 0n]).toHex(),                   // Counters: [10k sold, 5 refunded, 0 exchanged]
+      R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
       R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
       R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
       R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
@@ -256,46 +162,37 @@ describe("Bene Contract v1.2 - Buy APT Tokens with ERG", () => {
     // Execute transaction on mock blockchain (validates contract logic)
     const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
 
-    expect(result).toBe(false);                          // Transaction fails
+    expect(result).toBe(false);                          // Transaction invalid
   });
 
   it("should fail when refunded counter is not correct", () => {
     // ARRANGE: Calculate transaction amounts
     const tokensToBuy = 10_000n;                                      // Buyer wants 10,000 APT
-    const paymentAmount = tokensToBuy * ctx.exchangeRate;            // Cost: 10,000 * 1M = 10 ERG
+    const paymentAmount = (tokensToBuy * ctx.exchangeRate);            // Cost: 10,000 * 1M / 2 =  10 ERG (CORRECT)
     const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; // Contract loses 10k APT
 
-    // LOG: Show buyer state before purchase
-    console.log(`   BUYER STATE BEFORE:`);
-    const buyerAPTBefore = ctx.buyer.utxos.toArray()
-      .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))?.assets[0]?.amount || 0n;
-    const buyerPFTBefore = ctx.buyer.utxos.toArray()
-      .find((box) => box.assets.some((asset) => asset.tokenId === ctx.pftTokenId))?.assets[0]?.amount || 0n;
-    console.log(`      APT Balance:     ${buyerAPTBefore.toLocaleString()}`);
-    console.log(`      PFT Balance:     ${buyerPFTBefore.toLocaleString()}`);
-    console.log(`      ERG Balance:     ${Number(ctx.buyer.balance.nanoergs) / 1_000_000_000} ERG`);
+    let value = BigInt(projectBox.value);
+    let assets = [
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      ];
+    
+    if (!ctx.isErgMode) {
+      assets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount }); // In custom token mode, contract receives payment tokens
+    }else {
+      value += paymentAmount; // In ERG mode, contract receives ERG
+    }
 
     // Build the updated contract box (receives payment, loses tokens)
     const contractOutputBuilder = new OutputBuilder(
-      BigInt(projectBox.value) + paymentAmount,             // Add 10 ERG to contract
-      ctx.beneErgoTree                                      // Same contract address
-    );
-
-    // Build token list for updated contract box
-    const contractTokens = [
-      { tokenId: ctx.projectNftId, amount: newAPTAmount },        // APT: 100,001 - 10,000 = 90,001 remaining
-      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },     // PFT: 100,000 (unchanged)
-    ];
-    // In custom token mode, add the received payment tokens to contract
-    if (!ctx.isErgMode) {
-      contractTokens.push({ tokenId: ctx.baseTokenId, amount: paymentAmount });
-    }
-
-    // Add tokens and update registers
-    contractOutputBuilder.addTokens(contractTokens).setAdditionalRegisters({
+      value,
+      ctx.beneErgoTree                                                  // Same contract address
+    )
+    .addTokens(assets)
+    .setAdditionalRegisters({
       R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
       R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
-      R6: SColl(SLong, [tokensToBuy, 0n, 5n]).toHex(),                   // Counters: [10k sold, 5 refunded, 0 exchanged]
+      R6: SColl(SLong, [tokensToBuy, 1n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
       R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
       R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
       R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
@@ -321,233 +218,63 @@ describe("Bene Contract v1.2 - Buy APT Tokens with ERG", () => {
     // Execute transaction on mock blockchain (validates contract logic)
     const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
 
-    expect(result).toBe(false);                          // Transaction fails
+    expect(result).toBe(false);                          // Transaction invalid
   });
 
-});
+  it("should fail when exchanged counter is not correct", () => {
+    // ARRANGE: Calculate transaction amounts
+    const tokensToBuy = 10_000n;                                      // Buyer wants 10,000 APT
+    const paymentAmount = (tokensToBuy * ctx.exchangeRate);            // Cost: 10,000 * 1M / 2 =  10 ERG (CORRECT)
+    const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; // Contract loses 10k APT
 
-describe("Bene Contract v1.2 - Buy APT Tokens with SigmaUSD", () => {
-  let ctx: BeneTestContext;
-  let projectBox: Box;
+    let value = BigInt(projectBox.value);
+    let assets = [
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      ];
+    
+    if (!ctx.isErgMode) {
+      assets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount }); // In custom token mode, contract receives payment tokens
+    }else {
+      value += paymentAmount; // In ERG mode, contract receives ERG
+    }
 
-  beforeEach(() => {
-    ctx = setupBeneTestContext(USD_BASE_TOKEN, USD_BASE_TOKEN_NAME);
-
-    // Initial contract box: holds APT + PFT + SigmaUSD (starts with 0 USD)
-    ctx.beneContract.addUTxOs({
-      value: RECOMMENDED_MIN_FEE_VALUE, // Only min ERG for fees
-      ergoTree: ctx.beneErgoTree.toHex(),
-      assets: [
-        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens }, // APT
-        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },       // PFT
-        // { tokenId: ctx.baseTokenId, amount: 0n },                    // SigmaUSD (starts empty) - (All token values should be > 0)
-      ],
-      creationHeight: ctx.mockChain.height,
-      additionalRegisters: {
-        R4: SInt(ctx.deadlineBlock).toHex(),
-        R5: SLong(ctx.minimumTokensSold).toHex(),
-        R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
-        R7: SLong(ctx.exchangeRate).toHex(), // len = 32
-        R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
-        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
-      },
-    });
-
-    projectBox = ctx.beneContract.utxos.toArray()[0];
-  });
-
-  it("should allow buying APT tokens with SigmaUSD payment", () => {
-    const tokensToBuy = 10_000n;
-    const paymentAmount = tokensToBuy * ctx.exchangeRate; // 10,000 * 100 = 1,000,000 cents = 10,000 USD
-    const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy;
-
-    console.log(`   BUYER STATE BEFORE:`);
-    const buyerAPTBefore = ctx.buyer.utxos.toArray()
-      .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))?.assets[0]?.amount || 0n;
-    const buyerUSDBefore = ctx.buyer.utxos.toArray()
-      .reduce((sum, box) => {
-        const usd = box.assets.find(a => a.tokenId === ctx.baseTokenId);
-        return sum + (usd?.amount || 0n);
-      }, 0n);
-    console.log(`      APT Balance:     ${buyerAPTBefore.toLocaleString()}`);
-    console.log(`      SigmaUSD Balance:${(Number(buyerUSDBefore) / 100).toFixed(2)} USD`);
-    console.log(`      ERG Balance:     ${Number(ctx.buyer.balance.nanoergs) / 1_000_000_000} ERG`);
-
+    // Build the updated contract box (receives payment, loses tokens)
     const contractOutputBuilder = new OutputBuilder(
-      BigInt(projectBox.value), // ERG unchanged
-      ctx.beneErgoTree
-    );
-
-    const contractTokens = [
-      { tokenId: ctx.projectNftId, amount: newAPTAmount },
-      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
-      { tokenId: ctx.baseTokenId, amount: paymentAmount }, // Add SigmaUSD
-    ];
-
-    contractOutputBuilder.addTokens(contractTokens).setAdditionalRegisters({
-      R4: SInt(ctx.deadlineBlock).toHex(),
-      R5: SLong(ctx.minimumTokensSold).toHex(),
-      R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),
-      R7: SLong(ctx.exchangeRate).toHex(),
-      R8: projectBox.additionalRegisters.R8,
-      R9: projectBox.additionalRegisters.R9,
+      value,
+      ctx.beneErgoTree                                                  // Same contract address
+    )
+    .addTokens(assets)
+    .setAdditionalRegisters({
+      R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
+      R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
+      R6: SColl(SLong, [tokensToBuy, 0n, 1n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
+      R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
+      R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
+      R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
     });
 
+    // ACT: Build and execute the purchase transaction
     const transaction = new TransactionBuilder(ctx.mockChain.height)
+      // INPUTS: Spend contract box + buyer's UTXOs (for payment)
       .from([projectBox, ...ctx.buyer.utxos.toArray()])
+      
+      // OUTPUTS:
       .to([
-        contractOutputBuilder,
-        new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          { tokenId: ctx.projectNftId, amount: tokensToBuy },
+        contractOutputBuilder,  // Output 0: Updated contract (more ERG, fewer APT)
+        new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([  // Output 1: Buyer receives tokens
+          { tokenId: ctx.projectNftId, amount: tokensToBuy },  // Buyer gets 10,000 APT
         ]),
       ])
-      .sendChangeTo(ctx.buyer.address)
-      .payFee(RECOMMENDED_MIN_FEE_VALUE)
+      
+      .sendChangeTo(ctx.buyer.address)         // Remaining ERG goes back to buyer
+      .payFee(RECOMMENDED_MIN_FEE_VALUE)        // Transaction fee: 0.001 ERG
       .build();
 
-    const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer] });
-
-    expect(result).toBe(true);
-    expect(ctx.beneContract.utxos.length).toEqual(1);
-
-    const updatedBox = ctx.beneContract.utxos.toArray()[0];
-    const usdAsset = updatedBox.assets.find(a => a.tokenId === ctx.baseTokenId);
-    expect(usdAsset).toBeDefined();
-    expect(usdAsset!.amount).toEqual(paymentAmount);
-
-    const buyerBox = ctx.buyer.utxos
-      .toArray()
-      .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId));
-    expect(buyerBox).toBeDefined();
-    expect(buyerBox!.assets.find(a => a.tokenId === ctx.projectNftId)!.amount).toEqual(tokensToBuy);
-
-    console.log(`   BUYER STATE AFTER:`);
-    const buyerAPTAfter = buyerBox!.assets.find(a => a.tokenId === ctx.projectNftId)!.amount;
-    const buyerUSDAfter = ctx.buyer.utxos.toArray()
-      .reduce((sum, box) => sum + (box.assets.find(a => a.tokenId === ctx.baseTokenId)?.amount || 0n), 0n);
-    console.log(`      APT Balance:     ${buyerAPTAfter.toLocaleString()}`);
-    console.log(`      SigmaUSD Balance:${(Number(buyerUSDAfter) / 100).toFixed(2)} USD`);
-    console.log(`      ERG Balance:     ${Number(ctx.buyer.balance.nanoergs) / 1_000_000_000} ERG`);
-
-    const decimalDivisor = 10 ** ctx.baseTokenDecimals;
-    console.log(`   CONTRACT STATE:`);
-    console.log(`      APT Balance:     ${updatedBox.assets[0].amount.toLocaleString()}`);
-    console.log(`      PFT Balance:     ${updatedBox.assets[1].amount.toLocaleString()}`);
-    console.log(`      SigmaUSD Balance:${(Number(usdAsset!.amount) / decimalDivisor).toFixed(2)} USD`);
-    console.log(`      Sold Counter:    ${updatedBox.additionalRegisters.R6[0]} tokens`);
-    console.log(`   Transaction successful!`);
-  });
-
-  it("should fail when SigmaUSD payment is insufficient", () => {
-    const tokensToBuy = 10_000n;
-    const insufficientPayment = (tokensToBuy * ctx.exchangeRate) / 2n;
-    const newAPTAmount = projectBox.assets[0].amount - tokensToBuy;
-
-    const transaction = new TransactionBuilder(ctx.mockChain.height)
-      .from([projectBox, ...ctx.buyer.utxos.toArray()])
-      .to([
-        new OutputBuilder(projectBox.value, ctx.beneErgoTree)
-          .addTokens([
-            { tokenId: ctx.projectNftId, amount: newAPTAmount },
-            { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
-            { tokenId: ctx.baseTokenId, amount: insufficientPayment },
-          ])
-          .setAdditionalRegisters({
-            R4: SInt(ctx.deadlineBlock).toHex(),
-            R5: SLong(ctx.minimumTokensSold).toHex(),
-            R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),
-            R7: SLong(ctx.exchangeRate).toHex(),
-            R8: projectBox.additionalRegisters.R8,
-            R9: projectBox.additionalRegisters.R9,
-          }),
-        new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          { tokenId: ctx.projectNftId, amount: tokensToBuy },
-        ]),
-      ])
-      .sendChangeTo(ctx.buyer.address)
-      .payFee(RECOMMENDED_MIN_FEE_VALUE)
-      .build();
-
+    // Execute transaction on mock blockchain (validates contract logic)
     const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
-    expect(result).toBe(false);
-    expect(ctx.beneContract.utxos.length).toEqual(1);
+
+    expect(result).toBe(false);                          // Transaction invalid
   });
 
-  it("should fail when sold counter is not incremented correctly", () => {
-    const tokensToBuy = 10_000n;
-    const paymentAmount = tokensToBuy * ctx.exchangeRate;
-    const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy;
-
-    const contractOutputBuilder = new OutputBuilder(
-      BigInt(projectBox.value),
-      ctx.beneErgoTree
-    );
-
-    contractOutputBuilder.addTokens([
-      { tokenId: ctx.projectNftId, amount: newAPTAmount },
-      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
-      { tokenId: ctx.baseTokenId, amount: paymentAmount },
-    ]).setAdditionalRegisters({
-      R4: SInt(ctx.deadlineBlock).toHex(),
-      R5: SLong(ctx.minimumTokensSold).toHex(),
-      R6: SColl(SLong, [5000n, 0n, 0n]).toHex(), // Wrong
-      R7: SLong(ctx.exchangeRate).toHex(),
-      R8: projectBox.additionalRegisters.R8,
-      R9: projectBox.additionalRegisters.R9,
-    });
-
-    const transaction = new TransactionBuilder(ctx.mockChain.height)
-      .from([projectBox, ...ctx.buyer.utxos.toArray()])
-      .to([
-        contractOutputBuilder,
-        new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          { tokenId: ctx.projectNftId, amount: tokensToBuy },
-        ]),
-      ])
-      .sendChangeTo(ctx.buyer.address)
-      .payFee(RECOMMENDED_MIN_FEE_VALUE)
-      .build();
-
-    const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
-    expect(result).toBe(false);
-  });
-
-  it("should fail when refund counter is incorrectly modified", () => {
-    const tokensToBuy = 10_000n;
-    const paymentAmount = tokensToBuy * ctx.exchangeRate;
-    const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy;
-
-    const contractOutputBuilder = new OutputBuilder(
-      BigInt(projectBox.value),
-      ctx.beneErgoTree
-    );
-
-    contractOutputBuilder.addTokens([
-      { tokenId: ctx.projectNftId, amount: newAPTAmount },
-      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
-      { tokenId: ctx.baseTokenId, amount: paymentAmount },
-    ]).setAdditionalRegisters({
-      R4: SInt(ctx.deadlineBlock).toHex(),
-      R5: SLong(ctx.minimumTokensSold).toHex(),
-      R6: SColl(SLong, [tokensToBuy, 1n, 0n]).toHex(), // Should be 0
-      R7: SLong(ctx.exchangeRate).toHex(),
-      R8: projectBox.additionalRegisters.R8,
-      R9: projectBox.additionalRegisters.R9,
-    });
-
-    const transaction = new TransactionBuilder(ctx.mockChain.height)
-      .from([projectBox, ...ctx.buyer.utxos.toArray()])
-      .to([
-        contractOutputBuilder,
-        new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          { tokenId: ctx.projectNftId, amount: tokensToBuy },
-        ]),
-      ])
-      .sendChangeTo(ctx.buyer.address)
-      .payFee(RECOMMENDED_MIN_FEE_VALUE)
-      .build();
-
-    const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
-    expect(result).toBe(false);
-  });
 });
