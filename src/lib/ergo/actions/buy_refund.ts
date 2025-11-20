@@ -95,7 +95,7 @@ export async function buy_refund(
     // Add PFT tokens if they exist
     if (project.current_pft_amount > 0) {
         output.addTokens({
-            tokenId: project.token_id,
+            tokenId: project.pft_token_id,
             amount: BigInt(project.current_pft_amount).toString()  // PFT token maintains constant
         });
     }

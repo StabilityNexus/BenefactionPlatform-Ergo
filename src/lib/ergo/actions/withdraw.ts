@@ -141,7 +141,7 @@ export async function withdraw(
         // Add PFT tokens if they exist (ProofFundingTokenRemainsConstant)
         if (project.current_pft_amount > 0) {
             contractOutput.addTokens({
-                tokenId: project.token_id,
+                tokenId: project.pft_token_id,
                 amount: BigInt(project.current_pft_amount)
             });
         }

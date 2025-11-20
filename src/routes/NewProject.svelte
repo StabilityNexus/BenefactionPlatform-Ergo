@@ -331,7 +331,7 @@
             
             for (const [projectId, project] of projects) {
                 aptTokens.add(projectId);
-                pftTokens.add(project.token_id);
+                pftTokens.add(project.pft_token_id);
             }
             
             existingAPTTokens = aptTokens;

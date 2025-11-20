@@ -47,7 +47,7 @@ export async function rebalance(
         
         if (contract_token_amount > 0) {
             contract_output.addTokens({
-                tokenId: project.token_id,
+                tokenId: project.pft_token_id,
                 amount: (contract_token_amount).toString()
             });
         }
@@ -97,7 +97,7 @@ export async function rebalance(
                     walletPk
                 )
                 .addTokens({
-                    tokenId: project.token_id,
+                    tokenId: project.pft_token_id,
                     amount: ((-1)*token_amount).toString()
                 })
             )

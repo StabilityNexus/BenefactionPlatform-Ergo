@@ -39,7 +39,7 @@ export async function temp_exchange(
 
     if (project.current_pft_amount !== token_amount) {
         contractOutput.addTokens({
-            tokenId: project.token_id,
+            tokenId: project.pft_token_id,
             amount: BigInt(project.current_pft_amount - token_amount)
         });
     }
@@ -79,7 +79,7 @@ export async function temp_exchange(
         walletPk
     )
     .addTokens({
-        tokenId: project.token_id,
+        tokenId: project.pft_token_id,
         amount: BigInt(token_amount)
     })
 

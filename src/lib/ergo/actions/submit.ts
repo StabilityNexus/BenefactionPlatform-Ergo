@@ -119,7 +119,7 @@ export async function submit_project(
         "dev_addr": get_dev_contract_address(),
         "dev_hash": get_dev_contract_hash(),
         "dev_fee": get_dev_fee(),
-        "token_id": token_id,
+        "pft_token_id": token_id,
         "base_token_id": base_token_id
     };
 

@@ -23,7 +23,7 @@ export interface ConstantContent {
     dev_addr?: string,
     dev_hash: string,
     dev_fee: number,
-    token_id: string,
+    pft_token_id: string,
     base_token_id?: string  // Base token ID for multi-token support (empty for ERG)
 }
 
@@ -33,7 +33,7 @@ export interface Project {
     box: Box<Amount>,
     project_id: string,
     current_idt_amount: number,
-    token_id: string,
+    pft_token_id: string,
     base_token_id: string,  // Base token ID for contributions (empty string for ERG)
     base_token_details?: TokenEIP4,  // Details of the base token (null for ERG)
     block_limit: number,
@@ -98,7 +98,7 @@ export function getConstantContent(value: string): ConstantContent | null {
             dev_addr: parsed.dev_addr,
             dev_hash: parsed.dev_hash,
             dev_fee: parsed.dev_fee,
-            token_id: parsed.token_id,
+            pft_token_id: parsed.token_id,
             base_token_id: parsed.base_token_id || ""  // Default to empty string for ERG
         }
     } catch(error) {

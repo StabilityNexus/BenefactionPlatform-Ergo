@@ -165,7 +165,7 @@
         userTokens = await platform.get_balance();
         
         // Get project token balance
-        const rawProjectTokens = userTokens.get(project.token_id) || 0;
+        const rawProjectTokens = userTokens.get(project.pft_token_id) || 0;
         const decimalDivisor = Math.pow(10, project.token_details.decimals);
         userProjectTokenBalance = rawProjectTokens / decimalDivisor;
         
@@ -555,7 +555,7 @@
     timer.update(current => ({ ...current, countdownInterval }));
 
     async function get_user_project_tokens(){
-        var user_project_tokens = (await platform.get_balance(project.token_id)).get(project.token_id) ?? 0;
+        var user_project_tokens = (await platform.get_balance(project.pft_token_id)).get(project.pft_token_id) ?? 0;
         const formattedProjectTokens = (user_project_tokens/Math.pow(10, project.token_details.decimals)).toString()+" "+project.token_details.name;
         project_token_amount.set(formattedProjectTokens);
         
@@ -634,7 +634,7 @@
 
             <div class="token-info">
         <p>Proof-of-Funding Token:
-            <a href="{web_explorer_uri_tkn + project.token_id}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">
+            <a href="{web_explorer_uri_tkn + project.pft_token_id}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">
                {project.token_details.name}
             </a>
         </p>

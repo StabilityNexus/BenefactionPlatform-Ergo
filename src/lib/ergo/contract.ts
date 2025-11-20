@@ -33,19 +33,19 @@ function generate_contract_v1_2(
   owner_addr: string, 
   dev_fee_contract_bytes_hash: string, 
   dev_fee: number, 
-  token_id: string, 
+  pft_token_id: string, 
   base_token_id: string = ""
 ): string {
   // Convert address to ErgoTree hex for P2S/P2PK support
   const ownerErgoTree = ErgoAddress.fromBase58(owner_addr).ergoTree;
-  
+
   return CONTRACT_V1_2
     .replace(/`\+owner_ergotree\+`/g, ownerErgoTree)
     .replace(/`\+dev_fee_contract_bytes_hash\+`/g, dev_fee_contract_bytes_hash)
     .replace(/`\+dev_fee\+`/g, dev_fee.toString())
-    .replace(/`\+token_id\+`/g, token_id)
+    .replace(/`\+pft_token_id\+`/g, pft_token_id)
     .replace(/`\+base_token_id\+`/g, base_token_id);
-}
+  }
 
 function handle_contract_generator(version: contract_version) {
   let f;
@@ -70,9 +70,9 @@ export function get_ergotree_hex(constants: ConstantContent, version: contract_v
     // In case that dev_hash is undefined, we try to use the current contract hash. But the tx will fail if the hash is different.
     let contract;
     if (version === "v1_2") {
-        contract = handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id, constants.base_token_id || "");
+        contract = handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.pft_token_id, constants.base_token_id || "");
     } else {
-        contract = handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.token_id);
+        contract = handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.pft_token_id);
     }
     let ergoTree = compile(contract, {version: 1, network: network_id});
     
@@ -84,16 +84,16 @@ export function get_template_hash(version: contract_version): string {
         "owner": "9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T",  // RANDOM
         "dev_addr": get_dev_contract_address(),   // RANDOM
         "dev_hash": get_dev_contract_hash(),   // RANDOM
-        "dev_fee": 5,    //  RANDOM
-        "token_id": "",   // RANDOM
+        "dev_fee": get_dev_fee(),    //  RANDOM
+        "pft_token_id": "a3f7c9e12bd45890ef12aa7c6d54b9317c0df4a28b6e5590d4f1b3e8c92d77af",   // RANDOM
         "base_token_id": "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717" // RANDOM
     }
 
   let contract;
   if (version === "v1_2") {
-      contract = handle_contract_generator(version)(random_constants.owner, random_constants.dev_hash ?? get_dev_contract_hash(), random_constants.dev_fee, random_constants.token_id, random_constants.base_token_id || "");
+      contract = handle_contract_generator(version)(random_constants.owner, random_constants.dev_hash ?? get_dev_contract_hash(), random_constants.dev_fee, random_constants.pft_token_id, random_constants.base_token_id || "");
   } else {
-      contract = handle_contract_generator(version)(random_constants.owner, random_constants.dev_hash ?? get_dev_contract_hash(), random_constants.dev_fee, random_constants.token_id);
+      contract = handle_contract_generator(version)(random_constants.owner, random_constants.dev_hash ?? get_dev_contract_hash(), random_constants.dev_fee, random_constants.pft_token_id);
   }
 
   let ergoTree = compile(contract, {version: 1, network: network_id});
@@ -108,14 +108,14 @@ function get_contract_hash(constants: ConstantContent, version: contract_version
               constants.owner, 
               constants.dev_hash ?? get_dev_contract_hash(), 
               constants.dev_fee, 
-              constants.token_id, 
+              constants.pft_token_id, 
               constants.base_token_id || "" // Ensure empty string if undefined
           )
           : handle_contract_generator(version)(
               constants.owner, 
               constants.dev_hash ?? get_dev_contract_hash(), 
               constants.dev_fee, 
-              constants.token_id
+              constants.pft_token_id
           );
 
       const ergoTree = compile(contractSource, {

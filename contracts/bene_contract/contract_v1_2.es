@@ -43,13 +43,13 @@
 // $owner_ergotree: ErgoTree bytes (hex) of the contract owner (supports both P2PK and P2S).
 // $dev_fee_contract_bytes_hash: Blake2b-256 base16 string hash of the dev fee contract proposition bytes.
 // $dev_fee: Percentage fee allocated to the developer (e.g., 5 for 5%).
-// $token_id: Unique string identifier for the proof-of-funding token.
+// $pft_token_id: Unique string identifier for the proof-of-funding token.
 // $base_token_id: Base token ID for contributions (empty string for ERG).
 
   val ownerErgoTree = fromBase16("`+owner_ergotree+`")
   val devFeeContractBytesHash = fromBase16("`+dev_fee_contract_bytes_hash+`")
   val devFee = `+dev_fee+`
-  val pftTokenId = fromBase16("`+token_id+`")
+  val pftTokenId = fromBase16("`+pft_token_id+`")
   val baseTokenId = fromBase16("`+base_token_id+`")
 
   val selfId = SELF.tokens(0)._1

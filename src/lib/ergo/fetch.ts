@@ -181,16 +181,16 @@ export async function fetchProjectsFromBlockchain() {
                         const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "");
 
                         if (constants === null) { console.warn("constants null"); continue; }
-                        if (e.assets.length > 2 && e.assets[1].tokenId !== constants.token_id) { console.warn("Constant token error with " + constants.token_id); continue; }
+                        if (e.assets.length > 2 && e.assets[1].tokenId !== constants.pft_token_id) { console.warn("Constant token error with " + constants.pft_token_id); continue; }
 
                         let project_id = e.assets[0].tokenId;
-                        let token_id = constants.token_id;
+                        let token_id = constants.pft_token_id;
                         let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
 
                         let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
                         let base_token_id = constants.base_token_id ?? "";
 
-                        let current_pft_amount = (e.assets.find(asset => asset.tokenId === constants.token_id)?.amount) ?? 0;
+                        let current_pft_amount = (e.assets.find(asset => asset.tokenId === constants.pft_token_id)?.amount) ?? 0;
                         let total_pft_amount = current_pft_amount + auxiliar_exchange_counter;
                         let unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
                         let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
@@ -224,7 +224,7 @@ export async function fetchProjectsFromBlockchain() {
                             },
                             project_id: project_id,
                             current_idt_amount: e.assets[0].amount,
-                            token_id: constants.token_id,
+                            pft_token_id: constants.pft_token_id,
                             base_token_id: base_token_id,
                             base_token_details: base_token_details,
                             block_limit: block_limit,

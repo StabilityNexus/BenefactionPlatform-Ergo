@@ -126,7 +126,7 @@ export class MemoryIndex {
         
         if (criteria.hasToken !== undefined) {
             filtered = filtered.filter(entry => 
-                (entry.project.token_id !== "") === criteria.hasToken
+                (entry.project.pft_token_id !== "") === criteria.hasToken
             );
         }
         

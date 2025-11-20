@@ -176,9 +176,10 @@ export function setupBeneTestContext(
     .replace(/`\+owner_ergotree\+`/g, ownerErgoTree)                     // Insert owner's ErgoTree (P2S/P2PK support)
     .replace(/`\+dev_fee_contract_bytes_hash\+`/g, devFeeContractHash)  // Insert dev fee contract hash
     .replace(/`\+dev_fee\+`/g, devFeePercentage.toString())             // Insert 5% fee
-    .replace(/`\+token_id\+`/g, pftTokenId)                             // Insert PFT token ID
+    .replace(/`\+pft_token_id\+`/g, pftTokenId)                             // Insert PFT token ID
     .replace(/`\+base_token_id\+`/g, baseTokenId);                      // Insert base token ID ("" for ERG)
 
+    console.log("Generated Bene Contract Source:\n", beneContractSource);
   // STEP 8c: Compile the contract source code into ErgoTree (executable bytecode)
   const beneErgoTree = compile(beneContractSource);
 
