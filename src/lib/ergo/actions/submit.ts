@@ -129,6 +129,8 @@ export async function submit_project(
         "base_token_id": base_token_id
     };
 
+    get_ergotree_hex(addressContent, version);
+
     // Get token emission amount.
     let token_data = await get_token_data(token_id);
     let id_token_amount = token_data["amount"] + 1;

@@ -75,6 +75,9 @@ export function get_ergotree_hex(constants: ConstantContent, version: contract_v
         contract = handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.pft_token_id);
     }
     let ergoTree = compile(contract, {version: 1, network: network_id});
+
+    console.log("Constants -> ", constants)
+    console.log("template", uint8ArrayToHex(sha256(ergoTree.template)));
     
     return ergoTree.toHex();
 }

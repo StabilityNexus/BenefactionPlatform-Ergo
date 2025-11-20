@@ -51,6 +51,7 @@
   val devFee = `+dev_fee+`
   val pftTokenId = fromBase16("`+pft_token_id+`")
   val baseTokenId = fromBase16("`+base_token_id+`")
+  val isERGBase = baseTokenId == fromBase16("0000000000000000000000000000000000000000000000000000000000000000")
 
   val selfId = SELF.tokens(0)._1
   val selfAPT = SELF.tokens(0)._2
