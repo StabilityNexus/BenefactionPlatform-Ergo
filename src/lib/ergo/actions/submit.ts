@@ -24,20 +24,26 @@ async function get_token_data(token_id: string): Promise<{amount: number, decima
     return {"amount": id_token_amount, "decimals": token_fetch['decimals']}
 }
 
-function playBeep(frequency = 1000, duration = 3000) {
-    const audioCtx = new window.AudioContext();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
+function playBeep() {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
 
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(660, audioCtx.currentTime);
 
-    oscillator.start();
-    setTimeout(() => {
-        oscillator.stop();
-    }, duration);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    const now = audioCtx.currentTime;
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.25, now + 0.05);
+    gain.gain.setValueAtTime(0.25, now + 0.5);
+    gain.gain.linearRampToValueAtTime(0, now + 0.55);
+
+    osc.start(now);
+    osc.stop(now + 0.55);
 }
 
 async function mint_tx(title: string, constants: ConstantContent, version: contract_version, amount: number, decimals: number): Promise<Box> {
