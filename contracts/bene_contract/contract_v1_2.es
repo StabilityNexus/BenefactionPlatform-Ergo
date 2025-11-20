@@ -68,7 +68,7 @@
   val isReplicationBoxPresent = OUTPUTS.size > 0 && OUTPUTS(0).propositionBytes == selfScript
 
   // Get base token information
-  val isERGBase = baseTokenId.size == 0
+  val isERGBase = baseTokenId == fromBase16("0000000000000000000000000000000000000000000000000000000000000000")
 
   // HELP FUNCTIONS
 

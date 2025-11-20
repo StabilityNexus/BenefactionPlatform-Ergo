@@ -22,7 +22,7 @@
     let rewardTokenName: string = 'Token';
 
     let baseTokenOption: object | null = null;
-    let baseTokenId: string = '';
+    let baseTokenId: string = '0000000000000000000000000000000000000000000000000000000000000000';
     let baseTokenDecimals: number = 9;
     let baseTokenName: string = 'ERG';
     
@@ -98,7 +98,7 @@
             baseTokenDecimals = baseToken?.decimals || 0;
             baseTokenName = baseToken?.title || 'Unknown';
         } else {
-            baseTokenId = '';
+            baseTokenId = '0000000000000000000000000000000000000000000000000000000000000000';
             baseTokenDecimals = 9;
             baseTokenName = 'ERG';
         }

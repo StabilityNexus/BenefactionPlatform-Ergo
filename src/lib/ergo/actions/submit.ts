@@ -96,7 +96,7 @@ export async function submit_project(
     projectContent: string,    // Project content
     minimumSold: number,     // Minimum amount sold to allow withdrawal
     title: string,
-    base_token_id: string = ""  // Base token ID for contributions (empty for ERG)
+    base_token_id: string = "0000000000000000000000000000000000000000000000000000000000000000"  // Base token ID for contributions (empty for ERG)
 ): Promise<string|null> {
 
     function utf8ByteLength(str: string): number {

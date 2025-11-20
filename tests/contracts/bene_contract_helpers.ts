@@ -1,6 +1,6 @@
 import { MockChain } from "@fleet-sdk/mock-chain";
 import { compile } from "@fleet-sdk/compiler";
-import { RECOMMENDED_MIN_FEE_VALUE, ErgoAddress } from "@fleet-sdk/core";
+import { ErgoAddress } from "@fleet-sdk/core";
 import { blake2b256 } from "@fleet-sdk/crypto";
 import * as fs from "fs";
 import * as path from "path";
@@ -27,7 +27,7 @@ export const BENE_CONTRACT_V1_2_TEMPLATE = fs.readFileSync(
 export const TOTAL_PFT_TOKENS = 100_000n;       // 100,000 tokens
 
 // --- ERG ---
-export const ERG_BASE_TOKEN = "";
+export const ERG_BASE_TOKEN = "0000000000000000000000000000000000000000000000000000000000000000";
 export const ERG_BASE_TOKEN_NAME = "ERG";
 export const ERG_BASE_TOKEN_DECIMALS = 9;
 export const ERG_FUNDING_GOAL = 100_000_000_000n;  // 100 ERG = 100 * 10^9
@@ -135,7 +135,7 @@ export function setupBeneTestContext(
   }
 
   // STEP 4: Calculate payment mode flags
-  const isErgMode = baseTokenId === "";                   // true = accept ERG, false = accept custom token
+  const isErgMode = baseTokenId === "0000000000000000000000000000000000000000000000000000000000000000";                   // true = accept ERG, false = accept custom token
 
   // STEP 5: Fund the buyer with ERG for transaction fees
   buyer.addBalance({ nanoergs: 50_000_000_000n });  // Give buyer 50 ERG for gas fees
