@@ -99,6 +99,18 @@ export async function submit_project(
     base_token_id: string = ""  // Base token ID for contributions (empty for ERG)
 ): Promise<string|null> {
 
+    function utf8ByteLength(str: string): number {
+        return new TextEncoder().encode(str).length;
+    }
+
+    const MAX_R9_BYTES = 3000;
+    const r9Bytes = utf8ByteLength(projectContent);
+
+    if (r9Bytes > MAX_R9_BYTES) {
+        alert(`The project description is too large (${r9Bytes} bytes). Maximum allowed: ${MAX_R9_BYTES} bytes.`);
+        return null;
+    }
+
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
 

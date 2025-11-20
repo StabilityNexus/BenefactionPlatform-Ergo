@@ -12,6 +12,8 @@
     import { walletConnected } from '$lib/wallet/wallet-manager';
     import { fetchProjects } from '$lib/ergo/fetch';
 
+    const MAX_DESCRIPTION_CHARS = 3000;
+
     let platform = new ErgoPlatform();
 
     let rewardTokenOption: object | null = null;
@@ -173,6 +175,9 @@
             deadlineValueText = "";
         }
     }
+
+    $: descriptionLength = projectDescription?.length || 0;
+    $: descriptionTooLong = descriptionLength > MAX_DESCRIPTION_CHARS;
 
     function validateGoalOrder() {
         if (
@@ -604,13 +609,27 @@
 
                     <div class="form-group">
                         <Label for="projectDescription" class="text-sm font-medium mb-2 block text-foreground/90">Description</Label>
-                        <Textarea
-                            id="projectDescription"
-                            bind:value={projectDescription}
-                            placeholder="Describe your project goals, roadmap, and vision..."
-                            required
-                            class="w-full h-32 bg-background/50 border-orange-500/20 focus:border-orange-500/50 resize-none"
-                        />
+                        <div class="relative">
+                            <Textarea
+                                id="projectDescription"
+                                bind:value={projectDescription}
+                                placeholder="Describe your project goals, roadmap, and vision..."
+                                required
+                                class="w-full h-32 bg-background/50 border-orange-500/20 focus:border-orange-500/50 resize-y
+                                    {descriptionTooLong ? 'border-red-500 focus:border-red-500' : ''}"
+                            />
+                            
+                            <div class="text-right text-xs mt-1 
+                                        {descriptionTooLong ? 'text-red-400' : 'text-muted-foreground'}">
+                                {descriptionLength} / {MAX_DESCRIPTION_CHARS} characters
+                            </div>
+
+                            {#if descriptionTooLong}
+                                <p class="text-red-400 text-xs mt-1">
+                                    The description is too long. Please reduce it.
+                                </p>
+                            {/if}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -646,7 +665,9 @@
                             !projectTitle ||
                             !deadlineValueBlock ||
                             formErrors.tokenConflict ||
-                            formErrors.goalOrder}
+                            formErrors.goalOrder ||
+                            descriptionTooLong
+                            }
                         class="w-full max-w-xs bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-black border-none h-12 text-lg font-bold rounded-lg shadow-lg shadow-orange-500/20 transition-all duration-200 hover:scale-[1.02] hover:shadow-orange-500/40 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none disabled:grayscale"
                     >
                         {isSubmitting ? 'Submitting Project...' : 'Launch Project'}
