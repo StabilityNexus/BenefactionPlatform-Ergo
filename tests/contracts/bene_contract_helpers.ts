@@ -179,7 +179,6 @@ export function setupBeneTestContext(
     .replace(/`\+pft_token_id\+`/g, pftTokenId)                             // Insert PFT token ID
     .replace(/`\+base_token_id\+`/g, baseTokenId);                      // Insert base token ID ("" for ERG)
 
-    console.log("Generated Bene Contract Source:\n", beneContractSource);
   // STEP 8c: Compile the contract source code into ErgoTree (executable bytecode)
   const beneErgoTree = compile(beneContractSource);
 
