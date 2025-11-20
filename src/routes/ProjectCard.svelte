@@ -8,7 +8,6 @@
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { mode } from "mode-watcher";
     import { getBaseTokenDisplayInfo, formatBaseTokenAmount } from "$lib/ergo/token_utils";
-    import Badge from "$lib/components/ui/badge/badge.svelte";
     
     export let project: Project;
 
