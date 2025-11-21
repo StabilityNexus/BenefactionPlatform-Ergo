@@ -15,8 +15,6 @@
 
     import { onDestroy } from 'svelte';
     import { fetchProjects } from "$lib/ergo/fetch";
-
-
     let project: Project = $project_detail;
 
     let platform = new ErgoPlatform();
@@ -26,6 +24,24 @@
     let isSubmitting: boolean = false;
 
     let showCopyMessage = false;
+
+    // --- NEW: Transaction Copy Logic ---
+    let clipboardCopied = false;
+    let clipboardTimeout;
+
+    function copyTransactionId() {
+        if(!transactionId) return;
+        navigator.clipboard.writeText(transactionId)
+            .then(() => {
+                clipboardCopied = true;
+                if (clipboardTimeout) clearTimeout(clipboardTimeout);
+                clipboardTimeout = setTimeout(() => {
+                    clipboardCopied = false;
+                }, 2000);
+            })
+            .catch(err => console.error('Failed to copy ID: ', err));
+    }
+    // -----------------------------------
 
     // Make these reactive to project changes - FIXED: Current amount = sold - refunded
     $: currentVal = project.sold_counter - project.refund_counter;
@@ -45,7 +61,6 @@
         amount: "",
         token: ""
     };
-
     let hide_submit_info = false;
     let submit_amount_label = "";
 
@@ -144,31 +159,37 @@
     let hoursValue = 0;
     let minutesValue = 0;
     let secondsValue = 0;
-
     // Balance-aware variables
-    let userErgBalance = 0; // User's ERG balance
-    let userProjectTokenBalance = 0; // User's project token balance  
-    let userTemporalTokenBalance = 0; // User's temporal token balance
-    let userTokens = new Map(); // Store all user token balances
-    let maxContributeAmount = 0; // Maximum amount user can contribute
-    let maxRefundAmount = 0; // Maximum amount user can refund
-    let maxCollectAmount = 0; // Maximum amount user can collect
-    let maxWithdrawTokenAmount = 0; // Maximum amount project owner can withdraw
-    let maxWithdrawErgAmount = 0; // Maximum amount project owner can withdraw
-    let maxAddTokenAmount = 0; // Maximum amount project owner can add (their wallet balance)
+    let userErgBalance = 0;
+    // User's ERG balance
+    let userProjectTokenBalance = 0;
+    // User's project token balance  
+    let userTemporalTokenBalance = 0;
+    // User's temporal token balance
+    let userTokens = new Map();
+    // Store all user token balances
+    let maxContributeAmount = 0;
+    // Maximum amount user can contribute
+    let maxRefundAmount = 0;
+    // Maximum amount user can refund
+    let maxCollectAmount = 0;
+    // Maximum amount user can collect
+    let maxWithdrawTokenAmount = 0;
+    // Maximum amount project owner can withdraw
+    let maxWithdrawErgAmount = 0;
+    // Maximum amount project owner can withdraw
+    let maxAddTokenAmount = 0;
+    // Maximum amount project owner can add (their wallet balance)
 
     async function getWalletBalances() {
         // Get ERG balance
         userErgBalance = ($balance || 0) / Math.pow(10, 9);
-        
         // Fetch project token balances
         userTokens = await platform.get_balance();
-        
         // Get project token balance
         const rawProjectTokens = userTokens.get(project.pft_token_id) || 0;
         const decimalDivisor = Math.pow(10, project.token_details.decimals);
         userProjectTokenBalance = rawProjectTokens / decimalDivisor;
-        
         // Get temporal token balance  
         const rawTemporalTokens = userTokens.get(project.project_id) || 0;
         userTemporalTokenBalance = rawTemporalTokens / decimalDivisor;
@@ -208,13 +229,10 @@
         const rawMaxContribute = Math.min(maxBaseTokenContribution, maxBaseTokensForRemainingTokens);
         // Round to 12 decimal places to avoid display issues while maintaining precision
         maxContributeAmount = Math.round(rawMaxContribute * 1e12) / 1e12;
-        
         // Calculate maximum refund amount based on user's project tokens
         maxRefundAmount = userTemporalTokenBalance;
-        
         // For calculating decimals
         const smallestPftUnitFactor = Math.pow(10, project.token_details.decimals);
-        
         // Calculate maximum collect amount based on user's temporal tokens
         const availablePftForExchange = Math.max(0, project.current_pft_amount);
         const availablePftInNormalUnits = availablePftForExchange / smallestPftUnitFactor;
@@ -233,10 +251,8 @@
         const soldTokens = project.sold_counter || 0;
         const refundedTokens = project.refund_counter || 0;
         const exchangedTokens = project.auxiliar_exchange_counter || 0;
-        
         // Maximum withdrawable PFT = current_pft - (sold - refunded - exchanged)
         const maxWithdrawableRaw = project.current_pft_amount - (soldTokens - refundedTokens - exchangedTokens);
-        
         if (maxWithdrawableRaw <= 0) {
             maxWithdrawTokenAmount = 0;
         } else {
@@ -247,7 +263,6 @@
         
         // Maximum tokens owner can add equals their wallet balance of project token
         maxAddTokenAmount = userProjectTokenBalance;
-        
         // Calculate max withdraw amount based on base token type
         if (isERGBase) {
             const rawAmount = project.current_value / Math.pow(10, 9);
@@ -294,7 +309,8 @@
 
     // Project owner actions
     function setupAddTokens() {
-        getWalletBalances(); // Refresh balances before opening modal
+        getWalletBalances();
+        // Refresh balances before opening modal
         info_type_to_show = "dev";
         label_submit = "How many tokens do you want to add?";
         function_submit = add_tokens;
@@ -319,7 +335,8 @@
     }
 
     function setupWithdrawTokens() {
-        getWalletBalances(); // Refresh balances before opening modal
+        getWalletBalances();
+        // Refresh balances before opening modal
         info_type_to_show = "dev";
         label_submit = "How many tokens do you want to withdraw?";
         function_submit = withdraw_tokens;
@@ -345,7 +362,8 @@
     }
 
     function setupWithdrawErg() {
-        getWalletBalances(); // Refresh balances before opening modal
+        getWalletBalances();
+        // Refresh balances before opening modal
         info_type_to_show = "dev-collect";
         const isERGBase = !project.base_token_id || project.base_token_id === "";
         const baseTokenName = isERGBase ? "ERGs" : (project.base_token_details?.name || "tokens");
@@ -373,7 +391,8 @@
 
     // User actions
     function setupBuy() {
-        getWalletBalances(); // Refresh balances before opening modal
+        getWalletBalances();
+        // Refresh balances before opening modal
         info_type_to_show = "buy";
         const isERGBase = !project.base_token_id || project.base_token_id === "";
         const baseTokenName = isERGBase ? platform.main_token : (project.base_token_details?.name || "tokens");
@@ -414,7 +433,8 @@
     }
 
     function setupRefund() {
-        getWalletBalances(); // Refresh balances before opening modal
+        getWalletBalances();
+        // Refresh balances before opening modal
         info_type_to_show = "";
         label_submit = "How many APT do you want to refund?";
         function_submit = refund;
@@ -426,7 +446,6 @@
 
     async function refund() {
         isSubmitting = true;
-
         try {
             const result = await platform.buy_refund(project, (-1) * value_submit);
             transactionId = result;
@@ -442,7 +461,8 @@
     }
 
     function setupTempExchange() {
-        getWalletBalances(); // Refresh balances before opening modal
+        getWalletBalances();
+        // Refresh balances before opening modal
         info_type_to_show = "";
         label_submit = "Exchange "+project.content.title+" APT per "+project.token_details.name;
         function_submit = temp_exchange;
@@ -504,11 +524,9 @@
         is_owner = connected && await address === project.constants.owner;
     }
     checkIfIsOwner();
-
     let timerValue = get(timer);
     let targetDate = timerValue.target;
     let countdownInterval = timerValue.countdownInterval;
-
     async function setTargetDate() {
         targetDate = await block_to_time(project.block_limit, project.platform);
     }
@@ -516,7 +534,6 @@
 
     let progressColor = 'white';
     let countdownAnimation = false;
-
     function updateCountdown() {
         var currentDate = new Date().getTime();
         var diff = targetDate - currentDate;
@@ -536,13 +553,13 @@
         }
 
         if (is_min_raised) {
-            progressColor = '#A8E6A1';  
+            progressColor = '#A8E6A1';
         } else {
             if (diff <= 0) {
-                progressColor = '#FF6F61';  
+                progressColor = '#FF6F61';
                 countdownAnimation = false;
             } else if (diff < 24 * 60 * 60 * 1000) {
-                progressColor = '#FFF5A3';  
+                progressColor = '#FFF5A3';
                 countdownAnimation = true;
             } else {
                 progressColor = 'white';
@@ -584,10 +601,8 @@
                     current_pft_amount: updatedProject.current_pft_amount,
                     box: updatedProject.box
                 };
-                
                 // Also update the project_detail store
                 project_detail.set(project);
-                
                 // Refresh user balances as well
                 await getWalletBalances();
                 await get_user_project_tokens();
@@ -599,25 +614,21 @@
     
     // Call getWalletBalances initially to set up values
     getWalletBalances();
-    
     onDestroy(() => {
         if (countdownInterval) {
             clearInterval(countdownInterval);
         }
     });
-
 </script>
 
-<!-- Main Project Detail Page -->
 <div class="project-detail" style="{$mode === 'light' ? 'color: black;' : 'color: #ddd;'}">
     <div class="project-container">
-        <!-- Left Column - Project Information -->
         <div class="project-info">
             <div class="project-header">
                 <h1 class="project-title">{project.content.title}</h1>
                 <div class="project-badge" style="display: none;">
         <a href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es" target="_blank"
-            class={badgeVariants({ variant: "outline" })}>Contract version: {project.version.replace("_", ".")}</a>
+           class={badgeVariants({ variant: "outline" })}>Contract version: {project.version.replace("_", ".")}</a>
                 </div>
             </div>
             
@@ -634,7 +645,8 @@
 
             <div class="token-info">
         <p>Proof-of-Funding Token:
-            <a href="{web_explorer_uri_tkn + project.pft_token_id}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">
+            <a href="{web_explorer_uri_tkn + project.pft_token_id}" 
+                target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">
                {project.token_details.name}
             </a>
         </p>
@@ -647,31 +659,30 @@
         {#if showCopyMessage}
                     <div class="copy-msg">
                 Project page url copied to clipboard!
-            </div>
+                </div>
         {/if}
             </div>
     </div>
 
-        <!-- Right Column - Project Stats & Actions -->
         <div class="project-stats">
-            <!-- Countdown Timer -->
             <div class="countdown-container">
         <div class="timeleft {deadline_passed ? 'ended' : (countdownAnimation ? 'soon' : '')}">
-            <span class="timeleft-label">
+             <span class="timeleft-label">
                 {#if deadline_passed}
-                  TIME'S UP!  
+                  TIME'S UP!
                   {#if ! is_max_raised}
                   <small class="secondary-text">... But you can still contribute!</small>
                   {/if}
                 {:else}
                   TIME LEFT
                 {/if}
-              </span>
+             </span>
                     <div class="countdown-items">
               <div class="item">
                 <div>{daysValue}</div>
                 <div class="h3"><h3>Days</h3></div>
               </div>
+        
               <div class="item">
                 <div>{hoursValue}</div>
                 <div class="h3"><h3>Hours</h3></div>
@@ -685,11 +696,11 @@
                 <div class="h3"><h3>Seconds</h3></div>
               </div>
             </div>
-                    <small class="deadline-info">Until {limit_date} UTC on block {project.block_limit}</small>
+          
+             <small class="deadline-info">Until {limit_date} UTC on block {project.block_limit}</small>
           </div>
         </div>
 
-            <!-- Progress Bar -->
             <div class="progress-container">
                 <Progress value="{percentage}" color="{progressColor}" />
                 
@@ -741,19 +752,16 @@
             </div>
         </div>
 
-        <!-- User Actions -->
-
         <div class="actions-section">
             <h2 class="actions-title">Actions</h2>
-            <div class="action-buttons">
+             <div class="action-buttons">
                 
-                <!-- CONTRIBUTE BUTTON -->
                 <Button 
                     class="action-btn primary" 
                     style="background-color: #FFA500; color: black;" 
                     on:click={setupBuy} 
                     disabled={
-                        !$connected || 
+                        !$connected ||
                         maxContributeAmount <= 0 || 
                         project.sold_counter >= project.total_pft_amount
                     }
@@ -784,13 +792,12 @@
                 Contribute
                 </Button>
 
-                <!-- REFUND BUTTON -->
                 <Button 
                     class="action-btn" 
-                    style="background-color: #FF8C00; color: black;" 
+                    style="background-color: #FF8C00; color: black;"
                     on:click={setupRefund} 
                     disabled={
-                        !$connected || 
+                        !$connected ||
                         !(deadline_passed && !is_min_raised) || 
                         maxRefundAmount <= 0
                     }
@@ -809,13 +816,12 @@
                 Get a Refund
                 </Button>
 
-                <!-- COLLECT BUTTON -->
                 <Button 
                     class="action-btn" 
                     style="background-color: #FF8C00; color: black;" 
                     on:click={setupTempExchange} 
                     disabled={
-                        !$connected || 
+                        !$connected ||
                         !is_min_raised || 
                         maxCollectAmount <= 0
                     }
@@ -835,26 +841,23 @@
             </div>
         </div>
       
-        <!-- Project Owner Actions -->
         {#if is_owner}
             <div class="actions-section owner">
                 <h2 class="actions-title">Owner Actions</h2>
                 <div class="action-buttons">
 
-                    <!-- ADD TOKENS -->
                     <Button 
                         class="action-btn" 
-                        style="background-color: #FF8C00; color: black;" 
+                        style="background-color: #FF8C00; color: black;"
                         on:click={setupAddTokens}
                         title={`Add more ${project.token_details.name} to the sale`}
                     >
                     Add {project.token_details.name}
                     </Button>
 
-                    <!-- WITHDRAW TOKENS -->
                     <Button 
                         class="action-btn" 
-                        style="background-color: #FF8C00; color: black;" 
+                        style="background-color: #FF8C00; color: black;"
                         on:click={setupWithdrawTokens}
                         disabled={!$connected || maxWithdrawTokenAmount <= 0}
                         title={
@@ -868,10 +871,9 @@
                     Withdraw {project.token_details.name}
                     </Button>
 
-                    <!-- WITHDRAW BASE TOKEN / ERG -->
                     <Button 
                         class="action-btn" 
-                        style="background-color: #FF8C00; color: black;" 
+                        style="background-color: #FF8C00; color: black;"
                         on:click={setupWithdrawErg} 
                         disabled={!$connected || !is_min_raised || maxWithdrawErgAmount <= 0}
                         title={
@@ -887,7 +889,8 @@
                                         ? `No ${(!project.base_token_id || project.base_token_id === "") 
                                             ? "ERG" 
                                             : (project.base_token_details?.name || "tokens")} available for withdrawal`
-                                        : `You can withdraw up to ${maxWithdrawErgAmount} ${(!project.base_token_id || project.base_token_id === "") 
+                                        : `You can withdraw up to ${maxWithdrawErgAmount} ${(!project.base_token_id || 
+                                            project.base_token_id === "") 
                                             ? platform.main_token 
                                             : (project.base_token_details?.name || "tokens")}`
                         }
@@ -901,26 +904,58 @@
             </div>
         {/if}
         </div>
-    </div>
+    
+</div>
 
-    <!-- Transaction Form Modal -->
-        {#if show_submit}
+    {#if show_submit}
     <div class="modal-overlay">
         <div class="actions-form" style="{$mode === 'light' ? 'background: white;' : 'background: #2a2a2a;'}">
             <!-- svelte-ignore a11y-click-events-have-key-events -->
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <div class="close-button" on:click={close_submit_form}>
                     &times;
-                </div>
+            </div>
                 <div class="centered-form">
+                    
                     {#if transactionId}
                         <div class="result">
-                            <p>
-                                <strong>Transaction ID:</strong>
-                            <a href="{web_explorer_uri_tx + transactionId}" target="_blank" rel="noopener noreferrer" class="transaction-link">
-                                    {transactionId.slice(0,16)}
+                            <div class="result-content">
+                                <span class="result-label">Transaction ID</span>
+                                <a 
+                                    href="{web_explorer_uri_tx + transactionId}" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    class="result-link"
+                                    title="View on Explorer"
+                                >
+                                    {transactionId.length > 20 
+                                        ? `${transactionId.slice(0, 10)}...${transactionId.slice(-6)}` 
+                                        : transactionId}
+                                    <svg class="icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                        <polyline points="15 3 21 3 21 9" />
+                                        <line x1="10" y1="14" x2="21" y2="3" />
+                                    </svg>
                                 </a>
-                            </p>
+                            </div>
+
+                            <button 
+                                class="copy-btn" 
+                                class:success={clipboardCopied} 
+                                on:click={copyTransactionId}
+                                aria-label="Copy Transaction ID"
+                            >
+                                {#if clipboardCopied}
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                {:else}
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                {/if}
+                            </button>
                         </div>
                     {:else if errorMessage}
                         <div class="error">
@@ -1053,7 +1088,6 @@
             </div>
         {/if}
     
-    <!-- Forum/Discussions Section -->
     <div class="forum-section">
         <ForumThread projectId={project.project_id} />
     </div>
@@ -1494,20 +1528,105 @@
     }
 
     /* --- Result & Error --- */
-    .result, .error {
+    .result {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(76, 175, 80, 0.12);
+        border: 1px solid rgba(76, 175, 80, 0.4);
+        border-radius: 12px;
+        padding: 0.8rem 1.2rem;
+        margin-top: 1rem;
+        gap: 1rem;
+        backdrop-filter: blur(5px);
+        transition: border-color 0.2s ease;
+    }
+
+    .result:hover {
+        border-color: rgba(76, 175, 80, 0.8);
+    }
+
+    .result-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        overflow: hidden;
+        text-align: left; /* Force left alignment inside the center form */
+    }
+
+    .result-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #81c784;
+        font-weight: 600;
+    }
+
+    .result-link {
+        font-family: 'SF Mono', 'Roboto Mono', monospace;
+        font-size: 1rem;
+        color: #ffffff;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+    }
+
+    .result-link:hover {
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-decoration-color: #4caf50;
+    }
+
+    .icon-link {
+        width: 14px;
+        height: 14px;
+        opacity: 0.6;
+    }
+
+    /* New Copy Button */
+    .copy-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid transparent;
+        color: #e0e0e0;
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
+    }
+
+    .copy-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .copy-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+    }
+
+    .copy-btn.success {
+        background: #4caf50;
+        color: white;
+        border-color: #4caf50;
+        transform: scale(1.05);
+    }
+    /* --------------------------------- */
+
+    .error {
+        background: rgba(244, 67, 54, 0.15);
+        color: #f44336;
         text-align: center;
         padding: 1.4rem;
         font-size: 1.05rem;
         border-radius: 12px;
         margin-top: 1rem;
-    }
-    .result {
-        background: rgba(76, 175, 80, 0.15);
-        color: #4caf50;
-    }
-    .error {
-        background: rgba(244, 67, 54, 0.15);
-        color: #f44336;
     }
 
     /* --- Responsive Adjustments --- */
