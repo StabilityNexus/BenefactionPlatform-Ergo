@@ -131,7 +131,7 @@
         // Extract the token IDs from the collection of type NFT boxes
         val availableTypeTokenIds: Coll[Coll[Byte]] = CONTEXT.dataInputs.filter { (b: Box) =>
           blake2b256(b.propositionBytes) == DIGITAL_PUBLIC_GOOD &&
-          b.creationInfo._1 < CONTEXT.HEIGHT
+          b.creationInfo._2 <= CONTEXT.preHeader.timestamp
         }.map { (b: Box) => 
           b.tokens(0)._1
         }
