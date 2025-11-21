@@ -98,7 +98,7 @@ export function getConstantContent(value: string): ConstantContent | null {
             dev_addr: parsed.dev_addr,
             dev_hash: parsed.dev_hash,
             dev_fee: parsed.dev_fee,
-            pft_token_id: parsed.token_id,
+            pft_token_id: parsed.pft_token_id || parsed.token_id || null, 
             base_token_id: parsed.base_token_id || ""  // Default to empty string for ERG
         }
     } catch(error) {

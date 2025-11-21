@@ -41,6 +41,7 @@ function hasValidSigmaTypes(additionalRegisters: any, version: contract_version 
 }
 
 export async function fetch_token_details(id: string): Promise<TokenEIP4> {
+    console.log("Fetching token details for ", id);
     const url = get(explorer_uri)+'/api/v1/tokens/'+id;
     const response = await fetch(url, {
         method: 'GET',
@@ -135,7 +136,7 @@ export async function fetchProjectsFromBlockchain() {
     const registers = {};
     let moreDataAvailable;
 
-    const versions: contract_version[] = ["v1_2", "v1_1", "v1_0"];
+    const versions: contract_version[] = ["v1_2_erg", "v1_2", "v1_1", "v1_0"];
 
     try {
         for (const version of versions) {
@@ -198,7 +199,7 @@ export async function fetchProjectsFromBlockchain() {
                         let block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
 
                         let base_token_details = undefined;
-                        if (base_token_id && base_token_id !== "") {
+                        if (base_token_id && base_token_id !== "" && base_token_id !== undefined && base_token_id !== "00".repeat(32)) {
                             try {
                                 base_token_details = await fetch_token_details(base_token_id);
                             } catch (error) {

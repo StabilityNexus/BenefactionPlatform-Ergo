@@ -11,7 +11,7 @@ import CONTRACT_V1_1 from '../../../contracts/bene_contract/deprecated/contract_
 import CONTRACT_V1_2 from '../../../contracts/bene_contract/contract_v1_2.es?raw';
 import MINT_CONTRACT from '../../../contracts/mint_contract/mint_idt.es?raw';
 
-export type contract_version = "v1_0" | "v1_1" | "v1_2";
+export type contract_version = "v1_0" | "v1_1" | "v1_2" | "v1_2_erg";
 
 function generate_contract_v1_0(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
   return CONTRACT_V1_0
@@ -86,11 +86,12 @@ export function get_template_hash(version: contract_version): string {
         "dev_hash": get_dev_contract_hash(),   // RANDOM
         "dev_fee": get_dev_fee(),    //  RANDOM
         "pft_token_id": "a3f7c9e12bd45890ef12aa7c6d54b9317c0df4a28b6e5590d4f1b3e8c92d77af",   // RANDOM
-        "base_token_id": "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717" // RANDOM
+        "base_token_id": version == "v1_2_erg" ? "" : "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717" // RANDOM
     }
 
   let contract;
-  if (version === "v1_2") {
+  if (version === "v1_2" || version === "v1_2_erg") {
+      version = "v1_2"; // treat v1_2_erg as v1_2 for contract generation
       contract = handle_contract_generator(version)(random_constants.owner, random_constants.dev_hash ?? get_dev_contract_hash(), random_constants.dev_fee, random_constants.pft_token_id, random_constants.base_token_id || "");
   } else {
       contract = handle_contract_generator(version)(random_constants.owner, random_constants.dev_hash ?? get_dev_contract_hash(), random_constants.dev_fee, random_constants.pft_token_id);
