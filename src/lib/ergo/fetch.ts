@@ -208,7 +208,7 @@ export async function fetchProjectsFromBlockchain() {
                         }
 
                         const project: Project = {
-                            version: version,
+                            version: version == "v1_2_erg" ? "v1_2" : version,
                             platform: new ErgoPlatform(),
                             box: {
                                 boxId: e.boxId,
