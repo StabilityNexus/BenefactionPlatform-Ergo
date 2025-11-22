@@ -14,8 +14,12 @@
     import { walletConnected } from "$lib/wallet/wallet-manager";
     import { fetchProjects } from "$lib/ergo/fetch";
     import { formatTransactionError } from "$lib/common/error-utils";
-
-    const MAX_DESCRIPTION_CHARS = 1500;
+    import {
+        validateProjectContent,
+        getRemainingBytes,
+        getUsagePercentage,
+        type ProjectContent,
+    } from "$lib/ergo/utils/box-size-calculator";
 
     let platform = new ErgoPlatform();
 
@@ -81,7 +85,13 @@
         decimals: number;
     }> = [];
 
-    let formErrors = {
+    let formErrors: {
+        tokenConflict: string | null;
+        goalOrder: string | null;
+        invalidBaseToken: string | null;
+        invalidToken: string | null;
+        exchangeRate: string | null;
+    } = {
         tokenConflict: null,
         goalOrder: null,
         invalidBaseToken: null,
@@ -246,8 +256,19 @@
         }
     }
 
-    $: descriptionLength = projectDescription?.length || 0;
-    $: descriptionTooLong = descriptionLength > MAX_DESCRIPTION_CHARS;
+    // Reactive validation for project content size (title, description, image, link)
+    $: projectContentObject = {
+        title: projectTitle,
+        description: projectDescription,
+        image: projectImage,
+        link: projectLink,
+    } as ProjectContent;
+
+    $: contentValidation = validateProjectContent(projectContentObject);
+    $: contentBytesUsed = contentValidation.currentBytes;
+    $: contentUsagePercentage = getUsagePercentage(projectContentObject);
+    $: contentTooLarge = !contentValidation.isValid;
+    $: estimatedBoxSize = contentValidation.estimatedBoxSize;
 
     function validateGoalOrder() {
         if (
@@ -913,24 +934,68 @@
                             >Description</Label
                         >
                         <div
-                            class="relative editor-wrapper {descriptionTooLong
+                            class="relative editor-wrapper {contentTooLarge
                                 ? 'border-red-500'
                                 : ''}"
                         >
                             <textarea bind:this={editorElement}></textarea>
 
-                            <div
-                                class="text-right text-xs mt-1 {descriptionTooLong
-                                    ? 'text-red-400'
-                                    : 'text-muted-foreground'}"
-                            >
-                                {descriptionLength} / {MAX_DESCRIPTION_CHARS} characters
+                            <div class="mt-2 space-y-1">
+                                <div
+                                    class="text-right text-xs {contentTooLarge
+                                        ? 'text-red-400 font-semibold'
+                                        : contentUsagePercentage > 80
+                                          ? 'text-yellow-400'
+                                          : 'text-muted-foreground'}"
+                                >
+                                    Project content: {contentBytesUsed} bytes
+                                </div>
+
+                                <div
+                                    class="text-right text-xs {estimatedBoxSize >
+                                    4096
+                                        ? 'text-red-400 font-semibold'
+                                        : estimatedBoxSize > 3700
+                                          ? 'text-yellow-400'
+                                          : 'text-muted-foreground'}"
+                                >
+                                    Est. total box size: {estimatedBoxSize} / 4096
+                                    bytes ({contentUsagePercentage}%)
+                                </div>
+
+                                {#if contentUsagePercentage > 0}
+                                    <div
+                                        class="w-full bg-muted rounded-full h-1.5"
+                                    >
+                                        <div
+                                            class="h-1.5 rounded-full transition-all duration-300 {contentTooLarge
+                                                ? 'bg-red-500'
+                                                : contentUsagePercentage > 80
+                                                  ? 'bg-yellow-500'
+                                                  : 'bg-orange-500'}"
+                                            style="width: {Math.min(
+                                                contentUsagePercentage,
+                                                100,
+                                            )}%"
+                                        ></div>
+                                    </div>
+                                {/if}
                             </div>
 
-                            {#if descriptionTooLong}
-                                <p class="text-red-400 text-xs mt-1">
-                                    The description is too long. Please reduce
-                                    it.
+                            {#if contentTooLarge}
+                                <p
+                                    class="text-red-400 text-xs mt-2 bg-red-500/10 p-2 rounded"
+                                >
+                                    ⚠️ {contentValidation.message ||
+                                        "The project content is too large."}
+                                </p>
+                            {:else if contentUsagePercentage > 90}
+                                <p
+                                    class="text-yellow-400 text-xs mt-2 bg-yellow-500/10 p-2 rounded"
+                                >
+                                    ⚠️ You're using {contentUsagePercentage}% of
+                                    the available box space. Consider keeping
+                                    some room for safety.
                                 </p>
                             {/if}
                         </div>
@@ -994,7 +1059,7 @@
                             !deadlineValueBlock ||
                             formErrors.tokenConflict ||
                             formErrors.goalOrder ||
-                            descriptionTooLong}
+                            contentTooLarge}
                         class="w-full max-w-xs bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-black border-none h-12 text-lg font-bold rounded-lg shadow-lg shadow-orange-500/20 transition-all duration-200 hover:scale-[1.02] hover:shadow-orange-500/40 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none disabled:grayscale"
                     >
                         {isSubmitting

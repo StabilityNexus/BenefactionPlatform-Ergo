@@ -15,6 +15,14 @@ import { type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
+import {
+    validateProjectContent,
+    type ProjectContent,
+    estimateRegisterSizes,
+    estimateTotalBoxSize,
+    hexByteLength,
+    getBoxSizeBreakdown
+} from '../utils/box-size-calculator';
 
 async function get_token_data(token_id: string): Promise<{ amount: number, decimals: number }> {
     let token_fetch = await fetch_token_details(token_id);
@@ -25,7 +33,8 @@ async function get_token_data(token_id: string): Promise<{ amount: number, decim
 }
 
 function playBeep(frequency = 1000, duration = 3000) {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    const audioCtx = new AudioContextClass();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
 
@@ -99,23 +108,48 @@ export async function submit_project(
     token_amount: number,
     blockLimit: number,     // Block height until withdrawal/refund is allowed
     exchangeRate: number,   // Exchange rate base_token/PFT
-    projectContent: string,    // Project content
+    projectContent: string,    // Project content (JSON with title, description, image, link)
     minimumSold: number,     // Minimum amount sold to allow withdrawal
     title: string,
     base_token_id: string = ""  // Base token ID for contributions (empty for ERG)
 ): Promise<string | null> {
 
-    function utf8ByteLength(str: string): number {
-        return new TextEncoder().encode(str).length;
-    }
-
-    const MAX_R9_BYTES = 3000;
-    const r9Bytes = utf8ByteLength(projectContent);
-
-    if (r9Bytes > MAX_R9_BYTES) {
-        alert(`The project description is too large (${r9Bytes} bytes). Maximum allowed: ${MAX_R9_BYTES} bytes.`);
+    // Parse and validate project content
+    let parsedContent: ProjectContent;
+    try {
+        parsedContent = JSON.parse(projectContent);
+    } catch (error) {
+        alert("Invalid project content format.");
         return null;
     }
+
+    // Validate that the project content (title, description, image, link) fits within limits
+    const validation = validateProjectContent(parsedContent);
+    if (!validation.isValid) {
+        alert(validation.message);
+        return null;
+    }
+
+    // Log detailed size breakdown for debugging
+    const breakdown = getBoxSizeBreakdown(parsedContent);
+    console.log('=== Project Content Size Breakdown ===');
+    console.log(`R9 (Project Content): ${validation.currentBytes} bytes`);
+    console.log(`Estimated total box size: ${validation.estimatedBoxSize} bytes`);
+    console.log('\nDetailed breakdown:');
+    console.log(`  Base overhead: ${breakdown.baseOverhead} bytes`);
+    console.log(`  ErgoTree (est): ${breakdown.ergoTree} bytes`);
+    console.log(`  Tokens (3x): ${breakdown.tokens} bytes`);
+    console.log(`  R4 (blockLimit): ${breakdown.r4} bytes`);
+    console.log(`  R5 (minimumSold): ${breakdown.r5} bytes`);
+    console.log(`  R6 (SColl): ${breakdown.r6} bytes`);
+    console.log(`  R7 (exchangeRate): ${breakdown.r7} bytes`);
+    console.log(`  R8 (addressContent): ${breakdown.r8} bytes`);
+    console.log(`  R9 (projectContent): ${breakdown.r9} bytes`);
+    console.log(`  Safety margin: ${breakdown.margin} bytes`);
+    console.log(`  TOTAL: ${breakdown.total} bytes / 4096 bytes (${Math.round((breakdown.total / 4096) * 100)}%)`);
+    console.log('====================================');
+
+
 
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
@@ -149,35 +183,20 @@ export async function submit_project(
     const r8Hex = SString(JSON.stringify(addressContent));
     const r9Hex = SString(projectContent);
 
-    const BASE_BOX_OVERHEAD = 60;          // approx. bytes (header, value, creationHeight, etc.)
-    const PER_TOKEN_BYTES = 40;            // approximate per token: 32 (id) + 8 (amount)
-    const PER_REGISTER_OVERHEAD = 1;       // bytes per register index/header
-    const SIZE_MARGIN = 120;               // safety margin in bytes
-
-    // tamaño registros (sumando overhead por registro)
-    let registersBytes = 0;
-    for (const h of [r4Hex, r5Hex, r6Hex, r7Hex, r8Hex, r9Hex]) {
-        const hexBytesLen = (hexStr: string): number => {
-            if (!hexStr) return 0;
-            const stripHexPrefix = (h: string) => h?.startsWith('0x') ? h.slice(2) : h;
-            const h = stripHexPrefix(hexStr);
-            return Math.ceil(h.length / 2);
-        };
-        const len = hexBytesLen(h);
-        registersBytes += len + PER_REGISTER_OVERHEAD;
-    }
+    // Calculate register sizes using utility functions
+    const registerSizes = estimateRegisterSizes(r4Hex, r5Hex, r6Hex, r7Hex, r8Hex, r9Hex);
 
     const ergoTreeAddress = get_ergotree_hex(addressContent, version);
 
-    const totalEstimatedSize = BigInt(
-        BASE_BOX_OVERHEAD
-        + ergoTreeAddress.length
-        + PER_TOKEN_BYTES * 3
-        + registersBytes
-        + SIZE_MARGIN
+    // Estimate total box size
+    const totalEstimatedSize = estimateTotalBoxSize(
+        ergoTreeAddress.length,
+        3, // number of tokens (project_id, token_id, and possibly base_token in future)
+        registerSizes
     );
 
-    let minRequiredValue = BOX_VALUE_PER_BYTE * totalEstimatedSize;
+
+    let minRequiredValue = BOX_VALUE_PER_BYTE * BigInt(totalEstimatedSize);
     if (minRequiredValue < SAFE_MIN_BOX_VALUE) {
         minRequiredValue = SAFE_MIN_BOX_VALUE;
     }
