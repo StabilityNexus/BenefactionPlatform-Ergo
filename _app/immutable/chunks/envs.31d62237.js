@@ -1,0 +1,1 @@
+const s="mainnet",t="https://sigmaspace.io/en/transaction/",n="https://sigmaspace.io/en/address/",_="https://sigmaspace.io/en/token/";export{n as DEFAULT_WEB_EXPLORER_URI_ADDR,_ as DEFAULT_WEB_EXPLORER_URI_TKN,t as DEFAULT_WEB_EXPLORER_URI_TX,s as network_id};
