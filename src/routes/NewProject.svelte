@@ -13,6 +13,7 @@
     import { explorer_uri, user_tokens } from "$lib/common/store";
     import { walletConnected } from "$lib/wallet/wallet-manager";
     import { fetchProjects } from "$lib/ergo/fetch";
+    import { formatTransactionError } from "$lib/common/error-utils";
 
     const MAX_DESCRIPTION_CHARS = 1500;
 
@@ -361,7 +362,7 @@
             transactionId = result;
         } catch (error) {
             console.error(error);
-            errorMessage = error.message || "An unexpected error occurred.";
+            errorMessage = formatTransactionError(error);
         } finally {
             isSubmitting = false;
         }

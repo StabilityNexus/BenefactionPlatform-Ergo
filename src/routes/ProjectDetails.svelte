@@ -17,6 +17,7 @@
     import { Progress } from "$lib/components/ui/progress";
     import { Button } from "$lib/components/ui/button";
     import { block_to_time } from "$lib/common/countdown";
+    import { formatTransactionError } from "$lib/common/error-utils";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { web_explorer_uri_tkn, web_explorer_uri_tx } from "$lib/ergo/envs";
     import { mode } from "mode-watcher";
@@ -358,8 +359,7 @@
             const result = await platform.rebalance(project, value_submit);
             transactionId = result;
         } catch (error) {
-            errorMessage =
-                error.message || "Error occurred while adding tokens";
+            errorMessage = formatTransactionError(error);
         } finally {
             isSubmitting = false;
         }
@@ -382,8 +382,7 @@
             const result = await platform.rebalance(project, -1 * value_submit);
             transactionId = result;
         } catch (error) {
-            errorMessage =
-                error.message || "Error occurred while withdrawing tokens";
+            errorMessage = formatTransactionError(error);
         } finally {
             isSubmitting = false;
         }
@@ -411,8 +410,7 @@
             const result = await platform.withdraw(project, value_submit);
             transactionId = result;
         } catch (error) {
-            errorMessage =
-                error.message || "Error occurred while withdrawing ERGs";
+            errorMessage = formatTransactionError(error);
         } finally {
             isSubmitting = false;
         }
