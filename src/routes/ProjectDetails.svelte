@@ -66,11 +66,16 @@
     $: min = project.minimum_amount;
     $: max = project.current_pft_amount;
     $: percentage = parseInt(((currentVal / max) * 100).toString());
+    $: baseTokenName =
+        !project.base_token_id || project.base_token_id === ""
+            ? platform.main_token
+            : project.base_token_details?.name || "tokens";
 
     // States for amounts
     let show_submit = false;
     let label_submit = "";
-    let info_type_to_show: "buy" | "dev" | "dev-collect" | "" = "";
+    let info_type_to_show: "buy" | "dev" | "dev-collect" | "dev-withdraw" | "" =
+        "";
     let function_submit: ((event?: any) => Promise<void>) | null = null;
     let value_submit = 0;
     let submit_info = {
@@ -198,8 +203,17 @@
     let maxAddTokenAmount = 0;
 
     async function getWalletBalances() {
-        userErgBalance = ($balance || 0) / Math.pow(10, 9);
+        const isERGBase =
+            !project.base_token_id || project.base_token_id === "";
         userTokens = await platform.get_balance();
+
+        if (isERGBase) {
+            userErgBalance = ($balance || 0) / Math.pow(10, 9);
+        } else {
+            const rawBaseToken = userTokens.get(project.base_token_id) || 0;
+            const baseTokenDecimals = project.base_token_details?.decimals || 0;
+            userErgBalance = rawBaseToken / Math.pow(10, baseTokenDecimals);
+        }
 
         const rawProjectTokens = userTokens.get(project.pft_token_id) || 0;
         const decimalDivisor = Math.pow(10, project.token_details.decimals);
@@ -208,8 +222,6 @@
         const rawTemporalTokens = userTokens.get(project.project_id) || 0;
         userTemporalTokenBalance = rawTemporalTokens / decimalDivisor;
 
-        const isERGBase =
-            !project.base_token_id || project.base_token_id === "";
         let maxBaseTokenContribution;
 
         if (isERGBase) {
@@ -267,13 +279,7 @@
         );
         maxCollectAmount = Math.round(maxCollectAmount * 1e12) / 1e12;
 
-        const soldTokens = project.sold_counter || 0;
-        const refundedTokens = project.refund_counter || 0;
-        const exchangedTokens = project.auxiliar_exchange_counter || 0;
-
-        const maxWithdrawableRaw =
-            project.current_pft_amount -
-            (soldTokens - refundedTokens - exchangedTokens);
+        const maxWithdrawableRaw = project.unsold_pft_amount;
         if (maxWithdrawableRaw <= 0) {
             maxWithdrawTokenAmount = 0;
         } else {
@@ -342,7 +348,7 @@
         function_submit = add_tokens;
         value_submit = 0;
         show_submit = true;
-        hide_submit_info = false;
+        hide_submit_info = true;
         submit_amount_label = project.token_details.name;
     }
 
@@ -361,12 +367,12 @@
 
     function setupWithdrawTokens() {
         getWalletBalances();
-        info_type_to_show = "dev";
+        info_type_to_show = "dev-withdraw";
         label_submit = "How many tokens do you want to withdraw?";
         function_submit = withdraw_tokens;
         value_submit = 0;
         show_submit = true;
-        hide_submit_info = false;
+        hide_submit_info = true;
         submit_amount_label = project.token_details.name;
     }
 
@@ -1113,42 +1119,62 @@
                                 {#if info_type_to_show === "buy"}
                                     <p>
                                         <strong>Exchange Rate:</strong>
-                                        {project.exchange_rate}...
+                                        {project.exchange_rate}
+                                        {baseTokenName} / {project.token_details
+                                            .name}
                                     </p>
                                     <p>
-                                        <strong>Available:</strong>
-                                        {userErgBalance.toFixed(4)}...
+                                        <strong>Your Wallet Balance:</strong>
+                                        {userErgBalance.toFixed(4)}
+                                        {baseTokenName}
                                     </p>
                                     <p>
-                                        <strong>Max Contribution:</strong>
-                                        {maxContributeAmount.toFixed(4)}...
+                                        <strong>Max You Can Buy:</strong>
+                                        {maxContributeAmount.toFixed(4)}
+                                        {baseTokenName}
                                     </p>
                                 {/if}
                                 {#if info_type_to_show === "dev-collect"}
                                     <p>
-                                        <strong>Current ERG balance:</strong>
+                                        <strong>Project Funds:</strong>
                                         {(
                                             project.current_value /
                                             Math.pow(10, 9)
-                                        ).toFixed(4)}...
+                                        ).toFixed(4)}
+                                        {baseTokenName}
                                     </p>
                                 {/if}
                                 {#if info_type_to_show === "dev"}
                                     <p>
-                                        <strong>Token Balance:</strong>
-                                        {userProjectTokenBalance.toFixed(2)}...
+                                        <strong>Your Token Balance:</strong>
+                                        {userProjectTokenBalance.toFixed(2)}
+                                        {project.token_details.name}
+                                    </p>
+                                {/if}
+                                {#if info_type_to_show === "dev-withdraw"}
+                                    <p>
+                                        <strong>Project Unsold Balance:</strong>
+                                        {(
+                                            project.unsold_pft_amount /
+                                            Math.pow(
+                                                10,
+                                                project.token_details.decimals,
+                                            )
+                                        ).toFixed(2)}
+                                        {project.token_details.name}
                                     </p>
                                 {/if}
                                 {#if function_submit === refund}
                                     <p>
-                                        <strong>Max Refund:</strong>
+                                        <strong>Refundable Amount:</strong>
                                         {maxRefundAmount} APT
                                     </p>
                                 {/if}
                                 {#if function_submit === temp_exchange}
                                     <p>
-                                        <strong>Max Collection:</strong>
-                                        {maxCollectAmount.toFixed(4)}...
+                                        <strong>Exchangeable Amount:</strong>
+                                        {maxCollectAmount.toFixed(4)}
+                                        {project.token_details.name}
                                     </p>
                                 {/if}
                             </div>
