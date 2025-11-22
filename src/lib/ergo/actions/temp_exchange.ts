@@ -17,13 +17,13 @@ import { SColl } from '@fleet-sdk/serializer';
 export async function temp_exchange(
     project: Project,
     token_amount: number
-): Promise<string|null> {
+): Promise<string | null> {
 
     token_amount = Math.floor(token_amount * Math.pow(10, project.token_details.decimals));
 
     // Get the wallet address (will be the user address)
     const walletPk = await getChangeAddress();
-    
+
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = [project.box, ...(await window.ergo!.get_utxos())];
 
@@ -32,10 +32,10 @@ export async function temp_exchange(
         BigInt(project.value),
         get_ergotree_hex(project.constants, project.version)
     )
-    .addTokens({
-        tokenId: project.project_id,
-        amount: BigInt(project.current_idt_amount + token_amount)
-    });
+        .addTokens({
+            tokenId: project.project_id,
+            amount: BigInt(project.current_idt_amount + token_amount)
+        });
 
     if (project.current_pft_amount !== token_amount) {
         contractOutput.addTokens({
@@ -43,9 +43,9 @@ export async function temp_exchange(
             amount: BigInt(project.current_pft_amount - token_amount)
         });
     }
-    
-    // Handle base tokens for v1_2 multitoken contracts
-    if (project.version === "v1_2" && project.base_token_id && project.base_token_id !== "") {
+
+    // Handle base tokens for v2 multitoken contracts
+    if (project.version === "v2" && project.base_token_id && project.base_token_id !== "") {
         // Find current base token amount in the project box
         let currentBaseTokenAmount = 0;
         for (const token of project.box.assets) {
@@ -54,7 +54,7 @@ export async function temp_exchange(
                 break;
             }
         }
-        
+
         // Add base token to contract output (amount remains unchanged during temp exchange)
         if (currentBaseTokenAmount > 0) {
             contractOutput.addTokens({
@@ -78,10 +78,10 @@ export async function temp_exchange(
         SAFE_MIN_BOX_VALUE,
         walletPk
     )
-    .addTokens({
-        tokenId: project.pft_token_id,
-        amount: BigInt(token_amount)
-    })
+        .addTokens({
+            tokenId: project.pft_token_id,
+            amount: BigInt(token_amount)
+        })
 
     let outputs = [contractOutput, walletOutput];
 
@@ -93,7 +93,7 @@ export async function temp_exchange(
         .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
         .build()                               // Build the transaction
         .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
-    
+
     try {
         // Sign the transaction
         const signedTransaction = await signTransaction(unsignedTransaction);

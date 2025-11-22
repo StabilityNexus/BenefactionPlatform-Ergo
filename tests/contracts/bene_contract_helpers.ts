@@ -12,10 +12,10 @@ export function uint8ArrayToHex(bytes: Uint8Array): string {
 }
 
 // ===== Contract Loading ===== //
-// Read v1_2 contract template from file system
+// Read v2 contract template from file system
 const contractsDir = path.resolve(__dirname, "../../contracts/bene_contract");
-export const BENE_CONTRACT_V1_2_TEMPLATE = fs.readFileSync(
-  path.join(contractsDir, "contract_v1_2.es"),
+export const BENE_CONTRACT_V2_TEMPLATE = fs.readFileSync(
+  path.join(contractsDir, "contract_v2.es"),
   "utf-8"
 );
 
@@ -76,7 +76,7 @@ export interface BeneTestContext {
 export function setupBeneTestContext(
   baseTokenId: string,      // PAYMENT token: "" for ERG mode, or token ID for custom token mode
   baseTokenName: string,
-  ownerAddress: ErgoAddress|null = null     
+  ownerAddress: ErgoAddress | null = null
 ): BeneTestContext {
   // STEP 1: Initialize mock blockchain at block height 800,000
   const mockChain = new MockChain({ height: 800_000 });
@@ -92,7 +92,7 @@ export function setupBeneTestContext(
   const minimumTokensSold = totalPFTokens / 2n;      // Minimum threshold: 50% (owner chooses - can be any value)
   const deadlineBlock = 800_200;                     // Campaign deadline: block 800,200 (owner chooses)
   const devFeePercentage = 5;                        // Platform fee: 5% of raised funds (platform constant)
-  
+
   // Validation: Ensure exchange rate is valid
   if (exchangeRate === 0n) {
     throw new Error(
@@ -155,16 +155,16 @@ export function setupBeneTestContext(
   const projectNftId = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";  // APT token ID (hardcoded for testing)
   const pftTokenId = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";    // PFT/reward token ID (hardcoded for testing)
 
-   // STEP 8: Compile the Bene smart contract with actual values replacing placeholders
-   // In case is not provided, use the projectOwner. If is provided, the actual project owner will not be added into the contract.
+  // STEP 8: Compile the Bene smart contract with actual values replacing placeholders
+  // In case is not provided, use the projectOwner. If is provided, the actual project owner will not be added into the contract.
   if (ownerAddress === null) {
     const ownerAddressStr = projectOwner.address.toString();
     ownerAddress = ErgoAddress.fromBase58(ownerAddressStr)
   }
-  
+
   // STEP 8a: Convert owner address to ErgoTree hex for P2S/P2PK support
   const ownerErgoTree = ownerAddress.ergoTree;
-  
+
   // STEP 8b: Create dev fee contract (simple contract that accepts any transaction)
   const devFeeContract = compile(`{ sigmaProp(true) }`);        // Always returns true (for testing)
   const devFeeContractBytes = devFeeContract.bytes;              // Get bytes property (not method!)
@@ -172,7 +172,7 @@ export function setupBeneTestContext(
   const devFeeContractHash = uint8ArrayToHex(devFeeContractHashBytes); // Convert to hex string
 
   // STEP 8b: Replace all placeholders in contract template with actual values
-  const beneContractSource = BENE_CONTRACT_V1_2_TEMPLATE
+  const beneContractSource = BENE_CONTRACT_V2_TEMPLATE
     .replace(/`\+owner_ergotree\+`/g, ownerErgoTree)                     // Insert owner's ErgoTree (P2S/P2PK support)
     .replace(/`\+dev_fee_contract_bytes_hash\+`/g, devFeeContractHash)  // Insert dev fee contract hash
     .replace(/`\+dev_fee\+`/g, devFeePercentage.toString())             // Insert 5% fee

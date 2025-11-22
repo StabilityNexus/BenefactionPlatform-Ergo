@@ -16,12 +16,12 @@ import { SColl, SPair, SByte } from '@fleet-sdk/serializer';
 export async function withdraw(
     project: Project,
     amount: number
-): Promise<string|null> {
-    
-    // Check if this is a multi-token contract (v1_2) with a base token
-    const isMultiToken = project.version === "v1_2" && project.base_token_id && project.base_token_id !== "";
+): Promise<string | null> {
+
+    // Check if this is a multi-token contract (v2) with a base token
+    const isMultiToken = project.version === "v2" && project.base_token_id && project.base_token_id !== "";
     const isERGBase = !isMultiToken;
-    
+
     // Convert amount to smallest unit
     if (isERGBase) {
         // For ERG-based contracts, convert to nanoERG
@@ -31,12 +31,12 @@ export async function withdraw(
         const baseTokenDecimals = project.base_token_details?.decimals || 0;
         amount = amount * Math.pow(10, baseTokenDecimals);
     }
-    
+
     console.log("wants withdraw ", amount, isERGBase ? "(ERG)" : "(base token)")
 
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
-    
+
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = [project.box, ...(await window.ergo!.get_utxos())];
 
@@ -45,7 +45,7 @@ export async function withdraw(
 
     const devAddress = project.constants.dev_addr ?? get_dev_contract_address();
     const devFeePercentage = project.constants.dev_fee;
-    
+
     // Get current base token amount if multi-token
     let currentBaseTokenAmount = 0;
     if (isMultiToken) {
@@ -59,7 +59,7 @@ export async function withdraw(
 
     // Calculate extracted amount based on contract logic
     const extractedBaseAmount = isERGBase ? amount : Math.min(amount, currentBaseTokenAmount);
-    
+
     // Validation based on contract requirements
     if (isERGBase) {
         // ERG withdrawal validation
@@ -78,14 +78,14 @@ export async function withdraw(
     // Calculate dev fee and project amounts according to contract logic
     const minnerFeeAmount = 1100000; // Contract constant
     let devFeeAmount = Math.floor(extractedBaseAmount * devFeePercentage / 100);
-    
+
     // Apply contract logic: if devFeeAmount < 1, set to 0
     if (devFeeAmount < 1) {
         devFeeAmount = 0;
     }
-    
+
     const projectAmountBase = extractedBaseAmount - devFeeAmount;
-    
+
     // For ERG, subtract miner fee from project amount. For base tokens, no miner fee needed.
     const projectAmount = isERGBase ? projectAmountBase - minnerFeeAmount : projectAmountBase;
 
@@ -103,12 +103,12 @@ export async function withdraw(
     }
 
     // Determine if this is a full withdrawal according to contract logic
-    const allFundsWithdrawn = isERGBase ? 
-        (extractedBaseAmount === project.value) : 
+    const allFundsWithdrawn = isERGBase ?
+        (extractedBaseAmount === project.value) :
         (extractedBaseAmount === currentBaseTokenAmount);
     const allTokensWithdrawn = project.current_pft_amount === 0; // No PFT tokens left
     const isFullWithdrawal = allFundsWithdrawn && allTokensWithdrawn;
-    
+
     console.log("Withdrawal details:", {
         extractedBaseAmount,
         devFeeAmount,
@@ -118,18 +118,18 @@ export async function withdraw(
         isFullWithdrawal
     });
 
-    if (!isFullWithdrawal) {  
+    if (!isFullWithdrawal) {
         // Partial withdrawal - need to replicate contract (isSelfReplication = true)
-        
+
         // Calculate remaining amounts for the contract
-        const remainingErg = isERGBase ? 
-            BigInt(project.value - extractedBaseAmount) : 
+        const remainingErg = isERGBase ?
+            BigInt(project.value - extractedBaseAmount) :
             BigInt(project.value);
-        
-        const remainingBaseToken = isERGBase ? 
-            BigInt(0) : 
+
+        const remainingBaseToken = isERGBase ?
+            BigInt(0) :
             BigInt(currentBaseTokenAmount - extractedBaseAmount);
-        
+
         const contractOutput = new OutputBuilder(
             remainingErg,
             get_ergotree_hex(project.constants, project.version)
@@ -137,7 +137,7 @@ export async function withdraw(
             tokenId: project.project_id,
             amount: BigInt(project.current_idt_amount) // APT remains constant
         });
-    
+
         // Add PFT tokens if they exist (ProofFundingTokenRemainsConstant)
         if (project.current_pft_amount > 0) {
             contractOutput.addTokens({
@@ -145,7 +145,7 @@ export async function withdraw(
                 amount: BigInt(project.current_pft_amount)
             });
         }
-        
+
         // Handle remaining base tokens for multi-token contracts
         if (isMultiToken && remainingBaseToken > 0) {
             contractOutput.addTokens({
@@ -153,7 +153,7 @@ export async function withdraw(
                 amount: remainingBaseToken
             });
         }
-    
+
         // Set registers - all counters remain constant for withdrawal
         contractOutput.setAdditionalRegisters({
             R4: SInt(project.block_limit).toHex(),
@@ -215,14 +215,14 @@ export async function withdraw(
                 amount: BigInt(devFeeAmount)
             });
         }
-        
+
         // Set R4 register with token ID as Coll[Byte] so dev fee contract can identify token distributions
         // Convert hex string to byte array
         const tokenIdBytes = project.base_token_id!.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16));
         devOutput.setAdditionalRegisters({
             R4: SColl(SByte, tokenIdBytes).toHex()
         });
-        
+
         outputs.push(devOutput);
     }
 

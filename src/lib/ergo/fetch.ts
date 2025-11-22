@@ -10,7 +10,7 @@ const expectedSigmaTypes = {
     R4: 'SInt',
     R5: 'SLong',
     R6: 'Coll[SLong]',
-    R7: 'SLong', // For v1_0 and v1_1, will be 'Coll[SLong]' for v1_2
+    R7: 'SLong', // For v1_0 and v1_1, will be 'Coll[SLong]' for v2
     R8: 'Coll[SByte]',
     R9: 'Coll[SByte]'
 };
@@ -19,7 +19,7 @@ const expectedSigmaTypesV12 = {
     R4: 'SInt',
     R5: 'SLong',
     R6: 'Coll[SLong]',
-    R7: 'SLong', // For v1_2: [exchange_rate, base_token_id_len]
+    R7: 'SLong', // For v2: [exchange_rate, base_token_id_len]
     R8: 'Coll[SByte]',
     R9: 'Coll[SByte]'
 };
@@ -31,7 +31,7 @@ const CACHE_DURATION_MS = 1000 * 60 * 5;
 let inFlightFetch: Promise<Map<string, Project>> | null = null;
 
 function hasValidSigmaTypes(additionalRegisters: any, version: contract_version = "v1_0"): boolean {
-    const expectedTypes = version === "v1_2" ? expectedSigmaTypesV12 : expectedSigmaTypes;
+    const expectedTypes = version === "v2" ? expectedSigmaTypesV12 : expectedSigmaTypes;
     for (const [key, expectedType] of Object.entries(expectedTypes)) {
         if (additionalRegisters[key] && additionalRegisters[key].sigmaType !== expectedType) {
             return false;
@@ -136,7 +136,7 @@ export async function fetchProjectsFromBlockchain() {
     const registers = {};
     let moreDataAvailable;
 
-    const versions: contract_version[] = ["v1_2_erg", "v1_2", "v1_1", "v1_0"];
+    const versions: contract_version[] = ["v2_erg", "v2", "v1_1", "v1_0"];
 
     try {
         for (const version of versions) {
@@ -208,7 +208,7 @@ export async function fetchProjectsFromBlockchain() {
                         }
 
                         const project: Project = {
-                            version: version == "v1_2_erg" ? "v1_2" : version,
+                            version: version == "v2_erg" ? "v2" : version,
                             platform: new ErgoPlatform(),
                             box: {
                                 boxId: e.boxId,

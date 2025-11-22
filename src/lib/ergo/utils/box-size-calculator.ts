@@ -173,7 +173,7 @@ export function calculateRegisterSizesEstimate(): {
  * Calculate the actual ErgoTree size for a given contract version
  * Uses template constants (random values) to generate a representative ErgoTree
  */
-export function calculateErgoTreeSize(version: string = "v1_2"): number {
+export function calculateErgoTreeSize(version: string = "v2"): number {
     try {
         // Use the same random constants as in contract.ts get_template_hash()
         const random_constants: ConstantContent = {
@@ -182,18 +182,18 @@ export function calculateErgoTreeSize(version: string = "v1_2"): number {
             "dev_hash": get_dev_contract_hash(),
             "dev_fee": get_dev_fee(),
             "pft_token_id": "a3f7c9e12bd45890ef12aa7c6d54b9317c0df4a28b6e5590d4f1b3e8c92d77af",   // RANDOM
-            "base_token_id": version === "v1_2_erg" ? "" : "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717" // RANDOM
+            "base_token_id": version === "v2_erg" ? "" : "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717" // RANDOM
         };
 
-        // Map v1_2_erg to v1_2 for calculation (they have same structure)
-        const contractVersion = (version === "v1_2_erg" ? "v1_2" : version) as any;
+        // Map v2_erg to v2 for calculation (they have same structure)
+        const contractVersion = (version === "v2_erg" ? "v2" : version) as any;
 
         const ergoTreeHex = get_ergotree_hex(random_constants, contractVersion);
         return hexByteLength(ergoTreeHex);
     } catch (error) {
         // Fallback to measured value if calculation fails
         console.warn('Could not calculate ErgoTree size dynamically, using measured value:', error);
-        return 300; // This is the actual measured size of v1_2 contracts
+        return 300; // This is the actual measured size of v2 contracts
     }
 }
 
@@ -203,7 +203,7 @@ let cachedErgoTreeSize: number | null = null;
 /**
  * Get the ErgoTree size (cached for performance)
  */
-export function getErgoTreeSize(version: string = "v1_2"): number {
+export function getErgoTreeSize(version: string = "v2"): number {
     if (cachedErgoTreeSize === null) {
         cachedErgoTreeSize = calculateErgoTreeSize(version);
     }
@@ -214,7 +214,7 @@ export function getErgoTreeSize(version: string = "v1_2"): number {
  * Estimate total box size for a project with given content
  * This calculates the actual size using real register values
  */
-export function estimateCompleteBoxSize(content: ProjectContent, contractVersion: string = "v1_2"): number {
+export function estimateCompleteBoxSize(content: ProjectContent, contractVersion: string = "v2"): number {
     const BASE_BOX_OVERHEAD = 60;
     const PER_TOKEN_BYTES = 40;
     const NUM_TOKENS = 3; // project_id, token_id, (optional base_token)

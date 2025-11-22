@@ -16,8 +16,8 @@ import { SColl } from '@fleet-sdk/serializer';
 export async function rebalance(
     project: Project,
     token_amount: number
-): Promise<string|null> {
-    
+): Promise<string | null> {
+
     try {
         token_amount = Math.trunc(token_amount * Math.pow(10, project.token_details.decimals));
 
@@ -36,23 +36,23 @@ export async function rebalance(
             BigInt(project.value),
             get_ergotree_hex(project.constants, project.version)
         )
-        .addTokens({
-            tokenId: project.project_id,
-            amount: BigInt(project.current_idt_amount)
-        });
+            .addTokens({
+                tokenId: project.project_id,
+                amount: BigInt(project.current_idt_amount)
+            });
 
-        console.log("PFT current amount "+project.current_pft_amount /  Math.pow(10, project.token_details.decimals))
+        console.log("PFT current amount " + project.current_pft_amount / Math.pow(10, project.token_details.decimals))
         let contract_token_amount = project.current_pft_amount + token_amount;
-        console.log("contract token amount "+contract_token_amount /  Math.pow(10, project.token_details.decimals))
-        
+        console.log("contract token amount " + contract_token_amount / Math.pow(10, project.token_details.decimals))
+
         if (contract_token_amount > 0) {
             contract_output.addTokens({
                 tokenId: project.pft_token_id,
                 amount: (contract_token_amount).toString()
             });
         }
-        
-        // Handle base tokens for v1_2 multitoken contracts
+
+        // Handle base tokens for v2 multitoken contracts
         if (project.base_token_id && project.base_token_id !== "") {
             // Find current base token amount in the project box
             let currentBaseTokenAmount = 0;
@@ -62,7 +62,7 @@ export async function rebalance(
                     break;
                 }
             }
-            
+
             // Add base token to contract output (amount remains unchanged during token rebalancing)
             if (currentBaseTokenAmount > 0) {
                 contract_output.addTokens({
@@ -77,8 +77,8 @@ export async function rebalance(
             R4: SInt(project.block_limit).toHex(),
             R5: SLong(BigInt(project.minimum_amount)).toHex(),
             R6: SColl(SLong, [
-                BigInt(project.sold_counter), 
-                BigInt(project.refund_counter), 
+                BigInt(project.sold_counter),
+                BigInt(project.refund_counter),
                 BigInt(project.auxiliar_exchange_counter)
             ]).toHex(),
             R7: SLong(BigInt(project.exchange_rate)).toHex(),
@@ -86,9 +86,9 @@ export async function rebalance(
             R9: SString(project.content.raw)
         });
 
-        
+
         let outputs: OutputBuilder[] = [contract_output];
-        
+
         // Building withdraw to address output
         if (token_amount < 0) {
             outputs.push(
@@ -96,10 +96,10 @@ export async function rebalance(
                     SAFE_MIN_BOX_VALUE,
                     walletPk
                 )
-                .addTokens({
-                    tokenId: project.pft_token_id,
-                    amount: ((-1)*token_amount).toString()
-                })
+                    .addTokens({
+                        tokenId: project.pft_token_id,
+                        amount: ((-1) * token_amount).toString()
+                    })
             )
         }
 
@@ -111,7 +111,7 @@ export async function rebalance(
             .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
             .build()                               // Build the transaction
             .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
-            console.log("Unsigned transaction outputs:", JSON.stringify(unsignedTransaction.outputs, null, 2));
+        console.log("Unsigned transaction outputs:", JSON.stringify(unsignedTransaction.outputs, null, 2));
 
         // Sign the transaction
         const signedTransaction = await signTransaction(unsignedTransaction);
@@ -121,21 +121,21 @@ export async function rebalance(
 
         console.log("Transaction id -> ", transactionId);
         return transactionId;
-        
+
     } catch (error) {
         console.error("Error in rebalance function:", error);
-            // Log full prover error dump if available
-            if ((error as any).info) console.error("Prover error info:\n", (error as any).info);
-        
+        // Log full prover error dump if available
+        if ((error as any).info) console.error("Prover error info:\n", (error as any).info);
+
         // Check specific error conditions
         if ((error as any).message && (error as any).message.includes("R7")) {
             console.error("R7 register format error - check exchange rate and base token ID length");
         }
-        
+
         if ((error as any).message && (error as any).message.includes("INPUTS")) {
             console.error("Input validation error - ensure wallet has UTXOs and project box is accessible");
         }
-        
+
         return null;
     }
 }
