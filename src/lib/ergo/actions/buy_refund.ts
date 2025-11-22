@@ -8,7 +8,7 @@ import {
 } from '@fleet-sdk/core';
 
 import { SString } from '../utils';
-import { type Project } from '../../common/project';
+import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 import { SColl } from '@fleet-sdk/serializer';
@@ -147,7 +147,7 @@ export async function buy_refund(
         R5: SLong(BigInt(project.minimum_amount)).toHex(),
         R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),
         R7: SLong(BigInt(project.exchange_rate)).toHex(),
-        R8: SString(project.constants.raw ?? ""),
+        R8: createR8Structure(project.constants).toHex(),
         R9: SString(project.content.raw)
     });
     

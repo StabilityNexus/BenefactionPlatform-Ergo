@@ -45,7 +45,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
           R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum: 50k tokens
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(),                            // Counters: [0 sold, 0 refunded, 0 exchanged]
           R7: SLong(ctx.exchangeRate).toHex(),  // [price: 1M, token_len: 0]
-          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),            // Owner details (empty)
+          R8: ctx.constants.toHex(),            // Owner details (empty)
           R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),            // Metadata (empty)
         },
       });
@@ -380,7 +380,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
           // KEY CHANGE: R6[0] (Sold Counter) equals total PFT, meaning no more tokens are available
           R6: SColl(SLong, [soldAmount, 0n, 0n]).toHex(), // Counters: [100k sold, 0 refunded, 0 exchanged]
           R7: SLong(ctx.exchangeRate).toHex(),
-          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+          R8: ctx.constants.toHex(),
           R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });

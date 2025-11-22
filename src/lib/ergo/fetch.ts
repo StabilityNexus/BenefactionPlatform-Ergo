@@ -6,21 +6,21 @@ import { type contract_version, get_template_hash } from "./contract";
 import { explorer_uri, projects } from "$lib/common/store";
 import { get } from "svelte/store";
 
-const expectedSigmaTypes = {
+const expectedSigmaTypesV1 = {
     R4: 'SInt',
     R5: 'SLong',
     R6: 'Coll[SLong]',
-    R7: 'SLong', // For v1_0 and v1_1, will be 'Coll[SLong]' for v2
+    R7: 'SLong',
     R8: 'Coll[SByte]',
     R9: 'Coll[SByte]'
 };
 
-const expectedSigmaTypesV12 = {
+const expectedSigmaTypesV2 = {
     R4: 'SInt',
     R5: 'SLong',
     R6: 'Coll[SLong]',
-    R7: 'SLong', // For v2: [exchange_rate, base_token_id_len]
-    R8: 'Coll[SByte]',
+    R7: 'SLong',
+    R8: 'Coll[Coll[SByte]]',
     R9: 'Coll[SByte]'
 };
 
@@ -30,8 +30,8 @@ const CACHE_DURATION_MS = 1000 * 60 * 5;
 // Variable to track an ongoing request
 let inFlightFetch: Promise<Map<string, Project>> | null = null;
 
-function hasValidSigmaTypes(additionalRegisters: any, version: contract_version = "v1_0"): boolean {
-    const expectedTypes = version === "v2" ? expectedSigmaTypesV12 : expectedSigmaTypes;
+function hasValidSigmaTypes(additionalRegisters: any, version: contract_version): boolean {
+    const expectedTypes = version === "v2" ? expectedSigmaTypesV2 : expectedSigmaTypesV1;
     for (const [key, expectedType] of Object.entries(expectedTypes)) {
         if (additionalRegisters[key] && additionalRegisters[key].sigmaType !== expectedType) {
             return false;
@@ -136,7 +136,7 @@ export async function fetchProjectsFromBlockchain() {
     const registers = {};
     let moreDataAvailable;
 
-    const versions: contract_version[] = ["v2_erg", "v2", "v1_1", "v1_0"];
+    const versions: contract_version[] = ["v2", "v1_1", "v1_0"];
 
     try {
         for (const version of versions) {
@@ -208,7 +208,7 @@ export async function fetchProjectsFromBlockchain() {
                         }
 
                         const project: Project = {
-                            version: version == "v2_erg" ? "v2" : version,
+                            version: version,
                             platform: new ErgoPlatform(),
                             box: {
                                 boxId: e.boxId,

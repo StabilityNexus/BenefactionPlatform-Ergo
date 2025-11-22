@@ -58,7 +58,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, 0n, ctx.totalPFTokens]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
-          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+          R8: ctx.constants.toHex(),
           R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
@@ -431,7 +431,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
-          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+          R8: ctx.constants.toHex(),
           R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
@@ -560,7 +560,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
-          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+          R8: ctx.constants.toHex(),
           R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
@@ -686,7 +686,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
-          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+          R8: ctx.constants.toHex(),
           R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });

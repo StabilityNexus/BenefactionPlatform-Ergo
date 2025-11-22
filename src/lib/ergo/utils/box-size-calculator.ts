@@ -182,13 +182,10 @@ export function calculateErgoTreeSize(version: string = "v2"): number {
             "dev_hash": get_dev_contract_hash(),
             "dev_fee": get_dev_fee(),
             "pft_token_id": "a3f7c9e12bd45890ef12aa7c6d54b9317c0df4a28b6e5590d4f1b3e8c92d77af",   // RANDOM
-            "base_token_id": version === "v2_erg" ? "" : "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717" // RANDOM
+            "base_token_id": "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717" // RANDOM
         };
 
-        // Map v2_erg to v2 for calculation (they have same structure)
-        const contractVersion = (version === "v2_erg" ? "v2" : version) as any;
-
-        const ergoTreeHex = get_ergotree_hex(random_constants, contractVersion);
+        const ergoTreeHex = get_ergotree_hex(random_constants);
         return hexByteLength(ergoTreeHex);
     } catch (error) {
         // Fallback to measured value if calculation fails

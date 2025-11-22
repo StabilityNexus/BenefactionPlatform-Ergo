@@ -48,7 +48,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
         R5: SLong(ctx.minimumTokensSold).toHex(),
         R6: SColl(SLong, [0n, 0n, 0n]).toHex(), 
         R7: SLong(ctx.exchangeRate).toHex(),
-        R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+        R8: ctx.constants.toHex(),
         R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
       },
     });
@@ -183,7 +183,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
           R5: SLong(50000n).toHex(),           // Min Sold 50k
           R6: SColl(SLong, [50000n, 0n, 0n]).toHex(), // Sold 50k (Minimum Reached)
           R7: SLong(ctx.exchangeRate).toHex(),
-          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+          R8: ctx.constants.toHex(),
           R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
     });
@@ -264,7 +264,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldAmount, 0n, 0n]).toHex(), // Sold 10k (Min NOT Reached)
           R7: SLong(ctx.exchangeRate).toHex(),
-          R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+          R8: ctx.constants.toHex(),
           R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
     });

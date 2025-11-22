@@ -26,7 +26,7 @@
     import { mode } from "mode-watcher";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label/index.js";
-    import { Badge, badgeVariants } from "$lib/components/ui/badge/index.js";
+    import { badgeVariants } from "$lib/components/ui/badge/index.js";
     import { get } from "svelte/store";
     import ForumThread from "$lib/components/ForumThread.svelte";
     import { onDestroy } from "svelte";

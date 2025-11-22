@@ -14,12 +14,7 @@ import CONTRACT_V1_1 from '../../../contracts/bene_contract/contract_v1_1.es?raw
 import CONTRACT_V2 from '../../../contracts/bene_contract/contract_v2.es?raw';
 import MINT_CONTRACT from '../../../contracts/mint_contract/mint_idt.es?raw';
 
-// Only v2 is supported for new projects
-export type contract_version = "v2" | "v2_erg";
-
-// Legacy versions only for template hash identification
-type legacy_contract_version = "v1_0" | "v1_1";
-type any_contract_version = contract_version | legacy_contract_version;
+export type contract_version = "v2" | "v1_1" | "v1_0";
 
 function generate_contract_v1_0(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
   return CONTRACT_V1_0
@@ -40,25 +35,11 @@ function generate_contract_v1_1(owner_addr: string, dev_fee_contract_bytes_hash:
 /**
  * Generate v2 contract (current version)
  */
-function generate_contract_v2(
-  owner_addr: string,
-  dev_fee_contract_bytes_hash: string,
-  dev_fee: number,
-  pft_token_id: string,
-  base_token_id: string = ""
-): string {
-  // Convert address to ErgoTree hex for P2S/P2PK support
-  const ownerErgoTree = ErgoAddress.fromBase58(owner_addr).ergoTree;
-
-  return CONTRACT_V2
-    .replace(/`\+owner_ergotree\+`/g, ownerErgoTree)
-    .replace(/`\+dev_fee_contract_bytes_hash\+`/g, dev_fee_contract_bytes_hash)
-    .replace(/`\+dev_fee\+`/g, dev_fee.toString())
-    .replace(/`\+pft_token_id\+`/g, pft_token_id)
-    .replace(/`\+base_token_id\+`/g, base_token_id);
+function generate_contract_v2(): string {
+  return CONTRACT_V2;
 }
 
-function handle_contract_generator(version: any_contract_version) {
+function handle_contract_generator(version: contract_version) {
   let f;
   switch (version) {
     case "v1_0":
@@ -68,7 +49,6 @@ function handle_contract_generator(version: any_contract_version) {
       f = generate_contract_v1_1;
       break;
     case "v2":
-    case "v2_erg": // v2_erg uses the same contract as v2
       f = generate_contract_v2;
       break;
     default:
@@ -81,13 +61,7 @@ function handle_contract_generator(version: any_contract_version) {
  * Get ErgoTree hex for current version contracts only (v2)
  */
 export function get_ergotree_hex(constants: ConstantContent, version: contract_version) {
-  const contract = generate_contract_v2(
-    constants.owner,
-    constants.dev_hash ?? get_dev_contract_hash(),
-    constants.dev_fee,
-    constants.pft_token_id,
-    constants.base_token_id || ""
-  );
+  const contract = generate_contract_v2();
 
   const ergoTree = compile(contract, { version: 1, network: network_id });
   return ergoTree.toHex();
@@ -97,20 +71,19 @@ export function get_ergotree_hex(constants: ConstantContent, version: contract_v
  * Get template hash for ANY version (including legacy v1_0, v1_1)
  * This is needed by fetch.ts to identify old projects
  */
-export function get_template_hash(version: any_contract_version): string {
+export function get_template_hash(version: contract_version): string {
   const random_constants = {
     "owner": "9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T",  // RANDOM
     "dev_addr": get_dev_contract_address(),   // RANDOM
     "dev_hash": get_dev_contract_hash(),   // RANDOM
     "dev_fee": get_dev_fee(),    //  RANDOM
     "pft_token_id": "a3f7c9e12bd45890ef12aa7c6d54b9317c0df4a28b6e5590d4f1b3e8c92d77af",   // RANDOM
-    "base_token_id": version == "v2_erg" ? "" : "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717" // RANDOM
+    "base_token_id": "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717" // RANDOM
   }
 
   let contract;
-  if (version === "v2" || version === "v2_erg") {
-    version = "v2"; // treat v2_erg as v2 for contract generation
-    contract = handle_contract_generator(version)(random_constants.owner, random_constants.dev_hash ?? get_dev_contract_hash(), random_constants.dev_fee, random_constants.pft_token_id, random_constants.base_token_id || "");
+  if (version === "v2") {
+    contract = CONTRACT_V2;
   } else {
     contract = handle_contract_generator(version)(random_constants.owner, random_constants.dev_hash ?? get_dev_contract_hash(), random_constants.dev_fee, random_constants.pft_token_id);
   }
@@ -125,13 +98,7 @@ export function get_template_hash(version: any_contract_version): string {
  */
 function get_contract_hash(constants: ConstantContent, version: contract_version): string {
   try {
-    const contractSource = generate_contract_v2(
-      constants.owner,
-      constants.dev_hash ?? get_dev_contract_hash(),
-      constants.dev_fee,
-      constants.pft_token_id,
-      constants.base_token_id || ""
-    );
+    const contractSource = generate_contract_v2();
 
     const ergoTree = compile(contractSource, {
       version: 1,

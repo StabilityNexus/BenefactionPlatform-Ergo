@@ -6,12 +6,13 @@ import {
     TransactionBuilder,
     SLong,
     type Box,
-    BOX_VALUE_PER_BYTE
+    BOX_VALUE_PER_BYTE,
+    ErgoAddress
 } from '@fleet-sdk/core';
 import { SColl, SInt } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
 import { type contract_version, get_ergotree_hex, mint_contract_address } from '../contract';
-import { type ConstantContent } from '$lib/common/project';
+import { createR8Structure, type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
@@ -155,7 +156,7 @@ export async function submit_project(
     const walletPk = await getChangeAddress();
 
     let addressContent: ConstantContent = {
-        "owner": walletPk,
+        "owner": ErgoAddress.fromBase58(walletPk).ergoTree,
         "dev_addr": get_dev_contract_address(),
         "dev_hash": get_dev_contract_hash(),
         "dev_fee": get_dev_fee(),
@@ -180,7 +181,7 @@ export async function submit_project(
     const r5Hex = SLong(BigInt(minimumSold)).toHex();
     const r6Hex = SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex();
     const r7Hex = SLong(BigInt(exchangeRate)).toHex();
-    const r8Hex = SString(JSON.stringify(addressContent));
+    const r8Hex = createR8Structure(addressContent).toHex();
     const r9Hex = SString(projectContent);
 
     // Calculate register sizes using utility functions
@@ -191,7 +192,7 @@ export async function submit_project(
     // Estimate total box size
     const totalEstimatedSize = estimateTotalBoxSize(
         ergoTreeAddress.length,
-        3, // number of tokens (project_id, token_id, and possibly base_token in future)
+        3, // number of tokens (project_id, pft_token_id, and possibly base_token_id)
         registerSizes
     );
 

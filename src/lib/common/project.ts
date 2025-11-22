@@ -1,6 +1,6 @@
 import { type contract_version } from "$lib/ergo/contract";
 import { type Platform } from "./platform";
-import type { Amount, Box } from "@fleet-sdk/core";
+import { ErgoAddress, SByte, SColl, type Amount, type Box } from "@fleet-sdk/core";
 
 export interface TokenEIP4 {
     name: string,
@@ -25,6 +25,36 @@ export interface ConstantContent {
     dev_fee: number,
     pft_token_id: string,
     base_token_id?: string  // Base token ID for multi-token support (empty for ERG)
+}
+
+export function createR8Structure(content: ConstantContent) {
+
+    function numberToHex(num: number): string {
+        let hex = BigInt(num).toString(16);
+        if (hex.length % 2 !== 0) hex = "0" + hex;
+        return hex;
+    }
+
+    function getErgoTree(input: string): string {
+        try {
+            return ErgoAddress.fromBase58(input).ergoTree;
+        } catch (e) {
+            return input;
+        }
+    }
+
+    const ownerErgoTree = getErgoTree(content.owner);
+    const baseTokenId = content.base_token_id || "";
+    
+    const r8Data = SColl(SColl(SByte), [
+        ownerErgoTree,                  // Index 0
+        content.dev_hash,               // Index 1
+        numberToHex(content.dev_fee),   // Index 2
+        content.pft_token_id,           // Index 3
+        baseTokenId                     // Index 4
+    ]);
+
+    return r8Data;
 }
 
 export interface Project {

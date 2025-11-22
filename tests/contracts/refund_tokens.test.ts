@@ -54,7 +54,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum: 50,000
         R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),                    // [25k sold, 0 refunded, 0 exchanged]
         R7: SLong(ctx.exchangeRate).toHex(),  // [price, token_len]
-        R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+        R8: ctx.constants.toHex(),
         R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
       },
     });
@@ -388,7 +388,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         R5: SLong(ctx.minimumTokensSold).toHex(),
         R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(), // Minimum reached!
         R7: SLong(ctx.exchangeRate).toHex(),
-        R8: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+        R8: ctx.constants.toHex(),
         R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
       },
     });

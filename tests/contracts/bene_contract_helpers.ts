@@ -1,9 +1,10 @@
 import { MockChain } from "@fleet-sdk/mock-chain";
 import { compile } from "@fleet-sdk/compiler";
-import { RECOMMENDED_MIN_FEE_VALUE, ErgoAddress } from "@fleet-sdk/core";
+import { ErgoAddress } from "@fleet-sdk/core";
 import { blake2b256 } from "@fleet-sdk/crypto";
 import * as fs from "fs";
 import * as path from "path";
+import { ConstantContent, createR8Structure } from "$lib/common/project";
 
 // ===== Utility Functions ===== //
 
@@ -14,7 +15,7 @@ export function uint8ArrayToHex(bytes: Uint8Array): string {
 // ===== Contract Loading ===== //
 // Read v2 contract template from file system
 const contractsDir = path.resolve(__dirname, "../../contracts/bene_contract");
-export const BENE_CONTRACT_V2_TEMPLATE = fs.readFileSync(
+export const BENE_CONTRACT_V2 = fs.readFileSync(
   path.join(contractsDir, "contract_v2.es"),
   "utf-8"
 );
@@ -45,6 +46,7 @@ export const USD_FUNDING_GOAL = 10_000_000n;  // 100,000 SigUSD = 100,000 * 10^2
 
 export interface BeneTestContext {
   mockChain: MockChain;
+  constants: any;
   projectOwner: ReturnType<MockChain["newParty"]>;
   buyer: ReturnType<MockChain["newParty"]>;
   beneContract: ReturnType<MockChain["newParty"]>;
@@ -171,16 +173,16 @@ export function setupBeneTestContext(
   const devFeeContractHashBytes = blake2b256(devFeeContractBytes); // Hash the contract
   const devFeeContractHash = uint8ArrayToHex(devFeeContractHashBytes); // Convert to hex string
 
-  // STEP 8b: Replace all placeholders in contract template with actual values
-  const beneContractSource = BENE_CONTRACT_V2_TEMPLATE
-    .replace(/`\+owner_ergotree\+`/g, ownerErgoTree)                     // Insert owner's ErgoTree (P2S/P2PK support)
-    .replace(/`\+dev_fee_contract_bytes_hash\+`/g, devFeeContractHash)  // Insert dev fee contract hash
-    .replace(/`\+dev_fee\+`/g, devFeePercentage.toString())             // Insert 5% fee
-    .replace(/`\+pft_token_id\+`/g, pftTokenId)                             // Insert PFT token ID
-    .replace(/`\+base_token_id\+`/g, baseTokenId);                      // Insert base token ID ("" for ERG)
+  const constants = createR8Structure({
+    owner: ownerErgoTree,
+    dev_hash: devFeeContractHash,
+    dev_fee: devFeePercentage,
+    pft_token_id: pftTokenId,
+    base_token_id: baseTokenId
+  });
 
   // STEP 8c: Compile the contract source code into ErgoTree (executable bytecode)
-  const beneErgoTree = compile(beneContractSource);
+  const beneErgoTree = compile(BENE_CONTRACT_V2);
 
   // STEP 9: Register the contract as a "party" on the mock blockchain
   const beneContract = mockChain.addParty(beneErgoTree.toHex(), `BeneContract-${baseTokenName}`);
@@ -189,6 +191,7 @@ export function setupBeneTestContext(
   // This object contains everything needed for testing: blockchain, actors, and configuration
   return {
     mockChain,           // The simulated blockchain
+    constants,            // Constant content for the project
     projectOwner,        // Project creator's wallet
     buyer,               // Token buyer's wallet
     beneContract,        // The smart contract party

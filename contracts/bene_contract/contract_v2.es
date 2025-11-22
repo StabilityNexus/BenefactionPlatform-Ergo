@@ -29,7 +29,7 @@
 // R5: Long                  The minimum number of tokens that must be sold to trigger certain actions (e.g., withdrawals).
 // R6: Coll[Long]            The total number of tokens sold, the total number of tokens refunded and the total number of APT changed per PFT so far.
 // R7: Long                  Base token exchange rate (base token per PFT)
-// R8: Coll[Byte]            Owner reputation proof.
+// R8: Coll[Coll[Byte]]      Constants [owner_ergotree, dev_fee_contract_bytes_hash, dev_fee, pft_token_id, base_token_id] as Base58-encoded JSON strings.
 // R9: Coll[Byte]            Base58-encoded JSON string containing project metadata, including "title" and "description".
 
 // ===== Multi-Token Support ===== //
@@ -39,18 +39,20 @@
 // - Exchange rate in R7[0] is always base_token_amount per PFT token
 // - Base token ID is stored in R8 constants JSON under "base_token_id" field
 
-// ===== Compile Time Constants ===== //
+// ===== R8 Constants ===== //
 // $owner_ergotree: ErgoTree bytes (hex) of the contract owner (supports both P2PK and P2S).
 // $dev_fee_contract_bytes_hash: Blake2b-256 base16 string hash of the dev fee contract proposition bytes.
 // $dev_fee: Percentage fee allocated to the developer (e.g., 5 for 5%).
 // $pft_token_id: Unique string identifier for the proof-of-funding token.
 // $base_token_id: Base token ID for contributions (empty string for ERG).
 
-  val ownerErgoTree = fromBase16("`+owner_ergotree+`")
-  val devFeeContractBytesHash = fromBase16("`+dev_fee_contract_bytes_hash+`")
-  val devFee = `+dev_fee+`
-  val pftTokenId = fromBase16("`+pft_token_id+`")
-  val baseTokenId = fromBase16("`+base_token_id+`")
+  val r8 = SELF.R8[Coll[Coll[Byte]]].get
+
+  val ownerErgoTree           = r8(0)
+  val devFeeContractBytesHash = r8(1)
+  val devFee                  = byteArrayToBigInt(r8(2))
+  val pftTokenId              = r8(3)
+  val baseTokenId             = if (r8.size > 4) r8(4) else Coll[Byte]()
 
   val selfId = SELF.tokens(0)._1
   val selfAPT = SELF.tokens(0)._2
@@ -61,7 +63,7 @@
   val selfRefundCounter = SELF.R6[Coll[Long]].get(1)
   val selfAuxiliarExchangeCounter = SELF.R6[Coll[Long]].get(2)
   val selfExchangeRate = SELF.R7[Long].get
-  val selfOwnerDetails = SELF.R8[Coll[Byte]].get
+  val selfConstants = SELF.R8[Coll[Coll[Byte]]].get
   val selfProjectMetadata = SELF.R9[Coll[Byte]].get
   val selfScript = SELF.propositionBytes
 
@@ -118,7 +120,7 @@
       val sameExchangeRate = selfExchangeRate == OUTPUTS(0).R7[Long].get
 
       // The constants must be the same
-      val sameConstants = selfOwnerDetails == OUTPUTS(0).R8[Coll[Byte]].get
+      val sameConstants = selfConstants == OUTPUTS(0).R8[Coll[Coll[Byte]]].get
 
       // The project content must be the same
       val sameProjectContent = selfProjectMetadata == OUTPUTS(0).R9[Coll[Byte]].get
