@@ -1,9 +1,11 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
+    import EasyMDE from 'easymde';
+    import 'easymde/dist/easymde.min.css';
     import { block_to_date, time_to_block } from '$lib/common/countdown';
     import { web_explorer_uri_tx } from '$lib/ergo/envs';
     import { ErgoPlatform } from '$lib/ergo/platform';
     import { Label } from '$lib/components/ui/label/index.js';
-    import { Textarea } from '$lib/components/ui/textarea';
     import { Button } from '$lib/components/ui/button';
     import { Input } from '$lib/components/ui/input';
     import * as Select from '$lib/components/ui/select';
@@ -59,7 +61,7 @@
     let userTokens: Array<{ tokenId: string; title: string; balance: number; decimals: number }> = [];
     let existingAPTTokens: Set<string> = new Set();
     let existingPFTTokens: Set<string> = new Set();
-    
+
     let availableRewardTokens: Array<{ tokenId: string; title: string; balance: number; decimals: number }> = [];
     let availableBaseTokens: Array<{ tokenId: string; title: string; balance: number; decimals: number }> = [];
 
@@ -70,9 +72,33 @@
         invalidToken: null,
         exchangeRate: null
     };
-    
+
     let minViablePrice = 0;
     let exchangeRateWarning = '';
+
+    let editorElement: HTMLTextAreaElement;
+    let editor: EasyMDE;
+
+    onMount(() => {
+        if (editorElement) {
+            editor = new EasyMDE({
+                element: editorElement,
+                initialValue: projectDescription,
+                placeholder: "Describe your project goals, roadmap, and vision...",
+                status: false,
+                spellChecker: false,
+                toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "link", "preview"],
+            });
+
+            editor.codemirror.on("change", () => {
+                projectDescription = editor.value();
+            });
+        }
+    });
+
+    $: if (editor && editor.value() !== projectDescription) {
+        editor.value(projectDescription);
+    }
 
     $: {
         if (rewardTokenOption) {
@@ -114,7 +140,6 @@
 
     $: {
         const allAPTTokens = new Set([...existingAPTTokens]);
-        
         for (const token of userTokens) {
             if (token.title && token.title.includes('APT')) {
                 allAPTTokens.add(token.tokenId);
@@ -122,7 +147,6 @@
         }
         
         availableRewardTokens = userTokens.filter(token => !allAPTTokens.has(token.tokenId));
-        
         availableBaseTokens = userTokens.filter(token => 
             !allAPTTokens.has(token.tokenId) && !existingPFTTokens.has(token.tokenId)
         );
@@ -130,7 +154,6 @@
 
     $: {
         let tokenError = null;
-        
         if (rewardTokenId && existingAPTTokens.has(rewardTokenId)) {
             tokenError = 'Cannot use APT tokens from existing projects as reward tokens.';
         }
@@ -143,7 +166,6 @@
     }
 
     $: rewardTokenDecimals = userTokens.find((t) => t.tokenId === rewardTokenId)?.decimals || 0;
-
     $: {
         const token = userTokens.find((t) => t.tokenId === rewardTokenId);
         maxTokenAmountToSell = token ? Number(token.balance) / Math.pow(10, token.decimals) : 0;
@@ -156,7 +178,7 @@
         minViablePrice = Math.pow(10, rewardTokenDecimals - baseTokenDecimals);
         
         exchangeRateRaw = exchangeRateNum * Math.pow(10, baseTokenDecimals - rewardTokenDecimals);
-        
+
         if (exchangeRateNum > 0 && exchangeRateRaw < 1) {
             formErrors.exchangeRate = `Price too low. Minimum viable price is ${minViablePrice.toFixed(Math.max(0, baseTokenDecimals))} ${baseTokenName} per ${rewardTokenName}`;
             exchangeRateWarning = `⚠️ Due to smart contract limitations, the minimum price for these tokens is ${minViablePrice.toFixed(Math.max(0, baseTokenDecimals))} ${baseTokenName} per ${rewardTokenName}`;
@@ -250,6 +272,7 @@
         if (minGoalPrecise === undefined) {
             minGoalPrecise = 0;
         }
+
         let minValueNano = minGoalPrecise * Math.pow(10, baseTokenDecimals);
         let minimumTokenSold = exchangeRateRaw > 0 ? minValueNano / exchangeRateRaw : 0;
 
@@ -328,7 +351,7 @@
             const projects = await fetchProjects();
             const aptTokens = new Set<string>();
             const pftTokens = new Set<string>();
-            
+
             for (const [projectId, project] of projects) {
                 aptTokens.add(projectId);
                 pftTokens.add(project.pft_token_id);
@@ -609,18 +632,10 @@
 
                     <div class="form-group">
                         <Label for="projectDescription" class="text-sm font-medium mb-2 block text-foreground/90">Description</Label>
-                        <div class="relative">
-                            <Textarea
-                                id="projectDescription"
-                                bind:value={projectDescription}
-                                placeholder="Describe your project goals, roadmap, and vision..."
-                                required
-                                class="w-full h-32 bg-background/50 border-orange-500/20 focus:border-orange-500/50 resize-y
-                                    {descriptionTooLong ? 'border-red-500 focus:border-red-500' : ''}"
-                            />
+                        <div class="relative editor-wrapper {descriptionTooLong ? 'border-red-500' : ''}">
+                            <textarea bind:this={editorElement}></textarea>
                             
-                            <div class="text-right text-xs mt-1 
-                                        {descriptionTooLong ? 'text-red-400' : 'text-muted-foreground'}">
+                            <div class="text-right text-xs mt-1 {descriptionTooLong ? 'text-red-400' : 'text-muted-foreground'}">
                                 {descriptionLength} / {MAX_DESCRIPTION_CHARS} characters
                             </div>
 
@@ -700,5 +715,51 @@
         .project-title {
             font-size: 1.8rem;
         }
+    }
+
+    :global(.editor-wrapper .EasyMDEContainer .CodeMirror) {
+        background-color: hsl(var(--background) / 0.5) !important; 
+        color: hsl(var(--foreground)) !important;
+        border-color: rgba(249, 115, 22, 0.2) !important;
+        border-radius: 0 0 0.5rem 0.5rem;
+        font-family: inherit;
+    }
+
+    :global(.editor-wrapper .editor-toolbar) {
+        background-color: hsl(var(--muted) / 0.5) !important;
+        border-color: rgba(249, 115, 22, 0.2) !important;
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+
+    :global(.editor-wrapper .editor-toolbar button) {
+        color: hsl(var(--muted-foreground)) !important;
+        transition: all 0.2s ease;
+    }
+    
+    :global(.editor-wrapper .editor-toolbar button:hover),
+    :global(.editor-wrapper .editor-toolbar button.active) {
+        background-color: rgba(249, 115, 22, 0.15) !important;
+        border-color: transparent !important;
+        color: #f97316 !important;
+    }
+
+    :global(.editor-wrapper .CodeMirror-cursor) {
+        border-left: 2px solid #f97316 !important;
+    }
+    
+    :global(.CodeMirror-placeholder) {
+        color: hsl(var(--muted-foreground)) !important;
+        opacity: 0.7;
+    }
+
+    :global(.editor-toolbar i.separator) {
+        border-left-color: hsl(var(--border)) !important;
+        border-right-color: transparent !important;
+    }
+    :global(.dark .editor-wrapper .EasyMDEContainer .CodeMirror) {
+        background-color: rgba(0, 0, 0, 0.3) !important;
+    }
+    :global(.dark .editor-wrapper .editor-toolbar) {
+        background-color: rgba(0, 0, 0, 0.5) !important;
     }
 </style>
