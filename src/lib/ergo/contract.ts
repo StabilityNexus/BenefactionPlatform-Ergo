@@ -6,12 +6,20 @@ import { uint8ArrayToHex } from "./utils";
 import { network_id } from "./envs";
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from "./dev/dev_contract";
 
+// Keep old imports only for get_template_hash (needed by fetch.ts)
 import CONTRACT_V1_0 from '../../../contracts/bene_contract/contract_v1_0.es?raw';
 import CONTRACT_V1_1 from '../../../contracts/bene_contract/contract_v1_1.es?raw';
+
+// Current version contract
 import CONTRACT_V2 from '../../../contracts/bene_contract/contract_v2.es?raw';
 import MINT_CONTRACT from '../../../contracts/mint_contract/mint_idt.es?raw';
 
-export type contract_version = "v1_0" | "v1_1" | "v2" | "v2_erg";
+// Only v2 is supported for new projects
+export type contract_version = "v2" | "v2_erg";
+
+// Legacy versions only for template hash identification
+type legacy_contract_version = "v1_0" | "v1_1";
+type any_contract_version = contract_version | legacy_contract_version;
 
 function generate_contract_v1_0(owner_addr: string, dev_fee_contract_bytes_hash: string, dev_fee: number, token_id: string) {
   return CONTRACT_V1_0
@@ -29,6 +37,9 @@ function generate_contract_v1_1(owner_addr: string, dev_fee_contract_bytes_hash:
     .replace(/`\+token_id\+`/g, token_id);
 }
 
+/**
+ * Generate v2 contract (current version)
+ */
 function generate_contract_v2(
   owner_addr: string,
   dev_fee_contract_bytes_hash: string,
@@ -47,7 +58,7 @@ function generate_contract_v2(
     .replace(/`\+base_token_id\+`/g, base_token_id);
 }
 
-function handle_contract_generator(version: contract_version) {
+function handle_contract_generator(version: any_contract_version) {
   let f;
   switch (version) {
     case "v1_0":
@@ -57,6 +68,7 @@ function handle_contract_generator(version: contract_version) {
       f = generate_contract_v1_1;
       break;
     case "v2":
+    case "v2_erg": // v2_erg uses the same contract as v2
       f = generate_contract_v2;
       break;
     default:
@@ -65,21 +77,27 @@ function handle_contract_generator(version: contract_version) {
   return f
 }
 
+/**
+ * Get ErgoTree hex for current version contracts only (v2)
+ */
 export function get_ergotree_hex(constants: ConstantContent, version: contract_version) {
+  const contract = generate_contract_v2(
+    constants.owner,
+    constants.dev_hash ?? get_dev_contract_hash(),
+    constants.dev_fee,
+    constants.pft_token_id,
+    constants.base_token_id || ""
+  );
 
-  // In case that dev_hash is undefined, we try to use the current contract hash. But the tx will fail if the hash is different.
-  let contract;
-  if (version === "v2") {
-    contract = handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.pft_token_id, constants.base_token_id || "");
-  } else {
-    contract = handle_contract_generator(version)(constants.owner, constants.dev_hash ?? get_dev_contract_hash(), constants.dev_fee, constants.pft_token_id);
-  }
-  let ergoTree = compile(contract, { version: 1, network: network_id });
-
+  const ergoTree = compile(contract, { version: 1, network: network_id });
   return ergoTree.toHex();
 }
 
-export function get_template_hash(version: contract_version): string {
+/**
+ * Get template hash for ANY version (including legacy v1_0, v1_1)
+ * This is needed by fetch.ts to identify old projects
+ */
+export function get_template_hash(version: any_contract_version): string {
   const random_constants = {
     "owner": "9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T",  // RANDOM
     "dev_addr": get_dev_contract_address(),   // RANDOM
@@ -102,22 +120,18 @@ export function get_template_hash(version: contract_version): string {
   return uint8ArrayToHex(sha256(templateBytes));
 }
 
+/**
+ * Get contract hash for v2 contracts only
+ */
 function get_contract_hash(constants: ConstantContent, version: contract_version): string {
   try {
-    const contractSource = version === "v2"
-      ? handle_contract_generator(version)(
-        constants.owner,
-        constants.dev_hash ?? get_dev_contract_hash(),
-        constants.dev_fee,
-        constants.pft_token_id,
-        constants.base_token_id || "" // Ensure empty string if undefined
-      )
-      : handle_contract_generator(version)(
-        constants.owner,
-        constants.dev_hash ?? get_dev_contract_hash(),
-        constants.dev_fee,
-        constants.pft_token_id
-      );
+    const contractSource = generate_contract_v2(
+      constants.owner,
+      constants.dev_hash ?? get_dev_contract_hash(),
+      constants.dev_fee,
+      constants.pft_token_id,
+      constants.base_token_id || ""
+    );
 
     const ergoTree = compile(contractSource, {
       version: 1,
@@ -130,6 +144,10 @@ function get_contract_hash(constants: ConstantContent, version: contract_version
     throw new Error(`Failed to compile contract: ${error?.message || error}`);
   }
 }
+
+/**
+ * Get mint contract address for v2 contracts only
+ */
 export function mint_contract_address(constants: ConstantContent, version: contract_version) {
   const contract_bytes_hash = get_contract_hash(constants, version);
   let contract = MINT_CONTRACT.replace(/`\+contract_bytes_hash\+`/g, contract_bytes_hash);
