@@ -1,23 +1,37 @@
 <script lang="ts">
-    import { type Project, is_ended, max_raised, min_raised } from "$lib/common/project";
-    import { address, connected, project_detail, project_token_amount, temporal_token_amount, timer, balance } from "$lib/common/store";
+    import {
+        type Project,
+        is_ended,
+        max_raised,
+        min_raised,
+    } from "$lib/common/project";
+    import {
+        address,
+        connected,
+        project_detail,
+        project_token_amount,
+        temporal_token_amount,
+        timer,
+        balance,
+    } from "$lib/common/store";
     import { Progress } from "$lib/components/ui/progress";
     import { Button } from "$lib/components/ui/button";
     import { block_to_time } from "$lib/common/countdown";
     import { ErgoPlatform } from "$lib/ergo/platform";
-    import { web_explorer_uri_tkn, web_explorer_uri_tx } from '$lib/ergo/envs';
+    import { web_explorer_uri_tkn, web_explorer_uri_tx } from "$lib/ergo/envs";
     import { mode } from "mode-watcher";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label/index.js";
     import { Badge, badgeVariants } from "$lib/components/ui/badge/index.js";
     import { get } from "svelte/store";
     import ForumThread from "$lib/components/ForumThread.svelte";
-    import { onDestroy } from 'svelte';
+    import { onDestroy } from "svelte";
     import { fetchProjects } from "$lib/ergo/fetch";
+    import { marked } from "marked";
 
     // --- ANIMATION IMPORTS ---
-    import { fade, fly, scale, slide } from 'svelte/transition';
-    import { quintOut, elasticOut } from 'svelte/easing';
+    import { fade, fly, scale, slide } from "svelte/transition";
+    import { quintOut, elasticOut } from "svelte/easing";
 
     let project: Project = $project_detail;
 
@@ -34,8 +48,9 @@
     let clipboardTimeout;
 
     function copyTransactionId() {
-        if(!transactionId) return;
-        navigator.clipboard.writeText(transactionId)
+        if (!transactionId) return;
+        navigator.clipboard
+            .writeText(transactionId)
             .then(() => {
                 clipboardCopied = true;
                 if (clipboardTimeout) clearTimeout(clipboardTimeout);
@@ -43,77 +58,127 @@
                     clipboardCopied = false;
                 }, 2000);
             })
-            .catch(err => console.error('Failed to copy ID: ', err));
+            .catch((err) => console.error("Failed to copy ID: ", err));
     }
 
     // Make these reactive to project changes - FIXED: Current amount = sold - refunded
     $: currentVal = project.sold_counter - project.refund_counter;
     $: min = project.minimum_amount;
     $: max = project.current_pft_amount;
-    $: percentage = parseInt(((currentVal/max)*100).toString())
-    
+    $: percentage = parseInt(((currentVal / max) * 100).toString());
 
     // States for amounts
     let show_submit = false;
     let label_submit = "";
-    let info_type_to_show: "buy"|"dev"|"dev-collect"|"" = "";
+    let info_type_to_show: "buy" | "dev" | "dev-collect" | "" = "";
     let function_submit: ((event?: any) => Promise<void>) | null = null;
     let value_submit = 0;
     let submit_info = {
         prefix: "",
         amount: "",
-        token: ""
+        token: "",
     };
     let hide_submit_info = false;
     let submit_amount_label = "";
 
     $: submit_info = (() => {
-        const cleanAmount = (num) => 
-            Number(num).toFixed(10).replace(/\.?0+$/, '');
+        const cleanAmount = (num) =>
+            Number(num)
+                .toFixed(10)
+                .replace(/\.?0+$/, "");
 
         if (function_submit === add_tokens) {
-            return { prefix: "Add:", amount: cleanAmount(value_submit), token: project.token_details.name };
+            return {
+                prefix: "Add:",
+                amount: cleanAmount(value_submit),
+                token: project.token_details.name,
+            };
         }
         if (function_submit === withdraw_tokens) {
-            return { prefix: "Withdraw:", amount: cleanAmount(value_submit), token: project.token_details.name };
+            return {
+                prefix: "Withdraw:",
+                amount: cleanAmount(value_submit),
+                token: project.token_details.name,
+            };
         }
         if (function_submit === withdraw_erg) {
-            const isERGBase = !project.base_token_id || project.base_token_id === "";
-            const tokenName = isERGBase ? platform.main_token : (project.base_token_details?.name || "tokens");
-            return { prefix: "Withdraw:", amount: cleanAmount(value_submit), token: tokenName };
+            const isERGBase =
+                !project.base_token_id || project.base_token_id === "";
+            const tokenName = isERGBase
+                ? platform.main_token
+                : project.base_token_details?.name || "tokens";
+            return {
+                prefix: "Withdraw:",
+                amount: cleanAmount(value_submit),
+                token: tokenName,
+            };
         }
         if (function_submit === refund) {
-            const isERGBase = !project.base_token_id || project.base_token_id === "";
+            const isERGBase =
+                !project.base_token_id || project.base_token_id === "";
             let baseAmount, tokenName;
             if (isERGBase) {
-                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
+                const actualRate =
+                    project.exchange_rate *
+                    Math.pow(10, project.token_details.decimals - 9);
                 baseAmount = value_submit * actualRate;
                 tokenName = platform.main_token;
             } else {
-                const baseTokenDecimals = project.base_token_details?.decimals || 0;
+                const baseTokenDecimals =
+                    project.base_token_details?.decimals || 0;
                 tokenName = project.base_token_details?.name || "tokens";
-                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
+                const actualRate =
+                    project.exchange_rate *
+                    Math.pow(
+                        10,
+                        project.token_details.decimals - baseTokenDecimals,
+                    );
                 baseAmount = value_submit * actualRate;
             }
-            return { prefix: "Refund:", amount: cleanAmount(baseAmount), token: tokenName };
+            return {
+                prefix: "Refund:",
+                amount: cleanAmount(baseAmount),
+                token: tokenName,
+            };
         }
         if (function_submit === buy) {
-            const isERGBase = !project.base_token_id || project.base_token_id === "";
+            const isERGBase =
+                !project.base_token_id || project.base_token_id === "";
             let tokens;
             if (isERGBase) {
-                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
+                const actualRate =
+                    project.exchange_rate *
+                    Math.pow(10, project.token_details.decimals - 9);
                 tokens = value_submit / actualRate;
             } else {
-                const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
+                const baseTokenDecimals =
+                    project.base_token_details?.decimals || 0;
+                const actualRate =
+                    project.exchange_rate *
+                    Math.pow(
+                        10,
+                        project.token_details.decimals - baseTokenDecimals,
+                    );
                 tokens = value_submit / actualRate;
             }
-            return { prefix: "You will receive:", amount: cleanAmount(tokens), token: project.token_details.name };
+            return {
+                prefix: "You will receive:",
+                amount: cleanAmount(tokens),
+                token: project.token_details.name,
+            };
         }
         if (function_submit === temp_exchange) {
-            return { prefix: "Exchange:", amount: cleanAmount(value_submit), token: project.token_details.name };
+            return {
+                prefix: "Exchange:",
+                amount: cleanAmount(value_submit),
+                token: project.token_details.name,
+            };
         }
-        return { prefix: "Action:", amount: cleanAmount(value_submit), token: "tokens" };
+        return {
+            prefix: "Action:",
+            amount: cleanAmount(value_submit),
+            token: "tokens",
+        };
     })();
 
     let daysValue = 0;
@@ -135,59 +200,88 @@
     async function getWalletBalances() {
         userErgBalance = ($balance || 0) / Math.pow(10, 9);
         userTokens = await platform.get_balance();
-        
+
         const rawProjectTokens = userTokens.get(project.pft_token_id) || 0;
         const decimalDivisor = Math.pow(10, project.token_details.decimals);
         userProjectTokenBalance = rawProjectTokens / decimalDivisor;
-        
+
         const rawTemporalTokens = userTokens.get(project.project_id) || 0;
         userTemporalTokenBalance = rawTemporalTokens / decimalDivisor;
-        
-        const isERGBase = !project.base_token_id || project.base_token_id === "";
+
+        const isERGBase =
+            !project.base_token_id || project.base_token_id === "";
         let maxBaseTokenContribution;
-        
+
         if (isERGBase) {
             maxBaseTokenContribution = userErgBalance;
         } else {
-            maxBaseTokenContribution = (userTokens.get(project.base_token_id) || 0) / Math.pow(10, project.base_token_details?.decimals || 0);
+            maxBaseTokenContribution =
+                (userTokens.get(project.base_token_id) || 0) /
+                Math.pow(10, project.base_token_details?.decimals || 0);
         }
-        
-        const maxSellablePftTokens = Math.max(0, project.total_pft_amount - project.sold_counter);
-        const remainingProjectTokens = maxSellablePftTokens / Math.pow(10, project.token_details.decimals);
+
+        const maxSellablePftTokens = Math.max(
+            0,
+            project.total_pft_amount - project.sold_counter,
+        );
+        const remainingProjectTokens =
+            maxSellablePftTokens / Math.pow(10, project.token_details.decimals);
         let maxBaseTokensForRemainingTokens;
-        
+
         if (isERGBase) {
-            const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
-            maxBaseTokensForRemainingTokens = remainingProjectTokens * actualRate;
+            const actualRate =
+                project.exchange_rate *
+                Math.pow(10, project.token_details.decimals - 9);
+            maxBaseTokensForRemainingTokens =
+                remainingProjectTokens * actualRate;
         } else {
             const baseTokenDecimals = project.base_token_details?.decimals || 0;
-            const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
-            maxBaseTokensForRemainingTokens = remainingProjectTokens * actualRate;
+            const actualRate =
+                project.exchange_rate *
+                Math.pow(
+                    10,
+                    project.token_details.decimals - baseTokenDecimals,
+                );
+            maxBaseTokensForRemainingTokens =
+                remainingProjectTokens * actualRate;
         }
-        
-        const rawMaxContribute = Math.min(maxBaseTokenContribution, maxBaseTokensForRemainingTokens);
+
+        const rawMaxContribute = Math.min(
+            maxBaseTokenContribution,
+            maxBaseTokensForRemainingTokens,
+        );
         maxContributeAmount = Math.round(rawMaxContribute * 1e12) / 1e12;
         maxRefundAmount = userTemporalTokenBalance;
-        
-        const smallestPftUnitFactor = Math.pow(10, project.token_details.decimals);
+
+        const smallestPftUnitFactor = Math.pow(
+            10,
+            project.token_details.decimals,
+        );
         const availablePftForExchange = Math.max(0, project.current_pft_amount);
-        const availablePftInNormalUnits = availablePftForExchange / smallestPftUnitFactor;
-        
-        maxCollectAmount = Math.min(userTemporalTokenBalance, availablePftInNormalUnits);
+        const availablePftInNormalUnits =
+            availablePftForExchange / smallestPftUnitFactor;
+
+        maxCollectAmount = Math.min(
+            userTemporalTokenBalance,
+            availablePftInNormalUnits,
+        );
         maxCollectAmount = Math.round(maxCollectAmount * 1e12) / 1e12;
-        
+
         const soldTokens = project.sold_counter || 0;
         const refundedTokens = project.refund_counter || 0;
         const exchangedTokens = project.auxiliar_exchange_counter || 0;
-        
-        const maxWithdrawableRaw = project.current_pft_amount - (soldTokens - refundedTokens - exchangedTokens);
+
+        const maxWithdrawableRaw =
+            project.current_pft_amount -
+            (soldTokens - refundedTokens - exchangedTokens);
         if (maxWithdrawableRaw <= 0) {
             maxWithdrawTokenAmount = 0;
         } else {
             maxWithdrawTokenAmount = maxWithdrawableRaw / smallestPftUnitFactor;
-            maxWithdrawTokenAmount = Math.round(maxWithdrawTokenAmount * 1e12) / 1e12;
+            maxWithdrawTokenAmount =
+                Math.round(maxWithdrawTokenAmount * 1e12) / 1e12;
         }
-        
+
         maxAddTokenAmount = userProjectTokenBalance;
         if (isERGBase) {
             const rawAmount = project.current_value / Math.pow(10, 9);
@@ -213,15 +307,30 @@
     $: if (value_submit && show_submit) {
         if (function_submit === buy && value_submit > maxContributeAmount) {
             value_submit = maxContributeAmount;
-        } else if (function_submit === refund && value_submit > maxRefundAmount) {
+        } else if (
+            function_submit === refund &&
+            value_submit > maxRefundAmount
+        ) {
             value_submit = maxRefundAmount;
-        } else if (function_submit === temp_exchange && value_submit > maxCollectAmount) {
+        } else if (
+            function_submit === temp_exchange &&
+            value_submit > maxCollectAmount
+        ) {
             value_submit = maxCollectAmount;
-        } else if (function_submit === add_tokens && value_submit > maxAddTokenAmount) {
+        } else if (
+            function_submit === add_tokens &&
+            value_submit > maxAddTokenAmount
+        ) {
             value_submit = maxAddTokenAmount;
-        } else if (function_submit === withdraw_tokens && value_submit > maxWithdrawTokenAmount) {
+        } else if (
+            function_submit === withdraw_tokens &&
+            value_submit > maxWithdrawTokenAmount
+        ) {
             value_submit = maxWithdrawTokenAmount;
-        } else if (function_submit === withdraw_erg && value_submit > maxWithdrawErgAmount) {
+        } else if (
+            function_submit === withdraw_erg &&
+            value_submit > maxWithdrawErgAmount
+        ) {
             value_submit = maxWithdrawErgAmount;
         }
     }
@@ -234,7 +343,7 @@
         value_submit = 0;
         show_submit = true;
         hide_submit_info = false;
-        submit_amount_label = project.token_details.name
+        submit_amount_label = project.token_details.name;
     }
 
     async function add_tokens() {
@@ -243,7 +352,8 @@
             const result = await platform.rebalance(project, value_submit);
             transactionId = result;
         } catch (error) {
-            errorMessage = error.message || "Error occurred while adding tokens";
+            errorMessage =
+                error.message || "Error occurred while adding tokens";
         } finally {
             isSubmitting = false;
         }
@@ -257,16 +367,17 @@
         value_submit = 0;
         show_submit = true;
         hide_submit_info = false;
-        submit_amount_label = project.token_details.name
+        submit_amount_label = project.token_details.name;
     }
 
     async function withdraw_tokens() {
         isSubmitting = true;
         try {
-            const result = await platform.rebalance(project, (-1) * value_submit);
+            const result = await platform.rebalance(project, -1 * value_submit);
             transactionId = result;
         } catch (error) {
-            errorMessage = error.message || "Error occurred while withdrawing tokens";
+            errorMessage =
+                error.message || "Error occurred while withdrawing tokens";
         } finally {
             isSubmitting = false;
         }
@@ -275,8 +386,11 @@
     function setupWithdrawErg() {
         getWalletBalances();
         info_type_to_show = "dev-collect";
-        const isERGBase = !project.base_token_id || project.base_token_id === "";
-        const baseTokenName = isERGBase ? "ERGs" : (project.base_token_details?.name || "tokens");
+        const isERGBase =
+            !project.base_token_id || project.base_token_id === "";
+        const baseTokenName = isERGBase
+            ? "ERGs"
+            : project.base_token_details?.name || "tokens";
         label_submit = `How many ${baseTokenName} do you want to withdraw?`;
         function_submit = withdraw_erg;
         value_submit = 0;
@@ -291,7 +405,8 @@
             const result = await platform.withdraw(project, value_submit);
             transactionId = result;
         } catch (error) {
-            errorMessage = error.message || "Error occurred while withdrawing ERGs";
+            errorMessage =
+                error.message || "Error occurred while withdrawing ERGs";
         } finally {
             isSubmitting = false;
         }
@@ -300,8 +415,11 @@
     function setupBuy() {
         getWalletBalances();
         info_type_to_show = "buy";
-        const isERGBase = !project.base_token_id || project.base_token_id === "";
-        const baseTokenName = isERGBase ? platform.main_token : (project.base_token_details?.name || "tokens");
+        const isERGBase =
+            !project.base_token_id || project.base_token_id === "";
+        const baseTokenName = isERGBase
+            ? platform.main_token
+            : project.base_token_details?.name || "tokens";
         label_submit = `How many ${baseTokenName} do you want to contribute?`;
         function_submit = buy;
         value_submit = 0;
@@ -313,14 +431,23 @@
     async function buy() {
         isSubmitting = true;
         try {
-            const isERGBase = !project.base_token_id || project.base_token_id === "";
+            const isERGBase =
+                !project.base_token_id || project.base_token_id === "";
             let token_amount = 0;
             if (isERGBase) {
-                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
+                const actualRate =
+                    project.exchange_rate *
+                    Math.pow(10, project.token_details.decimals - 9);
                 token_amount = value_submit / actualRate;
             } else {
-                const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
+                const baseTokenDecimals =
+                    project.base_token_details?.decimals || 0;
+                const actualRate =
+                    project.exchange_rate *
+                    Math.pow(
+                        10,
+                        project.token_details.decimals - baseTokenDecimals,
+                    );
                 token_amount = value_submit / actualRate;
             }
             const result = await platform.buy_refund(project, token_amount);
@@ -329,7 +456,8 @@
                 await refreshProjectFromContract();
             }
         } catch (error) {
-            errorMessage = error.message || "Error occurred while buying tokens";
+            errorMessage =
+                error.message || "Error occurred while buying tokens";
         } finally {
             isSubmitting = false;
         }
@@ -343,19 +471,23 @@
         value_submit = 0;
         show_submit = true;
         hide_submit_info = false;
-        submit_amount_label = "APT"
+        submit_amount_label = "APT";
     }
 
     async function refund() {
         isSubmitting = true;
         try {
-            const result = await platform.buy_refund(project, (-1) * value_submit);
+            const result = await platform.buy_refund(
+                project,
+                -1 * value_submit,
+            );
             transactionId = result;
             if (result) {
                 await refreshProjectFromContract();
             }
         } catch (error) {
-            errorMessage = error.message || "Error occurred while refunding tokens";
+            errorMessage =
+                error.message || "Error occurred while refunding tokens";
         } finally {
             isSubmitting = false;
         }
@@ -364,7 +496,11 @@
     function setupTempExchange() {
         getWalletBalances();
         info_type_to_show = "";
-        label_submit = "Exchange "+project.content.title+" APT per "+project.token_details.name;
+        label_submit =
+            "Exchange " +
+            project.content.title +
+            " APT per " +
+            project.token_details.name;
         function_submit = temp_exchange;
         value_submit = 0;
         show_submit = true;
@@ -378,21 +514,23 @@
             const result = await platform.temp_exchange(project, value_submit);
             transactionId = result;
         } catch (error) {
-            errorMessage = error.message || "Error occurred while exchange TFT <-> PFT";
+            errorMessage =
+                error.message || "Error occurred while exchange TFT <-> PFT";
         } finally {
             isSubmitting = false;
         }
     }
 
     function shareProject() {
-        navigator.clipboard.writeText(window.location.href)
+        navigator.clipboard
+            .writeText(window.location.href)
             .then(() => {
                 showCopyMessage = true;
                 setTimeout(() => {
                     showCopyMessage = false;
                 }, 2000);
             })
-            .catch(err => console.error('Failed to copy text: ', err));
+            .catch((err) => console.error("Failed to copy text: ", err));
     }
 
     function close_submit_form() {
@@ -408,17 +546,19 @@
     let limit_date = "";
     async function load() {
         deadline_passed = await is_ended(project);
-        is_min_raised = await min_raised(project)
+        is_min_raised = await min_raised(project);
         is_max_raised = await max_raised(project);
-        limit_date = new Date(await block_to_time(project.block_limit, project.platform)).toLocaleString();
+        limit_date = new Date(
+            await block_to_time(project.block_limit, project.platform),
+        ).toLocaleString();
     }
     load();
 
     let is_owner = false;
     async function checkIfIsOwner() {
         const connected = await $connected;
-        const address = await $address; 
-        is_owner = connected && await address === project.constants.owner;
+        const address = await $address;
+        is_owner = connected && (await address) === project.constants.owner;
     }
     checkIfIsOwner();
     let timerValue = get(timer);
@@ -427,9 +567,9 @@
     async function setTargetDate() {
         targetDate = await block_to_time(project.block_limit, project.platform);
     }
-    setTargetDate()
+    setTargetDate();
 
-    let progressColor = 'white';
+    let progressColor = "white";
     let countdownAnimation = false;
     function updateCountdown() {
         var currentDate = new Date().getTime();
@@ -437,11 +577,12 @@
 
         if (diff > 0) {
             daysValue = Math.floor(diff / (1000 * 60 * 60 * 24));
-            hoursValue = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            hoursValue = Math.floor(
+                (diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+            );
             minutesValue = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             secondsValue = Math.floor((diff % (1000 * 60)) / 1000);
-        } 
-        else {
+        } else {
             daysValue = 0;
             hoursValue = 0;
             minutesValue = 0;
@@ -449,35 +590,48 @@
         }
 
         if (is_min_raised) {
-            progressColor = '#A8E6A1';
+            progressColor = "#A8E6A1";
         } else {
             if (diff <= 0) {
-                progressColor = '#FF6F61';
+                progressColor = "#FF6F61";
                 countdownAnimation = false;
             } else if (diff < 24 * 60 * 60 * 1000) {
-                progressColor = '#FFF5A3';
+                progressColor = "#FFF5A3";
                 countdownAnimation = true;
             } else {
-                progressColor = 'white';
+                progressColor = "white";
                 countdownAnimation = false;
             }
         }
     }
 
     countdownInterval = setInterval(updateCountdown, 1000);
-    timer.update(current => ({ ...current, countdownInterval }));
+    timer.update((current) => ({ ...current, countdownInterval }));
 
-    async function get_user_project_tokens(){
-        var user_project_tokens = (await platform.get_balance(project.pft_token_id)).get(project.pft_token_id) ?? 0;
-        const formattedProjectTokens = (user_project_tokens/Math.pow(10, project.token_details.decimals)).toString()+" "+project.token_details.name;
+    async function get_user_project_tokens() {
+        var user_project_tokens =
+            (await platform.get_balance(project.pft_token_id)).get(
+                project.pft_token_id,
+            ) ?? 0;
+        const formattedProjectTokens =
+            (
+                user_project_tokens /
+                Math.pow(10, project.token_details.decimals)
+            ).toString() +
+            " " +
+            project.token_details.name;
         project_token_amount.set(formattedProjectTokens);
-        
-        var temporal_tokens = (await platform.get_balance(project.project_id)).get(project.project_id) ?? 0;
-        const normalizedTemporalTokens = temporal_tokens/Math.pow(10, project.token_details.decimals);
+
+        var temporal_tokens =
+            (await platform.get_balance(project.project_id)).get(
+                project.project_id,
+            ) ?? 0;
+        const normalizedTemporalTokens =
+            temporal_tokens / Math.pow(10, project.token_details.decimals);
         temporal_token_amount.set(normalizedTemporalTokens);
     }
-    get_user_project_tokens()
-    
+    get_user_project_tokens();
+
     async function refreshProjectFromContract() {
         try {
             const updatedProjects = await fetchProjects();
@@ -490,17 +644,17 @@
                     refund_counter: updatedProject.refund_counter,
                     current_idt_amount: updatedProject.current_idt_amount,
                     current_pft_amount: updatedProject.current_pft_amount,
-                    box: updatedProject.box
+                    box: updatedProject.box,
                 };
                 project_detail.set(project);
                 await getWalletBalances();
                 await get_user_project_tokens();
             }
         } catch (error) {
-            console.error('Error refreshing project data:', error);
+            console.error("Error refreshing project data:", error);
         }
     }
-    
+
     getWalletBalances();
     onDestroy(() => {
         if (countdownInterval) {
@@ -509,33 +663,63 @@
     });
 </script>
 
-<div class="project-detail" style="{$mode === 'light' ? 'color: black;' : 'color: #ddd;'}">
+<div
+    class="project-detail"
+    style={$mode === "light" ? "color: black;" : "color: #ddd;"}
+>
     <div class="project-container">
-        <div class="project-info" in:fly={{ y: 30, duration: 800, delay: 200, easing: quintOut }}>
+        <div
+            class="project-info"
+            in:fly={{ y: 30, duration: 800, delay: 200, easing: quintOut }}
+        >
             <div class="project-header">
                 <h1 class="project-title">{project.content.title}</h1>
                 <div class="project-badge" style="display: none;">
-                    <a href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es" target="_blank"
-                       class={badgeVariants({ variant: "outline" })}>Contract version: {project.version.replace("_", ".")}</a>
+                    <a
+                        href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es"
+                        target="_blank"
+                        class={badgeVariants({ variant: "outline" })}
+                        >Contract version: {project.version.replace(
+                            "_",
+                            ".",
+                        )}</a
+                    >
                 </div>
             </div>
-            
-            <div class="project-image" 
-                style="background-image: url({project.content.image});">
-            </div>
+
+            <div
+                class="project-image"
+                style="background-image: url({project.content.image});"
+            ></div>
 
             <div class="project-description">
-                <p>{project.content.description}</p>
+                <div class="markdown-content">
+                    {@html marked.parse(project.content.description || "", {
+                        breaks: true,
+                    })}
+                </div>
                 {#if project.content.link !== null}
-                    <p>More info <a href="{project.content.link}" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">here</a>.</p>
+                    <p>
+                        More info <a
+                            href={project.content.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-blue-500 underline">here</a
+                        >.
+                    </p>
                 {/if}
             </div>
 
             <div class="token-info">
-                <p>Proof-of-Funding Token:
-                    <a href="{web_explorer_uri_tkn + project.pft_token_id}" 
-                        target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">
-                       {project.token_details.name}
+                <p>
+                    Proof-of-Funding Token:
+                    <a
+                        href={web_explorer_uri_tkn + project.pft_token_id}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-blue-500 underline"
+                    >
+                        {project.token_details.name}
                     </a>
                 </p>
             </div>
@@ -552,157 +736,250 @@
             </div>
         </div>
 
-        <div class="project-stats" in:fly={{ y: 30, duration: 800, delay: 400, easing: quintOut }}>
+        <div
+            class="project-stats"
+            in:fly={{ y: 30, duration: 800, delay: 400, easing: quintOut }}
+        >
             <div class="countdown-container">
-                <div class="timeleft {deadline_passed ? 'ended' : (countdownAnimation ? 'soon' : '')}">
-                     <span class="timeleft-label">
+                <div
+                    class="timeleft {deadline_passed
+                        ? 'ended'
+                        : countdownAnimation
+                          ? 'soon'
+                          : ''}"
+                >
+                    <span class="timeleft-label">
                         {#if deadline_passed}
-                          TIME'S UP!
-                          {#if ! is_max_raised}
-                          <small class="secondary-text">... But you can still contribute!</small>
-                          {/if}
+                            TIME'S UP!
+                            {#if !is_max_raised}
+                                <small class="secondary-text"
+                                    >... But you can still contribute!</small
+                                >
+                            {/if}
                         {:else}
-                          TIME LEFT
+                            TIME LEFT
                         {/if}
-                     </span>
+                    </span>
                     <div class="countdown-items">
-                      <div class="item">
-                        <div>{daysValue}</div>
-                        <div class="h3"><h3>Days</h3></div>
-                      </div>
-                
-                      <div class="item">
-                        <div>{hoursValue}</div>
-                        <div class="h3"><h3>Hours</h3></div>
-                      </div>
-                      <div class="item">
-                        <div>{minutesValue}</div>
-                        <div class="h3"><h3>Minutes</h3></div>
-                      </div>
-                      <div class="item">
-                        <div>{secondsValue}</div>
-                        <div class="h3"><h3>Seconds</h3></div>
-                      </div>
+                        <div class="item">
+                            <div>{daysValue}</div>
+                            <div class="h3"><h3>Days</h3></div>
+                        </div>
+
+                        <div class="item">
+                            <div>{hoursValue}</div>
+                            <div class="h3"><h3>Hours</h3></div>
+                        </div>
+                        <div class="item">
+                            <div>{minutesValue}</div>
+                            <div class="h3"><h3>Minutes</h3></div>
+                        </div>
+                        <div class="item">
+                            <div>{secondsValue}</div>
+                            <div class="h3"><h3>Seconds</h3></div>
+                        </div>
                     </div>
-                  
-                     <small class="deadline-info">Until {limit_date} UTC on block {project.block_limit}</small>
+
+                    <small class="deadline-info"
+                        >Until {limit_date} UTC on block {project.block_limit}</small
+                    >
                 </div>
             </div>
 
             <div class="progress-container">
-                <Progress value="{percentage}" color="{progressColor}" />
-                
+                <Progress value={percentage} color={progressColor} />
+
                 <div class="amounts-info">
                     <div class="amount-item">
                         <div class="amount-label">Minimum Amount</div>
-                        <div class="amount-value">{min / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                        <div class="amount-ergs">{(() => {
-                            const isERGBase = !project.base_token_id || project.base_token_id === "";
-                            if (isERGBase) {
-                                return ((min * project.exchange_rate) / Math.pow(10, 9)) + " " + platform.main_token;
-                            } else {
-                                const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                                const baseTokenName = project.base_token_details?.name || "tokens";
-                                return ((min * project.exchange_rate) / Math.pow(10, baseTokenDecimals)) + " " + baseTokenName;
-                            }
-                        })()}</div>
+                        <div class="amount-value">
+                            {min / Math.pow(10, project.token_details.decimals)}
+                            {project.token_details.name}
+                        </div>
+                        <div class="amount-ergs">
+                            {(() => {
+                                const isERGBase =
+                                    !project.base_token_id ||
+                                    project.base_token_id === "";
+                                if (isERGBase) {
+                                    return (
+                                        (min * project.exchange_rate) /
+                                            Math.pow(10, 9) +
+                                        " " +
+                                        platform.main_token
+                                    );
+                                } else {
+                                    const baseTokenDecimals =
+                                        project.base_token_details?.decimals ||
+                                        0;
+                                    const baseTokenName =
+                                        project.base_token_details?.name ||
+                                        "tokens";
+                                    return (
+                                        (min * project.exchange_rate) /
+                                            Math.pow(10, baseTokenDecimals) +
+                                        " " +
+                                        baseTokenName
+                                    );
+                                }
+                            })()}
+                        </div>
                     </div>
-            
+
                     <div class="amount-item current">
                         <div class="amount-label">Current Amount</div>
-                        <div class="amount-value">{currentVal / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                        <div class="amount-ergs">{(() => {
-                            const isERGBase = !project.base_token_id || project.base_token_id === "";
-                            if (isERGBase) {
-                                return ((currentVal * project.exchange_rate) / Math.pow(10, 9)) + " " + platform.main_token;
-                            } else {
-                                const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                                const baseTokenName = project.base_token_details?.name || "tokens";
-                                return ((currentVal * project.exchange_rate) / Math.pow(10, baseTokenDecimals)) + " " + baseTokenName;
-                            }
-                        })()}</div>
+                        <div class="amount-value">
+                            {currentVal /
+                                Math.pow(10, project.token_details.decimals)}
+                            {project.token_details.name}
+                        </div>
+                        <div class="amount-ergs">
+                            {(() => {
+                                const isERGBase =
+                                    !project.base_token_id ||
+                                    project.base_token_id === "";
+                                if (isERGBase) {
+                                    return (
+                                        (currentVal * project.exchange_rate) /
+                                            Math.pow(10, 9) +
+                                        " " +
+                                        platform.main_token
+                                    );
+                                } else {
+                                    const baseTokenDecimals =
+                                        project.base_token_details?.decimals ||
+                                        0;
+                                    const baseTokenName =
+                                        project.base_token_details?.name ||
+                                        "tokens";
+                                    return (
+                                        (currentVal * project.exchange_rate) /
+                                            Math.pow(10, baseTokenDecimals) +
+                                        " " +
+                                        baseTokenName
+                                    );
+                                }
+                            })()}
+                        </div>
                     </div>
-            
+
                     <div class="amount-item">
                         <div class="amount-label">Maximum Amount</div>
-                        <div class="amount-value">{max / Math.pow(10, project.token_details.decimals)} {project.token_details.name}</div>
-                        <div class="amount-ergs">{(() => {
-                            const isERGBase = !project.base_token_id || project.base_token_id === "";
-                            if (isERGBase) {
-                                return ((max * project.exchange_rate) / Math.pow(10, 9)) + " " + platform.main_token;
-                            } else {
-                                const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                                const baseTokenName = project.base_token_details?.name || "tokens";
-                                return ((max * project.exchange_rate) / Math.pow(10, baseTokenDecimals)) + " " + baseTokenName;
-                            }
-                        })()}</div>
+                        <div class="amount-value">
+                            {max / Math.pow(10, project.token_details.decimals)}
+                            {project.token_details.name}
+                        </div>
+                        <div class="amount-ergs">
+                            {(() => {
+                                const isERGBase =
+                                    !project.base_token_id ||
+                                    project.base_token_id === "";
+                                if (isERGBase) {
+                                    return (
+                                        (max * project.exchange_rate) /
+                                            Math.pow(10, 9) +
+                                        " " +
+                                        platform.main_token
+                                    );
+                                } else {
+                                    const baseTokenDecimals =
+                                        project.base_token_details?.decimals ||
+                                        0;
+                                    const baseTokenName =
+                                        project.base_token_details?.name ||
+                                        "tokens";
+                                    return (
+                                        (max * project.exchange_rate) /
+                                            Math.pow(10, baseTokenDecimals) +
+                                        " " +
+                                        baseTokenName
+                                    );
+                                }
+                            })()}
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="actions-section">
                 <h2 class="actions-title">Actions</h2>
-                 <div class="action-buttons">
-                    <Button 
-                        class="action-btn primary" 
-                        style="background-color: #FFA500; color: black;" 
-                        on:click={setupBuy} 
-                        disabled={!$connected || maxContributeAmount <= 0 || project.sold_counter >= project.total_pft_amount}
-                        title={!$connected ? "Connect your wallet to contribute" : maxContributeAmount <= 0 ? "Insufficient funds" : "Contribute"}
+                <div class="action-buttons">
+                    <Button
+                        class="action-btn primary"
+                        style="background-color: #FFA500; color: black;"
+                        on:click={setupBuy}
+                        disabled={!$connected ||
+                            maxContributeAmount <= 0 ||
+                            project.sold_counter >= project.total_pft_amount}
+                        title={!$connected
+                            ? "Connect your wallet to contribute"
+                            : maxContributeAmount <= 0
+                              ? "Insufficient funds"
+                              : "Contribute"}
                     >
-                    Contribute
+                        Contribute
                     </Button>
 
-                    <Button 
-                        class="action-btn" 
+                    <Button
+                        class="action-btn"
                         style="background-color: #FF8C00; color: black;"
-                        on:click={setupRefund} 
-                        disabled={!$connected || !(deadline_passed && !is_min_raised) || maxRefundAmount <= 0}
+                        on:click={setupRefund}
+                        disabled={!$connected ||
+                            !(deadline_passed && !is_min_raised) ||
+                            maxRefundAmount <= 0}
                         title="Get a Refund"
                     >
-                    Get a Refund
+                        Get a Refund
                     </Button>
 
-                    <Button 
-                        class="action-btn" 
-                        style="background-color: #FF8C00; color: black;" 
-                        on:click={setupTempExchange} 
-                        disabled={!$connected || !is_min_raised || maxCollectAmount <= 0}
+                    <Button
+                        class="action-btn"
+                        style="background-color: #FF8C00; color: black;"
+                        on:click={setupTempExchange}
+                        disabled={!$connected ||
+                            !is_min_raised ||
+                            maxCollectAmount <= 0}
                         title="Collect Tokens"
                     >
-                    Collect {project.token_details.name}
+                        Collect {project.token_details.name}
                     </Button>
                 </div>
             </div>
-      
+
             {#if is_owner}
                 <div class="actions-section owner" transition:slide>
                     <h2 class="actions-title">Owner Actions</h2>
                     <div class="action-buttons">
-                        <Button 
-                            class="action-btn" 
+                        <Button
+                            class="action-btn"
                             style="background-color: #FF8C00; color: black;"
                             on:click={setupAddTokens}
                         >
-                        Add {project.token_details.name}
+                            Add {project.token_details.name}
                         </Button>
 
-                        <Button 
-                            class="action-btn" 
+                        <Button
+                            class="action-btn"
                             style="background-color: #FF8C00; color: black;"
                             on:click={setupWithdrawTokens}
-                            disabled={!$connected || maxWithdrawTokenAmount <= 0}
+                            disabled={!$connected ||
+                                maxWithdrawTokenAmount <= 0}
                         >
-                        Withdraw {project.token_details.name}
+                            Withdraw {project.token_details.name}
                         </Button>
 
-                        <Button 
-                            class="action-btn" 
+                        <Button
+                            class="action-btn"
                             style="background-color: #FF8C00; color: black;"
-                            on:click={setupWithdrawErg} 
-                            disabled={!$connected || !is_min_raised || maxWithdrawErgAmount <= 0}
+                            on:click={setupWithdrawErg}
+                            disabled={!$connected ||
+                                !is_min_raised ||
+                                maxWithdrawErgAmount <= 0}
                         >
-                        Collect {(!project.base_token_id || project.base_token_id === "") ? platform.main_token : (project.base_token_details?.name || "tokens")}
+                            Collect {!project.base_token_id ||
+                            project.base_token_id === ""
+                                ? platform.main_token
+                                : project.base_token_details?.name || "tokens"}
                         </Button>
                     </div>
                 </div>
@@ -712,115 +989,202 @@
 
     {#if show_submit}
         <div class="modal-overlay" transition:fade={{ duration: 200 }}>
-            <div class="actions-form" 
-                 style="{$mode === 'light' ? 'background: white;' : 'background: #2a2a2a;'}"
-                 transition:scale={{ start: 0.95, duration: 300, easing: quintOut }}
+            <div
+                class="actions-form"
+                style={$mode === "light"
+                    ? "background: white;"
+                    : "background: #2a2a2a;"}
+                transition:scale={{
+                    start: 0.95,
+                    duration: 300,
+                    easing: quintOut,
+                }}
             >
                 <div class="close-button" on:click={close_submit_form}>
-                        &times;
+                    &times;
                 </div>
                 <div class="centered-form">
-                    
                     {#if transactionId}
-                        <div class="result" in:slide={{ duration: 300, easing: quintOut }}>
+                        <div
+                            class="result"
+                            in:slide={{ duration: 300, easing: quintOut }}
+                        >
                             <div class="result-content">
                                 <span class="result-label">Transaction ID</span>
-                                <a 
-                                    href="{web_explorer_uri_tx + transactionId}" 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
+                                <a
+                                    href={web_explorer_uri_tx + transactionId}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     class="result-link"
                                     title="View on Explorer"
                                 >
-                                    {transactionId.length > 20 
-                                        ? `${transactionId.slice(0, 10)}...${transactionId.slice(-6)}` 
+                                    {transactionId.length > 20
+                                        ? `${transactionId.slice(0, 10)}...${transactionId.slice(-6)}`
                                         : transactionId}
-                                    <svg class="icon-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                                    <svg
+                                        class="icon-link"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+                                        <path
+                                            d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+                                        />
                                         <polyline points="15 3 21 3 21 9" />
                                         <line x1="10" y1="14" x2="21" y2="3" />
                                     </svg>
                                 </a>
                             </div>
 
-                            <button 
-                                class="copy-btn" 
-                                class:success={clipboardCopied} 
+                            <button
+                                class="copy-btn"
+                                class:success={clipboardCopied}
                                 on:click={copyTransactionId}
                                 aria-label="Copy Transaction ID"
                             >
                                 {#if clipboardCopied}
-                                    <div in:scale={{duration: 400, start: 0.5, easing: elasticOut}}>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
-                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                    <div
+                                        in:scale={{
+                                            duration: 400,
+                                            start: 0.5,
+                                            easing: elasticOut,
+                                        }}
+                                    >
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="3"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            style="width: 18px; height: 18px;"
+                                        >
+                                            <polyline points="20 6 9 17 4 12"
+                                            ></polyline>
                                         </svg>
                                     </div>
                                 {:else}
-                                    <div in:scale={{duration: 200, start: 0.8}}>
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
-                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    <div
+                                        in:scale={{ duration: 200, start: 0.8 }}
+                                    >
+                                        <svg
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            style="width: 18px; height: 18px;"
+                                        >
+                                            <rect
+                                                x="9"
+                                                y="9"
+                                                width="13"
+                                                height="13"
+                                                rx="2"
+                                                ry="2"
+                                            ></rect>
+                                            <path
+                                                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                                            ></path>
                                         </svg>
                                     </div>
                                 {/if}
                             </button>
                         </div>
-
                     {:else if errorMessage}
                         <div class="error" in:slide>
                             <p>{errorMessage}</p>
                         </div>
                     {:else}
-                    <div class="form-container" in:slide>
-                        <div class="form-info">
+                        <div class="form-container" in:slide>
+                            <div class="form-info">
                                 {#if info_type_to_show === "buy"}
-                                    <p><strong>Exchange Rate:</strong> {project.exchange_rate}...</p>
-                                    <p><strong>Available:</strong> {userErgBalance.toFixed(4)}...</p>
-                                    <p><strong>Max Contribution:</strong> {maxContributeAmount.toFixed(4)}...</p>
+                                    <p>
+                                        <strong>Exchange Rate:</strong>
+                                        {project.exchange_rate}...
+                                    </p>
+                                    <p>
+                                        <strong>Available:</strong>
+                                        {userErgBalance.toFixed(4)}...
+                                    </p>
+                                    <p>
+                                        <strong>Max Contribution:</strong>
+                                        {maxContributeAmount.toFixed(4)}...
+                                    </p>
                                 {/if}
                                 {#if info_type_to_show === "dev-collect"}
-                                    <p><strong>Current ERG balance:</strong> {(project.current_value / Math.pow(10, 9)).toFixed(4)}...</p>
+                                    <p>
+                                        <strong>Current ERG balance:</strong>
+                                        {(
+                                            project.current_value /
+                                            Math.pow(10, 9)
+                                        ).toFixed(4)}...
+                                    </p>
                                 {/if}
                                 {#if info_type_to_show === "dev"}
-                                    <p><strong>Token Balance:</strong> {userProjectTokenBalance.toFixed(2)}...</p>
+                                    <p>
+                                        <strong>Token Balance:</strong>
+                                        {userProjectTokenBalance.toFixed(2)}...
+                                    </p>
                                 {/if}
                                 {#if function_submit === refund}
-                                    <p><strong>Max Refund:</strong> {maxRefundAmount} APT</p>
+                                    <p>
+                                        <strong>Max Refund:</strong>
+                                        {maxRefundAmount} APT
+                                    </p>
                                 {/if}
                                 {#if function_submit === temp_exchange}
-                                    <p><strong>Max Collection:</strong> {maxCollectAmount.toFixed(4)}...</p>
+                                    <p>
+                                        <strong>Max Collection:</strong>
+                                        {maxCollectAmount.toFixed(4)}...
+                                    </p>
                                 {/if}
                             </div>
-                        
+
                             <div class="form-content">
-                                <Label for="amount-input" class="form-label">{label_submit}</Label>
+                                <Label for="amount-input" class="form-label"
+                                    >{label_submit}</Label
+                                >
                                 <div class="input-container">
-                                            <Input
-                                                id="amount-input"
-                                                type="number"
-                                                bind:value={value_submit}
-                                                min="0"
-                                                step="0.001"
-                                                class="form-input"
-                                            />
-                                        <span class="input-suffix">{submit_amount_label}</span>
+                                    <Input
+                                        id="amount-input"
+                                        type="number"
+                                        bind:value={value_submit}
+                                        min="0"
+                                        step="0.001"
+                                        class="form-input"
+                                    />
+                                    <span class="input-suffix"
+                                        >{submit_amount_label}</span
+                                    >
                                 </div>
-                                    
+
                                 {#if !hide_submit_info}
-                                    <Label for="amount-input" class="form-label">{submit_info.prefix}</Label>
+                                    <Label for="amount-input" class="form-label"
+                                        >{submit_info.prefix}</Label
+                                    >
                                     <div class="input-container">
-                                        <Input disabled={true} type="number" value={submit_info.amount} class="form-input"/>
-                                        <span class="input-suffix">{submit_info.token}</span>
+                                        <Input
+                                            disabled={true}
+                                            type="number"
+                                            value={submit_info.amount}
+                                            class="form-input"
+                                        />
+                                        <span class="input-suffix"
+                                            >{submit_info.token}</span
+                                        >
                                     </div>
                                 {/if}
-                                    
-                                <Button 
-                                    on:click={function_submit} 
+
+                                <Button
+                                    on:click={function_submit}
                                     disabled={isSubmitting || value_submit <= 0}
                                     class="submit-btn"
                                     style="background-color: #FF8C00; color: black;"
                                 >
-                                    {isSubmitting ? 'Processing...' : 'Submit'}
+                                    {isSubmitting ? "Processing..." : "Submit"}
                                 </Button>
                             </div>
                         </div>
@@ -829,7 +1193,7 @@
             </div>
         </div>
     {/if}
-    
+
     <div class="forum-section" in:fly={{ y: 20, delay: 600 }}>
         <ForumThread projectId={project.project_id} />
     </div>
@@ -856,16 +1220,28 @@
         overflow: visible;
     }
 
-    .project-info, .project-stats {
+    .project-info,
+    .project-stats {
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
         overflow: visible;
     }
 
-    .project-header { display: flex; flex-direction: column; gap: 0.5rem; }
-    .project-title { font-size: 2rem; font-weight: 700; margin: 0; line-height: 1.2; }
-    .project-badge { margin-bottom: 1rem; }
+    .project-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .project-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+    }
+    .project-badge {
+        margin-bottom: 1rem;
+    }
 
     .project-image {
         width: 100%;
@@ -877,10 +1253,17 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         transition: transform 0.3s ease; /* Hover effect for image */
     }
-    .project-image:hover { transform: scale(1.01); }
+    .project-image:hover {
+        transform: scale(1.01);
+    }
 
-    .project-description { font-size: 1rem; line-height: 1.6; }
-    .token-info { margin-top: 0.5rem; }
+    .project-description {
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+    .token-info {
+        margin-top: 0.5rem;
+    }
 
     .share-button {
         display: flex;
@@ -891,200 +1274,544 @@
     }
 
     .share-btn {
-        background-color: #6B7280;
+        background-color: #6b7280;
         color: white;
         border: none;
         padding: 0.5rem 1rem;
         border-radius: 4px;
         cursor: pointer;
-        transition: background-color 0.2s, transform 0.1s;
+        transition:
+            background-color 0.2s,
+            transform 0.1s;
     }
-    .share-btn:hover { background-color: #4B5563; }
-    .share-btn:active { transform: scale(0.98); }
+    .share-btn:hover {
+        background-color: #4b5563;
+    }
+    .share-btn:active {
+        transform: scale(0.98);
+    }
 
-    .copy-msg { color: #10B981; font-size: 0.875rem; }
+    .copy-msg {
+        color: #10b981;
+        font-size: 0.875rem;
+    }
 
     /* Countdown Timer */
-    .countdown-container, .progress-container, .actions-section {
+    .countdown-container,
+    .progress-container,
+    .actions-section {
         background-color: rgba(255, 255, 255, 0.05);
         border-radius: 8px;
         padding: 1.5rem;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         backdrop-filter: blur(5px); /* Enhanced Glassmorphism */
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        transition:
+            transform 0.3s ease,
+            box-shadow 0.3s ease;
     }
-    
-    .countdown-container:hover, .progress-container:hover {
+
+    .countdown-container:hover,
+    .progress-container:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 12px rgba(0,0,0,0.2);
+        box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
     }
 
-    .timeleft { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
-    .timeleft-label { font-size: 1.5rem; font-weight: 600; text-align: center; }
-    .secondary-text { display: block; font-size: 0.875rem; opacity: 0.8; margin-top: 0.25rem; }
+    .timeleft {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+    .timeleft-label {
+        font-size: 1.5rem;
+        font-weight: 600;
+        text-align: center;
+    }
+    .secondary-text {
+        display: block;
+        font-size: 0.875rem;
+        opacity: 0.8;
+        margin-top: 0.25rem;
+    }
 
-    .countdown-items { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem; }
+    .countdown-items {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
 
     .item {
-        width: 80px; height: 80px; padding: 0.5rem;
-        display: flex; flex-direction: column; justify-content: center; align-items: center;
-        border: 2px solid; border-radius: 8px;
+        width: 80px;
+        height: 80px;
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border: 2px solid;
+        border-radius: 8px;
         transition: all 0.3s ease;
     }
-    .item:hover { transform: scale(1.05); border-color: #ffb74d; } /* Interactive timer items */
+    .item:hover {
+        transform: scale(1.05);
+        border-color: #ffb74d;
+    } /* Interactive timer items */
 
-    .item > div { font-size: 1.75rem; font-weight: 700; line-height: 1; }
-    .item > div > h3 { font-size: 0.875rem; font-weight: 400; margin-top: 0.5rem; }
-    .deadline-info { font-size: 0.75rem; opacity: 0.8; text-align: center; }
+    .item > div {
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    .item > div > h3 {
+        font-size: 0.875rem;
+        font-weight: 400;
+        margin-top: 0.5rem;
+    }
+    .deadline-info {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        text-align: center;
+    }
 
     /* Progress & Amounts */
-    .amounts-info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; }
+    .amounts-info {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-top: 1rem;
+    }
     .amount-item {
-        display: flex; flex-direction: column; align-items: center; text-align: center;
-        padding: 0.75rem; border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0.75rem;
+        border-radius: 6px;
         background-color: rgba(255, 255, 255, 0.03);
         transition: background-color 0.2s;
     }
-    .amount-item:hover { background-color: rgba(255, 255, 255, 0.08); }
+    .amount-item:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+    }
 
-    .amount-item.current { background-color: rgba(255, 165, 0, 0.1); border: 1px solid rgba(255, 165, 0, 0.3); }
-    .amount-label { font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; }
-    .amount-value { font-size: 0.95rem; font-weight: 500; }
-    .amount-ergs { font-size: 0.75rem; opacity: 0.8; margin-top: 0.25rem; }
+    .amount-item.current {
+        background-color: rgba(255, 165, 0, 0.1);
+        border: 1px solid rgba(255, 165, 0, 0.3);
+    }
+    .amount-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    .amount-value {
+        font-size: 0.95rem;
+        font-weight: 500;
+    }
+    .amount-ergs {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        margin-top: 0.25rem;
+    }
 
     /* Actions */
-    .actions-section.owner { background-color: rgba(255, 165, 0, 0.05); border: 1px solid rgba(255, 165, 0, 0.2); }
-    .actions-title { font-size: 1.25rem; font-weight: 600; margin-top: 0; margin-bottom: 1rem; }
-    .action-buttons { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+    .actions-section.owner {
+        background-color: rgba(255, 165, 0, 0.05);
+        border: 1px solid rgba(255, 165, 0, 0.2);
+    }
+    .actions-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 0;
+        margin-bottom: 1rem;
+    }
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
 
     .action-btn {
-        color: black; border: none; padding: 0.75rem 1.25rem; border-radius: 4px;
-        font-weight: 600; transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-        flex: 1; min-width: 140px;
+        color: black;
+        border: none;
+        padding: 0.75rem 1.25rem;
+        border-radius: 4px;
+        font-weight: 600;
+        transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+        flex: 1;
+        min-width: 140px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
-    .action-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); }
-    .action-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
-    .action-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
-    .action-btn.primary { font-weight: 700; letter-spacing: 0.5px; }
+    .action-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+    .action-btn:active:not(:disabled) {
+        transform: translateY(0) scale(0.98);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .action-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+    .action-btn.primary {
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
 
     /* Modal Overlay */
     .modal-overlay {
-        position: fixed; inset: 0;
+        position: fixed;
+        inset: 0;
         background: rgba(0, 0, 0, 0.6);
         backdrop-filter: blur(8px); /* Increased blur */
-        display: flex; justify-content: center; align-items: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         z-index: 2000;
     }
 
     /* Modal Box */
     .actions-form {
-        position: relative; width: 95%; max-width: 540px;
-        border-radius: 20px; padding: 2.5rem;
-        background: linear-gradient(145deg, rgba(30, 30, 30, 0.95), rgba(20, 20, 20, 0.95));
+        position: relative;
+        width: 95%;
+        max-width: 540px;
+        border-radius: 20px;
+        padding: 2.5rem;
+        background: linear-gradient(
+            145deg,
+            rgba(30, 30, 30, 0.95),
+            rgba(20, 20, 20, 0.95)
+        );
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
         border: 1px solid rgba(255, 152, 0, 0.15);
     }
 
     .close-button {
-        position: absolute; top: 1.2rem; right: 1.2rem;
-        font-size: 1.8rem; cursor: pointer;
-        width: 40px; height: 40px;
-        display: flex; justify-content: center; align-items: center;
-        border-radius: 50%; background: rgba(255, 255, 255, 0.08);
-        transition: background 0.2s, transform 0.2s; color: #ccc;
+        position: absolute;
+        top: 1.2rem;
+        right: 1.2rem;
+        font-size: 1.8rem;
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        transition:
+            background 0.2s,
+            transform 0.2s;
+        color: #ccc;
     }
-    .close-button:hover { background: rgba(255, 255, 255, 0.15); transform: rotate(90deg); }
+    .close-button:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: rotate(90deg);
+    }
 
     .form-info {
-        background: rgba(255, 255, 255, 0.05); padding: 1.2rem 1.4rem;
-        border-radius: 12px; border-left: 5px solid #ff9800;
-        line-height: 1.5; font-size: 0.95rem; margin-bottom: 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 1.2rem 1.4rem;
+        border-radius: 12px;
+        border-left: 5px solid #ff9800;
+        line-height: 1.5;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
         box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
     }
 
-    .form-label { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; text-align: center; color: #f5f5f5; }
-    .input-container { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+    .form-label {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        text-align: center;
+        color: #f5f5f5;
+    }
+    .input-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
 
     .form-input {
-        flex: 1; padding: 1rem 1.2rem; border-radius: 12px;
+        flex: 1;
+        padding: 1rem 1.2rem;
+        border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.2);
         background: rgba(255, 255, 255, 0.1);
-        font-size: 1.05rem; color: #fff;
-        transition: border 0.2s, background 0.2s, box-shadow 0.2s;
+        font-size: 1.05rem;
+        color: #fff;
+        transition:
+            border 0.2s,
+            background 0.2s,
+            box-shadow 0.2s;
     }
     .form-input:focus {
-        outline: none; background: rgba(255, 255, 255, 0.18);
-        border-color: #ff9800; box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
+        outline: none;
+        background: rgba(255, 255, 255, 0.18);
+        border-color: #ff9800;
+        box-shadow: 0 0 8px rgba(255, 152, 0, 0.3);
     }
 
-    .input-suffix { font-size: 1.05rem; font-weight: 600; color: #ffb74d; padding-right: 1rem; }
+    .input-suffix {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #ffb74d;
+        padding-right: 1rem;
+    }
 
     .submit-btn {
-        width: 100%; padding: 1rem 1.5rem; border-radius: 14px; border: none;
+        width: 100%;
+        padding: 1rem 1.5rem;
+        border-radius: 14px;
+        border: none;
         background: linear-gradient(135deg, #ffa726, #fb8c00);
-        font-size: 1.1rem; font-weight: 700; cursor: pointer; margin-top: 1.5rem;
-        color: #1a1a1a; transition: transform 0.1s, box-shadow 0.2s, background 0.2s;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        margin-top: 1.5rem;
+        color: #1a1a1a;
+        transition:
+            transform 0.1s,
+            box-shadow 0.2s,
+            background 0.2s;
     }
-    .submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(255, 152, 0, 0.4); }
-    .submit-btn:active:not(:disabled) { transform: translateY(0) scale(0.98); }
-    .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .submit-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(255, 152, 0, 0.4);
+    }
+    .submit-btn:active:not(:disabled) {
+        transform: translateY(0) scale(0.98);
+    }
+    .submit-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 
     /* Transaction Result Card */
     .result {
-        display: flex; align-items: center; justify-content: space-between;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         background: rgba(76, 175, 80, 0.12);
         border: 1px solid rgba(76, 175, 80, 0.4);
-        border-radius: 12px; padding: 0.8rem 1.2rem; margin-top: 1rem;
-        gap: 1rem; backdrop-filter: blur(5px);
-        transition: border-color 0.2s ease, box-shadow 0.2s;
+        border-radius: 12px;
+        padding: 0.8rem 1.2rem;
+        margin-top: 1rem;
+        gap: 1rem;
+        backdrop-filter: blur(5px);
+        transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s;
     }
-    .result:hover { border-color: rgba(76, 175, 80, 0.8); box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2); }
+    .result:hover {
+        border-color: rgba(76, 175, 80, 0.8);
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+    }
 
-    .result-content { display: flex; flex-direction: column; gap: 0.25rem; overflow: hidden; text-align: left; }
-    .result-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #81c784; font-weight: 600; }
-    .result-link {
-        font-family: 'SF Mono', 'Roboto Mono', monospace; font-size: 1rem;
-        color: #ffffff; text-decoration: none; display: flex; align-items: center;
-        gap: 0.5rem; white-space: nowrap;
+    .result-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        overflow: hidden;
+        text-align: left;
     }
-    .result-link:hover { text-decoration: underline; text-decoration-thickness: 2px; text-decoration-color: #4caf50; }
-    .icon-link { width: 14px; height: 14px; opacity: 0.6; }
+    .result-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #81c784;
+        font-weight: 600;
+    }
+    .result-link {
+        font-family: "SF Mono", "Roboto Mono", monospace;
+        font-size: 1rem;
+        color: #ffffff;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        white-space: nowrap;
+    }
+    .result-link:hover {
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+        text-decoration-color: #4caf50;
+    }
+    .icon-link {
+        width: 14px;
+        height: 14px;
+        opacity: 0.6;
+    }
 
     .copy-btn {
-        background: rgba(255, 255, 255, 0.05); border: 1px solid transparent;
-        color: #e0e0e0; width: 42px; height: 42px; border-radius: 8px;
-        cursor: pointer; display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0; transition: all 0.2s ease;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid transparent;
+        color: #e0e0e0;
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.2s ease;
     }
-    .copy-btn:hover { background: rgba(255, 255, 255, 0.15); color: #fff; transform: scale(1.05); }
-    .copy-btn.success { background: #4caf50; color: white; border-color: #4caf50; }
+    .copy-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+        transform: scale(1.05);
+    }
+    .copy-btn.success {
+        background: #4caf50;
+        color: white;
+        border-color: #4caf50;
+    }
 
     .error {
-        background: rgba(244, 67, 54, 0.15); color: #f44336; text-align: center;
-        padding: 1.4rem; font-size: 1.05rem; border-radius: 12px; margin-top: 1rem;
+        background: rgba(244, 67, 54, 0.15);
+        color: #f44336;
+        text-align: center;
+        padding: 1.4rem;
+        font-size: 1.05rem;
+        border-radius: 12px;
+        margin-top: 1rem;
     }
 
     @media (min-width: 768px) {
-        .project-container { grid-template-columns: 1fr 1fr; }
-        .action-buttons { display: flex; flex-wrap: wrap; }
-        .form-container { flex-direction: row; }
+        .project-container {
+            grid-template-columns: 1fr 1fr;
+        }
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .form-container {
+            flex-direction: row;
+        }
     }
     @media (max-width: 767px) {
-        .project-detail { padding: 1rem; }
-        .action-buttons { flex-direction: column; }
-        .actions-form { padding: 1.5rem; }
+        .project-detail {
+            padding: 1rem;
+        }
+        .action-buttons {
+            flex-direction: column;
+        }
+        .actions-form {
+            padding: 1.5rem;
+        }
     }
 
     @keyframes pulse {
-        0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); }
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+        100% {
+            transform: scale(1);
+        }
     }
-    .timeleft.soon .item { animation: pulse 1.2s infinite; border-color: #FFC107; color: #FFC107; }
-    .timeleft.ended { opacity: 0.6; }
-    
+    .timeleft.soon .item {
+        animation: pulse 1.2s infinite;
+        border-color: #ffc107;
+        color: #ffc107;
+    }
+    .timeleft.ended {
+        opacity: 0.6;
+    }
+
     /* Forum Section */
     .forum-section {
-        grid-column: 1 / -1; margin-top: 3rem; padding: 2rem;
-        background: var(--card); border-radius: 0.5rem; border: 1px solid var(--border);
+        grid-column: 1 / -1;
+        margin-top: 3rem;
+        padding: 2rem;
+        background: var(--card);
+        border-radius: 0.5rem;
+        border: 1px solid var(--border);
+    }
+    /* Markdown Content Styles */
+    .markdown-content {
+        line-height: 1.6;
+        color: inherit;
+    }
+    .markdown-content :global(p) {
+        margin-bottom: 1em;
+    }
+    .markdown-content :global(h1),
+    .markdown-content :global(h2),
+    .markdown-content :global(h3),
+    .markdown-content :global(h4) {
+        margin-top: 1.5em;
+        margin-bottom: 0.5em;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    .markdown-content :global(h1) {
+        font-size: 1.8em;
+    }
+    .markdown-content :global(h2) {
+        font-size: 1.5em;
+    }
+    .markdown-content :global(h3) {
+        font-size: 1.25em;
+    }
+
+    .markdown-content :global(ul),
+    .markdown-content :global(ol) {
+        margin-bottom: 1em;
+        padding-left: 1.5em;
+    }
+    .markdown-content :global(ul) {
+        list-style-type: disc;
+    }
+    .markdown-content :global(ol) {
+        list-style-type: decimal;
+    }
+
+    .markdown-content :global(li) {
+        margin-bottom: 0.25em;
+    }
+
+    .markdown-content :global(blockquote) {
+        border-left: 4px solid #ccc;
+        padding-left: 1em;
+        margin-left: 0;
+        margin-bottom: 1em;
+        font-style: italic;
+    }
+
+    .markdown-content :global(strong) {
+        font-weight: bold;
+    }
+
+    .markdown-content :global(em) {
+        font-style: italic;
+    }
+
+    .markdown-content :global(a) {
+        color: #3b82f6;
+        text-decoration: underline;
+    }
+    .markdown-content :global(a:hover) {
+        color: #2563eb;
+    }
+    .markdown-content :global(code) {
+        background-color: rgba(127, 127, 127, 0.2);
+        padding: 0.2em 0.4em;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+    .markdown-content :global(pre) {
+        background-color: rgba(0, 0, 0, 0.1);
+        padding: 1em;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin-bottom: 1em;
     }
 </style>
