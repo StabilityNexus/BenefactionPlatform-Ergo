@@ -16,12 +16,12 @@ import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '..
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 
-async function get_token_data(token_id: string): Promise<{amount: number, decimals: number}> {
+async function get_token_data(token_id: string): Promise<{ amount: number, decimals: number }> {
     let token_fetch = await fetch_token_details(token_id);
     let id_token_amount = token_fetch['emissionAmount'] ?? 0;
-    if (id_token_amount === 0) { alert(token_id+" token emission amount is 0."); throw new Error(token_id+" token emission amount is 0.") }
+    if (id_token_amount === 0) { alert(token_id + " token emission amount is 0."); throw new Error(token_id + " token emission amount is 0.") }
     id_token_amount += 1;
-    return {"amount": id_token_amount, "decimals": token_fetch['decimals']}
+    return { "amount": id_token_amount, "decimals": token_fetch['decimals'] }
 }
 
 function playBeep(frequency = 1000, duration = 3000) {
@@ -58,12 +58,12 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
             SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
             mint_contract_address(constants, version)
         )
-        .mintToken({ 
-            amount: BigInt(amount),
-            name: title+" APT",    // A pro for use IDT (identity token) and TFT (temporal funding token) with the same token is that the TFT token that the user holds has the same id than the project.  This allows the user to verify the exact project in case than two projects has the same name.
-            decimals: decimals, 
-            description: "Temporal-funding Token for the " + title + " project."
-          }) 
+            .mintToken({
+                amount: BigInt(amount),
+                name: title + " APT",    // A pro for use IDT (identity token) and TFT (temporal funding token) with the same token is that the TFT token that the user holds has the same id than the project.  This allows the user to verify the exact project in case than two projects has the same name.
+                decimals: decimals,
+                description: "Temporal-funding Token for the " + title + " project."
+            })
     ]
 
     // Building the unsigned transaction
@@ -81,7 +81,7 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
     // Send the transaction to the Ergo network
     const transactionId = await submitTransaction(signedTransaction);
 
-    console.log("Mint tx id: "+transactionId);
+    console.log("Mint tx id: " + transactionId);
 
     let box = await wait_until_confirmation(transactionId);
     if (box == null) {
@@ -103,7 +103,7 @@ export async function submit_project(
     minimumSold: number,     // Minimum amount sold to allow withdrawal
     title: string,
     base_token_id: string = ""  // Base token ID for contributions (empty for ERG)
-): Promise<string|null> {
+): Promise<string | null> {
 
     function utf8ByteLength(str: string): number {
         return new TextEncoder().encode(str).length;
@@ -172,7 +172,7 @@ export async function submit_project(
     const totalEstimatedSize = BigInt(
         BASE_BOX_OVERHEAD
         + ergoTreeAddress.length
-        + PER_TOKEN_BYTES * 3        
+        + PER_TOKEN_BYTES * 3
         + registersBytes
         + SIZE_MARGIN
     );
@@ -187,24 +187,24 @@ export async function submit_project(
         minRequiredValue,                       // Minimum value in ERG that a box can have
         ergoTreeAddress        // Address of the project contract
     )
-    .addTokens([
-        {
-            tokenId: project_id,
-            amount: BigInt(id_token_amount)     // The mint contract force to spend all the id_token_amount
-        },
-        {
-            tokenId: token_id ?? "",
-            amount: token_amount.toString()
-        }
-    ])
-    .setAdditionalRegisters({
-        R4: r4Hex,
-        R5: r5Hex,
-        R6: r6Hex,
-        R7: r7Hex,
-        R8: r8Hex,
-        R9: r9Hex
-    })];
+        .addTokens([
+            {
+                tokenId: project_id,
+                amount: BigInt(id_token_amount)     // The mint contract force to spend all the id_token_amount
+            },
+            {
+                tokenId: token_id ?? "",
+                amount: token_amount.toString()
+            }
+        ])
+        .setAdditionalRegisters({
+            R4: r4Hex,
+            R5: r5Hex,
+            R6: r6Hex,
+            R7: r7Hex,
+            R8: r8Hex,
+            R9: r9Hex
+        })];
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
