@@ -42,12 +42,12 @@ function hasValidSigmaTypes(additionalRegisters: any, version: contract_version 
 
 export async function fetch_token_details(id: string): Promise<TokenEIP4> {
     console.log("Fetching token details for ", id);
-    const url = get(explorer_uri)+'/api/v1/tokens/'+id;
+    const url = get(explorer_uri) + '/api/v1/tokens/' + id;
     const response = await fetch(url, {
         method: 'GET',
     });
 
-    try{
+    try {
         if (response.ok) {
             let json_data = await response.json();
             if (json_data['type'] == 'EIP-004') {
@@ -60,14 +60,14 @@ export async function fetch_token_details(id: string): Promise<TokenEIP4> {
             }
             else if (json_data['type'] == null) {
                 return {
-                    "name": id.slice(0,6),
+                    "name": id.slice(0, 6),
                     "description": "",
                     "decimals": 0,
                     "emissionAmount": json_data['emissionAmount']
                 }
             }
         }
-    } catch {}
+    } catch { }
     return {
         'name': 'token',
         'description': "",
@@ -114,10 +114,10 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
                     };
                 }
             } else {
-               //  console.log(`Error fetching transaction: ${response.statusText}`);
+                //  console.log(`Error fetching transaction: ${response.statusText}`);
             }
         } catch (error) {
-           //  console.log(`Error during fetch: ${error}`);
+            //  console.log(`Error during fetch: ${error}`);
         }
 
         // Check if 5 minutes have passed
@@ -169,9 +169,9 @@ export async function fetchProjectsFromBlockchain() {
                     moreDataAvailable = false; // Stop loop on error
                     break;
                 }
-                
+
                 const json_data = await response.json();
-                
+
                 if (!json_data.items || json_data.items.length === 0) {
                     moreDataAvailable = false;
                     break;
@@ -250,7 +250,7 @@ export async function fetchProjectsFromBlockchain() {
 
                         const current = get(projects).data;
                         current.set(project_id, project)
-                        projects.set({data: current, last_fetch: get(projects).last_fetch});
+                        projects.set({ data: current, last_fetch: get(projects).last_fetch });
                     } else {
                         console.warn(`Box ${e.boxId} has invalid sigma types, skipping.`);
                     }
@@ -265,7 +265,7 @@ export async function fetchProjectsFromBlockchain() {
 }
 
 export async function fetchProjects(force: boolean = false): Promise<Map<string, Project>> {
-    
+
     const current = get(projects);
 
     // 1. Return cached data if valid and not forced
