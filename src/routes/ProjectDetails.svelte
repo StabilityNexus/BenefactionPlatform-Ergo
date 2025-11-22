@@ -721,7 +721,7 @@
                 <p>
                     Proof-of-Funding Token:
                     <a
-                        href={web_explorer_uri_tkn + project.pft_token_id}
+                        href={get(web_explorer_uri_tkn) + project.pft_token_id}
                         target="_blank"
                         rel="noopener noreferrer"
                         class="text-blue-500 underline"
