@@ -1,8 +1,13 @@
 <script lang="ts">
-    import { createEventDispatcher } from 'svelte';
-    import { explorer_uri } from "$lib/common/store";
-    import { get } from 'svelte/store';
-    
+    import { createEventDispatcher } from "svelte";
+    import {
+        explorer_uri,
+        web_explorer_uri_tx,
+        web_explorer_uri_tkn,
+        web_explorer_uri_addr,
+    } from "$lib/common/store";
+    import { get } from "svelte/store";
+
     // The 'open' prop is used to control the modal's visibility.
     // Using `export let open = false;` allows the parent component to control it with `bind:open`.
     export let open = false;
@@ -14,10 +19,16 @@
     // Local variable for the input, initialized with the current store value.
     // This ensures the text field shows the current configuration when the modal opens.
     let newExplorerUri: string;
+    let newWebExplorerTx: string;
+    let newWebExplorerTkn: string;
+    let newWebExplorerAddr: string;
 
     // Synchronize the input value when the modal opens.
     $: if (open) {
-        newExplorerUri = get(explorer_uri);
+        newExplorerUri = get(explorer_uri) || "";
+        newWebExplorerTx = get(web_explorer_uri_tx);
+        newWebExplorerTkn = get(web_explorer_uri_tkn);
+        newWebExplorerAddr = get(web_explorer_uri_addr);
     }
 
     /**
@@ -27,6 +38,15 @@
     function handleSave() {
         if (newExplorerUri) {
             explorer_uri.set(newExplorerUri);
+        }
+        if (newWebExplorerTx) {
+            web_explorer_uri_tx.set(newWebExplorerTx);
+        }
+        if (newWebExplorerTkn) {
+            web_explorer_uri_tkn.set(newWebExplorerTkn);
+        }
+        if (newWebExplorerAddr) {
+            web_explorer_uri_addr.set(newWebExplorerAddr);
         }
         open = false; // Close the modal
     }
@@ -49,13 +69,15 @@
         <div class="modal-content" on:click|stopPropagation>
             <div class="modal-header">
                 <h2>Settings</h2>
-                <button class="close-button" on:click={handleCancel}>&times;</button>
+                <button class="close-button" on:click={handleCancel}
+                    >&times;</button
+                >
             </div>
-            
+
             <div class="modal-body">
                 <p>Modify the Ergo network explorer URI:</p>
                 <div class="input-group">
-                    <label for="explorer-uri">Explorer URI:</label>
+                    <label for="explorer-uri">Explorer URI (API):</label>
                     <input
                         id="explorer-uri"
                         type="url"
@@ -63,11 +85,44 @@
                         placeholder="e.g. https://api.ergoplatform.com"
                     />
                 </div>
+                <div class="input-group">
+                    <label for="web-explorer-tx"
+                        >Transaction Explorer URI:</label
+                    >
+                    <input
+                        id="web-explorer-tx"
+                        type="url"
+                        bind:value={newWebExplorerTx}
+                        placeholder="e.g. https://sigmaspace.io/en/transaction/"
+                    />
+                </div>
+                <div class="input-group">
+                    <label for="web-explorer-tkn">Token Explorer URI:</label>
+                    <input
+                        id="web-explorer-tkn"
+                        type="url"
+                        bind:value={newWebExplorerTkn}
+                        placeholder="e.g. https://sigmaspace.io/en/token/"
+                    />
+                </div>
+                <div class="input-group">
+                    <label for="web-explorer-addr">Address Explorer URI:</label>
+                    <input
+                        id="web-explorer-addr"
+                        type="url"
+                        bind:value={newWebExplorerAddr}
+                        placeholder="e.g. https://sigmaspace.io/en/address/"
+                    />
+                </div>
             </div>
-            
+
             <div class="modal-footer">
-                <button class="button cancel-button" on:click={handleCancel}>Cancel</button>
-                <button class="button save-button" on:click={handleSave}>Save</button>
+                <button class="button cancel-button" on:click={handleCancel}
+                    >Cancel</button
+                >
+                <button class="button save-button" on:click={handleSave}
+                    >Save</button
+                >
             </div>
         </div>
     </div>
@@ -160,7 +215,9 @@
         color: #e0e0e0;
         border-radius: 8px;
         font-size: 1rem;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
     }
 
     .input-group input:focus {
@@ -183,7 +240,9 @@
         border-radius: 8px;
         cursor: pointer;
         font-weight: bold;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
     }
 
     .save-button {

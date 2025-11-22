@@ -1,8 +1,10 @@
 import { ErgoAddress, Network } from '@fleet-sdk/core';
 import { SByte, SColl } from '@fleet-sdk/serializer';
 import { type Comment } from './commentObject';
-import { hexToBytes, hexToUtf8, serializedToRendered } from './utils'; 
-import { COMMENT_TYPE_NFT_ID, DISCUSSION_TYPE_NFT_ID, explorer_uri, PROFILE_TYPE_NFT_ID, SPAM_FLAG_NFT_ID, SPAM_LIMIT } from './envs';
+import { hexToBytes, hexToUtf8, serializedToRendered } from './utils';
+import { COMMENT_TYPE_NFT_ID, DISCUSSION_TYPE_NFT_ID, PROFILE_TYPE_NFT_ID, SPAM_FLAG_NFT_ID, SPAM_LIMIT } from './envs';
+import { explorer_uri } from '$lib/common/store';
+import { get } from 'svelte/store';
 import { ergo_tree_hash } from './contract';
 import { type TypeNFT, type ReputationProof, type RPBox } from './object';
 import { reputation_proof } from './store';
@@ -14,20 +16,20 @@ declare const ergo: any;
 
 // Minimal definition of the Explorer API response for a box
 interface ApiBox {
-    boxId: string;
-    value: string | number;
-    ergoTree: string;
-    assets: { tokenId: string; amount: string | number; }[];
-    creationHeight: number;
-    blockId: string;
-    additionalRegisters: {
-        [key: string]: {
-            serializedValue: string;
-            renderedValue?: string;
-        };
+  boxId: string;
+  value: string | number;
+  ergoTree: string;
+  assets: { tokenId: string; amount: string | number; }[];
+  creationHeight: number;
+  blockId: string;
+  additionalRegisters: {
+    [key: string]: {
+      serializedValue: string;
+      renderedValue?: string;
     };
-    index: number;
-    transactionId: string;
+  };
+  index: number;
+  transactionId: string;
 }
 
 // Constants
@@ -44,98 +46,98 @@ interface SearchBody {
  * @returns The block timestamp (in milliseconds).
  */
 export async function getTimestampFromBlockId(blockId: string): Promise<number> {
-    const url = `${explorer_uri}/api/v1/blocks/${blockId}`;
+  const url = `${get(explorer_uri)}/api/v1/blocks/${blockId}`;
 
-    try {
-        const response = await fetch(url, { method: "GET" });
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const json = await response.json();
-        console.log("get Timestamp ", json);
-
-        const timestamp = json?.block?.header?.timestamp;
-        if (typeof timestamp !== "number") {
-            console.warn(`No timestamp found for block ${blockId}`);
-            return 0;
-        }
-
-        // Most APIs return timestamps in ms or s.
-        // If it's around 1e12, it's already in ms; if around 1e9, convert to ms.
-        return timestamp < 1e11 ? timestamp * 1000 : timestamp;
-
-    } catch (error) {
-        console.error(`Error fetching timestamp for block ${blockId}:`, error);
-        return 0;
+  try {
+    const response = await fetch(url, { method: "GET" });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
+
+    const json = await response.json();
+    console.log("get Timestamp ", json);
+
+    const timestamp = json?.block?.header?.timestamp;
+    if (typeof timestamp !== "number") {
+      console.warn(`No timestamp found for block ${blockId}`);
+      return 0;
+    }
+
+    // Most APIs return timestamps in ms or s.
+    // If it's around 1e12, it's already in ms; if around 1e9, convert to ms.
+    return timestamp < 1e11 ? timestamp * 1000 : timestamp;
+
+  } catch (error) {
+    console.error(`Error fetching timestamp for block ${blockId}:`, error);
+    return 0;
+  }
 }
 
 /**
  * Searches the blockchain for all spam alerts targeting a comment.
  */
 export async function fetchSpan(comment_id: string): Promise<number> {
-    let amount: number = 0;
+  let amount: number = 0;
 
-    const search_body = {
-        registers: { 
-            "R4": serializedToRendered(SColl(SByte, hexToBytes(SPAM_FLAG_NFT_ID) ?? "").toHex()),
-            "R5": serializedToRendered(SColl(SByte, hexToBytes(comment_id) ?? "").toHex())
-        }
+  const search_body = {
+    registers: {
+      "R4": serializedToRendered(SColl(SByte, hexToBytes(SPAM_FLAG_NFT_ID) ?? "").toHex()),
+      "R5": serializedToRendered(SColl(SByte, hexToBytes(comment_id) ?? "").toHex())
     }
+  }
 
-    try {
-        let offset = 0, limit = 100, moreDataAvailable = true;
-        
-        while (moreDataAvailable) {
-            const url = `${explorer_uri}/api/v1/boxes/unspent/search?offset=${offset}&limit=${limit}`;
-            
-            const final_body = { 
-                "ergoTreeTemplateHash": ergo_tree_hash, 
-                "registers": search_body.registers,
-                "assets": []
-            };
-            
-            const response = await fetch(url, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(final_body) 
-            });
+  try {
+    let offset = 0, limit = 100, moreDataAvailable = true;
 
-            if (!response.ok) {
-                console.error(`Error fetching spam reports: ${response.statusText}`);
-                moreDataAvailable = false;
-                continue;
-            }
+    while (moreDataAvailable) {
+      const url = `${get(explorer_uri)}/api/v1/boxes/unspent/search?offset=${offset}&limit=${limit}`;
 
-            const json_data = await response.json();
-            if (!json_data.items || json_data.items.length === 0) {
-                moreDataAvailable = false;
-                continue;
-            }
+      const final_body = {
+        "ergoTreeTemplateHash": ergo_tree_hash,
+        "registers": search_body.registers,
+        "assets": []
+      };
 
-            for (const box of json_data.items as ApiBox[]) {
-                if (!box.assets?.length) continue;
-                if (box.additionalRegisters.R6.renderedValue == "false" || !box.additionalRegisters.R9.renderedValue) continue;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(final_body)
+      });
 
-                try {
-                    const rawValue = box.additionalRegisters.R9.renderedValue;
-                    if (rawValue) hexToUtf8(rawValue);
-                } catch (e) {
-                    console.warn(`Error decoding R9 for box ${box.boxId}`, e);
-                }
-                
-                amount += 1;
-            }
-            offset += limit;
+      if (!response.ok) {
+        console.error(`Error fetching spam reports: ${response.statusText}`);
+        moreDataAvailable = false;
+        continue;
+      }
+
+      const json_data = await response.json();
+      if (!json_data.items || json_data.items.length === 0) {
+        moreDataAvailable = false;
+        continue;
+      }
+
+      for (const box of json_data.items as ApiBox[]) {
+        if (!box.assets?.length) continue;
+        if (box.additionalRegisters.R6.renderedValue == "false" || !box.additionalRegisters.R9.renderedValue) continue;
+
+        try {
+          const rawValue = box.additionalRegisters.R9.renderedValue;
+          if (rawValue) hexToUtf8(rawValue);
+        } catch (e) {
+          console.warn(`Error decoding R9 for box ${box.boxId}`, e);
         }
 
-        return amount;
-
-    } catch (error) {
-        console.error('Error while searching spam flags:', error);
-        return 0;
+        amount += 1;
+      }
+      offset += limit;
     }
+
+    return amount;
+
+  } catch (error) {
+    console.error('Error while searching spam flags:', error);
+    return 0;
+  }
 }
 
 /**
@@ -143,96 +145,96 @@ export async function fetchSpan(comment_id: string): Promise<number> {
  * for a given discussion (project).
  */
 export async function fetchComments(discussion: string, reply: boolean = false): Promise<Comment[]> {
-    console.log("fetchComments", { discussion }, reply)
-    let comments: Comment[] = [];
+  console.log("fetchComments", { discussion }, reply)
+  let comments: Comment[] = [];
 
-    const search_body = {
-        registers: { 
-            "R4": serializedToRendered(SColl(SByte, hexToBytes(reply ? COMMENT_TYPE_NFT_ID : DISCUSSION_TYPE_NFT_ID) ?? "").toHex()),
-            "R5": serializedToRendered(SColl(SByte, hexToBytes(discussion) ?? "").toHex())
-        }
+  const search_body = {
+    registers: {
+      "R4": serializedToRendered(SColl(SByte, hexToBytes(reply ? COMMENT_TYPE_NFT_ID : DISCUSSION_TYPE_NFT_ID) ?? "").toHex()),
+      "R5": serializedToRendered(SColl(SByte, hexToBytes(discussion) ?? "").toHex())
     }
+  }
 
-    try {
-        let offset = 0, limit = 100, moreDataAvailable = true;
-        
-        while (moreDataAvailable) {
-            const url = `${explorer_uri}/api/v1/boxes/unspent/search?offset=${offset}&limit=${limit}`;
-            
-            const final_body = { 
-                "ergoTreeTemplateHash": ergo_tree_hash, 
-                "registers": search_body.registers,
-                "assets": []
-            };
-            
-            const response = await fetch(url, { 
-                method: 'POST', 
-                headers: { 'Content-Type': 'application/json' }, 
-                body: JSON.stringify(final_body) 
-            });
+  try {
+    let offset = 0, limit = 100, moreDataAvailable = true;
 
-            if (!response.ok) {
-                console.error(`Error fetching comments: ${response.statusText}`);
-                moreDataAvailable = false;
-                continue;
-            }
+    while (moreDataAvailable) {
+      const url = `${get(explorer_uri)}/api/v1/boxes/unspent/search?offset=${offset}&limit=${limit}`;
 
-            const json_data = await response.json();
-            if (!json_data.items || json_data.items.length === 0) {
-                moreDataAvailable = false;
-                continue;
-            }
+      const final_body = {
+        "ergoTreeTemplateHash": ergo_tree_hash,
+        "registers": search_body.registers,
+        "assets": []
+      };
 
-            console.log("Comments json data ", json_data.items)
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(final_body)
+      });
 
-            for (const box of json_data.items as ApiBox[]) {
-                if (!box.assets?.length) continue;
-                if (box.additionalRegisters.R6.renderedValue == "false" || !box.additionalRegisters.R9.renderedValue) continue;
+      if (!response.ok) {
+        console.error(`Error fetching comments: ${response.statusText}`);
+        moreDataAvailable = false;
+        continue;
+      }
 
-                const authorProfileTokenId = box.assets[0].tokenId;
-                
-                let textContent: string = "[Unreadable content]";
-                try {
-                    const rawValue = box.additionalRegisters.R9.renderedValue;
-                    if (rawValue) {
-                        textContent = hexToUtf8(rawValue) ?? "[Empty content]";
-                    }
-                } catch (e) {
-                    console.warn(`Error decoding R9 for box ${box.boxId}`, e);
-                }
+      const json_data = await response.json();
+      if (!json_data.items || json_data.items.length === 0) {
+        moreDataAvailable = false;
+        continue;
+      }
 
-                const number_of_spans = await fetchSpan(box.boxId);
-                const isSpam = number_of_spans > SPAM_LIMIT;
+      console.log("Comments json data ", json_data.items)
 
-                textContent = await marked(textContent);
-                textContent = DOMPurify.sanitize(textContent);
+      for (const box of json_data.items as ApiBox[]) {
+        if (!box.assets?.length) continue;
+        if (box.additionalRegisters.R6.renderedValue == "false" || !box.additionalRegisters.R9.renderedValue) continue;
 
-                const comment: Comment = {
-                    id: box.boxId,
-                    discussion: discussion,
-                    authorProfileTokenId: authorProfileTokenId,
-                    text: textContent,
-                    timestamp: await getTimestampFromBlockId(box.blockId),
-                    isSpam: isSpam,
-                    replies: await fetchComments(box.boxId, true),
-                    tx: box.transactionId,
-                    posting: false,
-                    sentiment: box.additionalRegisters.R8?.renderedValue === 'true'
-                };
+        const authorProfileTokenId = box.assets[0].tokenId;
 
-                comments.push(comment);
-            }
-            offset += limit;
+        let textContent: string = "[Unreadable content]";
+        try {
+          const rawValue = box.additionalRegisters.R9.renderedValue;
+          if (rawValue) {
+            textContent = hexToUtf8(rawValue) ?? "[Empty content]";
+          }
+        } catch (e) {
+          console.warn(`Error decoding R9 for box ${box.boxId}`, e);
         }
 
-        comments.sort((a, b) => b.timestamp - a.timestamp);
+        const number_of_spans = await fetchSpan(box.boxId);
+        const isSpam = number_of_spans > SPAM_LIMIT;
 
-        return comments;
+        textContent = await marked(textContent);
+        textContent = DOMPurify.sanitize(textContent);
 
-    } catch (error) {
-        console.error('Error while fetching comments:', error);
-        return [];
+        const comment: Comment = {
+          id: box.boxId,
+          discussion: discussion,
+          authorProfileTokenId: authorProfileTokenId,
+          text: textContent,
+          timestamp: await getTimestampFromBlockId(box.blockId),
+          isSpam: isSpam,
+          replies: await fetchComments(box.boxId, true),
+          tx: box.transactionId,
+          posting: false,
+          sentiment: box.additionalRegisters.R8?.renderedValue === 'true'
+        };
+
+        comments.push(comment);
+      }
+      offset += limit;
     }
+
+    comments.sort((a, b) => b.timestamp - a.timestamp);
+
+    return comments;
+
+  } catch (error) {
+    console.error('Error while fetching comments:', error);
+    return [];
+  }
 }
 
 // Helper to get serialized R7
@@ -273,13 +275,15 @@ async function fetchProfileUserBoxes(r7SerializedHex: string): Promise<ApiBox[]>
   let offset = 0;
   let moreDataAvailable = true;
 
-  const searchBody: SearchBody = { registers: {
-    R7: serializedToRendered(r7SerializedHex),
-    R4: PROFILE_TYPE_NFT_ID
-  } };
+  const searchBody: SearchBody = {
+    registers: {
+      R7: serializedToRendered(r7SerializedHex),
+      R4: PROFILE_TYPE_NFT_ID
+    }
+  };
 
   while (moreDataAvailable) {
-    const url = `${explorer_uri}/api/v1/boxes/unspent/search?offset=${offset}&limit=${LIMIT_PER_PAGE}`;
+    const url = `${get(explorer_uri)}/api/v1/boxes/unspent/search?offset=${offset}&limit=${LIMIT_PER_PAGE}`;
     const finalBody = {
       ergoTreeTemplateHash: ergo_tree_hash,
       registers: searchBody.registers,
@@ -306,10 +310,10 @@ async function fetchProfileUserBoxes(r7SerializedHex: string): Promise<ApiBox[]>
       }
 
       const filteredBoxes = jsonData.items
-        .filter((box: ApiBox) => 
-            box.additionalRegisters.R5.renderedValue === box.assets[0].tokenId &&  
-            box.additionalRegisters.R6.renderedValue === 'false'
-          )
+        .filter((box: ApiBox) =>
+          box.additionalRegisters.R5.renderedValue === box.assets[0].tokenId &&
+          box.additionalRegisters.R6.renderedValue === 'false'
+        )
         .sort((a: ApiBox, b: ApiBox) => b.creationHeight - a.creationHeight);
 
       allBoxes.push(...filteredBoxes as ApiBox[]);
@@ -329,7 +333,7 @@ async function fetchProfileUserBoxes(r7SerializedHex: string): Promise<ApiBox[]>
 // Fetch token emission amount
 async function fetchTokenEmissionAmount(tokenId: string): Promise<number | null> {
   try {
-    const response = await fetch(`${explorer_uri}/api/v1/tokens/${tokenId}`);
+    const response = await fetch(`${get(explorer_uri)}/api/v1/tokens/${tokenId}`);
     if (!response.ok) {
       console.error(`fetchTokenEmissionAmount: Error fetching token ${tokenId}: ${response.statusText}`);
       return null;

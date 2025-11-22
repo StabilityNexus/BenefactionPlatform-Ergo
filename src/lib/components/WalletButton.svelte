@@ -1,11 +1,17 @@
 <script lang="ts">
-  import { walletManager, walletConnected, walletAddress, walletBalance, walletConnecting } from '$lib/wallet/wallet-manager';
+  import {
+    walletManager,
+    walletConnected,
+    walletAddress,
+    walletBalance,
+    walletConnecting,
+  } from "$lib/wallet/wallet-manager";
   import { Button } from "$lib/components/ui/button";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Badge } from "$lib/components/ui/badge";
-  import WalletModal from './WalletModal.svelte';
+  import WalletModal from "./WalletModal.svelte";
   import { Copy, ExternalLink, LogOut, Wallet, RefreshCw } from "lucide-svelte";
-  import { web_explorer_uri_addr } from '$lib/ergo/envs';
+  import { web_explorer_uri_addr } from "$lib/common/store";
 
   let showModal = false;
   let copySuccess = false;
@@ -28,21 +34,21 @@
       try {
         await navigator.clipboard.writeText($walletAddress);
         copySuccess = true;
-        setTimeout(() => copySuccess = false, 2000);
+        setTimeout(() => (copySuccess = false), 2000);
       } catch (err) {
-        console.error('Failed to copy address:', err);
+        console.error("Failed to copy address:", err);
       }
     }
   }
 
   function openExplorer() {
     if ($walletAddress) {
-      window.open(`${web_explorer_uri_addr}${$walletAddress}`, '_blank');
+      window.open(`${$web_explorer_uri_addr}${$walletAddress}`, "_blank");
     }
   }
 
   function formatAddress(address: string): string {
-    if (!address) return '';
+    if (!address) return "";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   }
 
@@ -55,7 +61,11 @@
 {#if $walletConnected}
   <DropdownMenu.Root>
     <DropdownMenu.Trigger asChild let:builder>
-      <Button builders={[builder]} variant="outline" class="wallet-connected-button">
+      <Button
+        builders={[builder]}
+        variant="outline"
+        class="wallet-connected-button"
+      >
         <div class="flex items-center space-x-2">
           <div class="w-2 h-2 bg-green-500 rounded-full"></div>
           <span class="font-mono text-sm">{formatAddress($walletAddress)}</span>
@@ -128,7 +138,7 @@
             <RefreshCw class="h-3 w-3" />
           </Button>
         </div>
-        
+
         <div class="space-y-1">
           <div class="flex items-center justify-between">
             <span class="text-sm">ERG</span>
@@ -136,7 +146,7 @@
               {formatBalance($walletBalance.nanoErgs)}
             </span>
           </div>
-          
+
           {#if $walletBalance.tokens && $walletBalance.tokens.length > 0}
             <div class="text-xs text-muted-foreground mt-2 mb-1">Tokens</div>
             {#each $walletBalance.tokens.slice(0, 3) as token}
@@ -156,15 +166,18 @@
 
       <DropdownMenu.Separator />
 
-      <DropdownMenu.Item on:click={disconnectWallet} class="text-red-600 focus:text-red-600">
+      <DropdownMenu.Item
+        on:click={disconnectWallet}
+        class="text-red-600 focus:text-red-600"
+      >
         <LogOut class="h-4 w-4 mr-2" />
         Disconnect
       </DropdownMenu.Item>
     </DropdownMenu.Content>
   </DropdownMenu.Root>
 {:else}
-  <Button 
-    on:click={openWalletModal} 
+  <Button
+    on:click={openWalletModal}
     disabled={$walletConnecting}
     class="wallet-connect-button"
   >
@@ -181,24 +194,26 @@
 <WalletModal bind:open={showModal} />
 
 <style>
-  .wallet-connected-button {
+  :global(.wallet-connected-button) {
     background-color: hsl(var(--background));
     border-color: hsl(var(--border));
     transition: all 0.2s ease;
   }
-  
-  .wallet-connected-button:hover {
+
+  :global(.wallet-connected-button:hover) {
     background-color: hsl(var(--accent) / 0.5);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
-  
-  .wallet-connect-button {
+
+  :global(.wallet-connect-button) {
     background-color: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
     transition: all 0.2s ease;
   }
-  
-  .wallet-connect-button:hover {
+
+  :global(.wallet-connect-button:hover) {
     background-color: hsl(var(--primary) / 0.9);
   }
 </style>

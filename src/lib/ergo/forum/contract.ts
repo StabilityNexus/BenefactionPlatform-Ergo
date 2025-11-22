@@ -2,14 +2,13 @@ import { compile } from "@fleet-sdk/compiler";
 import { ErgoAddress, Network } from "@fleet-sdk/core";
 import { sha256, hex, blake2b256 } from "@fleet-sdk/crypto";
 
-function uint8ArrayToHex(array: Uint8Array): string { 
+function uint8ArrayToHex(array: Uint8Array): string {
     return [...new Uint8Array(array)]
         .map(x => x.toString(16).padStart(2, '0'))
         .join('');
 }
 
 // --- Explorer Configuration ---
-export const explorer_uri = "https://api.ergoplatform.com";
 export const min_erg_value = "1000000"; // 0.001 ERG
 
 // --- Digital Public Good (for Type NFTs) ---

@@ -9,7 +9,9 @@ import {
 } from '@fleet-sdk/core';
 import { SColl, SByte, SBool } from '@fleet-sdk/serializer';
 import { type RPBox } from './object';
-import { explorer_uri, PROFILE_TYPE_NFT_ID } from './envs';
+import { PROFILE_TYPE_NFT_ID } from './envs';
+import { explorer_uri } from '$lib/common/store';
+import { get } from 'svelte/store';
 import { hexToBytes } from './utils';
 import { ergo_tree_address } from './contract';
 import { stringToBytes } from '@scure/base';
@@ -33,9 +35,9 @@ export async function generate_reputation_proof(
     token_amount: number,
     total_supply: number,
     type_nft_id: string,
-    object_pointer: string|undefined,
+    object_pointer: string | undefined,
     polarization: boolean,
-    content: object|string|null,
+    content: object | string | null,
     is_locked: boolean = false,
     input_proof?: RPBox,
 ): Promise<string | null> {
@@ -44,7 +46,7 @@ export async function generate_reputation_proof(
     console.log("Generating reputation proof with parameters:", {
         token_amount,
         total_supply,
-        type_nft_id,    
+        type_nft_id,
         object_pointer,
         polarization,
         content,
@@ -59,10 +61,10 @@ export async function generate_reputation_proof(
     const creatorP2PKAddress = ErgoAddress.fromBase58(creatorAddressString);
 
     // Fetch the Type NFT box to be used in dataInputs. This is required by the contract.
-    const typeNftBoxResponse = await fetch(`${explorer_uri}/api/v1/boxes/byTokenId/${type_nft_id}`);
+    const typeNftBoxResponse = await fetch(`${get(explorer_uri)}/api/v1/boxes/byTokenId/${type_nft_id}`);
     if (!typeNftBoxResponse.ok) {
-      alert("Could not fetch the Type NFT box. Aborting transaction.");
-      return null;
+        alert("Could not fetch the Type NFT box. Aborting transaction.");
+        return null;
     }
     const typeNftBox = (await typeNftBoxResponse.json()).items[0];
 
@@ -75,7 +77,7 @@ export async function generate_reputation_proof(
 
     // If splitting from an existing proof box with a different type NFT, we need to include both type NFTs
     if (input_proof && input_proof.type.tokenId !== type_nft_id) {
-        const inputTypeNftBoxResponse = await fetch(`${explorer_uri}/api/v1/boxes/byTokenId/${input_proof.type.tokenId}`);
+        const inputTypeNftBoxResponse = await fetch(`${get(explorer_uri)}/api/v1/boxes/byTokenId/${input_proof.type.tokenId}`);
         if (inputTypeNftBoxResponse.ok) {
             const inputTypeNftBox = (await inputTypeNftBoxResponse.json()).items[0];
             dataInputs.push(inputTypeNftBox);
@@ -99,7 +101,7 @@ export async function generate_reputation_proof(
         });
 
         if (!object_pointer) object_pointer = inputs[0].boxId;  // Points to the self token being evaluated by default
-    } 
+    }
     else {
         // Transferring existing tokens
         new_proof_output.addTokens({
@@ -111,24 +113,24 @@ export async function generate_reputation_proof(
         if (input_proof.token_amount - token_amount > 0) {
             outputs.push(
                 new OutputBuilder(SAFE_MIN_BOX_VALUE, ergo_tree_address)
-                .addTokens({
-                    tokenId: input_proof.token_id,
-                    amount: (input_proof.token_amount - token_amount).toString()
-                })
-                // The change box must retain the original registers
-                .setAdditionalRegisters(input_proof.box.additionalRegisters)
+                    .addTokens({
+                        tokenId: input_proof.token_id,
+                        amount: (input_proof.token_amount - token_amount).toString()
+                    })
+                    // The change box must retain the original registers
+                    .setAdditionalRegisters(input_proof.box.additionalRegisters)
             );
         }
 
         if (!object_pointer) object_pointer = input_proof.token_id
     }
-    
+
     const propositionBytes = hexToBytes(creatorP2PKAddress.ergoTree);
     if (!propositionBytes) {
         throw new Error(`Could not get proposition bytes from address ${creatorAddressString}.`);
     }
 
-    const raw_content = typeof(content) === "object" ? JSON.stringify(content): content ?? "";
+    const raw_content = typeof (content) === "object" ? JSON.stringify(content) : content ?? "";
 
     const new_registers = {
         R4: SColl(SByte, hexToBytes(type_nft_id) ?? "").toHex(),

@@ -19,7 +19,10 @@
     import { block_to_time } from "$lib/common/countdown";
     import { formatTransactionError } from "$lib/common/error-utils";
     import { ErgoPlatform } from "$lib/ergo/platform";
-    import { web_explorer_uri_tkn, web_explorer_uri_tx } from "$lib/ergo/envs";
+    import {
+        web_explorer_uri_tkn,
+        web_explorer_uri_tx,
+    } from "$lib/common/store";
     import { mode } from "mode-watcher";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label/index.js";
@@ -1026,28 +1029,33 @@
                             <div class="result-content">
                                 <span class="result-label">Transaction ID</span>
                                 <a
-                                    href={web_explorer_uri_tx + transactionId}
+                                    href={$web_explorer_uri_tx + transactionId}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="result-link"
-                                    title="View on Explorer"
+                                    class="transaction-link"
+                                    class:light-mode={$mode === "light"}
                                 >
-                                    {transactionId.length > 20
-                                        ? `${transactionId.slice(0, 10)}...${transactionId.slice(-6)}`
-                                        : transactionId}
+                                    View Transaction
                                     <svg
-                                        class="icon-link"
+                                        width="12"
+                                        height="12"
                                         viewBox="0 0 24 24"
                                         fill="none"
                                         stroke="currentColor"
                                         stroke-width="2"
-                                    >
-                                        <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        ><path
                                             d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
-                                        />
-                                        <polyline points="15 3 21 3 21 9" />
-                                        <line x1="10" y1="14" x2="21" y2="3" />
-                                    </svg>
+                                        ></path><polyline
+                                            points="15 3 21 3 21 9"
+                                        ></polyline><line
+                                            x1="10"
+                                            y1="14"
+                                            x2="21"
+                                            y2="3"
+                                        ></line></svg
+                                    >
                                 </a>
                             </div>
 
@@ -1684,9 +1692,6 @@
         opacity: 0.6;
     }
 
-    .actions-form.light-mode .result-link {
-        color: #155724;
-    }
     .actions-form.light-mode .result-label {
         color: #155724;
     }

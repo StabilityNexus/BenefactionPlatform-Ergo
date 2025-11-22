@@ -3,7 +3,7 @@
     import EasyMDE from "easymde";
     import "easymde/dist/easymde.min.css";
     import { block_to_date, time_to_block } from "$lib/common/countdown";
-    import { web_explorer_uri_tx } from "$lib/ergo/envs";
+    import { web_explorer_uri_tx } from "$lib/common/store";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { Label } from "$lib/components/ui/label/index.js";
     import { Button } from "$lib/components/ui/button";
@@ -960,7 +960,7 @@
                             Your project has been submitted to the blockchain.
                         </p>
                         <a
-                            href={web_explorer_uri_tx + transactionId}
+                            href={$web_explorer_uri_tx + transactionId}
                             target="_blank"
                             rel="noopener noreferrer"
                             class="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors bg-orange-500/5 px-4 py-2 rounded-lg border border-orange-500/20 hover:border-orange-500/40"
