@@ -987,10 +987,18 @@
         </div>
     </div>
 
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
+    <!-- svelte-ignore a11y-no-static-element-interactions -->
     {#if show_submit}
-        <div class="modal-overlay" transition:fade={{ duration: 200 }}>
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <div
+            class="modal-overlay"
+            transition:fade={{ duration: 200 }}
+            on:click|self={close_submit_form}
+        >
             <div
                 class="actions-form"
+                class:light-mode={$mode === "light"}
                 style={$mode === "light"
                     ? "background: white;"
                     : "background: #2a2a2a;"}
@@ -1000,6 +1008,8 @@
                     easing: quintOut,
                 }}
             >
+                <!-- svelte-ignore a11y-click-events-have-key-events -->
+                <!-- svelte-ignore a11y-no-static-element-interactions -->
                 <div class="close-button" on:click={close_submit_form}>
                     &times;
                 </div>
@@ -1478,7 +1488,7 @@
         width: 95%;
         max-width: 540px;
         border-radius: 20px;
-        padding: 2.5rem;
+        padding: 3.5rem 2.5rem 2.5rem 2.5rem; /* Increased top padding to clear close button */
         background: linear-gradient(
             145deg,
             rgba(30, 30, 30, 0.95),
@@ -1490,8 +1500,8 @@
 
     .close-button {
         position: absolute;
-        top: 1.2rem;
-        right: 1.2rem;
+        top: 0.75rem;
+        right: 0.75rem;
         font-size: 1.8rem;
         cursor: pointer;
         width: 40px;
@@ -1503,12 +1513,15 @@
         background: rgba(255, 255, 255, 0.08);
         transition:
             background 0.2s,
-            transform 0.2s;
+            transform 0.2s,
+            color 0.2s;
         color: #ccc;
+        z-index: 10;
     }
     .close-button:hover {
         background: rgba(255, 255, 255, 0.15);
         transform: rotate(90deg);
+        color: #fff;
     }
 
     .form-info {
@@ -1645,6 +1658,21 @@
         width: 14px;
         height: 14px;
         opacity: 0.6;
+    }
+
+    .actions-form.light-mode .result-link {
+        color: #155724;
+    }
+    .actions-form.light-mode .result-label {
+        color: #155724;
+    }
+    .actions-form.light-mode .close-button {
+        color: #666;
+        background: transparent;
+    }
+    .actions-form.light-mode .close-button:hover {
+        background: rgba(0, 0, 0, 0.05);
+        color: #000;
     }
 
     .copy-btn {
