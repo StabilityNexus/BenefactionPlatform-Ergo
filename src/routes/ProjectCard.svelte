@@ -73,7 +73,7 @@
     load();
 </script>
 
-<Card.Root class="relative group h-full flex flex-col bg-[#1a1a1a] {$mode === 'dark' ? 'border-orange-500/30' : 'border-orange-500/20'} border rounded-xl shadow-lg overflow-hidden hover:shadow-orange-500/10 transition-all duration-300">
+<Card.Root class="relative group h-full flex flex-col {$mode === 'dark' ? 'bg-[#1a1a1a]' : 'bg-[#f9f9f9]'} {$mode === 'dark' ? 'border-orange-500/30' : 'border-orange-500/20'} border rounded-xl shadow-lg overflow-hidden hover:shadow-orange-500/10 transition-all duration-300">
     
     <Card.Header class="p-5 pb-3 flex flex-row items-start justify-between gap-4 {$mode === 'dark' ? 'bg-gradient-to-b from-white/5 to-transparent' : 'bg-gradient-to-b from-black/5 to-transparent'}">
         <div class="flex-1 min-w-0">
