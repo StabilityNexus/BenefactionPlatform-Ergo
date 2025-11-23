@@ -12,11 +12,9 @@
     import { get } from "svelte/store";
     import { explorer_uri, user_tokens } from "$lib/common/store";
     import { walletConnected } from "$lib/wallet/wallet-manager";
-    import { fetchProjects } from "$lib/ergo/fetch";
     import { formatTransactionError } from "$lib/common/error-utils";
     import {
         validateProjectContent,
-        getRemainingBytes,
         getUsagePercentage,
         type ProjectContent,
     } from "$lib/ergo/utils/box-size-calculator";
@@ -48,7 +46,8 @@
     let deadlineValue: number;
     let deadlineUnit: "days" | "minutes" = "days";
     let deadlineValueBlock: number;
-    let is_timestamp_limit: boolean = false; // Height
+    let deadlineMode: "timestamp" | "block" = "timestamp";
+    let is_timestamp_limit: boolean = true; // Default to timestamp mode (R4._1 = true)
     let deadlineValueText: string;
 
     let exchangeRateRaw: number;
@@ -185,6 +184,9 @@
         baseTokenId = customBaseTokenId;
     }
 
+    // Sync deadlineMode with is_timestamp_limit
+    $: is_timestamp_limit = deadlineMode === "timestamp";
+
     $: if (
         isCustomBaseToken &&
         customBaseTokenId &&
@@ -251,8 +253,26 @@
     }
 
     $: {
-        if (deadlineValue && deadlineValue > 0) {
+        if (
+            deadlineMode === "timestamp" &&
+            deadlineValue &&
+            deadlineValue > 0
+        ) {
             calculateBlockLimit(deadlineValue, deadlineUnit);
+        } else if (deadlineMode === "block") {
+            // In block mode, deadlineValueBlock is set directly by the user
+            // Just update the text representation
+            if (deadlineValueBlock && deadlineValueBlock > 0) {
+                block_to_date(deadlineValueBlock, platform)
+                    .then((date) => {
+                        deadlineValueText = date;
+                    })
+                    .catch(() => {
+                        deadlineValueText = `Block ${deadlineValueBlock}`;
+                    });
+            } else {
+                deadlineValueText = "";
+            }
         } else {
             deadlineValueBlock = undefined;
             deadlineValueText = "";
@@ -319,14 +339,26 @@
                 milliseconds = value * 60 * 1000;
             }
             target_date.setTime(target_date.getTime() + milliseconds);
-            deadlineValueBlock = await time_to_block(
-                target_date.getTime(),
-                platform,
-            );
-            deadlineValueText = await block_to_date(
-                deadlineValueBlock,
-                platform,
-            );
+
+            if (deadlineMode === "timestamp") {
+                // In timestamp mode, use the timestamp directly
+                deadlineValueBlock = target_date.getTime();
+                deadlineValueText =
+                    target_date
+                        .toISOString()
+                        .replace("T", " ")
+                        .substring(0, 16) + " UTC";
+            } else {
+                // In block mode, convert time to block height
+                deadlineValueBlock = await time_to_block(
+                    target_date.getTime(),
+                    platform,
+                );
+                deadlineValueText = await block_to_date(
+                    deadlineValueBlock,
+                    platform,
+                );
+            }
         } catch (error) {
             console.error("Error calculating block limit:", error);
             deadlineValueBlock = undefined;
@@ -743,47 +775,117 @@
 
                     <div class="form-group">
                         <Label
+                            for="deadlineMode"
+                            class="text-sm font-medium mb-2 block text-foreground/90"
+                            >Deadline Mode</Label
+                        >
+                        <div class="relative">
+                            <select
+                                id="deadlineMode"
+                                bind:value={deadlineMode}
+                                class="w-full h-10 px-3 py-2 bg-background/50 border border-orange-500/20 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 appearance-none"
+                            >
+                                <option value="timestamp"
+                                    >Timestamp (Precise time-based)</option
+                                >
+                                <option value="block"
+                                    >Block Height (Block-based)</option
+                                >
+                            </select>
+                            <div
+                                class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500/70"
+                            >
+                                <svg
+                                    width="10"
+                                    height="6"
+                                    viewBox="0 0 10 6"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    ><path
+                                        d="M1 1L5 5L9 1"
+                                        stroke="currentColor"
+                                        stroke-width="1.5"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    /></svg
+                                >
+                            </div>
+                        </div>
+                        <p class="text-xs mt-2 text-muted-foreground">
+                            {#if deadlineMode === "timestamp"}
+                                Timestamp mode uses precise time-based deadlines
+                                (recommended for most projects).
+                            {:else}
+                                Block height mode uses blockchain block numbers
+                                for deadlines.
+                            {/if}
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <Label
                             for="deadlineValue"
                             class="text-sm font-medium mb-2 block text-foreground/90"
-                            >Duration</Label
+                            >{deadlineMode === "timestamp"
+                                ? "Duration"
+                                : "Block Height"}</Label
                         >
-                        <div class="flex space-x-2">
+                        {#if deadlineMode === "timestamp"}
+                            <div class="flex space-x-2">
+                                <Input
+                                    id="deadlineValue"
+                                    type="number"
+                                    bind:value={deadlineValue}
+                                    min="1"
+                                    placeholder="30"
+                                    class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
+                                />
+                                <div class="relative min-w-[110px]">
+                                    <select
+                                        bind:value={deadlineUnit}
+                                        class="w-full h-10 px-3 py-2 bg-background/50 border border-orange-500/20 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 appearance-none"
+                                    >
+                                        <option value="days">Days</option>
+                                        <option value="minutes">Minutes</option>
+                                    </select>
+                                    <div
+                                        class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500/70"
+                                    >
+                                        <svg
+                                            width="10"
+                                            height="6"
+                                            viewBox="0 0 10 6"
+                                            fill="none"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            ><path
+                                                d="M1 1L5 5L9 1"
+                                                stroke="currentColor"
+                                                stroke-width="1.5"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            /></svg
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        {:else}
                             <Input
                                 id="deadlineValue"
                                 type="number"
-                                bind:value={deadlineValue}
+                                bind:value={deadlineValueBlock}
                                 min="1"
-                                placeholder="30"
+                                placeholder="Enter block height"
                                 class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
                             />
-                            <div class="relative min-w-[110px]">
-                                <select
-                                    bind:value={deadlineUnit}
-                                    class="w-full h-10 px-3 py-2 bg-background/50 border border-orange-500/20 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 appearance-none"
-                                >
-                                    <option value="days">Days</option>
-                                    <option value="minutes">Minutes</option>
-                                </select>
-                                <div
-                                    class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500/70"
-                                >
-                                    <svg
-                                        width="10"
-                                        height="6"
-                                        viewBox="0 0 10 6"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        ><path
-                                            d="M1 1L5 5L9 1"
-                                            stroke="currentColor"
-                                            stroke-width="1.5"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        /></svg
-                                    >
-                                </div>
-                            </div>
-                        </div>
+                            <p class="text-xs mt-2 text-muted-foreground">
+                                Enter the target block height directly
+                            </p>
+                        {/if}
+                        {#if deadlineValueText}
+                            <p class="text-xs mt-1 text-orange-400">
+                                Deadline: {deadlineValueText}
+                            </p>
+                        {/if}
                     </div>
 
                     <div class="form-group">

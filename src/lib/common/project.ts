@@ -45,7 +45,7 @@ export function createR8Structure(content: ConstantContent) {
 
     const ownerErgoTree = getErgoTree(content.owner);
     const baseTokenId = content.base_token_id || "";
-    
+
     const r8Data = SColl(SColl(SByte), [
         ownerErgoTree,                  // Index 0
         content.dev_hash,               // Index 1
@@ -85,9 +85,15 @@ export interface Project {
 }
 
 export async function is_ended(project: Project): Promise<boolean> {
-    let height = await project.platform.get_current_height();
-
-    return project.block_limit < height
+    if (project.is_timestamp_limit) {
+        // In timestamp mode, compare with current time
+        const currentTime = new Date().getTime();
+        return project.block_limit < currentTime;
+    } else {
+        // In block height mode, compare with current block height
+        let height = await project.platform.get_current_height();
+        return project.block_limit < height;
+    }
 }
 
 export async function min_raised(project: Project): Promise<boolean> {
@@ -103,16 +109,16 @@ export function getProjectContent(id: string, value: string): ProjectContent {
         const parsed = JSON.parse(value);
         return {
             raw: value,
-            title: parsed.title || 'Id '+id,
+            title: parsed.title || 'Id ' + id,
             description: parsed.description || "No description provided.",
             link: parsed.link || null,
             image: parsed.image || "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg"
         };
     } catch (error) {
         return {
-            
+
             raw: value,
-            title: 'Id '+id,
+            title: 'Id ' + id,
             description: "No description provided.",
             link: null,
             image: "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg"
@@ -129,10 +135,10 @@ export function getConstantContent(value: string): ConstantContent | null {
             dev_addr: parsed.dev_addr,
             dev_hash: parsed.dev_hash,
             dev_fee: parsed.dev_fee,
-            pft_token_id: parsed.pft_token_id || parsed.token_id || null, 
+            pft_token_id: parsed.pft_token_id || parsed.token_id || null,
             base_token_id: parsed.base_token_id || ""  // Default to empty string for ERG
         }
-    } catch(error) {
+    } catch (error) {
         return null;
     }
 }

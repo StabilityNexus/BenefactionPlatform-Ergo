@@ -556,9 +556,17 @@
         deadline_passed = await is_ended(project);
         is_min_raised = await min_raised(project);
         is_max_raised = await max_raised(project);
-        limit_date = new Date(
-            await block_to_time(project.block_limit, project.platform),
-        ).toLocaleString();
+
+        // Handle both timestamp and block height modes
+        if (project.is_timestamp_limit) {
+            // In timestamp mode, block_limit is already a timestamp
+            limit_date = new Date(project.block_limit).toLocaleString();
+        } else {
+            // In block height mode, convert block to time
+            limit_date = new Date(
+                await block_to_time(project.block_limit, project.platform),
+            ).toLocaleString();
+        }
     }
     load();
 
@@ -576,7 +584,16 @@
     let targetDate = timerValue.target;
     let countdownInterval = timerValue.countdownInterval;
     async function setTargetDate() {
-        targetDate = await block_to_time(project.block_limit, project.platform);
+        if (project.is_timestamp_limit) {
+            // In timestamp mode, block_limit is already a timestamp
+            targetDate = project.block_limit;
+        } else {
+            // In block height mode, convert block to time
+            targetDate = await block_to_time(
+                project.block_limit,
+                project.platform,
+            );
+        }
     }
     setTargetDate();
 
@@ -791,9 +808,13 @@
                         </div>
                     </div>
 
-                    <small class="deadline-info"
-                        >Until {limit_date} UTC on block {project.block_limit}</small
-                    >
+                    <small class="deadline-info">
+                        {#if project.is_timestamp_limit}
+                            Until {limit_date} UTC
+                        {:else}
+                            Until {limit_date} UTC on block {project.block_limit}
+                        {/if}
+                    </small>
                 </div>
             </div>
 
