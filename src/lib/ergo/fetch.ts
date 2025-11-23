@@ -16,7 +16,7 @@ const expectedSigmaTypesV1 = {
 };
 
 const expectedSigmaTypesV2 = {
-    R4: '(SBool, SLong)',
+    R4: '(SBoolean, SLong)',
     R5: 'SLong',
     R6: 'Coll[SLong]',
     R7: 'SLong',
@@ -295,6 +295,7 @@ export async function fetchProjectsFromBlockchain() {
                         projects.set({ data: current, last_fetch: get(projects).last_fetch });
                     } else {
                         console.warn(`Box ${e.boxId} has invalid sigma types, skipping.`);
+                        console.log(e.additionalRegisters);
                     }
                 }
                 params.offset += params.limit;
