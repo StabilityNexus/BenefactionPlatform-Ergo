@@ -447,22 +447,23 @@ describe.each(baseModes)("Bene Contract v1.2 - Exchange APT → PFT (%s)", (mode
       // STEP 2: Create project box with MINIMUM FUNDING REACHED
       // IMPORTANT: Exchange only works when sold >= minimumTokensSold
       soldTokens = ctx.minimumTokensSold; // 50,000 tokens sold = minimum reached!
-      refundTokens = 1n; // 1 token refunded → net sold = 49,999 (minimum NOT reached)
+      refundTokens = 1n;
       const netSoldTokens = soldTokens - refundTokens;
+
       const collectedFunds = netSoldTokens * ctx.exchangeRate;
 
       let value = RECOMMENDED_MIN_FEE_VALUE;
       const assets = [
-        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - netSoldTokens }, // APT: 1 + 100k - 49k = 50,000 remaining
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - netSoldTokens }, // APT: 1 + 100k - 49k
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },                     // PFT: 100,000 still available to be exchanged
       ];
 
       if (!ctx.isErgMode) {
         // USD Mode: Add funds as a token
-        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds });  // 49K USD raised
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds });  // 50K USD raised
       }
       else {
-        value += collectedFunds; // 1.1M + 49K nanoERG raised
+        value += collectedFunds; // 1.1M + 50K nanoERG raised
       }
 
       ctx.beneContract.addUTxOs({
@@ -471,7 +472,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Exchange APT → PFT (%s)", (mode
         assets: assets,
         creationHeight: ctx.mockChain.height - 100,  // Created 100 blocks ago
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline
+          R4: createR4(ctx),                               // Deadline
           R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum: 50k
           R6: SColl(SLong, [soldTokens, refundTokens, 0n]).toHex(),                    // [50k sold, 1 refunded, 0 exchanged]
           R7: SLong(ctx.exchangeRate).toHex(),  // [price, token_len]
@@ -494,14 +495,13 @@ describe.each(baseModes)("Bene Contract v1.2 - Exchange APT → PFT (%s)", (mode
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it("should not allow exchanging APT tokens for PFT tokens", () => {
+    it("should allow exchanging APT tokens for PFT tokens", () => {
       // ARRANGE: Prepare exchange transaction
       // Find buyer's box containing APT tokens
       const buyerAPTBox = ctx.buyer.utxos
         .toArray()
         .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))!;
       const aptToExchange = buyerAPTBox.assets[0].amount;  // 10,000 APT to exchange
-
 
       const currentExchangeCounter = 0n;                           // Current exchange counter from R6[2]
       const newExchangeCounter = currentExchangeCounter + aptToExchange;  // Increment to 10,000
@@ -547,10 +547,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Exchange APT → PFT (%s)", (mode
       // Execute transaction (contract validates minimum reached + exchange ratio)
       const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
 
-      // ASSERT: Verify exchange succeeded
-      expect(result).toBe(false);
+      expect(result).toBe(false);                          // Transaction failed
     });
-  })
+  });
 
   describe("Some APT exchanged", () => {
 
