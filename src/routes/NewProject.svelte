@@ -90,13 +90,16 @@
         goalOrder: string | null;
         invalidBaseToken: string | null;
         invalidToken: string | null;
+        invalidToken: string | null;
         exchangeRate: string | null;
+        amountExceedsBalance: string | null;
     } = {
         tokenConflict: null,
         goalOrder: null,
         invalidBaseToken: null,
         invalidToken: null,
         exchangeRate: null,
+        amountExceedsBalance: null,
     };
 
     let minViablePrice = 0;
@@ -215,6 +218,13 @@
             : 0;
         tokenAmountToSellRaw =
             tokenAmountToSellPrecise * Math.pow(10, rewardTokenDecimals);
+
+        if (tokenAmountToSellPrecise > maxTokenAmountToSell) {
+            formErrors.amountExceedsBalance =
+                "Amount exceeds available balance.";
+        } else {
+            formErrors.amountExceedsBalance = null;
+        }
     }
 
     $: {
@@ -335,7 +345,8 @@
             rewardTokenId === null ||
             formErrors.tokenConflict ||
             formErrors.goalOrder ||
-            formErrors.invalidToken
+            formErrors.invalidToken ||
+            formErrors.amountExceedsBalance
         ) {
             errorMessage = "Please correct the errors before submitting.";
             return;
@@ -575,7 +586,9 @@
                                 min={0}
                                 placeholder="0.00"
                                 on:input={updateMaxValue}
-                                class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 pr-20"
+                                class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 pr-20 {formErrors.amountExceedsBalance
+                                    ? 'border-red-500 focus:ring-red-500/20'
+                                    : ''}"
                             />
                             <span
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-orange-500/70 pointer-events-none truncate max-w-[70px] text-right"
@@ -583,6 +596,11 @@
                                 {rewardTokenName}
                             </span>
                         </div>
+                        {#if formErrors.amountExceedsBalance}
+                            <p class="text-xs text-red-400 mt-1">
+                                {formErrors.amountExceedsBalance}
+                            </p>
+                        {/if}
                     </div>
                 </div>
             </div>
@@ -660,7 +678,7 @@
                                     placeholder="Enter the token ID"
                                     class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs font-mono"
                                 />
-                                {#if customBaseTokenId && baseTokenName !== "Unknown" && baseTokenName !== customBaseTokenId.slice(0, 6) + "..." + customBaseTokenId.slice(-4)}
+                                {#if customBaseTokenId && baseTokenName !== "ERG" && baseTokenName !== "Unknown" && baseTokenName !== customBaseTokenId.slice(0, 6) + "..." + customBaseTokenId.slice(-4)}
                                     <p class="text-xs text-green-400 mt-1">
                                         Found: {baseTokenName} (Decimals: {baseTokenDecimals})
                                     </p>
