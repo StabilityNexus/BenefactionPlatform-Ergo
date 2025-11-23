@@ -76,6 +76,43 @@
             ? platform.main_token
             : project.base_token_details?.name || "tokens";
 
+    // Calculate project funds correctly based on base token type
+    $: projectFundsAmount = (() => {
+        const isERGBase =
+            !project.base_token_id || project.base_token_id === "";
+        if (isERGBase) {
+            return project.current_value / Math.pow(10, 9);
+        } else {
+            let baseTokenAmount = 0;
+            for (const asset of project.box.assets) {
+                if (asset.tokenId === project.base_token_id) {
+                    baseTokenAmount = Number(asset.amount);
+                    break;
+                }
+            }
+            const baseTokenDecimals = project.base_token_details?.decimals || 0;
+            return baseTokenAmount / Math.pow(10, baseTokenDecimals);
+        }
+    })();
+
+    // Calculate display-friendly exchange rate
+    $: displayExchangeRate = (() => {
+        const isERGBase =
+            !project.base_token_id || project.base_token_id === "";
+        if (isERGBase) {
+            return (
+                project.exchange_rate *
+                Math.pow(10, project.token_details.decimals - 9)
+            );
+        } else {
+            const baseTokenDecimals = project.base_token_details?.decimals || 0;
+            return (
+                project.exchange_rate *
+                Math.pow(10, project.token_details.decimals - baseTokenDecimals)
+            );
+        }
+    })();
+
     // States for amounts
     let show_submit = false;
     let label_submit = "";
@@ -1163,7 +1200,7 @@
                                 {#if info_type_to_show === "buy"}
                                     <p>
                                         <strong>Exchange Rate:</strong>
-                                        {project.exchange_rate}
+                                        {displayExchangeRate.toFixed(6)}
                                         {baseTokenName} / {project.token_details
                                             .name}
                                     </p>
@@ -1181,10 +1218,7 @@
                                 {#if info_type_to_show === "dev-collect"}
                                     <p>
                                         <strong>Project Funds:</strong>
-                                        {(
-                                            project.current_value /
-                                            Math.pow(10, 9)
-                                        ).toFixed(4)}
+                                        {projectFundsAmount.toFixed(4)}
                                         {baseTokenName}
                                     </p>
                                 {/if}
