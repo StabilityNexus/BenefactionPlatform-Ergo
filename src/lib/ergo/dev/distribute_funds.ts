@@ -25,27 +25,39 @@ export async function distributeFunds(
         const isTokenDistribution = !!tokenId;
         const SAFE_MIN_BOX_VALUE = 1000000; // Minimum ERG for token boxes
 
-        // For token distributions, we need wallet UTXOs to cover ERG for outputs
+        // For token distributions we already needed wallet UTXOs to cover ERG for outputs.
+        // The executor pays miner fee, so include wallet UTXOs when available for both ERG and token distributions.
         let inputs = [box];
-        if (isTokenDistribution && window.ergo) {
-            const walletUtxos = await window.ergo!.get_utxos();
+        if (typeof window !== 'undefined' && (window as any).ergo) {
+            const walletUtxos = await (window as any).ergo!.get_utxos();
+            // prepend wallet utxos so that they can cover miner fee / additional ERG if needed
             inputs = [box, ...walletUtxos];
+        } else {
+            // If token distribution and no wallet available, we cannot provide the extra ERG for outputs
+            if (isTokenDistribution) {
+                throw new Error("Token distribution requires a connected wallet to provide ERG for outputs and fees.");
+            }
         }
 
-        // Only subtract miner fee from ERG distributions
-        if (!isTokenDistribution) {
-            totalAmount -= minerFeeAmount;
-        }
+        // IMPORTANT: Do NOT subtract miner fee from totalAmount.
+        // The miner fee will be paid by the executor (wallet) using the extra inputs we added above.
 
-        // Calculate individual shares
+        // Calculate individual shares from the full totalAmount (no fee subtraction)
         const brunoAmount = Math.floor((brunoShare / 100) * totalAmount);
         const lgdAmount = Math.floor((lgdShare / 100) * totalAmount);
         const jmAmount = Math.floor((jmShare / 100) * totalAmount);
         const orderAmount = Math.floor((orderShare / 100) * totalAmount);
-        
+
         const calculatedTotal = brunoAmount + lgdAmount + jmAmount + orderAmount;
 
         if (totalAmount !== calculatedTotal) {
+            console.log("Invalid shares: The total amount does not match the sum of calculated shares.")
+            console.log("Total amount: " + totalAmount)
+            console.log("Calculated total: " + calculatedTotal)
+            console.log("Bruno amount: " + brunoAmount)
+            console.log("LGD amount: " + lgdAmount)
+            console.log("JM amount: " + jmAmount)
+            console.log("Order amount: " + orderAmount)
             throw new Error(
                 `Invalid shares: The total amount (${totalAmount}) does not match the sum of calculated shares (${calculatedTotal}). Details: Bruno (${brunoAmount}), LGD (${lgdAmount}), JM (${jmAmount}), Order (${orderAmount}).`
             );
@@ -53,12 +65,18 @@ export async function distributeFunds(
 
         // Ensure valid distribution
         if (orderAmount < 0) {
+            console.log("Invalid distribution: total shares exceed 100%");
+            console.log("Total amount: " + totalAmount)
+            console.log("Bruno: " + brunoAmount);
+            console.log("LGD: " + lgdAmount);
+            console.log("JM: " + jmAmount);
+            console.log("Order: " + orderAmount);
             throw new Error("Invalid distribution: total shares exceed 100%");
         }
 
         // Build outputs for each recipient
         const outputs = [];
-        
+
         if (isTokenDistribution) {
             // Token distribution - each output needs minimum ERG + tokens
             outputs.push(
@@ -78,31 +96,32 @@ export async function distributeFunds(
                     .addTokens({ tokenId, amount: BigInt(orderAmount) })
             );
         } else {
-            // ERG distribution
+            // ERG distribution - outputs are the raw ERG amounts (miner fee NOT subtracted)
             outputs.push(new OutputBuilder(BigInt(brunoAmount), brunoAddress));
             outputs.push(new OutputBuilder(BigInt(lgdAmount), lgdAddress));
             outputs.push(new OutputBuilder(BigInt(jmAmount), jmAddress));
             outputs.push(new OutputBuilder(BigInt(orderAmount), orderAddress));
         }
 
-        // Get wallet address for change
-        const changeAddress = isTokenDistribution && window.ergo 
-            ? await window.ergo!.get_change_address()
+        // Get wallet address for change. If wallet is present, send change back to wallet (executor pays fee).
+        // Otherwise fallback to dev contract address.
+        const changeAddress = (typeof window !== 'undefined' && (window as any).ergo)
+            ? await (window as any).ergo!.get_change_address()
             : get_dev_contract_address();
 
         // Build and sign the transaction
-        const unsignedTransaction = await new TransactionBuilder(await window.ergo!.get_current_height())
+        const unsignedTransaction = await new TransactionBuilder(await (window as any).ergo!.get_current_height())
             .from(inputs)
             .to(outputs)
             .payFee(BigInt(minerFeeAmount))
-            .sendChangeTo(changeAddress)  // For tokens: send change to wallet, for ERG: to dev contract
+            .sendChangeTo(changeAddress)  // change goes to wallet if available (executor), otherwise dev contract
             .build()
             .toEIP12Object();
 
-        const signedTransaction = await window.ergo!.sign_tx(unsignedTransaction);
+        const signedTransaction = await (window as any).ergo!.sign_tx(unsignedTransaction);
 
         // Submit the transaction
-        const transactionId = await window.ergo!.submit_tx(signedTransaction);
+        const transactionId = await (window as any).ergo!.submit_tx(signedTransaction);
 
         console.log("Transaction ID:", transactionId);
         return transactionId;

@@ -3,7 +3,7 @@
     // Name: Bene Fundraising Platform  Dev Fee Contract
     // Description: Contract guarding the fee box for the Bene Fundraising Platform.
     // Version: 1.0.0
-    // Based on: Phoenix HodlERG Fee (https://raw.githubusercontent.com/PhoenixErgo/phoenix-hodlcoin-contracts/refs/heads/main/hodlERG/contracts/phoenix_fee_contract/v1/ergoscript/phoenix_v1_hodlerg_fee.es)
+    // Based on: Phoenix HodlERG Fee (originally)
 
     // ===== Box Contents ===== //
     // Tokens
@@ -15,7 +15,7 @@
     // 1. Fee Distribution Tx
     // Inputs: BeneFee1, ... , BeneFeeM
     // DataInputs: None
-    // Outputs: Bruno, Lgd, Jossemii, The Stable Order, MinerFee
+    // Outputs: Bruno, Lgd, Josemi, The Stable Order
     // Context Variables: None
 
     // ===== Compile Time Constants ($) ===== //
@@ -28,15 +28,12 @@
     // None
 
     // ===== Relevant Variables ===== //
-    val minerFee = 1100000
-    val minerFeeErgoTreeBytesHash: Coll[Byte] = fromBase16("e540cceffd3b8dd0f401193576cc413467039695969427df94454193dddfb375")
-    
     val feeDenom: Long   = 100L
     val brunoNum: Long   = 32L  // Bruno
     val lgdNum: Long = 32L     // Lgd
     val jmNum: Long = 32L     // Jossemi
     val orderNum: Long = 4L  // The Stable Order
-    
+
     val brunoAddress: SigmaProp   = PK("`+bruno+`")
     val lgdAddress: SigmaProp = PK("`+lgd+`")
     val jmAddress: SigmaProp = PK("`+jm+`")
@@ -59,20 +56,19 @@
                 0L
             }
         } else {
-            // Get ERG amount (for miner fee box, use value directly)
+            // Get ERG amount
             box.value
         }
     }
 
-    // ===== Fee Distribution Tx ===== //
+    // ===== Fee Distribution Tx (no miner fee) ===== //
     val validFeeDistributionTx: Boolean = {                         
 
-        // Outputs
+        // Outputs: 4 outputs expected (bruno, lgd, jm, order)
         val brunoBoxOUT: Box    = OUTPUTS(0)
         val lgdBoxOUT: Box  = OUTPUTS(1)
         val jmBoxOUT: Box  = OUTPUTS(2)
         val orderBoxOUT: Box = OUTPUTS(3)
-        val minerFeeBoxOUT: Box = OUTPUTS(4)
 
         // Calculate total output amount and dev amount
         val outputAmount: Long = OUTPUTS.map({ (output: Box) => output.value }).fold(0L, { (acc: Long, curr: Long) => acc + curr })
@@ -83,7 +79,8 @@
                                    getDistributionAmount(jmBoxOUT) + getDistributionAmount(orderBoxOUT)
             totalTokenAmount
         } else {
-            outputAmount - minerFeeBoxOUT.value // In case the miner fee increases in the future
+            // For ERG, the full sum of outputs is the devAmount (miner fee is paid externally)
+            outputAmount
         }
 
         val validMinAmount: Boolean = if (isTokenDistribution) {
@@ -115,26 +112,16 @@
 
         }
 
-        val validMinerFee: Boolean = {
-
-            allOf(Coll(
-                (minerFeeBoxOUT.value >= minerFee), // In case the miner fee increases in the future
-                (blake2b256(minerFeeBoxOUT.propositionBytes) == minerFeeErgoTreeBytesHash)
-            ))
-
-        }
-
-        val validOutputSize: Boolean = (OUTPUTS.size == 5)
+        val validOutputSize: Boolean = (OUTPUTS.size == 4)
 
         allOf(Coll(
             validMinAmount,
             validDevBoxes,
-            validMinerFee,
             validOutputSize
         ))
 
     }
 
-    sigmaProp(validFeeDistributionTx) // && atLeast(1, Coll(brunoAddress, lgdAddress, jmAddress, orderAddress)) // Done so we are incentivized to not spam the miner fee.
+    sigmaProp(validFeeDistributionTx)
 
 }
