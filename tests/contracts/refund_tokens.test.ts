@@ -102,6 +102,7 @@ describe.each(testModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     console.log(`   Refund Amount:     ${Number(refundAmount) / decimalDivisor} ${ctx.baseTokenName}`);
     console.log(`   Campaign Failed?   YES (${soldTokens.toLocaleString()} < ${ctx.minimumTokensSold.toLocaleString()})`);
     console.log(`   Past Deadline?     YES (block ${ctx.mockChain.height} > ${ctx.deadlineBlock})`);
+    console.log(`   Past Deadline timeline? YES (time ${ctx.mockChain.timestamp} > ${ctx.deadlineTimestamp})`);
     console.log(`   Refund Counter:    0 → ${tokensToRefund.toLocaleString()}`);
 
     // LOG: Show buyer state before refund
@@ -641,5 +642,4 @@ describe.each(testModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     expect(result).toBe(false);
     expect(ctx.beneContract.utxos.length).toEqual(1);
   });
-
 });
