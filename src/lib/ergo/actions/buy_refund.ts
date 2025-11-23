@@ -10,41 +10,41 @@ import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
-import { SColl } from '@fleet-sdk/serializer';
+import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
 export async function buy_refund(
     project: Project,
     token_amount: number
-): Promise<string|null> {
+): Promise<string | null> {
 
     /*
         Token amount positive means buy action.
         Token amount negative means refund action.
     */
-    
-    
+
+
     // Convert to smallest unit without rounding away from zero (handles negatives correctly)
     token_amount = Math.trunc(token_amount * Math.pow(10, project.token_details.decimals));
 
     // Calculate base token amount based on project's base token
     const isERGBase = !project.base_token_id || project.base_token_id === "";
     let base_token_amount = Math.abs(token_amount) * project.exchange_rate;
-    
+
 
     // Get the wallet address (will be the user address)
     const walletPk = await getChangeAddress();
-    
+
     // Get the UTXOs from the current wallet to use as inputs
     let walletUtxos = await window.ergo!.get_utxos();
-    
+
     // For refunds, ensure we have the project tokens in inputs
     if (token_amount < 0) {
         // Check if user has the required project tokens
         const requiredTokenAmount = Math.abs(token_amount);
         let hasRequiredTokens = false;
-        
-        
+
+
         for (const utxo of walletUtxos) {
             if (utxo.assets && utxo.assets.length > 0) {
                 for (const asset of utxo.assets) {
@@ -58,13 +58,13 @@ export async function buy_refund(
             }
             if (hasRequiredTokens) break;
         }
-        
-        
+
+
         if (!hasRequiredTokens) {
             throw new Error(`Insufficient project tokens for refund. Required: ${requiredTokenAmount}`);
         }
     }
-    
+
     const inputs = [project.box, ...walletUtxos];
 
     // Calculate ERG value for the contract
@@ -78,18 +78,18 @@ export async function buy_refund(
             contractErgValue = project.value; // Keep original ERG in contract
         }
     }
-    
+
 
     // Building the project output
-    
+
     let output = new OutputBuilder(
         BigInt(contractErgValue).toString(),
         get_ergotree_hex(project.constants, project.version)
     )
-    .addTokens({
-        tokenId: project.project_id,
-        amount: BigInt(project.current_idt_amount - token_amount).toString()  // Buy: extract tokens, Refund: add tokens
-    });
+        .addTokens({
+            tokenId: project.project_id,
+            amount: BigInt(project.current_idt_amount - token_amount).toString()  // Buy: extract tokens, Refund: add tokens
+        });
 
     // Add PFT tokens if they exist
     if (project.current_pft_amount > 0) {
@@ -109,8 +109,8 @@ export async function buy_refund(
                 break;
             }
         }
-        
-        
+
+
         // Calculate new base token amount
         let newBaseTokenAmount;
         if (token_amount > 0) {
@@ -120,13 +120,13 @@ export async function buy_refund(
             // Refund: subtract base tokens from contract (they go to user)
             newBaseTokenAmount = currentBaseTokenAmount - base_token_amount;
         }
-        
-        
+
+
         // Ensure we don't have negative base tokens in contract
         if (newBaseTokenAmount < 0) {
             throw new Error(`Insufficient base tokens in contract. Available: ${currentBaseTokenAmount}, Required: ${base_token_amount}`);
         }
-        
+
         // Add base token with updated amount only if > 0 to avoid zero-amount token in output
         if (newBaseTokenAmount > 0) {
             output.addTokens({
@@ -140,7 +140,7 @@ export async function buy_refund(
     // Update counters
     let sold_counter = BigInt(token_amount > 0 ? project.sold_counter + token_amount : project.sold_counter);
     let refund_counter = BigInt(token_amount < 0 ? project.refund_counter + Math.abs(token_amount) : project.refund_counter);
-    
+
     output.setAdditionalRegisters({
         R4: SPair(SBool(project.is_timestamp_limit), SLong(BigInt(project.block_limit))).toHex(),
         R5: SLong(BigInt(project.minimum_amount)).toHex(),
@@ -149,7 +149,7 @@ export async function buy_refund(
         R8: createR8Structure(project.constants).toHex(),
         R9: SString(project.content.raw)
     });
-    
+
     let outputs = [output];
 
     // Create user outputs based on action type
@@ -163,7 +163,7 @@ export async function buy_refund(
         outputs.push(userOutput);
     } else if (token_amount < 0) {
         const refundTokenAmount = Math.abs(token_amount);
-        
+
         // For refunds, user needs to provide the project tokens as input
         // The user output only contains what they receive back (base tokens)
         if (isERGBase) {
@@ -192,11 +192,11 @@ export async function buy_refund(
         .payFee(RECOMMENDED_MIN_FEE_VALUE)
         .build()
         .toEIP12Object();
-    
+
 
     // Final sanity check: ensure all token amounts in outputs are > 0
     try {
-        const invalidTokens: Array<{outIndex:number, tokenId:string, amount:string}> = [];
+        const invalidTokens: Array<{ outIndex: number, tokenId: string, amount: string }> = [];
         (unsignedTransaction.outputs || []).forEach((o: any, idx: number) => {
             (o.assets || []).forEach((t: any) => {
                 const amt = BigInt(typeof t.amount === 'string' ? t.amount : (t.amount?.toString() ?? '0'));
@@ -211,7 +211,7 @@ export async function buy_refund(
     } catch (e) {
         throw e;
     }
-    
+
     try {
         // Sign the transaction
         const signedTransaction = await signTransaction(unsignedTransaction);
