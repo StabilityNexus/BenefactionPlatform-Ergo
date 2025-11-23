@@ -355,7 +355,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Exchange APT → PFT (%s)", (mode
         additionalRegisters: {
           R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline
           R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum: 50k
-          R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),                    // [50k sold, 0 refunded, 0 exchanged]
+          R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),                    // [49k sold, 0 refunded, 0 exchanged]
           R7: SLong(ctx.exchangeRate).toHex(),  // [price, token_len]
           R8: ctx.constants.toHex(),
           R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
@@ -376,7 +376,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Exchange APT → PFT (%s)", (mode
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it("should allow exchanging APT tokens for PFT tokens", () => {
+    it("should not allow exchanging APT tokens for PFT tokens", () => {
       // ARRANGE: Prepare exchange transaction
       // Find buyer's box containing APT tokens
       const buyerAPTBox = ctx.buyer.utxos
@@ -412,7 +412,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Exchange APT → PFT (%s)", (mode
             .setAdditionalRegisters({
               R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
-              R6: SColl(SLong, [soldTokens, 0n, newExchangeCounter]).toHex(),  // [50k, 0, 10k] - exchange counter updated
+              R6: SColl(SLong, [soldTokens, 0n, newExchangeCounter]).toHex(),  // [49k, 0, 10k] - exchange counter updated
               R7: SLong(ctx.exchangeRate).toHex(),
               R8: projectBox.additionalRegisters.R8,
               R9: projectBox.additionalRegisters.R9,
