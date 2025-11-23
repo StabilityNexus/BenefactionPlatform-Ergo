@@ -1,5 +1,5 @@
 import { type Box, SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
-import { type Project, type TokenEIP4, getConstantContent, getProjectContent } from "../common/project";
+import { type ConstantContent, type Project, type TokenEIP4, getConstantContent, getProjectContent } from "../common/project";
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
 import { type contract_version, get_template_hash } from "./contract";
@@ -179,10 +179,38 @@ export async function fetchProjectsFromBlockchain() {
 
                 for (const e of json_data.items) {
                     if (hasValidSigmaTypes(e.additionalRegisters, version)) {
-                        const constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "");
+                        let constants: ConstantContent | null = null;
 
-                        if (constants === null) { console.warn("constants null"); continue; }
-                        if (e.assets.length > 2 && e.assets[1].tokenId !== constants.pft_token_id) { console.warn("Constant token error with " + constants.pft_token_id); continue; }
+                        if (version === "v1_0" || version === "v1_1") {
+                            constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "");
+                            if (constants === null) { console.warn("constants null"); continue; }
+                        }
+                        else {
+                            try {
+                                if (!e.additionalRegisters.R8) throw new Error("R8 missing");
+
+                                // Parse R8 using regex/split as requested, handling brackets, quotes, and spaces
+                                const rawValues = e.additionalRegisters.R8.renderedValue
+                                    .replace(/[\[\]"'\s]/g, "")
+                                    .split(",")
+                                    .filter((s: string) => s.length > 0);
+
+                                console.log(rawValues)
+                                if (rawValues.length < 3) throw new Error("Insufficient R8 constants");
+
+                                constants = {
+                                    owner: rawValues[0],
+                                    dev_hash: rawValues[1],
+                                    dev_fee: parseInt(rawValues[2], 16),
+                                    pft_token_id: rawValues[3],
+                                    base_token_id: rawValues[4] ?? "",
+                                    raw: e.additionalRegisters.R8.serializedValue
+                                };
+                            } catch (err) {
+                                console.warn("Failed to parse R8 constants", err);
+                                continue;
+                            }
+                        }
 
                         let project_id = e.assets[0].tokenId;
                         let token_id = constants.pft_token_id;
