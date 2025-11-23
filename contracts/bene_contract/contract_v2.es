@@ -298,12 +298,7 @@
     // > People should be allowed to exchange tokens for base tokens if and only if the deadline has passed and the minimum number of tokens has not been sold.
     val canBeRefund = {
       // The minimum number of tokens has not been sold.
-      val minimumNotReached = {
-          val minimumSalesThreshold = selfMinimumTokensSold
-          val soldCounter = selfSoldCounter
-
-          soldCounter < minimumSalesThreshold
-      }
+      val minimumNotReached = !minimumReached
 
       // Condition to check if the current height is beyond the block limit
       val afterBlockLimit = {
