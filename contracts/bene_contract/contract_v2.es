@@ -228,9 +228,9 @@
 
   val minimumReached: Boolean = {
     val minimumSalesThreshold = selfMinimumTokensSold
-    val soldCounter = selfSoldCounter - selfRefundCounter  // Net sold counter (sold - refunded)
+    val netSoldCounter = selfSoldCounter - selfRefundCounter  // Net sold counter (sold - refunded)
 
-    soldCounter >= minimumSalesThreshold
+    netSoldCounter >= minimumSalesThreshold
   }
 
 
