@@ -2,7 +2,7 @@
  * Utilities for calculating and validating Ergo box sizes
  */
 
-import { SInt, SLong, SColl } from '@fleet-sdk/serializer';
+import { SInt, SLong, SColl, SPair, SBool } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { get_ergotree_hex } from '../contract';
@@ -146,7 +146,7 @@ export function calculateRegisterSizesEstimate(): {
         const PER_REGISTER_OVERHEAD = 1;
 
         // Use typical values for calculation
-        const r4Hex = SInt(1000000).toHex(); // Typical blockLimit
+        const r4Hex = SPair(SBool(false), SInt(1000000)).toHex(); // Typical blockLimit
         const r5Hex = SLong(BigInt(0)).toHex(); // Typical minimumSold
         const r6Hex = SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex(); // Always same
         const r7Hex = SLong(BigInt(1000000)).toHex(); // Typical exchangeRate

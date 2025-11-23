@@ -353,7 +353,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Exchange APT → PFT (%s)", (mode
         assets: assets,
         creationHeight: ctx.mockChain.height - 100,  // Created 100 blocks ago
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline
+          R4: createR4(ctx),                               // Deadline
           R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum: 50k
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),                    // [49k sold, 0 refunded, 0 exchanged]
           R7: SLong(ctx.exchangeRate).toHex(),  // [price, token_len]
