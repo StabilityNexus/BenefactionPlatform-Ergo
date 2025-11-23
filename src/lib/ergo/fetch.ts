@@ -120,8 +120,8 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
             //  console.log(`Error during fetch: ${error}`);
         }
 
-        // Check if 5 minutes have passed
-        if (Date.now() - startTime > 5 * 60 * 1000) {
+        // Check if 15 minutes have passed
+        if (Date.now() - startTime > 15 * 60 * 1000) {
             return null;
         }
 
@@ -188,10 +188,11 @@ export async function fetchProjectsFromBlockchain() {
                         let token_id = constants.pft_token_id;
                         let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
 
+
                         let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
                         let base_token_id = constants.base_token_id ?? "";
 
-                        let current_pft_amount = (e.assets.find(asset => asset.tokenId === constants.pft_token_id)?.amount) ?? 0;
+                        let current_pft_amount = (e.assets.find((asset: any) => asset.tokenId === constants.pft_token_id)?.amount) ?? 0;
                         let total_pft_amount = current_pft_amount + auxiliar_exchange_counter;
                         let unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
                         let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
