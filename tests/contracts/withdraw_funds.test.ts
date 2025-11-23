@@ -3,7 +3,7 @@ import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE, Amou
 import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
 import { compile } from "@fleet-sdk/compiler";
-import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, USD_BASE_TOKEN, USD_BASE_TOKEN_NAME } from "./bene_contract_helpers";
+import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, USD_BASE_TOKEN, USD_BASE_TOKEN_NAME, createR4 } from "./bene_contract_helpers";
 import { OneOrMore } from "@fleet-sdk/common";
 
 // EXECUTION FLOW:
@@ -31,17 +31,17 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
 
       // STEP 2: Create project box with MINIMUM REACHED (successful campaign)
       soldTokens = ctx.minimumTokensSold;              // minimum reached
-      collectedFunds = soldTokens * ctx.exchangeRate; 
+      collectedFunds = soldTokens * ctx.exchangeRate;
 
       let assets = [
-          { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-          // { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },   There are no PFTs on contract.  All PFT were exchanged with their respectives APTs
-        ];
-      
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+        // { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },   There are no PFTs on contract.  All PFT were exchanged with their respectives APTs
+      ];
+
       let value = SAFE_MIN_BOX_VALUE;
 
       if (!ctx.isErgMode) {
-        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds})
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds })
       }
       else {
         value += collectedFunds;
@@ -54,7 +54,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
         assets: assets,
         creationHeight: ctx.mockChain.height - 100,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, 0n, ctx.totalPFTokens]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
@@ -119,9 +119,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
 
     it("should pass partial withdraw", () => {
 
-      const remainingAmount = collectedFunds/2n;      
-      const devFeeAmount = (collectedFunds/2n * BigInt(ctx.devFeePercentage)) / 100n;
-      const projectAmount = collectedFunds/2n - devFeeAmount;
+      const remainingAmount = collectedFunds / 2n;
+      const devFeeAmount = (collectedFunds / 2n * BigInt(ctx.devFeePercentage)) / 100n;
+      const projectAmount = collectedFunds / 2n - devFeeAmount;
       const devFeeContract = compile(`{ sigmaProp(true) }`);
 
       let remainingValue: bigint;
@@ -147,7 +147,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
         remainingValue = SAFE_MIN_BOX_VALUE;
         remainingAssets = [
           { tokenId: ctx.projectNftId, amount: projectBox.assets[0].amount },
-          { tokenId: ctx.baseTokenId, amount: remainingAmount}
+          { tokenId: ctx.baseTokenId, amount: remainingAmount }
         ];
 
         projectValue = SAFE_MIN_BOX_VALUE;
@@ -166,10 +166,10 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
         .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
         .to([
           // Output 0: Self contract
-           new OutputBuilder(remainingValue, ctx.beneErgoTree)
+          new OutputBuilder(remainingValue, ctx.beneErgoTree)
             .addTokens(remainingAssets)
             .setAdditionalRegisters({
-              R4: SInt(ctx.deadlineBlock).toHex(),
+              R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
               R6: SColl(SLong, [soldTokens, 0n, ctx.totalPFTokens]).toHex(),
               R7: SLong(ctx.exchangeRate).toHex(),
@@ -404,17 +404,17 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
 
       // STEP 2: Create project box with MINIMUM REACHED (successful campaign)
       soldTokens = ctx.minimumTokensSold;              // minimum reached
-      collectedFunds = soldTokens * ctx.exchangeRate; 
+      collectedFunds = soldTokens * ctx.exchangeRate;
 
       let assets = [
-          { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-          { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },  // Any PFT exchanged
-        ];
-      
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },  // Any PFT exchanged
+      ];
+
       let value = SAFE_MIN_BOX_VALUE;
 
       if (!ctx.isErgMode) {
-        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds})
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds })
       }
       else {
         value += collectedFunds;
@@ -427,7 +427,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
         assets: assets,
         creationHeight: ctx.mockChain.height - 100,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
@@ -442,9 +442,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
 
     it("should pass partial withdraw", () => {
 
-      const remainingAmount = collectedFunds/2n;      
-      const devFeeAmount = (collectedFunds/2n * BigInt(ctx.devFeePercentage)) / 100n;
-      const projectAmount = collectedFunds/2n - devFeeAmount;
+      const remainingAmount = collectedFunds / 2n;
+      const devFeeAmount = (collectedFunds / 2n * BigInt(ctx.devFeePercentage)) / 100n;
+      const projectAmount = collectedFunds / 2n - devFeeAmount;
       const devFeeContract = compile(`{ sigmaProp(true) }`);
 
       let remainingValue: bigint;
@@ -472,7 +472,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
         remainingAssets = [
           { tokenId: ctx.projectNftId, amount: projectBox.assets[0].amount },
           { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },  // Any PFT exchanged
-          { tokenId: ctx.baseTokenId, amount: remainingAmount} // In that case, base token is on index 2.
+          { tokenId: ctx.baseTokenId, amount: remainingAmount } // In that case, base token is on index 2.
         ];
 
         projectValue = SAFE_MIN_BOX_VALUE;
@@ -491,10 +491,10 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
         .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
         .to([
           // Output 0: Self contract
-           new OutputBuilder(remainingValue, ctx.beneErgoTree)
+          new OutputBuilder(remainingValue, ctx.beneErgoTree)
             .addTokens(remainingAssets)
             .setAdditionalRegisters({
-              R4: SInt(ctx.deadlineBlock).toHex(),
+              R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
               R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
               R7: SLong(ctx.exchangeRate).toHex(),
@@ -533,17 +533,17 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
 
       // STEP 2: Create project box with MINIMUM REACHED (successful campaign)
       soldTokens = ctx.minimumTokensSold;              // minimum reached
-      collectedFunds = soldTokens * ctx.exchangeRate; 
+      collectedFunds = soldTokens * ctx.exchangeRate;
 
       let assets = [
-          { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-          { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },  // Any PFT exchanged
-        ];
-      
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },  // Any PFT exchanged
+      ];
+
       let value = SAFE_MIN_BOX_VALUE;
 
       if (!ctx.isErgMode) {
-        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds})
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds })
       }
       else {
         value += collectedFunds;
@@ -556,7 +556,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
         assets: assets,
         creationHeight: ctx.mockChain.height - 100,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
@@ -571,9 +571,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
 
     it("should pass partial withdraw", () => {
 
-      const remainingAmount = collectedFunds/2n;      
-      const devFeeAmount = (collectedFunds/2n * BigInt(ctx.devFeePercentage)) / 100n;
-      const projectAmount = collectedFunds/2n - devFeeAmount;
+      const remainingAmount = collectedFunds / 2n;
+      const devFeeAmount = (collectedFunds / 2n * BigInt(ctx.devFeePercentage)) / 100n;
+      const projectAmount = collectedFunds / 2n - devFeeAmount;
       const devFeeContract = compile(`{ sigmaProp(true) }`);
 
       let remainingValue: bigint;
@@ -601,7 +601,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
         remainingAssets = [
           { tokenId: ctx.projectNftId, amount: projectBox.assets[0].amount },
           { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },  // Any PFT exchanged
-          { tokenId: ctx.baseTokenId, amount: remainingAmount} // In that case, base token is on index 2.
+          { tokenId: ctx.baseTokenId, amount: remainingAmount } // In that case, base token is on index 2.
         ];
 
         projectValue = SAFE_MIN_BOX_VALUE;
@@ -620,10 +620,10 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
         .from([projectBox, ...ctx.projectOwner.utxos.toArray()])
         .to([
           // Output 0: Self contract
-           new OutputBuilder(remainingValue, ctx.beneErgoTree)
+          new OutputBuilder(remainingValue, ctx.beneErgoTree)
             .addTokens(remainingAssets)
             .setAdditionalRegisters({
-              R4: SInt(ctx.deadlineBlock).toHex(),
+              R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
               R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
               R7: SLong(ctx.exchangeRate).toHex(),
@@ -658,18 +658,18 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n });  // 10 ERG for fees
 
       // STEP 2: Create project box with MINIMUM NOT REACHED (non-successful campaign)
-      soldTokens = ctx.minimumTokensSold -1n;              // minimum not reached
-      collectedFunds = soldTokens * ctx.exchangeRate; 
+      soldTokens = ctx.minimumTokensSold - 1n;              // minimum not reached
+      collectedFunds = soldTokens * ctx.exchangeRate;
 
       let assets = [
-          { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-          // { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },   There are no PFTs on contract.  All PFT were exchanged with their respectives APTs
-        ];
-      
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+        // { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },   There are no PFTs on contract.  All PFT were exchanged with their respectives APTs
+      ];
+
       let value = SAFE_MIN_BOX_VALUE;
 
       if (!ctx.isErgMode) {
-        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds})
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds })
       }
       else {
         value += collectedFunds;
@@ -682,7 +682,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
         assets: assets,
         creationHeight: ctx.mockChain.height - 100,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),

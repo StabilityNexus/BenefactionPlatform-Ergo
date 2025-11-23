@@ -5,9 +5,9 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
-import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
+import { SByte, SColl, SInt, SLong, SBool, SPair } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
-import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, USD_BASE_TOKEN_NAME, USD_BASE_TOKEN } from "./bene_contract_helpers";
+import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, USD_BASE_TOKEN_NAME, USD_BASE_TOKEN, createR4 } from "./bene_contract_helpers";
 
 // EXECUTION FLOW:
 // 1. beforeEach() → Creates blockchain + project box with MINIMUM NOT REACHED (25k sold < 50k minimum)
@@ -20,7 +20,16 @@ const baseModes = [
   { name: "ERG Mode", token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
 ];
 
-describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) => {
+const timeModes = [
+  { name: "Block Height", useTimestamp: false },
+  { name: "Timestamp", useTimestamp: true },
+];
+
+const testModes = baseModes.flatMap(base =>
+  timeModes.map(time => ({ ...base, ...time, fullName: `${base.name} - ${time.name}` }))
+);
+
+describe.each(testModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) => {
   let ctx: BeneTestContext;  // Test environment
   let projectBox: Box;       // Contract box
 
@@ -50,7 +59,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
       assets: contractAssets,
       creationHeight: ctx.mockChain.height - 100,  // Created 100 blocks ago
       additionalRegisters: {
-        R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline: block 800,200
+        R4: createR4(ctx, mode.useTimestamp),
         R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum: 50,000
         R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),                    // [25k sold, 0 refunded, 0 exchanged]
         R7: SLong(ctx.exchangeRate).toHex(),  // [price, token_len]
@@ -75,7 +84,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
 
   it("should allow refunding APT tokens after deadline when minimum not reached", () => {
     // ARRANGE: Jump blockchain PAST the deadline
-    ctx.mockChain.jumpTo(ctx.deadlineBlock + 1);  // Move to block 800,201 (past 800,200 deadline)
+    ctx.mockChain.jumpTo(ctx.deadlineBlock + 2);  // Move to block 800,202 (past 800,200 deadline)
 
     // Find buyer's box with APT tokens
     const buyerTokenBox = ctx.buyer.utxos
@@ -119,14 +128,14 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     const refundOutputBuilder = ctx.isErgMode
       ? new OutputBuilder(refundAmount, ctx.buyer.address)  // In ERG mode: buyer gets 5 ERG back
       : new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([  // In token mode: payment tokens
-          { tokenId: ctx.baseTokenId, amount: refundAmount },
-        ]);
+        { tokenId: ctx.baseTokenId, amount: refundAmount },
+      ]);
 
     // ACT: Build and execute refund transaction
     const transaction = new TransactionBuilder(ctx.mockChain.height)
       // INPUTS: Contract box + buyer's APT box
       .from([projectBox, buyerTokenBox])
-      
+
       // OUTPUTS:
       .to([
         // Output 0: Updated contract (gains APT back, loses payment)
@@ -136,7 +145,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         )
           .addTokens(contractAssets)
           .setAdditionalRegisters({
-            R4: SInt(ctx.deadlineBlock).toHex(),
+            R4: projectBox.additionalRegisters.R4,
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, tokensToRefund, 0n]).toHex(),  // [25k sold, 5k refunded, 0 exchanged]
             R7: SLong(ctx.exchangeRate).toHex(),
@@ -199,7 +208,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     });
 
     // Jump past deadline
-    ctx.mockChain.jumpTo(ctx.deadlineBlock + 1);
+    ctx.mockChain.jumpTo(ctx.deadlineBlock + 2);
 
     // First refund uses original box (5,000)
     const firstBox = ctx.buyer.utxos
@@ -228,7 +237,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         )
           .addTokens(contractAfterFirstAssets)
           .setAdditionalRegisters({
-            R4: SInt(ctx.deadlineBlock).toHex(),
+            R4: projectBox.additionalRegisters.R4,
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, firstRefundTokens, 0n]).toHex(),
             R7: SLong(ctx.exchangeRate).toHex(),
@@ -277,7 +286,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         )
           .addTokens(contractAfterSecondAssets)
           .setAdditionalRegisters({
-            R4: SInt(ctx.deadlineBlock).toHex(),
+            R4: projectBox.additionalRegisters.R4,
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, cumulativeRefund, 0n]).toHex(),
             R7: SLong(ctx.exchangeRate).toHex(),
@@ -330,8 +339,8 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     const refundOutputBuilder = ctx.isErgMode
       ? new OutputBuilder(refundAmount, ctx.buyer.address)
       : new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          { tokenId: ctx.baseTokenId, amount: refundAmount },
-        ]);
+        { tokenId: ctx.baseTokenId, amount: refundAmount },
+      ]);
 
     // Act
     const transaction = new TransactionBuilder(ctx.mockChain.height)
@@ -343,7 +352,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         )
           .addTokens(contractAssets)
           .setAdditionalRegisters({
-            R4: SInt(ctx.deadlineBlock).toHex(),
+            R4: projectBox.additionalRegisters.R4,
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, tokensToRefund, 0n]).toHex(),
             R7: SLong(ctx.exchangeRate).toHex(),
@@ -384,7 +393,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
       assets: contractAssets,
       creationHeight: ctx.mockChain.height - 100,
       additionalRegisters: {
-        R4: SInt(ctx.deadlineBlock).toHex(),
+        R4: mode.useTimestamp
+          ? SPair(SBool(true), SLong(-1n)).toHex()
+          : SPair(SBool(false), SLong(BigInt(ctx.deadlineBlock))).toHex(),
         R5: SLong(ctx.minimumTokensSold).toHex(),
         R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(), // Minimum reached!
         R7: SLong(ctx.exchangeRate).toHex(),
@@ -394,7 +405,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     });
 
     const boxMinReached = ctx.beneContract.utxos.toArray()[0];
-    ctx.mockChain.jumpTo(ctx.deadlineBlock + 1);  // Jump PAST deadline
+    ctx.mockChain.jumpTo(ctx.deadlineBlock + 2);  // Jump PAST deadline
 
     // Find buyer's APT tokens
     const buyerTokenBox = ctx.buyer.utxos
@@ -417,8 +428,8 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     const refundOutputBuilder = ctx.isErgMode
       ? new OutputBuilder(refundAmount, ctx.buyer.address)
       : new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          { tokenId: ctx.baseTokenId, amount: refundAmount },
-        ]);
+        { tokenId: ctx.baseTokenId, amount: refundAmount },
+      ]);
 
     // ACT: Try to refund even though minimum was reached
     const transaction = new TransactionBuilder(ctx.mockChain.height)
@@ -430,7 +441,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         )
           .addTokens(refundContractAssets)
           .setAdditionalRegisters({
-            R4: SInt(ctx.deadlineBlock).toHex(),
+            R4: projectBox.additionalRegisters.R4,
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, tokensToRefund, 0n]).toHex(),  // Try to record refund
             R7: SLong(ctx.exchangeRate).toHex(),
@@ -453,7 +464,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
 
   it("should fail to refund at exact deadline (HEIGHT == R4)", () => {
     // ARRANGE: Jump to exact deadline block (equal to R4). Contract requires HEIGHT > R4.
-    ctx.mockChain.jumpTo(ctx.deadlineBlock -1); // exactly R4 (Fleet SDK's MockChain.execute() validates transactions at HEIGHT + 1, not at the current height.)
+    ctx.mockChain.jumpTo(ctx.deadlineBlock - 1); // exactly R4 (Fleet SDK's MockChain.execute() validates transactions at HEIGHT + 1, not at the current height.)
 
     const buyerTokenBox = ctx.buyer.utxos
       .toArray()
@@ -476,8 +487,8 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     const refundOutputBuilder = ctx.isErgMode
       ? new OutputBuilder(refundAmount, ctx.buyer.address)
       : new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          { tokenId: ctx.baseTokenId, amount: refundAmount },
-        ]);
+        { tokenId: ctx.baseTokenId, amount: refundAmount },
+      ]);
 
     const transaction = new TransactionBuilder(ctx.mockChain.height)
       .from([projectBox, buyerTokenBox])
@@ -488,7 +499,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         )
           .addTokens(contractAssets)
           .setAdditionalRegisters({
-            R4: SInt(ctx.deadlineBlock).toHex(),
+            R4: projectBox.additionalRegisters.R4,
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, tokensToRefund, 0n]).toHex(),
             R7: SLong(ctx.exchangeRate).toHex(),
@@ -510,7 +521,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
 
   it("should fail to refund when refund amount is incorrect (wrong exchange value)", () => {
     // ARRANGE: Jump past deadline
-    ctx.mockChain.jumpTo(ctx.deadlineBlock + 1);
+    ctx.mockChain.jumpTo(ctx.deadlineBlock + 2);
 
     const buyerTokenBox = ctx.buyer.utxos
       .toArray()
@@ -538,8 +549,8 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     const refundOutputBuilder = ctx.isErgMode
       ? new OutputBuilder(attemptedRefund, ctx.buyer.address)
       : new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          { tokenId: ctx.baseTokenId, amount: attemptedRefund },
-        ]);
+        { tokenId: ctx.baseTokenId, amount: attemptedRefund },
+      ]);
 
     const transaction = new TransactionBuilder(ctx.mockChain.height)
       .from([projectBox, buyerTokenBox])
@@ -550,7 +561,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         )
           .addTokens(contractAssets)
           .setAdditionalRegisters({
-            R4: SInt(ctx.deadlineBlock).toHex(),
+            R4: projectBox.additionalRegisters.R4,
             R5: SLong(ctx.minimumTokensSold).toHex(),
             R6: SColl(SLong, [soldTokens, tokensToRefund, 0n]).toHex(),
             R7: SLong(ctx.exchangeRate).toHex(),
@@ -572,7 +583,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
 
   it("should fail to refund when R6 refund counter does not match tokens added (counter mismatch)", () => {
     // ARRANGE: Jump past deadline
-    ctx.mockChain.jumpTo(ctx.deadlineBlock + 1);
+    ctx.mockChain.jumpTo(ctx.deadlineBlock + 2);
 
     const buyerTokenBox = ctx.buyer.utxos
       .toArray()
@@ -598,8 +609,8 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     const refundOutputBuilder = ctx.isErgMode
       ? new OutputBuilder(refundAmount, ctx.buyer.address)
       : new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          { tokenId: ctx.baseTokenId, amount: refundAmount },
-        ]);
+        { tokenId: ctx.baseTokenId, amount: refundAmount },
+      ]);
 
     const transaction = new TransactionBuilder(ctx.mockChain.height)
       .from([projectBox, buyerTokenBox])
@@ -610,7 +621,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
         )
           .addTokens(contractAssets)
           .setAdditionalRegisters({
-            R4: SInt(ctx.deadlineBlock).toHex(),
+            R4: projectBox.additionalRegisters.R4,
             R5: SLong(ctx.minimumTokensSold).toHex(),
             // WRONG COUNTER intentionally
             R6: SColl(SLong, [soldTokens, wrongRefundCounter, 0n]).toHex(),

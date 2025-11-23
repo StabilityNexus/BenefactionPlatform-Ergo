@@ -9,6 +9,7 @@ import {
   type BeneTestContext,
   USD_BASE_TOKEN,
   USD_BASE_TOKEN_NAME,
+  createR4
 } from "./bene_contract_helpers";
 import { compile } from "@fleet-sdk/compiler";
 
@@ -32,7 +33,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       ctx = setupBeneTestContext(mode.token, mode.tokenName);
 
       // STEP 1: Create project box with partial token sales
-      soldTokens = ctx.totalPFTokens/2n; // Half of the total PFTs has been sold.
+      soldTokens = ctx.totalPFTokens / 2n; // Half of the total PFTs has been sold.
       collectedFunds = soldTokens * ctx.exchangeRate;
 
       let assets = [
@@ -57,7 +58,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
         assets: assets,
         creationHeight: ctx.mockChain.height - 100,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
@@ -85,9 +86,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n }); // 10 ERG for fees
 
       const assets = [
-              { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-              { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
-            ];
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+        { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
+      ];
       if (!ctx.isErgMode) {
         assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds })
       }
@@ -103,7 +104,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
           new OutputBuilder(projectBox.value, ctx.beneErgoTree)
             .addTokens(assets)
             .setAdditionalRegisters({
-              R4: SInt(ctx.deadlineBlock).toHex(),
+              R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
               R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(), // Counters unchanged
               R7: SLong(ctx.exchangeRate).toHex(),
@@ -176,9 +177,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n }); // 10 ERG for fees
 
       const assets = [
-             //  { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-              { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
-            ];
+        //  { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+        { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
+      ];
       if (!ctx.isErgMode) {
         assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds })
       }
@@ -194,7 +195,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
           new OutputBuilder(projectBox.value, ctx.beneErgoTree)
             .addTokens(assets)
             .setAdditionalRegisters({
-              R4: SInt(ctx.deadlineBlock).toHex(),
+              R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
               R6: SColl(SLong, [10_000n, 0n, 0n]).toHex(), // Counters unchanged
               R7: SLong(ctx.exchangeRate).toHex(),
@@ -232,9 +233,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n }); // 10 ERG for fees
 
       const assets = [
-              { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
-              { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
-            ];
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+        { tokenId: ctx.pftTokenId, amount: remainingPFT }, // Add updated PFT amount
+      ];
       if (!ctx.isErgMode) {
         assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds })
       }
@@ -250,7 +251,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
           new OutputBuilder(projectBox.value, ctx.beneErgoTree)
             .addTokens(assets)
             .setAdditionalRegisters({
-              R4: SInt(ctx.deadlineBlock).toHex(),
+              R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
               R6: SColl(SLong, [10_000n, 0n, 0n]).toHex(), // Counters unchanged
               R7: SLong(ctx.exchangeRate).toHex(),
@@ -283,7 +284,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       ctx = setupBeneTestContext(mode.token, mode.tokenName);
 
       // STEP 1: Create project box with partial token sales
-      soldTokens = ctx.totalPFTokens/2n; // Half of the total PFTs has been sold.
+      soldTokens = ctx.totalPFTokens / 2n; // Half of the total PFTs has been sold.
       const collectedFunds = soldTokens * ctx.exchangeRate;
 
       let assets = [
@@ -308,7 +309,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
         assets: assets,
         creationHeight: ctx.mockChain.height - 100,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, 0n, soldTokens]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
@@ -362,8 +363,8 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       ctx = setupBeneTestContext(mode.token, mode.tokenName);
 
       // STEP 1: Create project box with partial token sales
-      soldTokens = ctx.totalPFTokens/2n; // Half of the total PFTs has been sold. (Adquired APTs)
-      const refundedTokens = soldTokens/2n; // Half of the APTs where refunded from their funds. 
+      soldTokens = ctx.totalPFTokens / 2n; // Half of the total PFTs has been sold. (Adquired APTs)
+      const refundedTokens = soldTokens / 2n; // Half of the APTs where refunded from their funds. 
       const exchangedTokens = soldTokens - refundedTokens; // The rest of the APTs where exchanged per PFTs
       const collectedFunds = exchangedTokens * ctx.exchangeRate;  // Exchanged funds can be retired, but not the refunded funds.
 
@@ -389,7 +390,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
         assets: assets,
         creationHeight: ctx.mockChain.height - 100,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, refundedTokens, exchangedTokens]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
@@ -446,7 +447,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       ctx = setupBeneTestContext(mode.token, mode.tokenName, ownerContract.toAddress());
 
       // STEP 1: Create project box with partial token sales
-      soldTokens = ctx.totalPFTokens/2n; // Half of the total PFTs has been sold.
+      soldTokens = ctx.totalPFTokens / 2n; // Half of the total PFTs has been sold.
       const collectedFunds = soldTokens * ctx.exchangeRate;
 
       let assets = [
@@ -471,7 +472,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
         assets: assets,
         creationHeight: ctx.mockChain.height - 100,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [soldTokens, 0n, soldTokens]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),

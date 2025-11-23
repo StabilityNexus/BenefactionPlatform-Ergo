@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE, ErgoTree } from "@fleet-sdk/core";
 import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
-import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, USD_BASE_TOKEN, USD_BASE_TOKEN_NAME } from "./bene_contract_helpers";
+import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, USD_BASE_TOKEN, USD_BASE_TOKEN_NAME, createR4 } from "./bene_contract_helpers";
 import { compile } from "@fleet-sdk/compiler";
 
 
@@ -28,7 +28,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
         ],
         creationHeight: ctx.mockChain.height - 100,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
@@ -69,7 +69,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
               { tokenId: ctx.pftTokenId, amount: newPFTAmount }
             ])
             .setAdditionalRegisters({
-              R4: SInt(ctx.deadlineBlock).toHex(),
+              R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
               R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
               R7: SLong(ctx.exchangeRate).toHex(),
@@ -118,7 +118,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
               { tokenId: ctx.pftTokenId, amount: BigInt(projectBox.assets[1].amount) + tokensToAdd },
             ])
             .setAdditionalRegisters({
-              R4: SInt(ctx.deadlineBlock).toHex(),
+              R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
               R6: SColl(SLong, [10_000n, 0n, 0n]).toHex(),
               R7: SLong(ctx.exchangeRate).toHex(),
@@ -152,7 +152,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
         ],
         creationHeight: ctx.mockChain.height - 100,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
@@ -193,7 +193,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
               { tokenId: ctx.pftTokenId, amount: newPFTAmount }
             ])
             .setAdditionalRegisters({
-              R4: SInt(ctx.deadlineBlock).toHex(),
+              R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
               R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
               R7: SLong(ctx.exchangeRate).toHex(),
@@ -242,7 +242,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
               { tokenId: ctx.pftTokenId, amount: tokensToAdd },
             ])
             .setAdditionalRegisters({
-              R4: SInt(ctx.deadlineBlock).toHex(),
+              R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
               R6: SColl(SLong, [10_000n, 0n, 0n]).toHex(),
               R7: SLong(ctx.exchangeRate).toHex(),
@@ -268,7 +268,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
 
     beforeEach(() => {
       ownerContract = compile(`{ sigmaProp(HEIGHT > 1) }`);
-      
+
       ctx = setupBeneTestContext(mode.token, mode.tokenName, ownerContract.toAddress());
 
       ctx.beneContract.addUTxOs({
@@ -280,7 +280,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
         ],
         creationHeight: ctx.mockChain.height - 100,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
@@ -332,7 +332,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
               { tokenId: ctx.pftTokenId, amount: newPFTAmount }
             ])
             .setAdditionalRegisters({
-              R4: SInt(ctx.deadlineBlock).toHex(),
+              R4: projectBox.additionalRegisters.R4,
               R5: SLong(ctx.minimumTokensSold).toHex(),
               R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
               R7: SLong(ctx.exchangeRate).toHex(),

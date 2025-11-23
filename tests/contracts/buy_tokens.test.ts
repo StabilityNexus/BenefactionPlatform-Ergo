@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
 import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
-import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, USD_BASE_TOKEN, USD_BASE_TOKEN_NAME } from "./bene_contract_helpers";
+import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, USD_BASE_TOKEN, USD_BASE_TOKEN_NAME, createR4 } from "./bene_contract_helpers";
 
 // EXECUTION FLOW:
 // 1. beforeEach() → Creates fresh blockchain + initial project box with 100k APT tokens
@@ -41,7 +41,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
         ],
         creationHeight: ctx.mockChain.height,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline block
+          R4: createR4(ctx),                               // Deadline block
           R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum: 50k tokens
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(),                            // Counters: [0 sold, 0 refunded, 0 exchanged]
           R7: SLong(ctx.exchangeRate).toHex(),  // [price: 1M, token_len: 0]
@@ -62,13 +62,13 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
 
       let value = BigInt(projectBox.value);
       let assets = [
-          { tokenId: ctx.projectNftId, amount: newAPTAmount },
-          { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
-        ];
-      
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      ];
+
       if (!ctx.isErgMode) {
         assets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount }); // In custom token mode, contract receives payment tokens
-      }else {
+      } else {
         value += paymentAmount; // In ERG mode, contract receives ERG
       }
 
@@ -77,21 +77,21 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
         value,
         ctx.beneErgoTree                                      // Same contract address
       )
-      .addTokens(assets)
-      .setAdditionalRegisters({
-        R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
-        R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
-        R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
-        R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
-        R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
-        R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
-      });
+        .addTokens(assets)
+        .setAdditionalRegisters({
+          R4: projectBox.additionalRegisters.R4,                               // Deadline (unchanged)
+          R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
+          R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
+          R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
+          R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
+          R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
+        });
 
       // ACT: Build and execute the purchase transaction
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         // INPUTS: Spend contract box + buyer's UTXOs (for payment)
         .from([projectBox, ...ctx.buyer.utxos.toArray()])
-        
+
         // OUTPUTS:
         .to([
           contractOutputBuilder,  // Output 0: Updated contract (more ERG, fewer APT)
@@ -99,7 +99,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
             { tokenId: ctx.projectNftId, amount: tokensToBuy },  // Buyer gets 10,000 APT
           ]),
         ])
-        
+
         .sendChangeTo(ctx.buyer.address)         // Remaining ERG goes back to buyer
         .payFee(RECOMMENDED_MIN_FEE_VALUE)        // Transaction fee: 0.001 ERG
         .build();
@@ -119,13 +119,13 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
 
       let value = BigInt(projectBox.value);
       let assets = [
-          { tokenId: ctx.projectNftId, amount: newAPTAmount },
-          { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
-        ];
-      
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      ];
+
       if (!ctx.isErgMode) {
         assets.push({ tokenId: ctx.baseTokenId, amount: insufficientPayment }); // In custom token mode, contract receives payment tokens
-      }else {
+      } else {
         value += insufficientPayment; // In ERG mode, contract receives ERG
       }
 
@@ -134,21 +134,21 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
         value,
         ctx.beneErgoTree                                                  // Same contract address
       )
-      .addTokens(assets)
-      .setAdditionalRegisters({
-        R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
-        R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
-        R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
-        R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
-        R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
-        R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
-      });
+        .addTokens(assets)
+        .setAdditionalRegisters({
+          R4: projectBox.additionalRegisters.R4,                               // Deadline (unchanged)
+          R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
+          R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
+          R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
+          R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
+          R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
+        });
 
       // ACT: Build and execute the purchase transaction
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         // INPUTS: Spend contract box + buyer's UTXOs (for payment)
         .from([projectBox, ...ctx.buyer.utxos.toArray()])
-        
+
         // OUTPUTS:
         .to([
           contractOutputBuilder,  // Output 0: Updated contract (more ERG, fewer APT)
@@ -156,7 +156,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
             { tokenId: ctx.projectNftId, amount: tokensToBuy },  // Buyer gets 10,000 APT
           ]),
         ])
-        
+
         .sendChangeTo(ctx.buyer.address)         // Remaining ERG goes back to buyer
         .payFee(RECOMMENDED_MIN_FEE_VALUE)        // Transaction fee: 0.001 ERG
         .build();
@@ -175,13 +175,13 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
 
       let value = BigInt(projectBox.value);
       let assets = [
-          { tokenId: ctx.projectNftId, amount: newAPTAmount },
-          { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
-        ];
-      
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      ];
+
       if (!ctx.isErgMode) {
         assets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount }); // In custom token mode, contract receives payment tokens
-      }else {
+      } else {
         value += paymentAmount; // In ERG mode, contract receives ERG
       }
 
@@ -190,21 +190,21 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
         value,
         ctx.beneErgoTree                                                  // Same contract address
       )
-      .addTokens(assets)
-      .setAdditionalRegisters({
-        R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
-        R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
-        R6: SColl(SLong, [tokensToBuy/2n, 0n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
-        R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
-        R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
-        R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
-      });
+        .addTokens(assets)
+        .setAdditionalRegisters({
+          R4: projectBox.additionalRegisters.R4,                               // Deadline (unchanged)
+          R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
+          R6: SColl(SLong, [tokensToBuy / 2n, 0n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
+          R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
+          R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
+          R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
+        });
 
       // ACT: Build and execute the purchase transaction
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         // INPUTS: Spend contract box + buyer's UTXOs (for payment)
         .from([projectBox, ...ctx.buyer.utxos.toArray()])
-        
+
         // OUTPUTS:
         .to([
           contractOutputBuilder,  // Output 0: Updated contract (more ERG, fewer APT)
@@ -212,7 +212,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
             { tokenId: ctx.projectNftId, amount: tokensToBuy },  // Buyer gets 10,000 APT
           ]),
         ])
-        
+
         .sendChangeTo(ctx.buyer.address)         // Remaining ERG goes back to buyer
         .payFee(RECOMMENDED_MIN_FEE_VALUE)        // Transaction fee: 0.001 ERG
         .build();
@@ -232,13 +232,13 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
 
       let value = BigInt(projectBox.value);
       let assets = [
-          { tokenId: ctx.projectNftId, amount: newAPTAmount },
-          { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
-        ];
-      
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      ];
+
       if (!ctx.isErgMode) {
         assets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount }); // In custom token mode, contract receives payment tokens
-      }else {
+      } else {
         value += paymentAmount; // In ERG mode, contract receives ERG
       }
 
@@ -247,21 +247,21 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
         value,
         ctx.beneErgoTree                                                  // Same contract address
       )
-      .addTokens(assets)
-      .setAdditionalRegisters({
-        R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
-        R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
-        R6: SColl(SLong, [tokensToBuy, 1n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
-        R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
-        R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
-        R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
-      });
+        .addTokens(assets)
+        .setAdditionalRegisters({
+          R4: projectBox.additionalRegisters.R4,                               // Deadline (unchanged)
+          R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
+          R6: SColl(SLong, [tokensToBuy, 1n, 0n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
+          R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
+          R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
+          R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
+        });
 
       // ACT: Build and execute the purchase transaction
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         // INPUTS: Spend contract box + buyer's UTXOs (for payment)
         .from([projectBox, ...ctx.buyer.utxos.toArray()])
-        
+
         // OUTPUTS:
         .to([
           contractOutputBuilder,  // Output 0: Updated contract (more ERG, fewer APT)
@@ -269,7 +269,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
             { tokenId: ctx.projectNftId, amount: tokensToBuy },  // Buyer gets 10,000 APT
           ]),
         ])
-        
+
         .sendChangeTo(ctx.buyer.address)         // Remaining ERG goes back to buyer
         .payFee(RECOMMENDED_MIN_FEE_VALUE)        // Transaction fee: 0.001 ERG
         .build();
@@ -288,13 +288,13 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
 
       let value = BigInt(projectBox.value);
       let assets = [
-          { tokenId: ctx.projectNftId, amount: newAPTAmount },
-          { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
-        ];
-      
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      ];
+
       if (!ctx.isErgMode) {
         assets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount }); // In custom token mode, contract receives payment tokens
-      }else {
+      } else {
         value += paymentAmount; // In ERG mode, contract receives ERG
       }
 
@@ -303,21 +303,21 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
         value,
         ctx.beneErgoTree                                                  // Same contract address
       )
-      .addTokens(assets)
-      .setAdditionalRegisters({
-        R4: SInt(ctx.deadlineBlock).toHex(),                               // Deadline (unchanged)
-        R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
-        R6: SColl(SLong, [tokensToBuy, 0n, 1n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
-        R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
-        R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
-        R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
-      });
+        .addTokens(assets)
+        .setAdditionalRegisters({
+          R4: projectBox.additionalRegisters.R4,                               // Deadline (unchanged)
+          R5: SLong(ctx.minimumTokensSold).toHex(),                          // Minimum (unchanged)
+          R6: SColl(SLong, [tokensToBuy, 0n, 1n]).toHex(),                   // Counters: [10k sold, 0 refunded, 0 exchanged]
+          R7: SLong(ctx.exchangeRate).toHex(),  // Price (unchanged)
+          R8: projectBox.additionalRegisters.R8,                             // Owner details (unchanged)
+          R9: projectBox.additionalRegisters.R9,                             // Metadata (unchanged)
+        });
 
       // ACT: Build and execute the purchase transaction
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         // INPUTS: Spend contract box + buyer's UTXOs (for payment)
         .from([projectBox, ...ctx.buyer.utxos.toArray()])
-        
+
         // OUTPUTS:
         .to([
           contractOutputBuilder,  // Output 0: Updated contract (more ERG, fewer APT)
@@ -325,7 +325,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
             { tokenId: ctx.projectNftId, amount: tokensToBuy },  // Buyer gets 10,000 APT
           ]),
         ])
-        
+
         .sendChangeTo(ctx.buyer.address)         // Remaining ERG goes back to buyer
         .payFee(RECOMMENDED_MIN_FEE_VALUE)        // Transaction fee: 0.001 ERG
         .build();
@@ -375,7 +375,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
         assets: initialAssets,
         creationHeight: ctx.mockChain.height,
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
+          R4: createR4(ctx),
           R5: SLong(ctx.minimumTokensSold).toHex(),
           // KEY CHANGE: R6[0] (Sold Counter) equals total PFT, meaning no more tokens are available
           R6: SColl(SLong, [soldAmount, 0n, 0n]).toHex(), // Counters: [100k sold, 0 refunded, 0 exchanged]
@@ -392,18 +392,18 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
     it("should fail when attempting to buy tokens because onlyTemporaryUnsoldTokens is violated (Contract Sold Out)", () => {
       // ARRANGE: Attempt to buy 1 token
       const tokensToBuy = 1n; // Buyer tries to buy 1 token
-      const paymentAmount = tokensToBuy * ctx.exchangeRate; 
+      const paymentAmount = tokensToBuy * ctx.exchangeRate;
 
       // New APT amount in the contract would be 1n (current) - 1n (bought) = 0n
-      const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; 
+      const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy;
 
       let value = BigInt(projectBox.value);
       // Copy assets, excluding the base token if it's there (we handle payment next)
       let assets = [
-          { tokenId: ctx.projectNftId, amount: newAPTAmount }, 
-          { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
-        ];
-      
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      ];
+
       // Calculate how the payment affects the contract's value/assets
       if (!ctx.isErgMode) {
         // Find existing base token amount and add the new payment
@@ -420,22 +420,22 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
         value,
         ctx.beneErgoTree
       )
-      .addTokens(assets)
-      .setAdditionalRegisters({
-        R4: projectBox.additionalRegisters.R4,
-        R5: projectBox.additionalRegisters.R5,
-        // Update R6[0] to reflect the attempted sale: R6[0] = 100000 + 1
-        R6: SColl(SLong, [ctx.totalPFTokens + tokensToBuy, 0n, 0n]).toHex(), 
-        R7: projectBox.additionalRegisters.R7,
-        R8: projectBox.additionalRegisters.R8,
-        R9: projectBox.additionalRegisters.R9,
-      });
+        .addTokens(assets)
+        .setAdditionalRegisters({
+          R4: projectBox.additionalRegisters.R4,
+          R5: projectBox.additionalRegisters.R5,
+          // Update R6[0] to reflect the attempted sale: R6[0] = 100000 + 1
+          R6: SColl(SLong, [ctx.totalPFTokens + tokensToBuy, 0n, 0n]).toHex(),
+          R7: projectBox.additionalRegisters.R7,
+          R8: projectBox.additionalRegisters.R8,
+          R9: projectBox.additionalRegisters.R9,
+        });
 
       // ACT: Build and execute the purchase transaction
       const transaction = new TransactionBuilder(ctx.mockChain.height)
         // INPUTS: Spend contract box + buyer's UTXOs (for payment)
         .from([projectBox, ...ctx.buyer.utxos.toArray()])
-        
+
         // OUTPUTS:
         .to([
           contractOutputBuilder,  // Output 0: Updated contract (more funds, fewer APT)
@@ -443,7 +443,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
             { tokenId: ctx.projectNftId, amount: tokensToBuy },  // Buyer attempts to get 1 APT
           ]),
         ])
-        
+
         .sendChangeTo(ctx.buyer.address)
         .payFee(RECOMMENDED_MIN_FEE_VALUE)
         .build();

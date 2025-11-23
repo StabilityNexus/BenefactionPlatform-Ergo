@@ -315,7 +315,7 @@
           CONTEXT.preHeader.timestamp
         } else {
           // If the first element is false, the limit is a block height
-          HEIGHT
+          HEIGHT.toLong
         }
         
         now > limit

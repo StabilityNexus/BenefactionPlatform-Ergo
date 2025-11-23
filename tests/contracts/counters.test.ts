@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
 import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
-import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, USD_BASE_TOKEN, USD_BASE_TOKEN_NAME } from "./bene_contract_helpers";
+import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, USD_BASE_TOKEN, USD_BASE_TOKEN_NAME, createR4 } from "./bene_contract_helpers";
 
 const baseModes = [
   { name: "USD Token Mode", token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
@@ -34,8 +34,8 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
 
     // Setup: Initial Project Box (Standard state: 100k PFTs, 0 Sold)
     const initialAssets = [
-        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens }, // APT
-        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },        // PFT
+      { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens }, // APT
+      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },        // PFT
     ];
 
     ctx.beneContract.addUTxOs({
@@ -44,9 +44,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
       assets: initialAssets,
       creationHeight: ctx.mockChain.height,
       additionalRegisters: {
-        R4: SInt(ctx.deadlineBlock).toHex(),
+        R4: createR4(ctx),
         R5: SLong(ctx.minimumTokensSold).toHex(),
-        R6: SColl(SLong, [0n, 0n, 0n]).toHex(), 
+        R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
         R7: SLong(ctx.exchangeRate).toHex(),
         R8: ctx.constants.toHex(),
         R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
@@ -64,11 +64,11 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
   it("should REJECT a 'Trojan Injection' (Adding PFTs during a Buy action)", () => {
     const tokensToBuy = 100n;
     const paymentAmount = tokensToBuy * ctx.exchangeRate;
-    const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; 
-    
+    const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy;
+
     const injectedPFT = 500n;
     // The contract should have (TotalPFT), the attacker tries to make it have (TotalPFT + 500)
-    const maliciousPFTAmount = ctx.totalPFTokens + injectedPFT; 
+    const maliciousPFTAmount = ctx.totalPFTokens + injectedPFT;
 
     // PREPARATION: Give the attacker the PFTs necessary for the injection
     // (Fleet needs to see them in the inputs to build the tx)
@@ -81,17 +81,17 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
     ];
 
     if (!ctx.isErgMode) {
-        assets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount });
+      assets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount });
     } else {
-        value += paymentAmount;
+      value += paymentAmount;
     }
 
     const contractOutputBuilder = new OutputBuilder(value, ctx.beneErgoTree)
-    .addTokens(assets)
-    .setAdditionalRegisters({
-      ...projectBox.additionalRegisters,
-      R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(), 
-    });
+      .addTokens(assets)
+      .setAdditionalRegisters({
+        ...projectBox.additionalRegisters,
+        R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),
+      });
 
     const transaction = new TransactionBuilder(ctx.mockChain.height)
       .from([...ctx.beneContract.utxos.toArray(), ...ctx.buyer.utxos.toArray()])
@@ -121,21 +121,21 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
     let value = BigInt(projectBox.value);
     let assets = [
       { tokenId: ctx.projectNftId, amount: newAPTAmount },
-      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens } 
+      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
     ];
 
     if (!ctx.isErgMode) {
-        assets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount });
+      assets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount });
     } else {
-        value += paymentAmount;
+      value += paymentAmount;
     }
 
     const contractOutputBuilder = new OutputBuilder(value, ctx.beneErgoTree)
-    .addTokens(assets)
-    .setAdditionalRegisters({
-      ...projectBox.additionalRegisters,
-      R6: SColl(SLong, [0n, 0n, 0n]).toHex(), // ATTACK: Sold counter remains 0
-    });
+      .addTokens(assets)
+      .setAdditionalRegisters({
+        ...projectBox.additionalRegisters,
+        R6: SColl(SLong, [0n, 0n, 0n]).toHex(), // ATTACK: Sold counter remains 0
+      });
 
     const transaction = new TransactionBuilder(ctx.mockChain.height)
       .from([...ctx.beneContract.utxos.toArray(), ...ctx.buyer.utxos.toArray()])
@@ -160,7 +160,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
    */
   it("should REJECT a 'Desync Exchange' (Incrementing counter more than tokens)", () => {
     const aptAmountToExchange = 50n;
-    
+
     // PREPARATION: Give the attacker the APTs needed to exchange
     giveTokensToBuyer([{ tokenId: ctx.projectNftId, amount: aptAmountToExchange }]);
 
@@ -171,48 +171,48 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
     // We modify the Setup for this specific test by recreating the box with MinimumReached
     ctx.beneContract.utxos.clear();
     ctx.beneContract.addUTxOs({
-        value: RECOMMENDED_MIN_FEE_VALUE,
-        ergoTree: ctx.beneErgoTree.toHex(),
-        assets: [
-            { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - 50000n }, // Simulate 50k already sold
-            { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
-        ],
-        creationHeight: ctx.mockChain.height,
-        additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
-          R5: SLong(50000n).toHex(),           // Min Sold 50k
-          R6: SColl(SLong, [50000n, 0n, 0n]).toHex(), // Sold 50k (Minimum Reached)
-          R7: SLong(ctx.exchangeRate).toHex(),
-          R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
-        },
+      value: RECOMMENDED_MIN_FEE_VALUE,
+      ergoTree: ctx.beneErgoTree.toHex(),
+      assets: [
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - 50000n }, // Simulate 50k already sold
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
+      ],
+      creationHeight: ctx.mockChain.height,
+      additionalRegisters: {
+        R4: createR4(ctx),
+        R5: SLong(50000n).toHex(),           // Min Sold 50k
+        R6: SColl(SLong, [50000n, 0n, 0n]).toHex(), // Sold 50k (Minimum Reached)
+        R7: SLong(ctx.exchangeRate).toHex(),
+        R8: ctx.constants.toHex(),
+        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+      },
     });
     projectBox = ctx.beneContract.utxos.toArray()[0];
 
     const inputAPT = BigInt(projectBox.assets[0].amount);
     const inputPFT = BigInt(projectBox.assets[1].amount);
-    
+
     const newAPTAmount = inputAPT + aptAmountToExchange;
     const newPFTAmount = inputPFT - aptAmountToExchange;
 
     const contractOutputBuilder = new OutputBuilder(BigInt(projectBox.value), ctx.beneErgoTree)
-    .addTokens([
-      { tokenId: ctx.projectNftId, amount: newAPTAmount },
-      { tokenId: ctx.pftTokenId, amount: newPFTAmount },
-      ...(ctx.isErgMode ? [] : [{ tokenId: ctx.baseTokenId, amount: 0n }]) 
-    ])
-    .setAdditionalRegisters({
-      ...projectBox.additionalRegisters,
-      // ATTACK: Counter increments by 100, but we only moved 50 tokens
-      R6: SColl(SLong, [50000n, 0n, 100n]).toHex(), // Exchanged goes 0 -> 100
-    });
+      .addTokens([
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: newPFTAmount },
+        ...(ctx.isErgMode ? [] : [{ tokenId: ctx.baseTokenId, amount: 0n }])
+      ])
+      .setAdditionalRegisters({
+        ...projectBox.additionalRegisters,
+        // ATTACK: Counter increments by 100, but we only moved 50 tokens
+        R6: SColl(SLong, [50000n, 0n, 100n]).toHex(), // Exchanged goes 0 -> 100
+      });
 
     const transaction = new TransactionBuilder(ctx.mockChain.height)
       .from([...ctx.beneContract.utxos.toArray(), ...ctx.buyer.utxos.toArray()])
       .to([
         contractOutputBuilder,
         new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-           { tokenId: ctx.pftTokenId, amount: aptAmountToExchange }
+          { tokenId: ctx.pftTokenId, amount: aptAmountToExchange }
         ])
       ])
       .sendChangeTo(ctx.buyer.address)
@@ -231,42 +231,42 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
   it("should REJECT a 'Super Refund' (Incrementing Refund counter more than tokens returned)", () => {
     const tokensToRefund = 100n;
     const refundValue = tokensToRefund * ctx.exchangeRate;
-    
+
     // PREPARATION 1: Attacker's funds
     giveTokensToBuyer([{ tokenId: ctx.projectNftId, amount: tokensToRefund }]);
 
     // PREPARATION 2: Contract State (Failed Campaign)
     // Clear initial box and create a "Failed Campaign" with funds to be refunded
     ctx.beneContract.utxos.clear();
-    
+
     const soldAmount = 10000n; // Less than the minimum (50k)
     const collectedValue = soldAmount * ctx.exchangeRate;
 
     const refundReadyAssets = [
-        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldAmount },
-        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldAmount },
+      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
     ];
     let refundReadyValue = RECOMMENDED_MIN_FEE_VALUE;
 
     if (!ctx.isErgMode) {
-        refundReadyAssets.push({ tokenId: ctx.baseTokenId, amount: collectedValue });
+      refundReadyAssets.push({ tokenId: ctx.baseTokenId, amount: collectedValue });
     } else {
-        refundReadyValue += collectedValue;
+      refundReadyValue += collectedValue;
     }
 
     ctx.beneContract.addUTxOs({
-        value: refundReadyValue,
-        ergoTree: ctx.beneErgoTree.toHex(),
-        assets: refundReadyAssets,
-        creationHeight: ctx.mockChain.height,
-        additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),
-          R5: SLong(ctx.minimumTokensSold).toHex(),
-          R6: SColl(SLong, [soldAmount, 0n, 0n]).toHex(), // Sold 10k (Min NOT Reached)
-          R7: SLong(ctx.exchangeRate).toHex(),
-          R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
-        },
+      value: refundReadyValue,
+      ergoTree: ctx.beneErgoTree.toHex(),
+      assets: refundReadyAssets,
+      creationHeight: ctx.mockChain.height,
+      additionalRegisters: {
+        R4: createR4(ctx),
+        R5: SLong(ctx.minimumTokensSold).toHex(),
+        R6: SColl(SLong, [soldAmount, 0n, 0n]).toHex(), // Sold 10k (Min NOT Reached)
+        R7: SLong(ctx.exchangeRate).toHex(),
+        R8: ctx.constants.toHex(),
+        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+      },
     });
     const refundReadyBox = ctx.beneContract.utxos.toArray()[0];
 
@@ -275,36 +275,36 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
 
     // ATTACK CONSTRUCTION
     const newAPTAmount = BigInt(refundReadyBox.assets[0].amount) + tokensToRefund;
-    
+
     let newValue = BigInt(refundReadyBox.value);
     let newAssets = [
-        { tokenId: ctx.projectNftId, amount: newAPTAmount },
-        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      { tokenId: ctx.projectNftId, amount: newAPTAmount },
+      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
     ];
 
     if (!ctx.isErgMode) {
-         const currentBase = BigInt(refundReadyBox.assets.find(a => a.tokenId === ctx.baseTokenId)?.amount || 0n);
-         newAssets.push({ tokenId: ctx.baseTokenId, amount: currentBase - refundValue });
+      const currentBase = BigInt(refundReadyBox.assets.find(a => a.tokenId === ctx.baseTokenId)?.amount || 0n);
+      newAssets.push({ tokenId: ctx.baseTokenId, amount: currentBase - refundValue });
     } else {
-         newValue -= refundValue;
+      newValue -= refundValue;
     }
 
     const contractOutputBuilder = new OutputBuilder(newValue, ctx.beneErgoTree)
-    .addTokens(newAssets)
-    .setAdditionalRegisters({
-      ...refundReadyBox.additionalRegisters,
-      // ATTACK: Refund Counter (R6[1]) inflated to 1,000,000
-      // It should be: Sold - Refunded
-      // If Refunded is huge, (Sold - Refunded) becomes negative and the formula adds up.
-      R6: SColl(SLong, [soldAmount, 1_000_000n, 0n]).toHex(), 
-    });
+      .addTokens(newAssets)
+      .setAdditionalRegisters({
+        ...refundReadyBox.additionalRegisters,
+        // ATTACK: Refund Counter (R6[1]) inflated to 1,000,000
+        // It should be: Sold - Refunded
+        // If Refunded is huge, (Sold - Refunded) becomes negative and the formula adds up.
+        R6: SColl(SLong, [soldAmount, 1_000_000n, 0n]).toHex(),
+      });
 
     const transaction = new TransactionBuilder(ctx.mockChain.height)
       .from([refundReadyBox, ...ctx.buyer.utxos.toArray()])
       .to([
         contractOutputBuilder,
         new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-             ...(ctx.isErgMode ? [] : [{ tokenId: ctx.baseTokenId, amount: refundValue }])
+          ...(ctx.isErgMode ? [] : [{ tokenId: ctx.baseTokenId, amount: refundValue }])
         ])
       ])
       .sendChangeTo(ctx.buyer.address)

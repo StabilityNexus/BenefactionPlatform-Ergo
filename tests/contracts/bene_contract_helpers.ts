@@ -1,4 +1,4 @@
-import { MockChain } from "@fleet-sdk/mock-chain";
+import { MockChain, type KeyedMockChainParty, type NonKeyedMockChainParty } from "@fleet-sdk/mock-chain";
 import { compile } from "@fleet-sdk/compiler";
 import { ErgoAddress } from "@fleet-sdk/core";
 import { blake2b256 } from "@fleet-sdk/crypto";
@@ -47,9 +47,9 @@ export const USD_FUNDING_GOAL = 10_000_000n;  // 100,000 SigUSD = 100,000 * 10^2
 export interface BeneTestContext {
   mockChain: MockChain;
   constants: any;
-  projectOwner: ReturnType<MockChain["newParty"]>;
-  buyer: ReturnType<MockChain["newParty"]>;
-  beneContract: ReturnType<MockChain["newParty"]>;
+  projectOwner: KeyedMockChainParty;
+  buyer: KeyedMockChainParty;
+  beneContract: NonKeyedMockChainParty;
   beneErgoTree: ReturnType<typeof compile>;
   projectNftId: string;
   pftTokenId: string;
@@ -62,6 +62,7 @@ export interface BeneTestContext {
   totalPFTokens: bigint;
   minimumTokensSold: bigint;
   deadlineBlock: number;
+  deadlineTimestamp: bigint;
   devFeePercentage: number;
 }
 //
@@ -93,6 +94,8 @@ export function setupBeneTestContext(
   const exchangeRate = fundingGoal / totalPFTokens;  // Calculated price per token (MUST be >= 1!)
   const minimumTokensSold = totalPFTokens / 2n;      // Minimum threshold: 50% (owner chooses - can be any value)
   const deadlineBlock = 800_200;                     // Campaign deadline: block 800,200 (owner chooses)
+  // Calculate deadline timestamp based on MockChain's 2-minute block time
+  const deadlineTimestamp = BigInt(mockChain.timestamp) + (BigInt(deadlineBlock - 800_000) * 120_000n);
   const devFeePercentage = 5;                        // Platform fee: 5% of raised funds (platform constant)
 
   // Validation: Ensure exchange rate is valid
@@ -130,6 +133,7 @@ export function setupBeneTestContext(
 
     console.log(`Minimum to Sell:      ${minimumTokensSold.toLocaleString()} tokens (${(Number(minimumTokensSold) / Number(totalPFTokens) * 100).toFixed(0)}%)`);
     console.log(`Deadline Block:       ${deadlineBlock.toLocaleString()}`);
+    console.log(`Deadline Timestamp:   ${deadlineTimestamp.toLocaleString()}`);
     console.log(`Platform Dev Fee:     ${devFeePercentage}%`);
     console.log("=".repeat(80) + "\n");
 
@@ -207,6 +211,15 @@ export function setupBeneTestContext(
     totalPFTokens,       // Total APT tokens available (100,000)
     minimumTokensSold,   // Minimum threshold (50,000)
     deadlineBlock,       // Campaign deadline (block 800,200)
+    deadlineTimestamp,   // Campaign deadline (timestamp)
     devFeePercentage,    // Platform fee (5%)
   };
+}
+
+import { SBool, SLong, SPair } from "@fleet-sdk/serializer";
+
+export function createR4(ctx: BeneTestContext, useTimestamp: boolean = false) {
+  return useTimestamp
+    ? SPair(SBool(true), SLong(ctx.deadlineTimestamp)).toHex()
+    : SPair(SBool(false), SLong(BigInt(ctx.deadlineBlock))).toHex();
 }
