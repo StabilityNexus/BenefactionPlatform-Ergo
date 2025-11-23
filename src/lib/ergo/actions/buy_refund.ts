@@ -3,7 +3,6 @@ import {
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
-    SInt,
     SAFE_MIN_BOX_VALUE
 } from '@fleet-sdk/core';
 
@@ -143,7 +142,7 @@ export async function buy_refund(
     let refund_counter = BigInt(token_amount < 0 ? project.refund_counter + Math.abs(token_amount) : project.refund_counter);
     
     output.setAdditionalRegisters({
-        R4: SInt(project.block_limit).toHex(),
+        R4: SPair(SBool(project.is_timestamp_limit), SLong(BigInt(project.block_limit))).toHex(),
         R5: SLong(BigInt(project.minimum_amount)).toHex(),
         R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),
         R7: SLong(BigInt(project.exchange_rate)).toHex(),

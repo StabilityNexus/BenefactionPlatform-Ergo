@@ -16,7 +16,7 @@ const expectedSigmaTypesV1 = {
 };
 
 const expectedSigmaTypesV2 = {
-    R4: 'SInt',
+    R4: '(SBool, SLong)',
     R5: 'SLong',
     R6: 'Coll[SLong]',
     R7: 'SLong',
@@ -225,7 +225,19 @@ export async function fetchProjectsFromBlockchain() {
                         let unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
                         let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
                         let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
-                        let block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
+
+
+                        let block_limit: number = 0;
+                        let is_timestamp_limit = false;
+                        if (version === "v2") {
+                            const r4Value = JSON.parse(e.additionalRegisters.R4?.renderedValue.replace(/\[([a-f0-9]+)(,.*)/, '["$1"$2'));
+                            if (!Array.isArray(r4Value) || r4Value.length < 2) throw new Error("R4 is not a valid tuple (Type, Deadline).");
+
+                            is_timestamp_limit = r4Value[0] === 1;
+                            block_limit = Number(r4Value[1]);
+                        } else {
+                            block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
+                        }
 
                         let base_token_details = undefined;
                         if (base_token_id && base_token_id !== "" && base_token_id !== undefined && base_token_id !== "00".repeat(32)) {
@@ -258,6 +270,7 @@ export async function fetchProjectsFromBlockchain() {
                             base_token_id: base_token_id,
                             base_token_details: base_token_details,
                             block_limit: block_limit,
+                            is_timestamp_limit: is_timestamp_limit,
                             minimum_amount: minimum_token_amount,
                             maximum_amount: total_pft_amount,
                             total_pft_amount: total_pft_amount,

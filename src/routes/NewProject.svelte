@@ -48,6 +48,7 @@
     let deadlineValue: number;
     let deadlineUnit: "days" | "minutes" = "days";
     let deadlineValueBlock: number;
+    let is_timestamp_limit: boolean = false; // Height
     let deadlineValueText: string;
 
     let exchangeRateRaw: number;
@@ -392,6 +393,7 @@
                 rewardTokenId,
                 tokenAmountToSellRaw,
                 deadlineValueBlock,
+                is_timestamp_limit,
                 Math.round(exchangeRateRaw),
                 projectContent,
                 Math.round(minimumTokenSold),

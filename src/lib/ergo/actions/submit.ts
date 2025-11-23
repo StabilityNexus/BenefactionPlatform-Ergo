@@ -9,7 +9,7 @@ import {
     BOX_VALUE_PER_BYTE,
     ErgoAddress
 } from '@fleet-sdk/core';
-import { SColl, SInt } from '@fleet-sdk/serializer';
+import { SBool, SColl, SInt, SPair } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
 import { type contract_version, get_ergotree_hex, mint_contract_address } from '../contract';
 import { createR8Structure, type ConstantContent } from '$lib/common/project';
@@ -20,9 +20,7 @@ import {
     validateProjectContent,
     type ProjectContent,
     estimateRegisterSizes,
-    estimateTotalBoxSize,
-    hexByteLength,
-    getBoxSizeBreakdown
+    estimateTotalBoxSize
 } from '../utils/box-size-calculator';
 
 async function get_token_data(token_id: string): Promise<{ amount: number, decimals: number }> {
@@ -108,6 +106,7 @@ export async function submit_project(
     token_id: string,
     token_amount: number,
     blockLimit: number,     // Block height until withdrawal/refund is allowed
+    is_timestamp_limit: boolean, // Whether the limit is based on timestamp or block height
     exchangeRate: number,   // Exchange rate base_token/PFT
     projectContent: string,    // Project content (JSON with title, description, image, link)
     minimumSold: number,     // Minimum amount sold to allow withdrawal
@@ -130,27 +129,6 @@ export async function submit_project(
         alert(validation.message);
         return null;
     }
-
-    // Log detailed size breakdown for debugging
-    const breakdown = getBoxSizeBreakdown(parsedContent);
-    console.log('=== Project Content Size Breakdown ===');
-    console.log(`R9 (Project Content): ${validation.currentBytes} bytes`);
-    console.log(`Estimated total box size: ${validation.estimatedBoxSize} bytes`);
-    console.log('\nDetailed breakdown:');
-    console.log(`  Base overhead: ${breakdown.baseOverhead} bytes`);
-    console.log(`  ErgoTree (est): ${breakdown.ergoTree} bytes`);
-    console.log(`  Tokens (3x): ${breakdown.tokens} bytes`);
-    console.log(`  R4 (blockLimit): ${breakdown.r4} bytes`);
-    console.log(`  R5 (minimumSold): ${breakdown.r5} bytes`);
-    console.log(`  R6 (SColl): ${breakdown.r6} bytes`);
-    console.log(`  R7 (exchangeRate): ${breakdown.r7} bytes`);
-    console.log(`  R8 (addressContent): ${breakdown.r8} bytes`);
-    console.log(`  R9 (projectContent): ${breakdown.r9} bytes`);
-    console.log(`  Safety margin: ${breakdown.margin} bytes`);
-    console.log(`  TOTAL: ${breakdown.total} bytes / 4096 bytes (${Math.round((breakdown.total / 4096) * 100)}%)`);
-    console.log('====================================');
-
-
 
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
@@ -177,7 +155,7 @@ export async function submit_project(
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = [mint_box, ...await window.ergo!.get_utxos()];
 
-    const r4Hex = SInt(blockLimit).toHex();
+    const r4Hex = SPair(SBool(is_timestamp_limit), SLong(BigInt(blockLimit))).toHex();
     const r5Hex = SLong(BigInt(minimumSold)).toHex();
     const r6Hex = SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex();
     const r7Hex = SLong(BigInt(exchangeRate)).toHex();

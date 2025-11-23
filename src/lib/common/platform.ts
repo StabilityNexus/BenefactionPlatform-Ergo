@@ -20,6 +20,7 @@ export interface Platform {
         token_id: string,
         token_amount: number,
         blockLimit: number,
+        is_timestamp_limit: boolean,
         exchangeRate: number,
         projectLink: string,
         minimumSold: number,

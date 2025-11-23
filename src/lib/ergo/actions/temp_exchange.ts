@@ -11,7 +11,7 @@ import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
-import { SColl } from '@fleet-sdk/serializer';
+import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
 export async function temp_exchange(
@@ -66,7 +66,7 @@ export async function temp_exchange(
 
     // Set additional registers based on contract version
     contractOutput.setAdditionalRegisters({
-        R4: SInt(project.block_limit).toHex(),
+        R4: SPair(SBool(project.is_timestamp_limit), SLong(BigInt(project.block_limit))).toHex(),
         R5: SLong(BigInt(project.minimum_amount)).toHex(),
         R6: SColl(SLong, [BigInt(project.sold_counter), BigInt(project.refund_counter), BigInt(project.auxiliar_exchange_counter + token_amount)]).toHex(),
         R7: SLong(BigInt(project.exchange_rate)).toHex(),

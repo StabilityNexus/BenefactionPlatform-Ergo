@@ -11,7 +11,7 @@ import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
-import { SColl } from '@fleet-sdk/serializer';
+import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
 export async function rebalance(
     project: Project,
@@ -74,7 +74,7 @@ export async function rebalance(
 
         // Set additional registers based on contract version
         contract_output.setAdditionalRegisters({
-            R4: SInt(project.block_limit).toHex(),
+            R4: SPair(SBool(project.is_timestamp_limit), SLong(BigInt(project.block_limit))).toHex(),
             R5: SLong(BigInt(project.minimum_amount)).toHex(),
             R6: SColl(SLong, [
                 BigInt(project.sold_counter),

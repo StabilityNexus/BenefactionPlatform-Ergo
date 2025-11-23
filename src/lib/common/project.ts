@@ -67,6 +67,7 @@ export interface Project {
     base_token_id: string,  // Base token ID for contributions (empty string for ERG)
     base_token_details?: TokenEIP4,  // Details of the base token (null for ERG)
     block_limit: number,
+    is_timestamp_limit: boolean,
     minimum_amount: number,
     maximum_amount: number,
     value: number,  // Real exact value

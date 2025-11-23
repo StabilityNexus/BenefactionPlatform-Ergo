@@ -10,7 +10,7 @@ import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 import { get_dev_contract_address } from '../dev/dev_contract';
-import { SColl, SPair, SByte } from '@fleet-sdk/serializer';
+import { SColl, SPair, SByte, SBool } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
 export async function withdraw(
@@ -156,7 +156,7 @@ export async function withdraw(
 
         // Set registers - all counters remain constant for withdrawal
         contractOutput.setAdditionalRegisters({
-            R4: SInt(project.block_limit).toHex(),
+            R4: SPair(SBool(project.is_timestamp_limit), SLong(BigInt(project.block_limit))).toHex(),
             R5: SLong(BigInt(project.minimum_amount)).toHex(),
             R6: SColl(SLong, [BigInt(project.sold_counter), BigInt(project.refund_counter), BigInt(project.auxiliar_exchange_counter)]).toHex(),
             R7: SLong(BigInt(project.exchange_rate)).toHex(),

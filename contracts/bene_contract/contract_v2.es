@@ -25,7 +25,7 @@
 //       amount  The number of tokens equivalent to the maximum amount of base token the project aims to raise.
 
 // Registers
-// R4: Int                   The block height until which withdrawals or refunds are disallowed. After this height, they are permitted.
+// R4: (Boolean, Long)       This tuple specifies the temporal limit for refund prohibition. The Boolean indicates the limit type (false for Block Height, true for Timestamp), and the Long holds the limit value. Refunds are only allowed after this point if the minimum threshold was not met.
 // R5: Long                  The minimum number of tokens that must be sold to trigger certain actions (e.g., withdrawals).
 // R6: Coll[Long]            The total number of tokens sold, the total number of tokens refunded and the total number of APT changed per PFT so far.
 // R7: Long                  Base token exchange rate (base token per PFT)
@@ -57,7 +57,7 @@
   val selfId = SELF.tokens(0)._1
   val selfAPT = SELF.tokens(0)._2
   val selfValue = SELF.value
-  val selfBlockLimit = SELF.R4[Int].get
+  val selfBlockLimit = SELF.R4[(Boolean, Long)].get
   val selfMinimumTokensSold = SELF.R5[Long].get
   val selfSoldCounter = SELF.R6[Coll[Long]].get(0)
   val selfRefundCounter = SELF.R6[Coll[Long]].get(1)
@@ -111,7 +111,7 @@
       val sameId = selfId == OUTPUTS(0).tokens(0)._1
 
       // The block limit must be the same
-      val sameBlockLimit = selfBlockLimit == OUTPUTS(0).R4[Int].get
+      val sameBlockLimit = selfBlockLimit == OUTPUTS(0).R4[(Boolean, Long)].get
 
       // The minimum amount of tokens sold must be the same
       val sameMinimumSold = selfMinimumTokensSold == OUTPUTS(0).R5[Long].get
@@ -306,8 +306,21 @@
       }
 
       // Condition to check if the current height is beyond the block limit
-      val afterBlockLimit = HEIGHT > selfBlockLimit
-      
+      val afterBlockLimit = {
+
+        val limit = selfBlockLimit._2
+
+        val now = if (selfBlockLimit._1) {
+          // If the first element is true, the limit is a timestamp
+          CONTEXT.preHeader.timestamp
+        } else {
+          // If the first element is false, the limit is a block height
+          HEIGHT
+        }
+        
+        now > limit
+      }
+
       afterBlockLimit && minimumNotReached
     }
 
