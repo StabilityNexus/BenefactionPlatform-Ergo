@@ -32,6 +32,8 @@
     let baseTokenId: string = "";
     let baseTokenDecimals: number = 9;
     let baseTokenName: string = "ERG";
+    let customBaseTokenId: string = "";
+    let isCustomBaseToken: boolean = false;
 
     $: if (baseTokenOption === undefined) {
         baseTokenOption = null;
@@ -69,8 +71,6 @@
         balance: number;
         decimals: number;
     }> = [];
-    let existingAPTTokens: Set<string> = new Set();
-    let existingPFTTokens: Set<string> = new Set();
 
     let availableRewardTokens: Array<{
         tokenId: string;
@@ -157,15 +157,39 @@
 
     $: {
         if (baseTokenOption && baseTokenOption.value !== null) {
-            baseTokenId = baseTokenOption.value;
-            const baseToken = userTokens.find((t) => t.tokenId === baseTokenId);
-            baseTokenDecimals = baseToken?.decimals || 0;
-            baseTokenName = baseToken?.title || "Unknown";
+            if (baseTokenOption.value === "custom") {
+                isCustomBaseToken = true;
+                baseTokenId = customBaseTokenId;
+            } else {
+                isCustomBaseToken = false;
+                baseTokenId = baseTokenOption.value;
+                const baseToken = userTokens.find(
+                    (t) => t.tokenId === baseTokenId,
+                );
+                baseTokenDecimals = baseToken?.decimals || 0;
+                baseTokenName = baseToken?.title || "Unknown";
+            }
         } else {
+            isCustomBaseToken = false;
             baseTokenId = "";
             baseTokenDecimals = 9;
             baseTokenName = "ERG";
         }
+    }
+
+    $: if (isCustomBaseToken) {
+        baseTokenId = customBaseTokenId;
+    }
+
+    $: if (
+        isCustomBaseToken &&
+        customBaseTokenId &&
+        customBaseTokenId.length >= 64
+    ) {
+        fetchTokenDetails(customBaseTokenId).then(({ name, decimals }) => {
+            baseTokenName = name;
+            baseTokenDecimals = decimals;
+        });
     }
 
     $: {
@@ -177,42 +201,10 @@
         }
     }
 
-    $: {
-        const allAPTTokens = new Set([...existingAPTTokens]);
-        for (const token of userTokens) {
-            if (token.title && token.title.includes("APT")) {
-                allAPTTokens.add(token.tokenId);
-            }
-        }
+    $: availableRewardTokens = userTokens;
+    $: availableBaseTokens = userTokens;
 
-        availableRewardTokens = userTokens.filter(
-            (token) => !allAPTTokens.has(token.tokenId),
-        );
-        availableBaseTokens = userTokens.filter(
-            (token) =>
-                !allAPTTokens.has(token.tokenId) &&
-                !existingPFTTokens.has(token.tokenId),
-        );
-    }
-
-    $: {
-        let tokenError = null;
-        if (rewardTokenId && existingAPTTokens.has(rewardTokenId)) {
-            tokenError =
-                "Cannot use APT tokens from existing projects as reward tokens.";
-        }
-
-        if (
-            baseTokenId &&
-            (existingAPTTokens.has(baseTokenId) ||
-                existingPFTTokens.has(baseTokenId))
-        ) {
-            tokenError =
-                "Cannot use APT/PFT tokens from existing projects as contribution currency.";
-        }
-
-        formErrors.invalidToken = tokenError;
-    }
+    $: formErrors.invalidToken = null;
 
     $: rewardTokenDecimals =
         userTokens.find((t) => t.tokenId === rewardTokenId)?.decimals || 0;
@@ -432,26 +424,6 @@
         }
     }
 
-    async function loadExistingProjectTokens() {
-        try {
-            const projects = await fetchProjects();
-            const aptTokens = new Set<string>();
-            const pftTokens = new Set<string>();
-
-            for (const [projectId, project] of projects) {
-                aptTokens.add(projectId);
-                pftTokens.add(project.pft_token_id);
-            }
-
-            existingAPTTokens = aptTokens;
-            existingPFTTokens = pftTokens;
-        } catch (error) {
-            console.error("Error loading existing project tokens:", error);
-        }
-    }
-
-    loadExistingProjectTokens();
-
     walletConnected.subscribe((isConnected) => {
         if (isConnected) {
             getUserTokens();
@@ -666,8 +638,35 @@
                                         >{token.title}</Select.Item
                                     >
                                 {/each}
+                                <Select.Item
+                                    value="custom"
+                                    class="hover:bg-orange-500/10 cursor-pointer font-medium text-orange-400 border-t border-orange-500/10 mt-1 pt-1"
+                                    >Other Token ID...</Select.Item
+                                >
                             </Select.Content>
                         </Select.Root>
+
+                        {#if isCustomBaseToken}
+                            <div class="mt-3">
+                                <Label
+                                    for="customTokenId"
+                                    class="text-xs font-medium mb-1.5 block text-foreground/80"
+                                >
+                                    Token ID
+                                </Label>
+                                <Input
+                                    id="customTokenId"
+                                    bind:value={customBaseTokenId}
+                                    placeholder="Enter the token ID"
+                                    class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs font-mono"
+                                />
+                                {#if customBaseTokenId && baseTokenName !== "Unknown" && baseTokenName !== customBaseTokenId.slice(0, 6) + "..." + customBaseTokenId.slice(-4)}
+                                    <p class="text-xs text-green-400 mt-1">
+                                        Found: {baseTokenName} (Decimals: {baseTokenDecimals})
+                                    </p>
+                                {/if}
+                            </div>
+                        {/if}
                     </div>
 
                     <div class="form-group">
