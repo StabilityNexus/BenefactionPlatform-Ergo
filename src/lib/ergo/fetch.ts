@@ -233,8 +233,9 @@ export async function fetchProjectsFromBlockchain() {
                             const r4Value = JSON.parse(e.additionalRegisters.R4?.renderedValue.replace(/\[([a-f0-9]+)(,.*)/, '["$1"$2'));
                             if (!Array.isArray(r4Value) || r4Value.length < 2) throw new Error("R4 is not a valid tuple (Type, Deadline).");
 
-                            is_timestamp_limit = r4Value[0] === 1;
+                            is_timestamp_limit = r4Value[0] === true;
                             block_limit = Number(r4Value[1]);
+                            console.log("Parsed R4 for v2:", r4Value, "is_timestamp_limit:", is_timestamp_limit, "block_limit:", block_limit);
                         } else {
                             block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
                         }

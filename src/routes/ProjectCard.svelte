@@ -49,11 +49,8 @@
         let limit_date: string;
         if (project.is_timestamp_limit) {
             // In timestamp mode, block_limit is already a timestamp
-            limit_date =
-                new Date(project.block_limit)
-                    .toISOString()
-                    .replace("T", " ")
-                    .substring(0, 16) + " UTC";
+            // Display in local time for better user experience
+            limit_date = new Date(project.block_limit).toLocaleString();
         } else {
             // In block height mode, convert block to date
             limit_date = await block_to_date(

@@ -559,7 +559,8 @@
 
         // Handle both timestamp and block height modes
         if (project.is_timestamp_limit) {
-            // In timestamp mode, block_limit is already a timestamp
+            // In timestamp mode, block_limit is already a timestamp in milliseconds
+            // Display in local time for better user experience
             limit_date = new Date(project.block_limit).toLocaleString();
         } else {
             // In block height mode, convert block to time
@@ -810,9 +811,21 @@
 
                     <small class="deadline-info">
                         {#if project.is_timestamp_limit}
-                            Until {limit_date} UTC
+                            <span
+                                title="This project has a fixed deadline at a specific date and time, regardless of blockchain block height"
+                            >
+                                🕐 Deadline (by time): {limit_date}
+                            </span>
                         {:else}
-                            Until {limit_date} UTC on block {project.block_limit}
+                            <span
+                                title="This project's deadline is tied to the Ergo blockchain reaching block #{project.block_limit}. The estimated time may vary based on network conditions"
+                            >
+                                ⛓️ Deadline (by block): {limit_date}
+                                <br />
+                                <span style="opacity: 0.7; font-size: 0.9em;">
+                                    (at block #{project.block_limit})
+                                </span>
+                            </span>
                         {/if}
                     </small>
                 </div>
