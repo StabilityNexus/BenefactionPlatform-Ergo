@@ -266,9 +266,24 @@
         link: projectLink,
     } as ProjectContent;
 
-    $: contentValidation = validateProjectContent(projectContentObject);
+    let contentValidation = validateProjectContent({
+        title: "",
+        description: "",
+        image: "",
+        link: "",
+    });
+    let contentUsagePercentage = 0;
+    let validationTimer: any;
+
+    $: {
+        if (validationTimer) clearTimeout(validationTimer);
+        validationTimer = setTimeout(() => {
+            contentValidation = validateProjectContent(projectContentObject);
+            contentUsagePercentage = getUsagePercentage(projectContentObject);
+        }, 1000);
+    }
+
     $: contentBytesUsed = contentValidation.currentBytes;
-    $: contentUsagePercentage = getUsagePercentage(projectContentObject);
     $: contentTooLarge = !contentValidation.isValid;
     $: estimatedBoxSize = contentValidation.estimatedBoxSize;
 
