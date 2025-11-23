@@ -180,7 +180,7 @@
   val P2PK_ERGOTREE_PREFIX = fromBase16("0008cd")
   
   // Check if project address is P2PK or P2S by examining the prefix
-  val isProjectP2PK = if (ownerErgoTree.size >= 3) {
+  val isProjectP2PK: Boolean = if (ownerErgoTree.size >= 3) {
     ownerErgoTree.slice(0, 3) == P2PK_ERGOTREE_PREFIX
   } else {
     false
@@ -205,7 +205,7 @@
   }
 
   // Amount of PFT tokens added to the contract. In case of negative value, means that the token have been extracted.
-  val deltaPFTokenAdded = {
+  val deltaPFTokenAdded: Long = {
     val selfTokens = {
       val pfts = SELF.tokens.filter { (token: (Coll[Byte], Long)) => 
         token._1 == pftTokenId
@@ -226,9 +226,9 @@
     outTokens - selfTokens
   }
 
-  val minimumReached = {
+  val minimumReached: Boolean = {
     val minimumSalesThreshold = selfMinimumTokensSold
-    val soldCounter = selfSoldCounter
+    val soldCounter = selfSoldCounter - selfRefundCounter  // Net sold counter (sold - refunded)
 
     soldCounter >= minimumSalesThreshold
   }

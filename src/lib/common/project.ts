@@ -97,7 +97,7 @@ export async function is_ended(project: Project): Promise<boolean> {
 }
 
 export async function min_raised(project: Project): Promise<boolean> {
-    return project.sold_counter >= project.minimum_amount
+    return (project.sold_counter - project.refund_counter) >= project.minimum_amount
 }
 
 export async function max_raised(project: Project): Promise<boolean> {
