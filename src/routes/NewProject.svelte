@@ -47,6 +47,8 @@
     let deadlineUnit: "days" | "minutes" = "days";
     let deadlineValueBlock: number;
     let deadlineMode: "timestamp" | "block" = "timestamp";
+    let timestampInputMode: "duration" | "datetime" = "duration"; // New: how to input timestamp
+    let deadlineDateTime: string = ""; // New: for datetime-local input
     let is_timestamp_limit: boolean = true; // Default to timestamp mode (R4._1 = true)
     let deadlineValueText: string;
 
@@ -253,12 +255,21 @@
     }
 
     $: {
-        if (
-            deadlineMode === "timestamp" &&
-            deadlineValue &&
-            deadlineValue > 0
-        ) {
-            calculateBlockLimit(deadlineValue, deadlineUnit);
+        if (deadlineMode === "timestamp") {
+            if (
+                timestampInputMode === "duration" &&
+                deadlineValue &&
+                deadlineValue > 0
+            ) {
+                // Duration mode: calculate from days/minutes
+                calculateBlockLimit(deadlineValue, deadlineUnit);
+            } else if (timestampInputMode === "datetime" && deadlineDateTime) {
+                // Datetime mode: use specific date/time
+                calculateFromDateTime(deadlineDateTime);
+            } else {
+                deadlineValueBlock = undefined;
+                deadlineValueText = "";
+            }
         } else if (deadlineMode === "block") {
             // In block mode, deadlineValueBlock is set directly by the user
             // Just update the text representation
@@ -361,6 +372,39 @@
             }
         } catch (error) {
             console.error("Error calculating block limit:", error);
+            deadlineValueBlock = undefined;
+            deadlineValueText = "Error calculating deadline";
+        }
+    }
+
+    async function calculateFromDateTime(datetimeString: string) {
+        if (!platform || !datetimeString) {
+            deadlineValueBlock = undefined;
+            deadlineValueText = "";
+            return;
+        }
+        try {
+            // Parse the datetime-local input (format: YYYY-MM-DDTHH:MM)
+            const target_date = new Date(datetimeString);
+
+            // Check if the date is valid and in the future
+            if (isNaN(target_date.getTime())) {
+                deadlineValueBlock = undefined;
+                deadlineValueText = "Invalid date";
+                return;
+            }
+
+            if (target_date.getTime() <= Date.now()) {
+                deadlineValueBlock = undefined;
+                deadlineValueText = "Date must be in the future";
+                return;
+            }
+
+            // In timestamp mode, use the timestamp directly
+            deadlineValueBlock = target_date.getTime();
+            deadlineValueText = target_date.toLocaleString();
+        } catch (error) {
+            console.error("Error calculating from datetime:", error);
             deadlineValueBlock = undefined;
             deadlineValueText = "Error calculating deadline";
         }
@@ -827,48 +871,98 @@
                             for="deadlineValue"
                             class="text-sm font-medium mb-2 block text-foreground/90"
                             >{deadlineMode === "timestamp"
-                                ? "Duration"
+                                ? "Deadline"
                                 : "Block Height"}</Label
                         >
                         {#if deadlineMode === "timestamp"}
-                            <div class="flex space-x-2">
-                                <Input
-                                    id="deadlineValue"
-                                    type="number"
-                                    bind:value={deadlineValue}
-                                    min="1"
-                                    placeholder="30"
-                                    class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
-                                />
-                                <div class="relative min-w-[110px]">
-                                    <select
-                                        bind:value={deadlineUnit}
-                                        class="w-full h-10 px-3 py-2 bg-background/50 border border-orange-500/20 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 appearance-none"
+                            <!-- Timestamp mode: choose between duration or specific datetime -->
+                            <div class="mb-3">
+                                <div class="flex gap-2 mb-2">
+                                    <button
+                                        type="button"
+                                        on:click={() =>
+                                            (timestampInputMode = "duration")}
+                                        class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {timestampInputMode ===
+                                        'duration'
+                                            ? 'bg-orange-500 text-black font-medium'
+                                            : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
                                     >
-                                        <option value="days">Days</option>
-                                        <option value="minutes">Minutes</option>
-                                    </select>
-                                    <div
-                                        class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500/70"
+                                        📅 Duration
+                                    </button>
+                                    <button
+                                        type="button"
+                                        on:click={() =>
+                                            (timestampInputMode = "datetime")}
+                                        class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {timestampInputMode ===
+                                        'datetime'
+                                            ? 'bg-orange-500 text-black font-medium'
+                                            : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
                                     >
-                                        <svg
-                                            width="10"
-                                            height="6"
-                                            viewBox="0 0 10 6"
-                                            fill="none"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            ><path
-                                                d="M1 1L5 5L9 1"
-                                                stroke="currentColor"
-                                                stroke-width="1.5"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            /></svg
-                                        >
-                                    </div>
+                                        🕐 Specific Date/Time
+                                    </button>
                                 </div>
                             </div>
+
+                            {#if timestampInputMode === "duration"}
+                                <!-- Duration input (existing) -->
+                                <div class="flex space-x-2">
+                                    <Input
+                                        id="deadlineValue"
+                                        type="number"
+                                        bind:value={deadlineValue}
+                                        min="1"
+                                        placeholder="30"
+                                        class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
+                                    />
+                                    <div class="relative min-w-[110px]">
+                                        <select
+                                            bind:value={deadlineUnit}
+                                            class="w-full h-10 px-3 py-2 bg-background/50 border border-orange-500/20 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 appearance-none"
+                                        >
+                                            <option value="days">Days</option>
+                                            <option value="minutes"
+                                                >Minutes</option
+                                            >
+                                        </select>
+                                        <div
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500/70"
+                                        >
+                                            <svg
+                                                width="10"
+                                                height="6"
+                                                viewBox="0 0 10 6"
+                                                fill="none"
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                ><path
+                                                    d="M1 1L5 5L9 1"
+                                                    stroke="currentColor"
+                                                    stroke-width="1.5"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                /></svg
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-xs mt-2 text-muted-foreground">
+                                    Specify how long from now the deadline will
+                                    be
+                                </p>
+                            {:else}
+                                <!-- Datetime input (new) -->
+                                <Input
+                                    id="deadlineDateTime"
+                                    type="datetime-local"
+                                    bind:value={deadlineDateTime}
+                                    class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
+                                />
+                                <p class="text-xs mt-2 text-muted-foreground">
+                                    Select a specific date and time for the
+                                    deadline
+                                </p>
+                            {/if}
                         {:else}
+                            <!-- Block mode (existing) -->
                             <Input
                                 id="deadlineValue"
                                 type="number"
