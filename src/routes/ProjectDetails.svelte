@@ -36,6 +36,7 @@
     // --- ANIMATION IMPORTS ---
     import { fade, fly, scale, slide } from "svelte/transition";
     import { quintOut, elasticOut } from "svelte/easing";
+    import { ErgoAddress } from "@fleet-sdk/core";
 
     let project: Project = $project_detail;
 
@@ -565,7 +566,10 @@
     async function checkIfIsOwner() {
         const connected = await $connected;
         const address = await $address;
-        is_owner = connected && (await address) === project.constants.owner;
+        is_owner =
+            connected &&
+            ErgoAddress.fromBase58((await address) ?? "").ergoTree ===
+                project.constants.owner;
     }
     checkIfIsOwner();
     let timerValue = get(timer);

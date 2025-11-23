@@ -111,7 +111,6 @@ export async function rebalance(
             .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
             .build()                               // Build the transaction
             .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
-        console.log("Unsigned transaction outputs:", JSON.stringify(unsignedTransaction.outputs, null, 2));
 
         // Sign the transaction
         const signedTransaction = await signTransaction(unsignedTransaction);
