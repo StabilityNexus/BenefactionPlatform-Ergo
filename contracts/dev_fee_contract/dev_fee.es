@@ -112,12 +112,9 @@
 
         }
 
-        val validOutputSize: Boolean = (OUTPUTS.size == 4)
-
         allOf(Coll(
             validMinAmount,
-            validDevBoxes,
-            validOutputSize
+            validDevBoxes
         ))
 
     }
