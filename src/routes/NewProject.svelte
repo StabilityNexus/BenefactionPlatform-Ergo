@@ -1030,7 +1030,7 @@
                             rel="noopener noreferrer"
                             class="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors bg-orange-500/5 px-4 py-2 rounded-lg border border-orange-500/20 hover:border-orange-500/40"
                         >
-                            <span>View Transaction</span>
+                            <span>{transactionId.slice(0, 8)}...</span>
                             <svg
                                 width="12"
                                 height="12"

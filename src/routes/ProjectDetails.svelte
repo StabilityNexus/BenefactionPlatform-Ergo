@@ -1035,7 +1035,7 @@
                                     class="transaction-link"
                                     class:light-mode={$mode === "light"}
                                 >
-                                    View Transaction
+                                    <span>{transactionId.slice(0, 8)}...</span>
                                     <svg
                                         width="12"
                                         height="12"
