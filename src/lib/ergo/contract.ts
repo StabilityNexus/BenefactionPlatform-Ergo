@@ -124,38 +124,3 @@ export function mint_contract_address(constants: ConstantContent, version: contr
   let network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
   return ergoTree.toAddress(network).toString();
 }
-
-/**
- * Compile a refund contract that allows spending after a certain block height
- * @param ownerAddress The address that can spend the funds
- * @param deadline The block height after which funds can be spent
- */
-export function compile_refund_contract(ownerAddress: string, deadline: number): string {
-  const contract = `
-    {
-      val is_deadline_passed = HEIGHT > ${deadline}
-      val is_owner = PK("${ownerAddress}")
-      is_deadline_passed && is_owner
-    }
-  `;
-
-  const ergoTree = compile(contract, { version: 1, network: network_id });
-  return ergoTree.toHex();
-}
-
-/**
- * Compile a multisig contract
- * @param owners List of owner addresses
- * @param required Number of signatures required
- */
-export function compile_multisig_contract(owners: string[], required: number): string {
-  const publicKeys = owners.map(addr => `PK("${addr}")`).join(", ");
-  const contract = `
-    {
-      atLeast(${required}, Coll[SigmaProp](${publicKeys}))
-    }
-  `;
-
-  const ergoTree = compile(contract, { version: 1, network: network_id });
-  return ergoTree.toHex();
-}

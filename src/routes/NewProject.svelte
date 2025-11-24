@@ -18,10 +18,6 @@
         getUsagePercentage,
         type ProjectContent,
     } from "$lib/ergo/utils/box-size-calculator";
-    import {
-        compile_refund_contract,
-        compile_multisig_contract,
-    } from "$lib/ergo/contract";
     import { walletAddress } from "$lib/wallet/wallet-manager";
 
     let platform = new ErgoPlatform();
@@ -1159,10 +1155,15 @@
                     <div
                         class="form-group md:col-span-2 border-t border-orange-500/10 pt-6 mt-2"
                     >
-                        <Label
-                            class="text-lg font-semibold mb-4 block text-orange-400"
-                            >Owner Configuration</Label
-                        >
+                        <div class="flex flex-row items-baseline gap-4 mb-4">
+                            <Label
+                                class="text-lg font-semibold block text-orange-400"
+                                >Owner Configuration</Label
+                            >
+                            <p class="text-xs text-muted-foreground">
+                                The owner is the one who receives the funds
+                            </p>
+                        </div>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
                             <button
                                 type="button"
@@ -1172,9 +1173,10 @@
                                     ? 'bg-orange-500 text-black font-medium'
                                     : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
                             >
-                                Wallet
+                                Your Wallet
                             </button>
                             <button
+                                disabled
                                 type="button"
                                 on:click={() => (ownerMode = "timelock")}
                                 class="px-3 py-2 text-xs md:text-sm rounded-md transition-colors {ownerMode ===
@@ -1185,6 +1187,7 @@
                                 Time-locked
                             </button>
                             <button
+                                disabled
                                 type="button"
                                 on:click={() => (ownerMode = "multisig")}
                                 class="px-3 py-2 text-xs md:text-sm rounded-md transition-colors {ownerMode ===
