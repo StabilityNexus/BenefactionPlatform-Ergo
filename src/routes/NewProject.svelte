@@ -169,7 +169,7 @@
             } else {
                 isCustomBaseToken = false;
                 baseTokenId = baseTokenOption.value;
-                const baseToken = userTokens.find(
+                const baseToken = availableBaseTokens.find(
                     (t) => t.tokenId === baseTokenId,
                 );
                 baseTokenDecimals = baseToken?.decimals || 0;
@@ -211,7 +211,35 @@
     }
 
     $: availableRewardTokens = userTokens;
-    $: availableBaseTokens = userTokens;
+    $: {
+        const DEFAULT_CURRENCIES = [
+            {
+                tokenId:
+                    "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04",
+                title: "SigUSD",
+                decimals: 2,
+                balance: 0,
+            },
+        ];
+
+        // Create a map of user tokens for quick lookup
+        const userTokenMap = new Map(userTokens.map((t) => [t.tokenId, t]));
+
+        // Start with default currencies, using user's balance if they have it
+        const combinedTokens = DEFAULT_CURRENCIES.map((def) => {
+            const userToken = userTokenMap.get(def.tokenId);
+            return userToken ? userToken : def;
+        });
+
+        // Add remaining user tokens that are not in defaults
+        userTokens.forEach((t) => {
+            if (!DEFAULT_CURRENCIES.find((d) => d.tokenId === t.tokenId)) {
+                combinedTokens.push(t);
+            }
+        });
+
+        availableBaseTokens = combinedTokens;
+    }
 
     $: formErrors.invalidToken = null;
 
