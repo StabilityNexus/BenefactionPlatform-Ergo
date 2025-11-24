@@ -236,6 +236,7 @@
             },
         ];
 
+        /*
         // Create a map of user tokens for quick lookup
         const userTokenMap = new Map(userTokens.map((t) => [t.tokenId, t]));
 
@@ -250,9 +251,9 @@
             if (!DEFAULT_CURRENCIES.find((d) => d.tokenId === t.tokenId)) {
                 combinedTokens.push(t);
             }
-        });
+        }); */
 
-        availableBaseTokens = combinedTokens;
+        availableBaseTokens = DEFAULT_CURRENCIES;
     }
 
     $: formErrors.invalidToken = null;
