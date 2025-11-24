@@ -24,7 +24,8 @@ export interface Platform {
         exchangeRate: number,
         projectLink: string,
         minimumSold: number,
-        title: string
-    ): Promise<string | null>;
+        title: string,
+        base_token_id?: string
+    ): AsyncGenerator<string, string | null, void>;
     fetch(): Promise<Map<string, Project>>;
 }

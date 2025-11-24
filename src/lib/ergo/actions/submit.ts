@@ -54,7 +54,7 @@ function playBeep(frequency = 1000, duration = 3000) {
     osc.stop(now + 0.55);
 }
 
-async function mint_tx(title: string, constants: ConstantContent, version: contract_version, amount: number, decimals: number): Promise<Box> {
+async function* mint_tx(title: string, constants: ConstantContent, version: contract_version, amount: number, decimals: number): AsyncGenerator<string, Box, void> {
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
 
@@ -83,6 +83,8 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
         .build()                               // Build the transaction
         .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
 
+    yield "Please sign the mint transaction...";
+
     // Sign the transaction
     const signedTransaction = await signTransaction(unsignedTransaction);
 
@@ -90,6 +92,8 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
     const transactionId = await submitTransaction(signedTransaction);
 
     console.log("Mint tx id: " + transactionId);
+
+    yield "Waiting for mint confirmation... (this may take a few minutes)";
 
     let box = await wait_until_confirmation(transactionId);
     if (box == null) {
@@ -101,7 +105,7 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
 }
 
 // Function to submit a project to the blockchain
-export async function submit_project(
+export async function* submit_project(
     version: contract_version,
     token_id: string,
     token_amount: number,
@@ -112,7 +116,7 @@ export async function submit_project(
     minimumSold: number,     // Minimum amount sold to allow withdrawal
     title: string,
     base_token_id: string = ""  // Base token ID for contributions (empty for ERG)
-): Promise<string | null> {
+): AsyncGenerator<string, string | null, void> {
 
     // Parse and validate project content
     let parsedContent: ProjectContent;
@@ -147,7 +151,15 @@ export async function submit_project(
     let id_token_amount = token_data["amount"] + 1;
 
     // Build the mint tx.
-    let mint_box = await mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"]);
+    yield "Preparing mint transaction...";
+    const mintGen = mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"]);
+    let mintResult = await mintGen.next();
+    while (!mintResult.done) {
+        yield mintResult.value;
+        mintResult = await mintGen.next();
+    }
+    let mint_box = mintResult.value;
+
     let project_id = mint_box.assets[0].tokenId;
 
     if (project_id === null) { alert("Token minting failed!"); return null; }
@@ -218,6 +230,8 @@ export async function submit_project(
     } catch (error) {
         console.error('Error executing play beep:', error);
     }
+
+    yield "Please sign the project transaction...";
 
     // Sign the transaction
     const signedTransaction = await signTransaction(unsignedTransaction);

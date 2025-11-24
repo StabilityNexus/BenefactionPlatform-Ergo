@@ -124,7 +124,7 @@ export class ErgoPlatform implements Platform {
         return await rebalance(project, token_amount);
     }
 
-    async submit(
+    async *submit(
         version: contract_version,
         token_id: string,
         token_amount: number,
@@ -135,8 +135,8 @@ export class ErgoPlatform implements Platform {
         minimumSold: number,
         title: string,
         base_token_id: string = ""
-    ): Promise<string | null> {
-        return await submit_project(
+    ): AsyncGenerator<string, string | null, void> {
+        return yield* submit_project(
             version,
             token_id,
             token_amount,
