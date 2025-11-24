@@ -13,4 +13,4 @@
     };
 </script>
 
-<ProjectList filterProject={filter}>My Projects</ProjectList>
+<ProjectList filterProject={filter}>My Campaigns</ProjectList>

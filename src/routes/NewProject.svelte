@@ -218,7 +218,7 @@
     $: {
         if (rewardTokenId && baseTokenId && rewardTokenId === baseTokenId) {
             formErrors.tokenConflict =
-                "The Project Token and Contribution Currency cannot be the same.";
+                "The Campaign Token and Contribution Currency cannot be the same.";
         } else {
             formErrors.tokenConflict = null;
         }
@@ -642,9 +642,9 @@
 <div>
     <div class="container mx-auto py-8 px-4 max-w-4xl">
         <div class="text-center mb-10">
-            <h2 class="project-title">Start Your Fundraising</h2>
+            <h2 class="project-title">Start Your Fundraising Campaign</h2>
             <p class="text-muted-foreground mt-2">
-                Complete the steps below to launch your project on Ergo
+                Complete the steps below to launch your campaign on Ergo
             </p>
         </div>
 
@@ -961,7 +961,7 @@
                             <p class="text-xs mt-2 text-muted-foreground">
                                 {#if deadlineMode === "timestamp"}
                                     Timestamp mode uses precise time-based
-                                    deadlines (recommended for most projects).
+                                    deadlines (recommended for most campaigns).
                                 {:else}
                                     Block height mode uses blockchain block
                                     numbers for deadlines.
@@ -1353,7 +1353,7 @@
                 <h3
                     class="text-xl font-semibold mb-6 text-orange-400 flex items-center gap-2"
                 >
-                    <span class="opacity-50">03.</span> Project Details
+                    <span class="opacity-50">03.</span> Campaign Details
                 </h3>
 
                 <div class="grid grid-cols-1 gap-6">
@@ -1367,7 +1367,7 @@
                             type="text"
                             id="projectTitle"
                             bind:value={projectTitle}
-                            placeholder="Name of your project"
+                            placeholder="Name of your campaign"
                             required
                             class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
                         />
@@ -1479,7 +1479,7 @@
                                           ? 'text-yellow-400'
                                           : 'text-muted-foreground'}"
                                 >
-                                    Project content: {contentBytesUsed} bytes
+                                    Campaign content: {contentBytesUsed} bytes
                                 </div>
 
                                 <div
@@ -1518,7 +1518,7 @@
                                     class="text-red-400 text-xs mt-2 bg-red-500/10 p-2 rounded"
                                 >
                                     ⚠️ {contentValidation.message ||
-                                        "The project content is too large."}
+                                        "The campaign content is too large."}
                                 </p>
                             {:else if contentUsagePercentage > 90}
                                 <p
@@ -1553,7 +1553,7 @@
                             Success!
                         </h4>
                         <p class="text-sm text-muted-foreground mb-3">
-                            Your project has been submitted to the blockchain.
+                            Your campaign has been submitted to the blockchain.
                         </p>
                         <a
                             href={$web_explorer_uri_tx + transactionId}
@@ -1594,8 +1594,8 @@
                         class="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-black border-none h-12 text-lg font-bold rounded-lg shadow-lg shadow-orange-500/20 transition-all duration-200 hover:scale-[1.02] hover:shadow-orange-500/40 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none disabled:grayscale"
                     >
                         {isSubmitting
-                            ? statusMessage || "Submitting Project..."
-                            : "Launch Project"}
+                            ? statusMessage || "Submitting Campaign..."
+                            : "Launch Campaign"}
                     </Button>
                 {/if}
             </div>

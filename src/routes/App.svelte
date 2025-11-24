@@ -225,7 +225,7 @@
             <ul class="nav-links">
                 <li class={activeTab === "acquireTokens" ? "active" : ""}>
                     <a href="#" on:click={() => changeTab("acquireTokens")}>
-                        Contribute to a Project
+                        Contribute to a Campaign
                     </a>
                 </li>
                 <li class={activeTab === "myContributions" ? "active" : ""}>
@@ -235,12 +235,12 @@
                 </li>
                 <li class={activeTab === "myProjects" ? "active" : ""}>
                     <a href="#" on:click={() => changeTab("myProjects")}>
-                        My Projects
+                        My Campaigns
                     </a>
                 </li>
                 <li class={activeTab === "submitProject" ? "active" : ""}>
                     <a href="#" on:click={() => changeTab("submitProject")}>
-                        New Project
+                        New Campaign
                     </a>
                 </li>
             </ul>
@@ -313,7 +313,7 @@
         <ul class="mobile-nav-links">
             <li class={activeTab === "acquireTokens" ? "active" : ""}>
                 <a href="#" on:click={() => changeTab("acquireTokens")}>
-                    Contribute to a Project
+                    Contribute to a Campaign
                 </a>
             </li>
             <li class={activeTab === "myContributions" ? "active" : ""}>
@@ -323,12 +323,12 @@
             </li>
             <li class={activeTab === "myProjects" ? "active" : ""}>
                 <a href="#" on:click={() => changeTab("myProjects")}>
-                    My Projects
+                    My Campaigns
                 </a>
             </li>
             <li class={activeTab === "submitProject" ? "active" : ""}>
                 <a href="#" on:click={() => changeTab("submitProject")}>
-                    New Project
+                    New Campaign
                 </a>
             </li>
         </ul>
