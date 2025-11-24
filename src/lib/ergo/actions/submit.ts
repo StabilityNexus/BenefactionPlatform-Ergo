@@ -115,7 +115,8 @@ export async function* submit_project(
     projectContent: string,    // Project content (JSON with title, description, image, link)
     minimumSold: number,     // Minimum amount sold to allow withdrawal
     title: string,
-    base_token_id: string = ""  // Base token ID for contributions (empty for ERG)
+    base_token_id: string = "",  // Base token ID for contributions (empty for ERG)
+    owner_ergotree: string = ""  // Optional: Owner ErgoTree (if different from wallet)
 ): AsyncGenerator<string, string | null, void> {
 
     // Parse and validate project content
@@ -138,7 +139,7 @@ export async function* submit_project(
     const walletPk = await getChangeAddress();
 
     let addressContent: ConstantContent = {
-        "owner": ErgoAddress.fromBase58(walletPk).ergoTree,
+        "owner": owner_ergotree ? owner_ergotree : ErgoAddress.fromBase58(walletPk).ergoTree,
         "dev_addr": get_dev_contract_address(),
         "dev_hash": get_dev_contract_hash(),
         "dev_fee": get_dev_fee(),

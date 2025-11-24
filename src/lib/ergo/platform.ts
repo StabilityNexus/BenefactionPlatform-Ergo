@@ -134,7 +134,8 @@ export class ErgoPlatform implements Platform {
         projectContent: string,
         minimumSold: number,
         title: string,
-        base_token_id: string = ""
+        base_token_id: string = "",
+        owner_ergotree: string = ""
     ): AsyncGenerator<string, string | null, void> {
         return yield* submit_project(
             version,
@@ -146,7 +147,8 @@ export class ErgoPlatform implements Platform {
             projectContent,
             minimumSold,
             title,
-            base_token_id
+            base_token_id,
+            owner_ergotree
         );
     }
 

@@ -18,6 +18,8 @@
         getUsagePercentage,
         type ProjectContent,
     } from "$lib/ergo/utils/box-size-calculator";
+    import { compile_refund_contract } from "$lib/ergo/contract";
+    import { walletAddress } from "$lib/wallet/wallet-manager";
 
     let platform = new ErgoPlatform();
 
@@ -51,6 +53,16 @@
     let deadlineDateTime: string = ""; // New: for datetime-local input
     let is_timestamp_limit: boolean = true; // Default to timestamp mode (R4._1 = true)
     let deadlineValueText: string;
+
+    let refundMode: "wallet" | "contract" = "wallet";
+    let refundBlockHeight: number | undefined;
+    let refundAddress: string = "";
+    let initializedRefundAddress = false;
+
+    $: if ($walletAddress && !initializedRefundAddress) {
+        refundAddress = $walletAddress;
+        initializedRefundAddress = true;
+    }
 
     let exchangeRateRaw: number;
     let exchangeRatePrecise: number;
@@ -493,6 +505,26 @@
         });
 
         try {
+            let owner_ergotree = "";
+            if (
+                refundMode === "contract" &&
+                refundBlockHeight &&
+                refundAddress
+            ) {
+                try {
+                    owner_ergotree = compile_refund_contract(
+                        refundAddress,
+                        refundBlockHeight,
+                    );
+                } catch (e: any) {
+                    console.error("Error compiling refund contract:", e);
+                    errorMessage =
+                        "Error compiling refund contract: " + (e.message || e);
+                    isSubmitting = false;
+                    return;
+                }
+            }
+
             const submissionGen = platform.submit(
                 platform.last_version,
                 rewardTokenId,
@@ -504,6 +536,7 @@
                 Math.round(minimumTokenSold),
                 projectTitle,
                 baseTokenId,
+                owner_ergotree,
             );
 
             let result = await submissionGen.next();
@@ -1015,6 +1048,80 @@
                             <p class="text-xs mt-1 text-orange-400">
                                 Deadline: {deadlineValueText}
                             </p>
+                        {/if}
+                    </div>
+
+                    <div class="form-group">
+                        <Label
+                            for="refundMode"
+                            class="text-sm font-medium mb-2 block text-foreground/90"
+                            >Refund Address</Label
+                        >
+                        <div class="flex gap-2 mb-2">
+                            <button
+                                type="button"
+                                on:click={() => (refundMode = "wallet")}
+                                class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {refundMode ===
+                                'wallet'
+                                    ? 'bg-orange-500 text-black font-medium'
+                                    : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
+                            >
+                                Wallet Address
+                            </button>
+                            <button
+                                type="button"
+                                on:click={() => (refundMode = "contract")}
+                                class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {refundMode ===
+                                'contract'
+                                    ? 'bg-orange-500 text-black font-medium'
+                                    : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
+                            >
+                                Contract (Time-locked)
+                            </button>
+                        </div>
+
+                        {#if refundMode === "contract"}
+                            <div
+                                class="space-y-3 mt-3 p-4 bg-orange-500/5 rounded-lg border border-orange-500/10"
+                            >
+                                <div>
+                                    <Label
+                                        for="refundAddress"
+                                        class="text-xs font-medium mb-1.5 block text-foreground/80"
+                                    >
+                                        Owner Address (who can spend)
+                                    </Label>
+                                    <Input
+                                        id="refundAddress"
+                                        type="text"
+                                        bind:value={refundAddress}
+                                        placeholder="Enter address"
+                                        class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs"
+                                    />
+                                </div>
+                                <div>
+                                    <Label
+                                        for="refundBlockHeight"
+                                        class="text-xs font-medium mb-1.5 block text-foreground/80"
+                                    >
+                                        Unlock Block Height
+                                    </Label>
+                                    <Input
+                                        id="refundBlockHeight"
+                                        type="number"
+                                        bind:value={refundBlockHeight}
+                                        min="1"
+                                        placeholder="Block height when funds become spendable"
+                                        class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs"
+                                    />
+                                    <p
+                                        class="text-xs mt-1 text-muted-foreground"
+                                    >
+                                        Funds will be locked until this block
+                                        height is reached.
+                                    </p>
+                                </div>
+                            </div>
                         {/if}
                     </div>
 
