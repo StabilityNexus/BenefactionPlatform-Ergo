@@ -18,7 +18,10 @@
         getUsagePercentage,
         type ProjectContent,
     } from "$lib/ergo/utils/box-size-calculator";
-    import { compile_refund_contract } from "$lib/ergo/contract";
+    import {
+        compile_refund_contract,
+        compile_multisig_contract,
+    } from "$lib/ergo/contract";
     import { walletAddress } from "$lib/wallet/wallet-manager";
 
     let platform = new ErgoPlatform();
@@ -54,14 +57,17 @@
     let is_timestamp_limit: boolean = true; // Default to timestamp mode (R4._1 = true)
     let deadlineValueText: string;
 
-    let refundMode: "wallet" | "contract" = "wallet";
-    let refundBlockHeight: number | undefined;
-    let refundAddress: string = "";
-    let initializedRefundAddress = false;
+    let ownerMode: "wallet" | "timelock" | "multisig" | "custom" = "wallet";
+    let ownerBlockHeight: number | undefined;
+    let ownerAddress: string = "";
+    let ownerErgoTreeHex: string = "";
+    let multisigAddresses: string[] = ["", ""];
+    let multisigRequired: number = 2;
+    let initializedOwnerAddress = false;
 
-    $: if ($walletAddress && !initializedRefundAddress) {
-        refundAddress = $walletAddress;
-        initializedRefundAddress = true;
+    $: if ($walletAddress && !initializedOwnerAddress) {
+        ownerAddress = $walletAddress;
+        initializedOwnerAddress = true;
     }
 
     let exchangeRateRaw: number;
@@ -506,20 +512,48 @@
 
         try {
             let owner_ergotree = "";
-            if (
-                refundMode === "contract" &&
-                refundBlockHeight &&
-                refundAddress
-            ) {
+            if (ownerMode === "timelock" && ownerBlockHeight && ownerAddress) {
                 try {
                     owner_ergotree = compile_refund_contract(
-                        refundAddress,
-                        refundBlockHeight,
+                        ownerAddress,
+                        ownerBlockHeight,
                     );
                 } catch (e: any) {
-                    console.error("Error compiling refund contract:", e);
+                    console.error("Error compiling timelock contract:", e);
                     errorMessage =
-                        "Error compiling refund contract: " + (e.message || e);
+                        "Error compiling timelock contract: " +
+                        (e.message || e);
+                    isSubmitting = false;
+                    return;
+                }
+            } else if (ownerMode === "custom" && ownerErgoTreeHex) {
+                owner_ergotree = ownerErgoTreeHex;
+            } else if (ownerMode === "multisig") {
+                const validAddresses = multisigAddresses.filter(
+                    (a) => a.trim() !== "",
+                );
+                if (validAddresses.length < 2) {
+                    errorMessage =
+                        "At least 2 addresses are required for multisig.";
+                    isSubmitting = false;
+                    return;
+                }
+                if (multisigRequired > validAddresses.length) {
+                    errorMessage =
+                        "Required signatures cannot exceed number of addresses.";
+                    isSubmitting = false;
+                    return;
+                }
+                try {
+                    owner_ergotree = compile_multisig_contract(
+                        validAddresses,
+                        multisigRequired,
+                    );
+                } catch (e: any) {
+                    console.error("Error compiling multisig contract:", e);
+                    errorMessage =
+                        "Error compiling multisig contract: " +
+                        (e.message || e);
                     isSubmitting = false;
                     return;
                 }
@@ -886,243 +920,181 @@
                         {/if}
                     </div>
 
-                    <div class="form-group">
-                        <Label
-                            for="deadlineMode"
-                            class="text-sm font-medium mb-2 block text-foreground/90"
-                            >Deadline Mode</Label
-                        >
-                        <div class="relative">
-                            <select
-                                id="deadlineMode"
-                                bind:value={deadlineMode}
-                                class="w-full h-10 px-3 py-2 bg-background/50 border border-orange-500/20 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 appearance-none"
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2"
+                    >
+                        <div class="form-group">
+                            <Label
+                                for="deadlineMode"
+                                class="text-sm font-medium mb-2 block text-foreground/90"
+                                >Deadline Mode</Label
                             >
-                                <option value="timestamp"
-                                    >Timestamp (Precise time-based)</option
+                            <div class="relative">
+                                <select
+                                    id="deadlineMode"
+                                    bind:value={deadlineMode}
+                                    class="w-full h-10 px-3 py-2 bg-background/50 border border-orange-500/20 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 appearance-none"
                                 >
-                                <option value="block"
-                                    >Block Height (Block-based)</option
-                                >
-                            </select>
-                            <div
-                                class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500/70"
-                            >
-                                <svg
-                                    width="10"
-                                    height="6"
-                                    viewBox="0 0 10 6"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    ><path
-                                        d="M1 1L5 5L9 1"
-                                        stroke="currentColor"
-                                        stroke-width="1.5"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    /></svg
-                                >
-                            </div>
-                        </div>
-                        <p class="text-xs mt-2 text-muted-foreground">
-                            {#if deadlineMode === "timestamp"}
-                                Timestamp mode uses precise time-based deadlines
-                                (recommended for most projects).
-                            {:else}
-                                Block height mode uses blockchain block numbers
-                                for deadlines.
-                            {/if}
-                        </p>
-                    </div>
-
-                    <div class="form-group">
-                        <Label
-                            for="deadlineValue"
-                            class="text-sm font-medium mb-2 block text-foreground/90"
-                            >{deadlineMode === "timestamp"
-                                ? "Deadline"
-                                : "Block Height"}</Label
-                        >
-                        {#if deadlineMode === "timestamp"}
-                            <!-- Timestamp mode: choose between duration or specific datetime -->
-                            <div class="mb-3">
-                                <div class="flex gap-2 mb-2">
-                                    <button
-                                        type="button"
-                                        on:click={() =>
-                                            (timestampInputMode = "duration")}
-                                        class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {timestampInputMode ===
-                                        'duration'
-                                            ? 'bg-orange-500 text-black font-medium'
-                                            : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
+                                    <option value="timestamp"
+                                        >Timestamp (Precise time-based)</option
                                     >
-                                        📅 Duration
-                                    </button>
-                                    <button
-                                        type="button"
-                                        on:click={() =>
-                                            (timestampInputMode = "datetime")}
-                                        class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {timestampInputMode ===
-                                        'datetime'
-                                            ? 'bg-orange-500 text-black font-medium'
-                                            : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
+                                    <option value="block"
+                                        >Block Height (Block-based)</option
                                     >
-                                        🕐 Specific Date/Time
-                                    </button>
+                                </select>
+                                <div
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500/70"
+                                >
+                                    <svg
+                                        width="10"
+                                        height="6"
+                                        viewBox="0 0 10 6"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        ><path
+                                            d="M1 1L5 5L9 1"
+                                            stroke="currentColor"
+                                            stroke-width="1.5"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        /></svg
+                                    >
                                 </div>
                             </div>
+                            <p class="text-xs mt-2 text-muted-foreground">
+                                {#if deadlineMode === "timestamp"}
+                                    Timestamp mode uses precise time-based
+                                    deadlines (recommended for most projects).
+                                {:else}
+                                    Block height mode uses blockchain block
+                                    numbers for deadlines.
+                                {/if}
+                            </p>
+                        </div>
 
-                            {#if timestampInputMode === "duration"}
-                                <!-- Duration input (existing) -->
-                                <div class="flex space-x-2">
-                                    <Input
-                                        id="deadlineValue"
-                                        type="number"
-                                        bind:value={deadlineValue}
-                                        min="1"
-                                        placeholder="30"
-                                        class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
-                                    />
-                                    <div class="relative min-w-[110px]">
-                                        <select
-                                            bind:value={deadlineUnit}
-                                            class="w-full h-10 px-3 py-2 bg-background/50 border border-orange-500/20 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 appearance-none"
+                        <div class="form-group">
+                            <Label
+                                for="deadlineValue"
+                                class="text-sm font-medium mb-2 block text-foreground/90"
+                                >{deadlineMode === "timestamp"
+                                    ? "Deadline"
+                                    : "Block Height"}</Label
+                            >
+                            {#if deadlineMode === "timestamp"}
+                                <!-- Timestamp mode: choose between duration or specific datetime -->
+                                <div class="mb-3">
+                                    <div class="flex gap-2 mb-2">
+                                        <button
+                                            type="button"
+                                            on:click={() =>
+                                                (timestampInputMode =
+                                                    "duration")}
+                                            class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {timestampInputMode ===
+                                            'duration'
+                                                ? 'bg-orange-500 text-black font-medium'
+                                                : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
                                         >
-                                            <option value="days">Days</option>
-                                            <option value="minutes"
-                                                >Minutes</option
-                                            >
-                                        </select>
-                                        <div
-                                            class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500/70"
+                                            📅 Duration
+                                        </button>
+                                        <button
+                                            type="button"
+                                            on:click={() =>
+                                                (timestampInputMode =
+                                                    "datetime")}
+                                            class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {timestampInputMode ===
+                                            'datetime'
+                                                ? 'bg-orange-500 text-black font-medium'
+                                                : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
                                         >
-                                            <svg
-                                                width="10"
-                                                height="6"
-                                                viewBox="0 0 10 6"
-                                                fill="none"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                ><path
-                                                    d="M1 1L5 5L9 1"
-                                                    stroke="currentColor"
-                                                    stroke-width="1.5"
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                /></svg
-                                            >
-                                        </div>
+                                            🕐 Specific Date/Time
+                                        </button>
                                     </div>
                                 </div>
-                                <p class="text-xs mt-2 text-muted-foreground">
-                                    Specify how long from now the deadline will
-                                    be
-                                </p>
+
+                                {#if timestampInputMode === "duration"}
+                                    <!-- Duration input (existing) -->
+                                    <div class="flex space-x-2">
+                                        <Input
+                                            id="deadlineValue"
+                                            type="number"
+                                            bind:value={deadlineValue}
+                                            min="1"
+                                            placeholder="30"
+                                            class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
+                                        />
+                                        <div class="relative min-w-[110px]">
+                                            <select
+                                                bind:value={deadlineUnit}
+                                                class="w-full h-10 px-3 py-2 bg-background/50 border border-orange-500/20 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 appearance-none"
+                                            >
+                                                <option value="days"
+                                                    >Days</option
+                                                >
+                                                <option value="minutes"
+                                                    >Minutes</option
+                                                >
+                                            </select>
+                                            <div
+                                                class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-orange-500/70"
+                                            >
+                                                <svg
+                                                    width="10"
+                                                    height="6"
+                                                    viewBox="0 0 10 6"
+                                                    fill="none"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    ><path
+                                                        d="M1 1L5 5L9 1"
+                                                        stroke="currentColor"
+                                                        stroke-width="1.5"
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                    /></svg
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p
+                                        class="text-xs mt-2 text-muted-foreground"
+                                    >
+                                        Specify how long from now the deadline
+                                        will be
+                                    </p>
+                                {:else}
+                                    <!-- Datetime input (new) -->
+                                    <Input
+                                        id="deadlineDateTime"
+                                        type="datetime-local"
+                                        bind:value={deadlineDateTime}
+                                        class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
+                                    />
+                                    <p
+                                        class="text-xs mt-2 text-muted-foreground"
+                                    >
+                                        Select a specific date and time for the
+                                        deadline
+                                    </p>
+                                {/if}
                             {:else}
-                                <!-- Datetime input (new) -->
+                                <!-- Block mode (existing) -->
                                 <Input
-                                    id="deadlineDateTime"
-                                    type="datetime-local"
-                                    bind:value={deadlineDateTime}
+                                    id="deadlineValue"
+                                    type="number"
+                                    bind:value={deadlineValueBlock}
+                                    min="1"
+                                    placeholder="Enter block height"
                                     class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
                                 />
                                 <p class="text-xs mt-2 text-muted-foreground">
-                                    Select a specific date and time for the
-                                    deadline
+                                    Enter the target block height directly
                                 </p>
                             {/if}
-                        {:else}
-                            <!-- Block mode (existing) -->
-                            <Input
-                                id="deadlineValue"
-                                type="number"
-                                bind:value={deadlineValueBlock}
-                                min="1"
-                                placeholder="Enter block height"
-                                class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50"
-                            />
-                            <p class="text-xs mt-2 text-muted-foreground">
-                                Enter the target block height directly
-                            </p>
-                        {/if}
-                        {#if deadlineValueText}
-                            <p class="text-xs mt-1 text-orange-400">
-                                Deadline: {deadlineValueText}
-                            </p>
-                        {/if}
-                    </div>
-
-                    <div class="form-group">
-                        <Label
-                            for="refundMode"
-                            class="text-sm font-medium mb-2 block text-foreground/90"
-                            >Refund Address</Label
-                        >
-                        <div class="flex gap-2 mb-2">
-                            <button
-                                type="button"
-                                on:click={() => (refundMode = "wallet")}
-                                class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {refundMode ===
-                                'wallet'
-                                    ? 'bg-orange-500 text-black font-medium'
-                                    : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
-                            >
-                                Wallet Address
-                            </button>
-                            <button
-                                type="button"
-                                on:click={() => (refundMode = "contract")}
-                                class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {refundMode ===
-                                'contract'
-                                    ? 'bg-orange-500 text-black font-medium'
-                                    : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
-                            >
-                                Contract (Time-locked)
-                            </button>
+                            {#if deadlineValueText}
+                                <p class="text-xs mt-1 text-orange-400">
+                                    Deadline: {deadlineValueText}
+                                </p>
+                            {/if}
                         </div>
-
-                        {#if refundMode === "contract"}
-                            <div
-                                class="space-y-3 mt-3 p-4 bg-orange-500/5 rounded-lg border border-orange-500/10"
-                            >
-                                <div>
-                                    <Label
-                                        for="refundAddress"
-                                        class="text-xs font-medium mb-1.5 block text-foreground/80"
-                                    >
-                                        Owner Address (who can spend)
-                                    </Label>
-                                    <Input
-                                        id="refundAddress"
-                                        type="text"
-                                        bind:value={refundAddress}
-                                        placeholder="Enter address"
-                                        class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs"
-                                    />
-                                </div>
-                                <div>
-                                    <Label
-                                        for="refundBlockHeight"
-                                        class="text-xs font-medium mb-1.5 block text-foreground/80"
-                                    >
-                                        Unlock Block Height
-                                    </Label>
-                                    <Input
-                                        id="refundBlockHeight"
-                                        type="number"
-                                        bind:value={refundBlockHeight}
-                                        min="1"
-                                        placeholder="Block height when funds become spendable"
-                                        class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs"
-                                    />
-                                    <p
-                                        class="text-xs mt-1 text-muted-foreground"
-                                    >
-                                        Funds will be locked until this block
-                                        height is reached.
-                                    </p>
-                                </div>
-                            </div>
-                        {/if}
                     </div>
 
                     <div class="form-group">
@@ -1183,6 +1155,188 @@
                             {formErrors.goalOrder}
                         </p>
                     {/if}
+
+                    <div
+                        class="form-group md:col-span-2 border-t border-orange-500/10 pt-6 mt-2"
+                    >
+                        <Label
+                            class="text-lg font-semibold mb-4 block text-orange-400"
+                            >Owner Configuration</Label
+                        >
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                            <button
+                                type="button"
+                                on:click={() => (ownerMode = "wallet")}
+                                class="px-3 py-2 text-xs md:text-sm rounded-md transition-colors {ownerMode ===
+                                'wallet'
+                                    ? 'bg-orange-500 text-black font-medium'
+                                    : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
+                            >
+                                Wallet
+                            </button>
+                            <button
+                                type="button"
+                                on:click={() => (ownerMode = "timelock")}
+                                class="px-3 py-2 text-xs md:text-sm rounded-md transition-colors {ownerMode ===
+                                'timelock'
+                                    ? 'bg-orange-500 text-black font-medium'
+                                    : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
+                            >
+                                Time-locked
+                            </button>
+                            <button
+                                type="button"
+                                on:click={() => (ownerMode = "multisig")}
+                                class="px-3 py-2 text-xs md:text-sm rounded-md transition-colors {ownerMode ===
+                                'multisig'
+                                    ? 'bg-orange-500 text-black font-medium'
+                                    : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
+                            >
+                                Multi-Sig
+                            </button>
+                            <button
+                                type="button"
+                                on:click={() => (ownerMode = "custom")}
+                                class="px-3 py-2 text-xs md:text-sm rounded-md transition-colors {ownerMode ===
+                                'custom'
+                                    ? 'bg-orange-500 text-black font-medium'
+                                    : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
+                            >
+                                Custom Script
+                            </button>
+                        </div>
+
+                        {#if ownerMode === "timelock"}
+                            <div
+                                class="space-y-3 p-4 bg-orange-500/5 rounded-lg border border-orange-500/10"
+                            >
+                                <div>
+                                    <Label
+                                        for="ownerAddress"
+                                        class="text-xs font-medium mb-1.5 block text-foreground/80"
+                                    >
+                                        Owner Address
+                                    </Label>
+                                    <Input
+                                        id="ownerAddress"
+                                        type="text"
+                                        bind:value={ownerAddress}
+                                        placeholder="Enter address"
+                                        class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs"
+                                    />
+                                </div>
+                                <div>
+                                    <Label
+                                        for="ownerBlockHeight"
+                                        class="text-xs font-medium mb-1.5 block text-foreground/80"
+                                    >
+                                        Unlock Block Height
+                                    </Label>
+                                    <Input
+                                        id="ownerBlockHeight"
+                                        type="number"
+                                        bind:value={ownerBlockHeight}
+                                        min="1"
+                                        placeholder="Block height"
+                                        class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs"
+                                    />
+                                </div>
+                            </div>
+                        {:else if ownerMode === "multisig"}
+                            <div
+                                class="space-y-3 p-4 bg-orange-500/5 rounded-lg border border-orange-500/10"
+                            >
+                                <Label
+                                    class="text-xs font-medium mb-1.5 block text-foreground/80"
+                                >
+                                    Wallet Addresses
+                                </Label>
+                                {#each multisigAddresses as addr, i}
+                                    <div class="flex gap-2">
+                                        <Input
+                                            type="text"
+                                            bind:value={multisigAddresses[i]}
+                                            placeholder="Address {i + 1}"
+                                            class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs"
+                                        />
+                                        {#if multisigAddresses.length > 2}
+                                            <button
+                                                type="button"
+                                                class="text-red-400 hover:text-red-300 px-2"
+                                                on:click={() => {
+                                                    multisigAddresses =
+                                                        multisigAddresses.filter(
+                                                            (_, idx) =>
+                                                                idx !== i,
+                                                        );
+                                                }}
+                                            >
+                                                ✕
+                                            </button>
+                                        {/if}
+                                    </div>
+                                {/each}
+                                <button
+                                    type="button"
+                                    class="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1"
+                                    on:click={() =>
+                                        (multisigAddresses = [
+                                            ...multisigAddresses,
+                                            "",
+                                        ])}
+                                >
+                                    + Add Address
+                                </button>
+
+                                <div class="mt-4">
+                                    <Label
+                                        class="text-xs font-medium mb-1.5 block text-foreground/80"
+                                    >
+                                        Required Signatures (M of N)
+                                    </Label>
+                                    <div class="flex items-center gap-2">
+                                        <Input
+                                            type="number"
+                                            bind:value={multisigRequired}
+                                            min="1"
+                                            max={multisigAddresses.length}
+                                            class="w-20 bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs"
+                                        />
+                                        <span
+                                            class="text-xs text-muted-foreground"
+                                            >of {multisigAddresses.length} signatures
+                                            required</span
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        {:else if ownerMode === "custom"}
+                            <div
+                                class="space-y-3 p-4 bg-orange-500/5 rounded-lg border border-orange-500/10"
+                            >
+                                <div>
+                                    <Label
+                                        for="ownerErgoTree"
+                                        class="text-xs font-medium mb-1.5 block text-foreground/80"
+                                    >
+                                        ErgoTree Hex
+                                    </Label>
+                                    <textarea
+                                        id="ownerErgoTree"
+                                        bind:value={ownerErgoTreeHex}
+                                        placeholder="0008cd..."
+                                        class="w-full h-24 p-2 bg-background/50 border border-orange-500/20 rounded-md focus:border-orange-500/50 text-xs font-mono resize-none"
+                                    ></textarea>
+                                    <p
+                                        class="text-xs mt-1 text-muted-foreground"
+                                    >
+                                        Paste the compiled ErgoTree hex string
+                                        here.
+                                    </p>
+                                </div>
+                            </div>
+                        {/if}
+                    </div>
                 </div>
             </div>
 

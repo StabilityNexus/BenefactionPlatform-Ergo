@@ -142,3 +142,20 @@ export function compile_refund_contract(ownerAddress: string, deadline: number):
   const ergoTree = compile(contract, { version: 1, network: network_id });
   return ergoTree.toHex();
 }
+
+/**
+ * Compile a multisig contract
+ * @param owners List of owner addresses
+ * @param required Number of signatures required
+ */
+export function compile_multisig_contract(owners: string[], required: number): string {
+  const publicKeys = owners.map(addr => `PK("${addr}")`).join(", ");
+  const contract = `
+    {
+      atLeast(${required}, Coll[SigmaProp](${publicKeys}))
+    }
+  `;
+
+  const ergoTree = compile(contract, { version: 1, network: network_id });
+  return ergoTree.toHex();
+}
