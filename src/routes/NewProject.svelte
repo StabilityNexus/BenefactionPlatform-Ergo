@@ -234,6 +234,12 @@
                 decimals: 2,
                 balance: 0,
             },
+            {
+                tokenId: "886b7721bef42f60c6317d37d8752da8aca01898cae7dae61808c4a14225edc8",
+                title: "GluonW GAU",
+                decimals: 9,
+                balance: 0,
+            }
         ];
 
         /*
