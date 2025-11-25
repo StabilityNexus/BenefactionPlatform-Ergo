@@ -125,29 +125,6 @@
         mobileMenuOpen = false; // Close mobile menu after selection
     }
 
-    // Function to copy the wallet address to the clipboard
-    function copyToClipboard() {
-        if ($address) {
-            navigator.clipboard
-                .writeText($address)
-                .then(() => {
-                    showCopyMessage = true;
-                    setTimeout(() => (showCopyMessage = false), 2000); // Hide message after 2 seconds
-                })
-                .catch((err) => console.error("Failed to copy text: ", err));
-        }
-    }
-
-    function disconnect() {
-        // Use the new wallet manager for disconnection
-        walletManager.disconnectWallet();
-    }
-
-    // Close the modal if the user clicks outside of it
-    function handleOutsideClick(event: MouseEvent) {
-        showWalletInfo = false;
-    }
-
     function toggleMobileMenu() {
         mobileMenuOpen = !mobileMenuOpen;
     }
