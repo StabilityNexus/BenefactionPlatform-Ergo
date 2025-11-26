@@ -125,29 +125,6 @@
         mobileMenuOpen = false; // Close mobile menu after selection
     }
 
-    // Function to copy the wallet address to the clipboard
-    function copyToClipboard() {
-        if ($address) {
-            navigator.clipboard
-                .writeText($address)
-                .then(() => {
-                    showCopyMessage = true;
-                    setTimeout(() => (showCopyMessage = false), 2000); // Hide message after 2 seconds
-                })
-                .catch((err) => console.error("Failed to copy text: ", err));
-        }
-    }
-
-    function disconnect() {
-        // Use the new wallet manager for disconnection
-        walletManager.disconnectWallet();
-    }
-
-    // Close the modal if the user clicks outside of it
-    function handleOutsideClick(event: MouseEvent) {
-        showWalletInfo = false;
-    }
-
     function toggleMobileMenu() {
         mobileMenuOpen = !mobileMenuOpen;
     }
@@ -225,7 +202,7 @@
             <ul class="nav-links">
                 <li class={activeTab === "acquireTokens" ? "active" : ""}>
                     <a href="#" on:click={() => changeTab("acquireTokens")}>
-                        Contribute to a Project
+                        Contribute to a Campaign
                     </a>
                 </li>
                 <li class={activeTab === "myContributions" ? "active" : ""}>
@@ -235,19 +212,21 @@
                 </li>
                 <li class={activeTab === "myProjects" ? "active" : ""}>
                     <a href="#" on:click={() => changeTab("myProjects")}>
-                        My Projects
+                        My Campaigns
                     </a>
                 </li>
                 <li class={activeTab === "submitProject" ? "active" : ""}>
                     <a href="#" on:click={() => changeTab("submitProject")}>
-                        New Project
+                        New Campaign
                     </a>
                 </li>
             </ul>
         </nav>
 
         <div class="user-section">
-            <WalletButton />
+            <div class="wallet-wrapper">
+                <WalletButton />
+            </div>
 
             {#if $walletConnected}
                 <div class="token-badges">
@@ -313,7 +292,7 @@
         <ul class="mobile-nav-links">
             <li class={activeTab === "acquireTokens" ? "active" : ""}>
                 <a href="#" on:click={() => changeTab("acquireTokens")}>
-                    Contribute to a Project
+                    Contribute to a Campaign
                 </a>
             </li>
             <li class={activeTab === "myContributions" ? "active" : ""}>
@@ -323,19 +302,19 @@
             </li>
             <li class={activeTab === "myProjects" ? "active" : ""}>
                 <a href="#" on:click={() => changeTab("myProjects")}>
-                    My Projects
+                    My Campaigns
                 </a>
             </li>
             <li class={activeTab === "submitProject" ? "active" : ""}>
                 <a href="#" on:click={() => changeTab("submitProject")}>
-                    New Project
+                    New Campaign
                 </a>
             </li>
         </ul>
     </div>
 {/if}
 
-<main class="pb-16">
+<main class="responsive-main">
     {#if $project_detail === null}
         {#if activeTab === "acquireTokens"}
             <TokenAcquisition />
@@ -443,6 +422,24 @@
         height: 100%;
     }
 
+    /* Main padding adjustment for mobile */
+    .responsive-main {
+        padding-bottom: 6rem; /* Extra padding for taller footer on mobile */
+    }
+
+    @media (min-width: 769px) {
+        .responsive-main {
+            padding-bottom: 4rem; /* Standard padding for desktop */
+        }
+    }
+
+    @media (max-width: 768px) {
+        .responsive-main {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+    }
+
     :global(.bits-dropdown-menu-content-wrapper) {
         position: absolute !important;
         z-index: 999 !important;
@@ -453,6 +450,7 @@
         position: static !important;
         overflow: visible !important;
     }
+
     /* Navbar Styles */
     .navbar-container {
         position: sticky;
@@ -535,12 +533,12 @@
         gap: 1.5rem;
         flex-wrap: nowrap;
         overflow-x: auto;
-        scrollbar-width: none; /* Firefox */
-        -ms-overflow-style: none; /* IE and Edge */
+        scrollbar-width: none;
+        -ms-overflow-style: none;
     }
 
     .nav-links::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, Opera */
+        display: none;
     }
 
     .nav-links li {
@@ -584,7 +582,6 @@
         flex-shrink: 0;
     }
 
-    /* Token badges for new wallet system */
     .token-badges {
         display: flex;
         gap: 0.5rem;
@@ -594,7 +591,7 @@
 
     @media (max-width: 768px) {
         .token-badges {
-            display: none; /* Hide on mobile to save space */
+            display: none;
         }
     }
 
@@ -700,85 +697,53 @@
         box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);
     }
 
-    /* Responsive Adjustments */
+    /* Responsive Header Adjustments */
     @media (max-width: 1024px) {
         .navbar-content {
-            padding: 0.4rem;
-        }
-
-        .nav-links {
-            gap: 0.5rem;
-        }
-
-        /* Removed unused .user-info selector */
-
-        .user-section {
-            padding: 0.25rem;
-            gap: 0.35rem;
-        }
-    }
-
-    @media (max-width: 1024px) {
-        .navbar-content {
-            gap: 0.5rem;
-            justify-content: space-between;
-            flex-wrap: nowrap;
-        }
-
-        .logo-text {
-            font-size: 1.35rem;
+            padding: 0.25rem 0.5rem;
+            gap: 0.25rem;
         }
 
         .logo-container {
-            order: 1;
-            flex-shrink: 0;
+            padding: 0.25rem;
+            margin-right: 0.25rem;
+        }
+
+        .logo-text {
+            font-size: 1.25rem; /* Smaller logo text on tablet/mobile */
+        }
+
+        .logo-image {
+            width: 1.8rem;
+            height: 1.8rem;
         }
 
         .user-section {
             background: transparent;
-            padding: 0.25rem;
-            gap: 0.5rem;
+            padding: 0;
+            gap: 0.25rem;
             margin-left: auto;
-            order: 2;
-            display: flex;
-            align-items: center;
             flex-shrink: 1;
             min-width: 0;
         }
-
-        /* Removed unused .wallet-button selector */
-
-        /* Hide theme toggle on smaller screens */
-        .theme-toggle {
-            display: none;
+        
+        /* Force settings and theme off on mobile to save space */
+        .theme-toggle, .settings-button {
+            display: none !important;
         }
 
-        /* Hide settings button on very small screens */
-        .settings-button {
-            display: none;
-        }
-
-        /* Position mobile menu button at the extreme right */
         .mobile-menu-button {
-            margin-left: 0.5rem;
-            order: 3; /* Always at the end */
-            flex-shrink: 0; /* Never shrink the menu button */
+            margin-left: 0.25rem;
+        }
+    }
+    
+    /* Super small screens */
+    @media (max-width: 380px) {
+        .logo-text {
+            display: none; /* Hide text, keep icon */
         }
     }
 
-    /* Additional responsive styles for the navbar */
-    @media (max-width: 1024px) {
-        .navbar-content {
-            padding: 0.25rem;
-        }
-
-        .logo-container {
-            padding: 0.25rem 0.25rem;
-            margin-right: 0.5rem;
-        }
-    }
-
-    /* Added better wrapping for the user section elements */
     .user-section,
     .theme-toggle {
         display: flex;
@@ -800,12 +765,49 @@
         gap: 1.5rem;
         font-size: 0.875rem;
         color: var(--foreground);
-
         border-top: 1px solid var(--footer-border-color);
         background-color: var(--footer-bg-color);
-
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
+        transition: height 0.3s ease;
+    }
+
+    /* Mobile Footer Re-layout using Grid */
+    @media (max-width: 768px) {
+        .page-footer {
+            height: auto;
+            min-height: 5rem;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            grid-template-rows: auto auto;
+            padding: 0.5rem 1rem;
+            gap: 0.5rem;
+            padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+        }
+
+        /* Top Row: Scrolling Text */
+        .footer-center {
+            grid-column: 1 / -1; /* Span full width */
+            grid-row: 1; 
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 0.25rem;
+            margin-bottom: 0.1rem;
+            width: 100%;
+        }
+
+        /* Bottom Row Left: Icons */
+        .footer-left {
+            grid-column: 1;
+            grid-row: 2;
+            justify-content: flex-start;
+        }
+
+        /* Bottom Row Right: Block Info */
+        .footer-right {
+            grid-column: 2;
+            grid-row: 2;
+            justify-content: flex-end;
+        }
     }
 
     .footer-left,
@@ -891,9 +893,12 @@
     @media (max-width: 768px) {
         :global(.wallet-connected-button),
         :global(.wallet-connect-button) {
-            max-width: 180px;
-            font-size: 0.85rem;
-            padding: 0.4rem 0.6rem;
+            max-width: 140px; /* Force shrinking */
+            font-size: 0.8rem;
+            padding: 0.35rem 0.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         :global(.wallet-connected-button .font-mono) {

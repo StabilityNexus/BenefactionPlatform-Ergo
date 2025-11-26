@@ -62,6 +62,7 @@ async function mint_tx(
     decimals: number,
     statusUpdate?: StatusUpdater
 ): Promise<Box> {
+
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
 
@@ -90,6 +91,8 @@ async function mint_tx(
         .build()                               // Build the transaction
         .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
 
+    yield "Please sign the mint transaction...";
+
     // Sign the transaction
     statusUpdate?.("signMintTx", "Please sign the token mint transaction (step 1 of 2).");
     const signedTransaction = await signTransaction(unsignedTransaction);
@@ -103,6 +106,8 @@ async function mint_tx(
 
     console.log("Mint tx id: " + transactionId);
 
+    yield "Waiting for mint confirmation... (this may take a few minutes)";
+
     let box = await wait_until_confirmation(transactionId);
     if (box == null) {
         alert("Mint tx failed.")
@@ -114,7 +119,7 @@ async function mint_tx(
 }
 
 // Function to submit a project to the blockchain
-export async function submit_project(
+export async function* submit_project(
     version: contract_version,
     token_id: string,
     token_amount: number,
@@ -127,6 +132,7 @@ export async function submit_project(
     base_token_id: string = "",  // Base token ID for contributions (empty for ERG)
     onStatusUpdate?: (progress: SubmissionProgress) => void
 ): Promise<string | null> {
+
 
     // Parse and validate project content
     let parsedContent: ProjectContent;
@@ -148,7 +154,7 @@ export async function submit_project(
     const walletPk = await getChangeAddress();
 
     let addressContent: ConstantContent = {
-        "owner": ErgoAddress.fromBase58(walletPk).ergoTree,
+        "owner": owner_ergotree ? owner_ergotree : ErgoAddress.fromBase58(walletPk).ergoTree,
         "dev_addr": get_dev_contract_address(),
         "dev_hash": get_dev_contract_hash(),
         "dev_fee": get_dev_fee(),
@@ -168,6 +174,7 @@ export async function submit_project(
 
     // Build the mint tx.
     let mint_box = await mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"], notify);
+
     let project_id = mint_box.assets[0].tokenId;
 
     if (project_id === null) { alert("Token minting failed!"); return null; }
@@ -240,6 +247,7 @@ export async function submit_project(
     }
 
     notify("signProjectTx", "Mint confirmed! Please sign the project deployment transaction (step 2 of 2).");
+
     // Sign the transaction
     const signedTransaction = await signTransaction(unsignedTransaction);
 

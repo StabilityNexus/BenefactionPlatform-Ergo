@@ -140,7 +140,7 @@
                 {#if canContribute}
                     <div
                         class="balance-badge success"
-                        title="You have sufficient funds to contribute to this project"
+                        title="You have sufficient funds to contribute to this campaign"
                     >
                         ✓ You can contribute
                     </div>
@@ -162,7 +162,7 @@
                 {:else}
                     <div
                         class="balance-badge neutral"
-                        title="This project has reached its maximum funding goal"
+                        title="This campaign has reached its maximum funding goal"
                     >
                         Fully funded
                     </div>
@@ -228,7 +228,7 @@
             on:click={() => project_detail.set(project)}
             style="background-color: orange; color: black;"
         >
-            View Project
+            View Campaign
         </Button>
     </Card.Footer>
 </Card.Root>

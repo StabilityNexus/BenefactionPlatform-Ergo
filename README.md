@@ -1,109 +1,146 @@
-# Bene: Fundraising Platform
+# Bene: Decentralized Fundraising Platform
 
 ![Logo](static/favicon.png)
 
-## Overview
-Bene: Proof-of-Funding Fundraising Platform is a decentralized application (DApp) that enables projects to receive funding in exchange for participation tokens. This DApp allows projects to request funds (ERGs or any other token) in exchange for participation tokens.
+## 🌟 Overview
 
-### How it Works
+**Bene** is a decentralized application (DApp) on the Ergo blockchain designed for **Proof-of-Funding** fundraising. Its purpose is to eliminate the need for trust in a counterparty, using smart contracts to ensure that projects can only access funds if they meet a predefined minimum goal.
 
-- Each project contains two tokens:
-   1. **Auxiliary Project Token (APT)**: This token is minted during the project creation transaction and serves two main purposes:
-      - **Project Identifier**: A single unit of the APT remains in the contract to uniquely identify the project.
-      - **Contribution Tracking**: Temporarily, contributors receive this token when participating in the project. Once it is confirmed that a refund is no longer possible, contributors can exchange the APT for the **Proof-funding Token (PFT)**.
-      - The total supply of APT equals the total issuance of PFT plus one (for the identifier unit).
-   2. **Proof-funding Token (PFT)**: Unlike the APT, the PFT is not minted on the contract. It represents the project or its organization and may also reflect proof-funding for similar projects within the same organization. PFTs are distributed only after refund conditions are no longer applicable, ensuring proper tracking. 
+### 🔒 Serverless Architecture: Sovereignty and Local Execution
+A fundamental feature of Bene is its **100% Client-Side** architecture:
+* **No Backend:** The platform does not use central servers or private databases. Everything runs locally in your browser.
+* **Direct Connection:** You choose which public node or explorer to connect to. The application reads and writes directly to the Ergo blockchain.
+* **Censorship Resistance:** By not relying on proprietary servers, the interface is resilient and truly decentralized.
+* **The Contract is the Rule:** Business logic and fund custody reside exclusively in the immutable smart contract.
 
->The use of the APT ensures that during refunds, the origin of the token can be reliably traced to the current project. If PFTs were distributed immediately upon purchase, distinguishing whether a token originated from the current project or another related project would not be possible.
+---
 
-- Project owners can create a box that holds an amount of tokens, which may vary, setting a **block limit** as a deadline.
-- A minimum amount of tokens must be sold before the project can withdraw funds. This ensures that the project receives sufficient backing.
-- If the block limit is reached before minimum amount of tokens are sold, users have the option to exchange their tokens back for the corresponding funds, provided the minimum has not been reached.
-- The main box is self-replicating, meaning that anyone can spend the box as long as they re-create it with the same parameters and add funds in exchange for a specified amount of tokens.
+## 📖 Guide for Users (Contributors)
 
-## Parameters of a Box
+This section details the lifecycle of your contribution and the guarantees offered by the contract.
 
-- **Block Limit (R4)**: A tuple `(Boolean, Long)` specifying the deadline. The Boolean indicates the limit type (`false` for Block Height, `true` for Timestamp), and the Long holds the limit value.
-- **Minimum Tokens Sold (R5)**: The minimum number of tokens that must be sold to enable withdrawals or refunds.
-- **Token Sold Counter (R6)**: Collection of three Longs: tokens sold, tokens refunded, and APTs exchanged for PFTs.
-- **Exchange Rate (R7)**: The exchange rate of Base Token per PFT.
-- **Contract Constants (R8)**: A collection of byte arrays `Coll[Coll[Byte]]` containing: `[owner_ergotree, dev_fee_contract_bytes_hash, dev_fee, pft_token_id, base_token_id]`.
-- **Project Content (R9)**: Contains a JSON-formatted string with details about the project, such as its title, description, and other related information.
+### Key Concepts: The Two Tokens
 
-### Contract Configuration (Stored in R8)
+The platform uses a dual-token system to ensure traceability and internal accounting:
 
-To avoid hard-coding values and allow the same contract script to be used for multiple projects, the following configuration parameters are stored in register **R8**:
+1.  **APT (Auxiliary Project Token):**
+    * **Function:** This is your **temporary deposit receipt**. It is used to track and measure your contribution to this specific campaign.
+    * **Mechanism:** Upon purchase, you receive APTs. These APTs are your key to the future: you either exchange them for the real token (PFT) or use them to claim your refund.
 
-- **Owner Address** (`owner_ergotree`): The ErgoTree bytes of the contract owner.
-- **Developer Fee Contract Hash** (`dev_fee_contract_bytes_hash`): Hash of the developer fee contract proposition.
-- **Developer Fee** (`dev_fee`): The percentage fee taken by the developer.
-- **PFT Token ID** (`pft_token_id`): The unique identifier for the Proof-funding Token.
-- **Base Token ID** (`base_token_id`): The identifier of the token used for contributions (empty for ERG).
+2.  **PFT (Proof-funding Token):**
+    * **Function:** This is the **real project participation token** (governance, shares, utility, etc.).
+    * **Distribution:** PFTs are released from the contract and distributed **only after** the campaign is declared successful.
 
+### Detailed Contribution Flow
 
-## Processes
-The Bene: Fundraising Platform supports seven main processes:
+#### 1. Participation and Fund Locking
+* When you contribute (in ERG or Base Token), the contract acts as an *escrow* guarantee deposit.
+* The contract receives your funds and issues the corresponding amount of **APTs** based on the price (`R7`).
+* **Guarantee:** Both your funds and the project's PFTs remain **locked** in the contract box until the Deadline is met or the Minimum Goal is reached.
 
-1. **Box Creation**: 
-   - Allows anyone to create a box with the specified script and parameters.
-   - The box represents the project's request for funds in exchange for a specific amount of tokens.
-   - The tokens in the box are provided by the box creator, that is, the project owner.
+#### 2. Campaign Resolution (Outcome Determination)
 
-2. **Token Acquisition**: 
-   - Users are allowed to exchange funds (ERGs or Base Tokens) for **Auxiliary Project Tokens (APTs)** (at the R7 exchange rate) until there are no more tokens left, even if the deadline has passed.
-   - Users receive APTs in their own boxes, which adhere to token standards, making them visible and transferable through Ergo wallets.
+| Outcome | Unlock Conditions | Required Action (User) |
+| :--- | :--- | :--- |
+| **Success** | Net Sales **>= Minimum Goal** (`R5`). | **Exchange:** Swap your APTs for PFTs. |
+| **Failure** | **Deadline Expired** (`R4`) **AND** Net Sales **< Minimum Goal** (`R5`). | **Guaranteed Refund:** Return your APTs to receive **100%** of your original funds. |
 
-3. **Refund Tokens**: 
-   - Users are allowed to exchange APTs for funds (at the R7 exchange rate) if and only if the deadline has passed and the minimum number of tokens has not been sold.
-   - This ensures that participants can retrieve their contributions if the funding goal is not met.
+#### 3. Community Interaction and Comments
+Each project integrates a decentralized discussion forum.
+* **Fully On-Chain:** All comments and discussions are recorded directly on the Ergo blockchain, ensuring no one can censor the project discussion.
+* **Protocol:** This system is based on the open reputation protocol, ensuring the permanence and transparency of interactions.
+* *More information:* [Reputation Systems Forum Protocol](https://github.com/reputation-systems/forum-application)
 
-4. **Withdraw Funds**: 
-   - Project owners are allowed to withdraw funds if and only if the minimum number of tokens has been sold.
-   - Project owners can only withdraw to the address specified in `owner_ergotree`.
+---
 
-5. **Withdraw Unsold Tokens**:
-   - Project owners are allowed to withdraw unsold PFTs from the contract at any time.
-      > Where the PFTs available to amount follows the formula:
-      `PFT.amount - sold_counter + refunded_counter`
-   - Project owners can only withdraw to the address specified in `owner_ergotree`.
+## 🏗️ Guide for Creators (Project Owners)
 
-6. **Add Tokens**:
-   - Project owners are allowed to add more APTs to the contract at any time.
+This section covers setup, costs, and campaign management.
 
-7. **Auxiliary Exchange**:
-   - Users are allowed to exchange **Auxiliary Project Tokens (APTs)** for **Proof-funding Tokens (PFTs)** if and only if the minimum number of tokens has been sold.
+### Requirements and Initial Setup
+You only need to prepare **one asset** before launch:
+* **Project Token (PFT):** You must have the total amount of tokens you plan to sell already minted and available.
+* **APT:** The Auxiliary Token (APT), necessary for contract accounting, is **automatically generated** by the platform when you set up the contract box.
 
+### Costs and Fees
+Bene applies a "shared success" model:
+* **Developer Fee:** **5%** of the funds raised.
+* **Condition:** This fee is **only charged if the campaign is successful** and you withdraw the funds. If the campaign fails and users request a refund, the platform does not charge anything.
 
-*The platform supports contributions in ERG or any other token on the Ergo blockchain (e.g., GAU), providing flexibility in funding options.*
+### Critical Parameters
+When creating the campaign, the following parameters are immutably recorded in the contract:
+* **Minimum Goal (`R5`):** The threshold that determines success. If exceeded, fund withdrawal is enabled and refunds are blocked.
+* **Deadline (`R4`):** Defines when the "guaranteed refund" period ends. Users can only request a refund if this date has passed and the goal was not met.
+* **Base Token:** Flexibility to choose between ERG or a specific token ID for the fundraising (e.g., a stablecoin).
 
-## Usage
+### Fund Management
 
-You can interact with the platform using the following webpage:
+| Action | Condition | Management Implication |
+| :--- | :--- | :--- |
+| **Withdraw Funds** | Success (Minimum Goal reached). | The contract automatically executes the fee split: 95% to the owner, 5% to the developer. |
+| **Withdraw Unsold Tokens (Stock)** | Available at any time. | Allows the owner to recover the *surplus stock* of PFTs that have not yet been sold, while maintaining the security invariant. |
+| **Add Stock (PFT)** | At any time. | Allows increasing the total PFT supply available for sale to extend the campaign or meet higher demand. |
 
-[BenefactionPlatform-Ergo](https://stabilitynexus.github.io/BenefactionPlatform-Ergo/)
+---
 
-## Installation Steps
+## ⚙️ Technical Guide (Detailed Architecture)
 
-1. **Clone the Repository**
-Clone the repository URL and navigate to the project folder.
-   ```bash
-   git clone https://github.com/StabilityNexus/BenefactionPlatform-Ergo
-   cd BenefactionPlatform-Ergo
-   ```
+This section is for developers and auditors who wish to understand the inner workings of the `contract_v2.es`.
 
-2. **Set Node Version to 20**
-Make sure you have Node Version Manager (nvm) installed. If not, you can install it from the official NVM repository. Once installed, switch to Node.js version 20.
-   ```bash
-   nvm use 20
-   ```
+### Token Dynamics and Accounting
 
-3. **Install Dependencies**
-Run the installation command to install the required dependencies for the project.
-   ```bash
-   npm install
-   ```
+#### 1. The Dual Nature of the APT
+The APT has two roles, reflected in its total supply (`PFT Supply + 1`):
+* **NFT Unit:** One unit of APT always remains in the box (`R1`) as a unique identifier (similar to an NFT) associating the contract with the project.
+* **Circulating Supply:** The remaining units of APT act as contribution receipts, ensuring traceability.
 
-4. **Run the Development Server**
-   ```bash
-   npm run dev
-   ```
+#### 2. Security Invariant
+The core of fund protection is the following invariant: **The contract must always maintain enough PFTs to cover all circulating APTs that have not yet been exchanged.**
+
+* $PFT_{in\_box} \ge APT_{in\_circulation}$
+* This invariant is rigorously applied in the **Withdraw Unsold Tokens** logic, ensuring the owner cannot withdraw PFTs if it jeopardizes the contract's ability to redeem users' APTs.
+
+#### 3. Multi-Token Support
+The contract handles payment token flexibility using Register `R8`:
+* If the `base_token_id` field in `R8` is empty, the contract assumes fundraising is in **ERG**.
+* If `base_token_id` contains a token ID, all price calculations (`R7`) and refunds are based on that specific token.
+
+### Complete Register Specification (Registers)
+
+| Register | Type | Functional Description |
+| :--- | :--- | :--- |
+| **R4** | `(Boolean, Long)` | **Temporal Limit.** Defines the expiration time for refunds (Block Height or Timestamp). |
+| **R5** | `Long` | **Success Threshold.** Minimum number of tokens to be sold. |
+| **R6** | `Coll[Long]` | **Counters:** [0] Tokens Sold, [1] Tokens Refunded, [2] APTs Exchanged for PFTs. |
+| **R7** | `Long` | **Price.** Exchange rate (Base Token per PFT). |
+| **R8** | `Coll[Coll[Byte]]` | **Immutable Configuration:** Owner's Script, Fee address Hash, **Fee Percentage (5%)**, PFT ID, and Base Token ID. |
+| **R9** | `Coll[Byte]` | **Metadata.** Descriptive project information (JSON). |
+
+---
+
+## 🚀 Installation and Development
+
+As a *client-side* application, you can run it locally without third-party dependencies, connecting to your preferred node.
+
+### Requirements
+* Node.js v20+
+* Git
+
+### Steps
+1.  **Clone the Repository:**
+    ```bash
+    git clone [https://github.com/StabilityNexus/BenefactionPlatform-Ergo](https://github.com/StabilityNexus/BenefactionPlatform-Ergo)
+    cd BenefactionPlatform-Ergo
+    ```
+
+2.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+
+3.  **Run the Local Development Server:**
+    ```bash
+    npm run dev
+    ```
+
+You can access the deployed version at: [BenefactionPlatform-Ergo](https://stabilitynexus.github.io/BenefactionPlatform-Ergo/)

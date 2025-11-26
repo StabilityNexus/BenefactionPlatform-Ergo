@@ -1811,7 +1811,7 @@
         margin-top: 1rem;
     }
 
-    @media (min-width: 768px) {
+    @media (min-width: 1024px) {
         .project-container {
             grid-template-columns: 1fr 1fr;
         }
@@ -1823,15 +1823,40 @@
             flex-direction: row;
         }
     }
-    @media (max-width: 767px) {
-        .project-detail {
+    
+    @media (max-width: 1023px) {
+        .project-title {
+            font-size: 1.5rem;
+            word-break: break-word;
+        }
+
+        .project-image {
+            height: 200px;
+        }
+        
+        .countdown-container,
+        .progress-container,
+        .actions-section {
             padding: 1rem;
         }
-        .action-buttons {
-            flex-direction: column;
+
+        .amounts-info {
+            grid-template-columns: 1fr; 
+            gap: 1.5rem;
         }
-        .actions-form {
-            padding: 1.5rem;
+
+        .item {
+            width: 70px;
+            height: 70px;
+        }
+
+        .item > div {
+            font-size: 1.5rem;
+        }
+
+        .forum-section {
+            padding: 1rem;
+            margin-top: 1.5rem;
         }
     }
 

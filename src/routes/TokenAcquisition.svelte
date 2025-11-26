@@ -1,11 +1,10 @@
 <script lang="ts">
     import ProjectList from "./ProjectList.svelte";
-    import { type Project} from "$lib/common/project";
+    import { type Project } from "$lib/common/project";
 
     async function projectFilter(project: Project) {
-        return true  
+        return true;
     }
 </script>
-<ProjectList filterProject={projectFilter}>
-    Fundraising Projects
-</ProjectList>
+
+<ProjectList filterProject={projectFilter}>Fundraising Campaigns</ProjectList>

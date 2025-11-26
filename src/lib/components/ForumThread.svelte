@@ -216,8 +216,8 @@
 					rows="3"
 				/>
 
-				<div class="flex items-center gap-3">
-					<div class="flex gap-2">
+				<div class="flex flex-col sm:flex-row sm:items-center gap-3">
+					<div class="flex gap-2 w-full sm:w-auto">
 						<Button
 							variant={sentiment === true ? "default" : "outline"}
 							size="sm"
@@ -241,7 +241,7 @@
 					<Button
 						on:click={handlePostComment}
 						disabled={isPostingComment || !newCommentText.trim()}
-						class="ml-auto"
+						class="w-full sm:w-auto sm:ml-auto"
 					>
 						{isPostingComment ? "Posting..." : "Post Comment"}
 					</Button>
@@ -408,8 +408,8 @@
 											rows="2"
 										/>
 
-										<div class="flex items-center gap-3">
-											<div class="flex gap-2">
+										<div class="flex flex-col sm:flex-row sm:items-center gap-3">
+											<div class="flex gap-2 w-full sm:w-auto">
 												<Button
 													variant={replySentiment ===
 													true
@@ -440,7 +440,7 @@
 												</Button>
 											</div>
 
-											<div class="flex gap-2 ml-auto">
+											<div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:ml-auto">
 												<Button
 													variant="outline"
 													size="sm"
