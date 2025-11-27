@@ -11,6 +11,11 @@
     import * as Select from "$lib/components/ui/select";
     import { get } from "svelte/store";
     import { explorer_uri, user_tokens } from "$lib/common/store";
+    import type {
+        SubmissionProgress,
+        SubmissionStage,
+    } from "$lib/ergo/actions/submit";
+    import { addPendingProjectCreation } from "$lib/common/pending";
     import { walletConnected } from "$lib/wallet/wallet-manager";
     import { formatTransactionError } from "$lib/common/error-utils";
     import {
@@ -66,6 +71,84 @@
     let transactionId: string | null = null;
     let errorMessage: string | null = null;
     let isSubmitting: boolean = false;
+
+    const submissionStageOrder: SubmissionStage[] = [
+        "preparing",
+        "signMintTx",
+        "waitingMintConfirmation",
+        "mintConfirmed",
+        "signProjectTx",
+        "projectSubmitted",
+    ];
+
+    const submissionStageMeta: Record<
+        SubmissionStage,
+        { title: string; fallback: string }
+    > = {
+        preparing: {
+            title: "Prepare project data",
+            fallback: "Setting up project parameters and registers.",
+        },
+        signMintTx: {
+            title: "Sign token mint (1/2)",
+            fallback: "Please confirm the token mint transaction in your wallet.",
+        },
+        waitingMintConfirmation: {
+            title: "Await mint confirmation",
+            fallback:
+                "Waiting for the token mint transaction to be confirmed on-chain. This may take a few minutes.",
+        },
+        mintConfirmed: {
+            title: "Token mint confirmed",
+            fallback: "Mint confirmed. Preparing the final project deployment.",
+        },
+        signProjectTx: {
+            title: "Sign project deployment (2/2)",
+            fallback: "Approve the project deployment transaction in your wallet.",
+        },
+        projectSubmitted: {
+            title: "Project submitted",
+            fallback: "Project deployment transaction submitted to the network.",
+        },
+    };
+
+    let submissionStage: SubmissionStage | null = null;
+    let submissionStatusMessage = "";
+    let submissionTimeline: SubmissionProgress[] = [];
+
+    $: currentSubmissionStageIndex = submissionStage
+        ? submissionStageOrder.indexOf(submissionStage)
+        : -1;
+
+    function updateSubmissionProgress(progress: SubmissionProgress) {
+        submissionStage = progress.stage;
+        submissionStatusMessage = progress.message;
+
+        submissionTimeline = (() => {
+            const existingIndex = submissionTimeline.findIndex(
+                (entry) => entry.stage === progress.stage,
+            );
+            if (existingIndex >= 0) {
+                const updated = [...submissionTimeline];
+                updated[existingIndex] = progress;
+                return updated;
+            }
+
+            const appended = [...submissionTimeline, progress];
+            appended.sort(
+                (a, b) =>
+                    submissionStageOrder.indexOf(a.stage) -
+                    submissionStageOrder.indexOf(b.stage),
+            );
+            return appended;
+        })();
+    }
+
+    function clearSubmissionProgress() {
+        submissionStage = null;
+        submissionStatusMessage = "";
+        submissionTimeline = [];
+    }
 
     let userTokens: Array<{
         tokenId: string;
@@ -447,6 +530,7 @@
         isSubmitting = true;
         errorMessage = null;
         transactionId = null;
+        submissionTimeline = [];
 
         if (minGoalPrecise === undefined) {
             minGoalPrecise = 0;
@@ -475,13 +559,21 @@
                 Math.round(minimumTokenSold),
                 projectTitle,
                 baseTokenId,
+                (progress) => updateSubmissionProgress(progress),
             );
-            transactionId = result;
+            if (result) {
+                transactionId = result;
+                addPendingProjectCreation({
+                    txId: result,
+                    version: platform.last_version,
+                });
+            }
         } catch (error) {
             console.error(error);
             errorMessage = formatTransactionError(error);
         } finally {
             isSubmitting = false;
+            clearSubmissionProgress();
         }
     }
 
@@ -1244,7 +1336,68 @@
                     </div>
                 {/if}
 
-                {#if transactionId}
+                {#if isSubmitting}
+                    <div
+                        class="w-full max-w-xl bg-background/70 border border-orange-500/20 rounded-2xl p-5 shadow-xl shadow-orange-500/10 backdrop-blur"
+                        aria-live="polite"
+                    >
+                        <div class="flex items-center gap-2 text-orange-300 font-semibold text-sm uppercase tracking-widest">
+                            <span class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span>
+                            Deployment in progress
+                        </div>
+                        <p class="text-sm text-muted-foreground mt-2">
+                            {submissionStatusMessage ||
+                                "Processing blockchain transactions..."}
+                        </p>
+
+                        <div class="mt-4 space-y-3">
+                            {#each submissionStageOrder as stage}
+                                {@const stageIndex =
+                                    submissionStageOrder.indexOf(stage)}
+                                {@const stageEntry = submissionTimeline.find(
+                                    (entry) => entry.stage === stage,
+                                )}
+                                {@const isComplete =
+                                    stageIndex !== -1 &&
+                                    currentSubmissionStageIndex !== -1 &&
+                                    stageIndex < currentSubmissionStageIndex}
+                                {@const isCurrent =
+                                    stageIndex !== -1 &&
+                                    currentSubmissionStageIndex !== -1 &&
+                                    stageIndex === currentSubmissionStageIndex}
+                                <div
+                                    class={`flex items-start gap-3 rounded-xl border p-3 transition ${
+                                        isComplete
+                                            ? "border-green-500/40 bg-green-500/5"
+                                            : isCurrent
+                                              ? "border-orange-500/40 bg-orange-500/5"
+                                              : "border-border/40 bg-background/40"
+                                    }`}
+                                >
+                                    <div
+                                        class={`w-3.5 h-3.5 mt-1 rounded-full border ${
+                                            isComplete
+                                                ? "bg-green-400 border-green-300"
+                                                : isCurrent
+                                                  ? "bg-orange-400 border-orange-200 animate-pulse"
+                                                  : "bg-zinc-700 border-border"
+                                        }`}
+                                    ></div>
+                                    <div>
+                                        <p class="text-sm font-semibold text-foreground">
+                                            {submissionStageMeta[stage].title}
+                                        </p>
+                                        <p class="text-xs text-muted-foreground mt-1 leading-relaxed">
+                                            {stageEntry?.message ||
+                                                submissionStageMeta[stage]
+                                                    .fallback}
+                                        </p>
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    </div>
+                {:else if transactionId}
                     <div
                         class="result bg-green-500/10 border border-green-500/20 rounded-xl p-6 w-full max-w-xl text-center shadow-lg shadow-green-500/5"
                     >
@@ -1293,7 +1446,7 @@
                         class="w-full max-w-xs bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-black border-none h-12 text-lg font-bold rounded-lg shadow-lg shadow-orange-500/20 transition-all duration-200 hover:scale-[1.02] hover:shadow-orange-500/40 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none disabled:grayscale"
                     >
                         {isSubmitting
-                            ? "Submitting Project..."
+                            ? submissionStatusMessage || "Submitting Project..."
                             : "Launch Project"}
                     </Button>
                 {/if}
