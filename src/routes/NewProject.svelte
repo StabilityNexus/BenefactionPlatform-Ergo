@@ -1586,6 +1586,13 @@
                         </a>
                     </div>
                 {:else}
+                    {#if isSubmitting}
+                        <div class="mb-4 flex items-center gap-3">
+                            <div class="w-5 h-5 border-2 border-t-transparent rounded-full border-orange-400 animate-spin"></div>
+                            <p class="text-sm text-muted-foreground">{statusMessage || 'Submitting campaign...'}</p>
+                        </div>
+                    {/if}
+
                     <Button
                         on:click={handleSubmit}
                         disabled={isSubmitting ||
