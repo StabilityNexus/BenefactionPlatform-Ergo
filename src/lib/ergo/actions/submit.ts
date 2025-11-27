@@ -54,7 +54,14 @@ function playBeep(frequency = 1000, duration = 3000) {
     osc.stop(now + 0.55);
 }
 
-async function mint_tx(title: string, constants: ConstantContent, version: contract_version, amount: number, decimals: number): Promise<Box> {
+async function mint_tx(
+    title: string,
+    constants: ConstantContent,
+    version: contract_version,
+    amount: number,
+    decimals: number,
+    statusUpdate?: StatusUpdater
+): Promise<Box> {
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
 
@@ -84,10 +91,15 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
         .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
 
     // Sign the transaction
+    statusUpdate?.("signMintTx", "Please sign the token mint transaction (step 1 of 2).");
     const signedTransaction = await signTransaction(unsignedTransaction);
 
     // Send the transaction to the Ergo network
     const transactionId = await submitTransaction(signedTransaction);
+    statusUpdate?.(
+        "waitingMintConfirmation",
+        "Mint transaction submitted. Waiting for confirmation (step 1 of 2). This may take a few minutes."
+    );
 
     console.log("Mint tx id: " + transactionId);
 
@@ -97,6 +109,7 @@ async function mint_tx(title: string, constants: ConstantContent, version: contr
         throw new Error("Mint tx failed.")
     }
 
+    statusUpdate?.("mintConfirmed", "Mint transaction confirmed. Preparing final deployment transaction...");
     return box
 }
 
@@ -111,7 +124,8 @@ export async function submit_project(
     projectContent: string,    // Project content (JSON with title, description, image, link)
     minimumSold: number,     // Minimum amount sold to allow withdrawal
     title: string,
-    base_token_id: string = ""  // Base token ID for contributions (empty for ERG)
+    base_token_id: string = "",  // Base token ID for contributions (empty for ERG)
+    onStatusUpdate?: (progress: SubmissionProgress) => void
 ): Promise<string | null> {
 
     // Parse and validate project content
@@ -142,12 +156,18 @@ export async function submit_project(
         "base_token_id": base_token_id
     };
 
+    const notify: StatusUpdater = (stage, message) => {
+        onStatusUpdate?.({ stage, message });
+    };
+
+    notify("preparing", "Preparing project deployment transactions...");
+
     // Get token emission amount.
     let token_data = await get_token_data(token_id);
     let id_token_amount = token_data["amount"] + 1;
 
     // Build the mint tx.
-    let mint_box = await mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"]);
+    let mint_box = await mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"], notify);
     let project_id = mint_box.assets[0].tokenId;
 
     if (project_id === null) { alert("Token minting failed!"); return null; }
@@ -219,11 +239,13 @@ export async function submit_project(
         console.error('Error executing play beep:', error);
     }
 
+    notify("signProjectTx", "Mint confirmed! Please sign the project deployment transaction (step 2 of 2).");
     // Sign the transaction
     const signedTransaction = await signTransaction(unsignedTransaction);
 
     // Send the transaction to the Ergo network
     const transactionId = await submitTransaction(signedTransaction);
+    notify("projectSubmitted", "Project deployment transaction submitted to the network.");
 
     console.log("Transaction id -> ", transactionId);
     return transactionId;

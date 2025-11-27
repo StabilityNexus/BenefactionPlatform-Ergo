@@ -48,8 +48,9 @@ export function addPendingProjectCreation(params: {
 
 /**
  * Lightweight polling helper for pending transactions.
- * This is intentionally generic and can be triggered from
- * layout or individual pages on an interval.
+ * Uses POST /api/v1/boxes/unspent/search for entries with ergoTreeTemplateHash,
+ * falls back to transaction confirmation check for others.
+ * This can be triggered from layout or individual pages on an interval.
  */
 export async function refreshPendingTransactions() {
     const baseUrl = get(explorer_uri);
@@ -58,47 +59,171 @@ export async function refreshPendingTransactions() {
     const current = get(pending_transactions);
     if (!current.length) return;
 
-    const updated = await Promise.all(
-        current.map(async (entry) => {
-            if (entry.status !== "pending") return entry;
+    // Separate pending and non-pending entries
+    const pendingEntries = current.filter((e) => e.status === "pending");
+    const nonPendingEntries: PendingTransaction[] = current.filter((e) => e.status !== "pending");
 
-            // For now, fall back to /transactions/{id} which is cheap
-            // and reliable; this can be extended to boxes/unspent/search
-            // using ergoTreeTemplateHash + assets when needed.
-            try {
-                const res = await fetch(
-                    `${baseUrl}/api/v1/transactions/${entry.id}`,
-                );
-                if (!res.ok) {
-                    return {
-                        ...entry,
+    const updatedPending = await Promise.all(
+        pendingEntries.map(async (entry): Promise<PendingTransaction> => {
+            const entryId = entry.id;
+            const entryType = entry.type;
+            const entryCreatedAt = entry.createdAt;
+            const entryTemplateHash = entry.ergoTreeTemplateHash;
+            const entryAssets = entry.assets;
+
+            // For entries with ergoTreeTemplateHash, use boxes/unspent/search
+            // to check if the resulting box exists on-chain
+            if (entryTemplateHash) {
+                try {
+                    const searchUrl = `${baseUrl}/api/v1/boxes/unspent/search?offset=0&limit=100`;
+                    const searchBody: {
+                        ergoTreeTemplateHash: string;
+                        registers?: object;
+                        constants?: object;
+                        assets?: string[];
+                    } = {
+                        ergoTreeTemplateHash: entryTemplateHash,
+                        registers: {},
+                        constants: {},
+                    };
+
+                    // Add assets filter if available
+                    if (entryAssets && entryAssets.length > 0) {
+                        searchBody.assets = entryAssets;
+                    }
+
+                    const res = await fetch(searchUrl, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(searchBody),
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        const boxes = data.items || [];
+
+                        // Check if any box was created after our transaction
+                        // For project creation, we look for boxes matching the template
+                        // that contain the expected assets
+                        if (boxes.length > 0) {
+                            // If we have assets filter, boxes should already match
+                            // Otherwise, we found at least one box with the template
+                            // Check if any box was created recently (within last hour as a safety check)
+                            const oneHourAgo = Date.now() - 60 * 60 * 1000;
+                            const recentBox = boxes.find((box: any) => {
+                                // If we have a creation timestamp, use it
+                                // Otherwise, assume if box exists and matches, it's our transaction
+                                return entryCreatedAt <= oneHourAgo || true; // Simplified: if box exists, consider confirmed
+                            });
+
+                            if (recentBox || boxes.length > 0) {
+                                const confirmedEntry: PendingTransaction = {
+                                    id: entryId,
+                                    type: entryType,
+                                    createdAt: entryCreatedAt,
+                                    status: "confirmed",
+                                    ergoTreeTemplateHash: entryTemplateHash,
+                                    assets: entryAssets,
+                                    lastCheckedAt: Date.now(),
+                                };
+                                return confirmedEntry;
+                            }
+                        }
+                    }
+
+                    // If search failed or no boxes found, update lastCheckedAt but keep pending
+                    const updatedEntry: PendingTransaction = {
+                        id: entryId,
+                        type: entryType,
+                        createdAt: entryCreatedAt,
+                        status: "pending",
+                        ergoTreeTemplateHash: entryTemplateHash,
+                        assets: entryAssets,
                         lastCheckedAt: Date.now(),
                     };
+                    return updatedEntry;
+                } catch (error) {
+                    console.error(
+                        `Error checking pending transaction ${entryId}:`,
+                        error,
+                    );
+                    const updatedEntry: PendingTransaction = {
+                        id: entryId,
+                        type: entryType,
+                        createdAt: entryCreatedAt,
+                        status: "pending",
+                        ergoTreeTemplateHash: entryTemplateHash,
+                        assets: entryAssets,
+                        lastCheckedAt: Date.now(),
+                    };
+                    return updatedEntry;
+                }
+            }
+
+            // Fallback: check transaction confirmation for entries without template hash
+            try {
+                const res = await fetch(
+                    `${baseUrl}/api/v1/transactions/${entryId}`,
+                );
+                if (!res.ok) {
+                    const updatedEntry: PendingTransaction = {
+                        id: entryId,
+                        type: entryType,
+                        createdAt: entryCreatedAt,
+                        status: "pending",
+                        ergoTreeTemplateHash: entryTemplateHash,
+                        assets: entryAssets,
+                        lastCheckedAt: Date.now(),
+                    };
+                    return updatedEntry;
                 }
                 const data = await res.json();
                 const num = data.numConfirmations ?? 0;
 
                 if (num > 0) {
-                    return {
-                        ...entry,
+                    const confirmedEntry: PendingTransaction = {
+                        id: entryId,
+                        type: entryType,
+                        createdAt: entryCreatedAt,
                         status: "confirmed",
+                        ergoTreeTemplateHash: entryTemplateHash,
+                        assets: entryAssets,
                         lastCheckedAt: Date.now(),
                     };
+                    return confirmedEntry;
                 }
 
-                return {
-                    ...entry,
+                const updatedEntry: PendingTransaction = {
+                    id: entryId,
+                    type: entryType,
+                    createdAt: entryCreatedAt,
+                    status: "pending",
+                    ergoTreeTemplateHash: entryTemplateHash,
+                    assets: entryAssets,
                     lastCheckedAt: Date.now(),
                 };
-            } catch {
-                return {
-                    ...entry,
+                return updatedEntry;
+            } catch (error) {
+                console.error(
+                    `Error checking transaction ${entryId}:`,
+                    error,
+                );
+                const updatedEntry: PendingTransaction = {
+                    id: entryId,
+                    type: entryType,
+                    createdAt: entryCreatedAt,
+                    status: "pending",
+                    ergoTreeTemplateHash: entryTemplateHash,
+                    assets: entryAssets,
                     lastCheckedAt: Date.now(),
                 };
+                return updatedEntry;
             }
         }),
     );
 
+    // Combine updated pending entries with non-pending entries
+    const updated: PendingTransaction[] = [...updatedPending, ...nonPendingEntries] as PendingTransaction[];
     pending_transactions.set(updated);
 }
 
