@@ -152,7 +152,7 @@ export async function* submit_project(
     let id_token_amount = token_data["amount"] + 1;
 
     // Build the mint tx.
-    yield "Preparing mint transaction...";
+    yield "Preparing token mint transaction (1/2)...";
     const mintGen = mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"]);
     let mintResult = await mintGen.next();
     while (!mintResult.done) {
@@ -160,6 +160,9 @@ export async function* submit_project(
         mintResult = await mintGen.next();
     }
     let mint_box = mintResult.value;
+
+    // Inform the UI that the mint was confirmed and we're preparing the second transaction
+    yield "Mint confirmed. Preparing project creation transaction (2/2). You will be prompted to sign the next transaction.";
 
     let project_id = mint_box.assets[0].tokenId;
 
@@ -232,7 +235,7 @@ export async function* submit_project(
         console.error('Error executing play beep:', error);
     }
 
-    yield "Please sign the project transaction...";
+    yield "Please sign the project transaction (2/2)...";
 
     // Sign the transaction
     const signedTransaction = await signTransaction(unsignedTransaction);
@@ -241,5 +244,9 @@ export async function* submit_project(
     const transactionId = await submitTransaction(signedTransaction);
 
     console.log("Transaction id -> ", transactionId);
+
+    // Let the UI know the project transaction was submitted and provide the tx id
+    yield `Project transaction submitted. Transaction ID: ${transactionId}`;
+
     return transactionId;
 }
