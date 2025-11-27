@@ -23,6 +23,21 @@ import {
     estimateTotalBoxSize
 } from '../utils/box-size-calculator';
 
+export type SubmissionStage =
+    | "preparing"
+    | "signMintTx"
+    | "waitingMintConfirmation"
+    | "mintConfirmed"
+    | "signProjectTx"
+    | "projectSubmitted";
+
+export interface SubmissionProgress {
+    stage: SubmissionStage;
+    message: string;
+}
+
+type StatusUpdater = (stage: SubmissionStage, message: string) => void;
+
 async function get_token_data(token_id: string): Promise<{ amount: number, decimals: number }> {
     let token_fetch = await fetch_token_details(token_id);
     let id_token_amount = token_fetch['emissionAmount'] ?? 0;

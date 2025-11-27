@@ -670,10 +670,10 @@
         } catch (error) {
             console.error(error);
             errorMessage = formatTransactionError(error);
+            clearSubmissionProgress();
         } finally {
             isSubmitting = false;
-            clearSubmissionProgress();
-     }
+        }
     }
 
     async function fetchTokenDetails(id: string) {

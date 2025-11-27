@@ -20,6 +20,7 @@ export interface PendingTransaction {
     ergoTreeTemplateHash?: string;
     assets?: string[]; // token ids expected in the resulting box
     lastCheckedAt?: number | null;
+    failedCheckCount?: number; // Track consecutive failed checks
 }
 
 export const pending_transactions = writable<PendingTransaction[]>([]);
@@ -70,6 +71,7 @@ export async function refreshPendingTransactions() {
             const entryCreatedAt = entry.createdAt;
             const entryTemplateHash = entry.ergoTreeTemplateHash;
             const entryAssets = entry.assets;
+            const entryFailedCount = entry.failedCheckCount ?? 0;
 
             // For entries with ergoTreeTemplateHash, use boxes/unspent/search
             // to check if the resulting box exists on-chain
@@ -125,13 +127,45 @@ export async function refreshPendingTransactions() {
                                     ergoTreeTemplateHash: entryTemplateHash,
                                     assets: entryAssets,
                                     lastCheckedAt: Date.now(),
+                                    failedCheckCount: 0, // Reset on success
                                 };
                                 return confirmedEntry;
                             }
                         }
+                        // If search succeeded but no boxes found, reset failed count
+                        const updatedEntry: PendingTransaction = {
+                            id: entryId,
+                            type: entryType,
+                            createdAt: entryCreatedAt,
+                            status: "pending",
+                            ergoTreeTemplateHash: entryTemplateHash,
+                            assets: entryAssets,
+                            lastCheckedAt: Date.now(),
+                            failedCheckCount: 0, // Reset on successful API call
+                        };
+                        return updatedEntry;
                     }
 
-                    // If search failed or no boxes found, update lastCheckedAt but keep pending
+                    // If search failed, increment failed count
+                    const failedCount = entryFailedCount + 1;
+                    // Mark as failed after 10 consecutive failed checks or 404 status
+                    if (failedCount >= 10 || res.status === 404) {
+                        console.warn(
+                            `Marking transaction ${entryId} as failed after ${failedCount} failed checks (status: ${res.status})`,
+                        );
+                        return {
+                            id: entryId,
+                            type: entryType,
+                            createdAt: entryCreatedAt,
+                            status: "failed",
+                            ergoTreeTemplateHash: entryTemplateHash,
+                            assets: entryAssets,
+                            lastCheckedAt: Date.now(),
+                            failedCheckCount: failedCount,
+                        };
+                    }
+
+                    // If search failed but not enough failures yet, keep pending
                     const updatedEntry: PendingTransaction = {
                         id: entryId,
                         type: entryType,
@@ -140,6 +174,7 @@ export async function refreshPendingTransactions() {
                         ergoTreeTemplateHash: entryTemplateHash,
                         assets: entryAssets,
                         lastCheckedAt: Date.now(),
+                        failedCheckCount: failedCount,
                     };
                     return updatedEntry;
                 } catch (error) {
@@ -147,6 +182,23 @@ export async function refreshPendingTransactions() {
                         `Error checking pending transaction ${entryId}:`,
                         error,
                     );
+                    const failedCount = entryFailedCount + 1;
+                    // Mark as failed after 10 consecutive errors
+                    if (failedCount >= 10) {
+                        console.warn(
+                            `Marking transaction ${entryId} as failed after ${failedCount} consecutive errors`,
+                        );
+                        return {
+                            id: entryId,
+                            type: entryType,
+                            createdAt: entryCreatedAt,
+                            status: "failed",
+                            ergoTreeTemplateHash: entryTemplateHash,
+                            assets: entryAssets,
+                            lastCheckedAt: Date.now(),
+                            failedCheckCount: failedCount,
+                        };
+                    }
                     const updatedEntry: PendingTransaction = {
                         id: entryId,
                         type: entryType,
@@ -155,6 +207,7 @@ export async function refreshPendingTransactions() {
                         ergoTreeTemplateHash: entryTemplateHash,
                         assets: entryAssets,
                         lastCheckedAt: Date.now(),
+                        failedCheckCount: failedCount,
                     };
                     return updatedEntry;
                 }
@@ -166,6 +219,23 @@ export async function refreshPendingTransactions() {
                     `${baseUrl}/api/v1/transactions/${entryId}`,
                 );
                 if (!res.ok) {
+                    const failedCount = entryFailedCount + 1;
+                    // Mark as failed after 10 consecutive failed checks or 404 status
+                    if (failedCount >= 10 || res.status === 404) {
+                        console.warn(
+                            `Marking transaction ${entryId} as failed after ${failedCount} failed checks (status: ${res.status})`,
+                        );
+                        return {
+                            id: entryId,
+                            type: entryType,
+                            createdAt: entryCreatedAt,
+                            status: "failed",
+                            ergoTreeTemplateHash: entryTemplateHash,
+                            assets: entryAssets,
+                            lastCheckedAt: Date.now(),
+                            failedCheckCount: failedCount,
+                        };
+                    }
                     const updatedEntry: PendingTransaction = {
                         id: entryId,
                         type: entryType,
@@ -174,6 +244,7 @@ export async function refreshPendingTransactions() {
                         ergoTreeTemplateHash: entryTemplateHash,
                         assets: entryAssets,
                         lastCheckedAt: Date.now(),
+                        failedCheckCount: failedCount,
                     };
                     return updatedEntry;
                 }
@@ -189,6 +260,7 @@ export async function refreshPendingTransactions() {
                         ergoTreeTemplateHash: entryTemplateHash,
                         assets: entryAssets,
                         lastCheckedAt: Date.now(),
+                        failedCheckCount: 0, // Reset on success
                     };
                     return confirmedEntry;
                 }
@@ -201,6 +273,7 @@ export async function refreshPendingTransactions() {
                     ergoTreeTemplateHash: entryTemplateHash,
                     assets: entryAssets,
                     lastCheckedAt: Date.now(),
+                    failedCheckCount: 0, // Reset on successful API call
                 };
                 return updatedEntry;
             } catch (error) {
@@ -208,6 +281,23 @@ export async function refreshPendingTransactions() {
                     `Error checking transaction ${entryId}:`,
                     error,
                 );
+                const failedCount = entryFailedCount + 1;
+                // Mark as failed after 10 consecutive errors
+                if (failedCount >= 10) {
+                    console.warn(
+                        `Marking transaction ${entryId} as failed after ${failedCount} consecutive errors`,
+                    );
+                    return {
+                        id: entryId,
+                        type: entryType,
+                        createdAt: entryCreatedAt,
+                        status: "failed",
+                        ergoTreeTemplateHash: entryTemplateHash,
+                        assets: entryAssets,
+                        lastCheckedAt: Date.now(),
+                        failedCheckCount: failedCount,
+                    };
+                }
                 const updatedEntry: PendingTransaction = {
                     id: entryId,
                     type: entryType,
@@ -216,15 +306,30 @@ export async function refreshPendingTransactions() {
                     ergoTreeTemplateHash: entryTemplateHash,
                     assets: entryAssets,
                     lastCheckedAt: Date.now(),
+                    failedCheckCount: failedCount,
                 };
                 return updatedEntry;
             }
         }),
     );
 
-    // Combine updated pending entries with non-pending entries
-    const updated: PendingTransaction[] = [...updatedPending, ...nonPendingEntries] as PendingTransaction[];
-    pending_transactions.set(updated);
+    // Merge updated pending entries into the latest store value to avoid dropping new entries
+    // that may have been added while polling was in flight
+    pending_transactions.update((existing) => {
+        const byId = new Map<string, PendingTransaction>();
+        
+        // Start with all existing entries
+        for (const e of existing) {
+            byId.set(e.id, e);
+        }
+        
+        // Apply updates from the polling results
+        for (const updated of updatedPending) {
+            byId.set(updated.id, updated);
+        }
+        
+        return Array.from(byId.values());
+    });
 }
 
 
