@@ -13,6 +13,7 @@
         temporal_token_amount,
         timer,
         balance,
+        explorer_uri,
     } from "$lib/common/store";
     import { Progress } from "$lib/components/ui/progress";
     import { Button } from "$lib/components/ui/button";
@@ -28,10 +29,10 @@
     import { Label } from "$lib/components/ui/label/index.js";
     import { badgeVariants } from "$lib/components/ui/badge/index.js";
     import { get } from "svelte/store";
-    import ForumThread from "$lib/components/ForumThread.svelte";
     import { onDestroy } from "svelte";
     import { fetchProjects } from "$lib/ergo/fetch";
     import { marked } from "marked";
+    import { Forum, web_explorer_uri_addr } from "forum-application";
 
     // --- ANIMATION IMPORTS ---
     import { fade, fly, scale, slide } from "svelte/transition";
@@ -1309,7 +1310,14 @@
     {/if}
 
     <div class="forum-section" in:fly={{ y: 20, delay: 600 }}>
-        <ForumThread projectId={project.project_id} />
+        <Forum topic_id={project.project_id} 
+            connect_executed={$connected}
+            explorer_uri={explorer_uri} 
+            web_explorer_uri_addr={web_explorer_uri_addr}
+            web_explorer_uri_tkn={web_explorer_uri_tkn}
+            web_explorer_uri_tx={web_explorer_uri_tx}
+            connected={$connected}
+            />
     </div>
 </div>
 

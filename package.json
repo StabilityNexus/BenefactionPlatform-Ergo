@@ -47,6 +47,7 @@
 		"date-fns": "^4.1.0",
 		"dompurify": "^3.3.0",
 		"easymde": "^2.20.0",
+		"forum-application": "github:reputation-systems/forum-application",
 		"jdenticon": "^3.3.0",
 		"marked": "^16.4.1",
 		"mode-watcher": "^0.5.0",
