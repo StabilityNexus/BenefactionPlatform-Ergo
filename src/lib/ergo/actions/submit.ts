@@ -23,6 +23,21 @@ import {
     estimateTotalBoxSize
 } from '../utils/box-size-calculator';
 
+export type SubmissionStage =
+    | "preparing"
+    | "signMintTx"
+    | "waitingMintConfirmation"
+    | "mintConfirmed"
+    | "signProjectTx"
+    | "projectSubmitted";
+
+export interface SubmissionProgress {
+    stage: SubmissionStage;
+    message: string;
+}
+
+type StatusUpdater = (stage: SubmissionStage, message: string) => void;
+
 async function get_token_data(token_id: string): Promise<{ amount: number, decimals: number }> {
     let token_fetch = await fetch_token_details(token_id);
     let id_token_amount = token_fetch['emissionAmount'] ?? 0;
@@ -54,7 +69,15 @@ function playBeep(frequency = 1000, duration = 3000) {
     osc.stop(now + 0.55);
 }
 
-async function* mint_tx(title: string, constants: ConstantContent, version: contract_version, amount: number, decimals: number): AsyncGenerator<string, Box, void> {
+async function mint_tx(
+    title: string,
+    constants: ConstantContent,
+    version: contract_version,
+    amount: number,
+    decimals: number,
+    statusUpdate?: StatusUpdater
+): Promise<Box> {
+
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
 
@@ -86,10 +109,15 @@ async function* mint_tx(title: string, constants: ConstantContent, version: cont
     yield "Please sign the mint transaction...";
 
     // Sign the transaction
+    statusUpdate?.("signMintTx", "Please sign the token mint transaction (step 1 of 2).");
     const signedTransaction = await signTransaction(unsignedTransaction);
 
     // Send the transaction to the Ergo network
     const transactionId = await submitTransaction(signedTransaction);
+    statusUpdate?.(
+        "waitingMintConfirmation",
+        "Mint transaction submitted. Waiting for confirmation (step 1 of 2). This may take a few minutes."
+    );
 
     console.log("Mint tx id: " + transactionId);
 
@@ -101,6 +129,7 @@ async function* mint_tx(title: string, constants: ConstantContent, version: cont
         throw new Error("Mint tx failed.")
     }
 
+    statusUpdate?.("mintConfirmed", "Mint transaction confirmed. Preparing final deployment transaction...");
     return box
 }
 
@@ -116,8 +145,9 @@ export async function* submit_project(
     minimumSold: number,     // Minimum amount sold to allow withdrawal
     title: string,
     base_token_id: string = "",  // Base token ID for contributions (empty for ERG)
-    owner_ergotree: string = ""  // Optional: Owner ErgoTree (if different from wallet)
-): AsyncGenerator<string, string | null, void> {
+    onStatusUpdate?: (progress: SubmissionProgress) => void
+): Promise<string | null> {
+
 
     // Parse and validate project content
     let parsedContent: ProjectContent;
@@ -147,19 +177,18 @@ export async function* submit_project(
         "base_token_id": base_token_id
     };
 
+    const notify: StatusUpdater = (stage, message) => {
+        onStatusUpdate?.({ stage, message });
+    };
+
+    notify("preparing", "Preparing project deployment transactions...");
+
     // Get token emission amount.
     let token_data = await get_token_data(token_id);
     let id_token_amount = token_data["amount"] + 1;
 
     // Build the mint tx.
-    yield "Preparing mint transaction...";
-    const mintGen = mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"]);
-    let mintResult = await mintGen.next();
-    while (!mintResult.done) {
-        yield mintResult.value;
-        mintResult = await mintGen.next();
-    }
-    let mint_box = mintResult.value;
+    let mint_box = await mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"], notify);
 
     let project_id = mint_box.assets[0].tokenId;
 
@@ -232,13 +261,14 @@ export async function* submit_project(
         console.error('Error executing play beep:', error);
     }
 
-    yield "Please sign the project transaction...";
+    notify("signProjectTx", "Mint confirmed! Please sign the project deployment transaction (step 2 of 2).");
 
     // Sign the transaction
     const signedTransaction = await signTransaction(unsignedTransaction);
 
     // Send the transaction to the Ergo network
     const transactionId = await submitTransaction(signedTransaction);
+    notify("projectSubmitted", "Project deployment transaction submitted to the network.");
 
     console.log("Transaction id -> ", transactionId);
     return transactionId;
