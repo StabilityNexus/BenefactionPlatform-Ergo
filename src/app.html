@@ -7,16 +7,45 @@
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 		<link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+
+		<style>
+			:root {
+				--main-blue: #0066ff;
+			}
+
+			h1, h2, h3, .text-accent, .page-title {
+				color: var(--main-blue) !important;
+			}
+
+			/* 🔵 Make Contribute to a Campaign button blue */
+			.contribute-btn {
+				background-color: #0066ff !important;
+				color: white !important;
+				border: none !important;
+				padding: 10px 18px;
+				border-radius: 12px;
+				cursor: pointer;
+				font-weight: 600;
+			}
+
+			.contribute-btn:hover {
+				background-color: #0052cc !important;
+				box-shadow: 0 0 10px rgba(0, 82, 204, 0.4);
+			}
+			
+		</style>
+
 		%sveltekit.head%
 	</head>
+	
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
+	
 </html>
 
 <style>
 	body {
-		overflow: hidden;
 		margin: 0;
 		padding: 0;
 		overflow-y: auto;
