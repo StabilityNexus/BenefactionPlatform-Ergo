@@ -75,7 +75,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
     giveTokensToBuyer([{ tokenId: ctx.pftTokenId, amount: injectedPFT }]);
 
     let value = BigInt(projectBox.value);
-    let assets = [
+    const assets = [
       { tokenId: ctx.projectNftId, amount: newAPTAmount },
       { tokenId: ctx.pftTokenId, amount: maliciousPFTAmount } // maliciously increased
     ];
@@ -119,7 +119,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
     const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy;
 
     let value = BigInt(projectBox.value);
-    let assets = [
+    const assets = [
       { tokenId: ctx.projectNftId, amount: newAPTAmount },
       { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
     ];
@@ -277,7 +277,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
     const newAPTAmount = BigInt(refundReadyBox.assets[0].amount) + tokensToRefund;
 
     let newValue = BigInt(refundReadyBox.value);
-    let newAssets = [
+    const newAssets = [
       { tokenId: ctx.projectNftId, amount: newAPTAmount },
       { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
     ];

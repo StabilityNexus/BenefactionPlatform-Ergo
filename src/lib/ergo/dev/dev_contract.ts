@@ -37,11 +37,11 @@ function wallets() {
 }
 
 function generate_contract(): string {
-    let w = wallets()
-    let bruno = w['bruno']
-    let lgd = w['lgd']
-    let jm = w['jm']
-    let order = w['order']
+    const w = wallets()
+    const bruno = w['bruno']
+    const lgd = w['lgd']
+    const jm = w['jm']
+    const order = w['order']
 
     return DEV_FEE_CONTRACT
         .replace(/`\+bruno\+`/g, bruno)
@@ -59,7 +59,7 @@ export function get_dev_contract_hash(): string {
 }
 
 export function get_dev_contract_address(): string {
-    let network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
+    const network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
     return compile(generate_contract(), { version: 1, network: network_id }).toAddress(network).toString()
 }
 
@@ -68,17 +68,17 @@ export function get_dev_fee(): number {
 }
 
 function get_template_hash(): string {
-    let contract = generate_contract();
+    const contract = generate_contract();
     return hex.encode(sha256(compile(contract, { version: 1, network: network_id }).template))
 }
 
 export async function download_dev() {
     try {
-        let params = {
+        const params = {
             offset: 0,
             limit: 500,
         };
-        let moreDataAvailable = true;
+        const moreDataAvailable = true;
 
         while (moreDataAvailable) {
             const url = get(explorer_uri) + '/api/v1/boxes/unspent/search';
@@ -99,7 +99,7 @@ export async function download_dev() {
             });
 
             if (response.ok) {
-                let json_data = await response.json();
+                const json_data = await response.json();
                 return json_data.items.map(e => ({
                     boxId: e.boxId,
                     value: e.value,
@@ -127,11 +127,11 @@ export async function execute_dev(box) {
     try {
         console.log(`Executing action with Box ID: ${box.boxId} and Value: ${box.value}`);
 
-        let w = wallets()
-        let bruno = w['bruno']
-        let lgd = w['lgd']
-        let jm = w['jm']
-        let order = w['order']
+        const w = wallets()
+        const bruno = w['bruno']
+        const lgd = w['lgd']
+        const jm = w['jm']
+        const order = w['order']
 
         // Check if this is a token distribution (R4 contains token ID)
         let tokenId: string | undefined = undefined;

@@ -24,7 +24,7 @@ import {
 } from '../utils/box-size-calculator';
 
 async function get_token_data(token_id: string): Promise<{ amount: number, decimals: number }> {
-    let token_fetch = await fetch_token_details(token_id);
+    const token_fetch = await fetch_token_details(token_id);
     let id_token_amount = token_fetch['emissionAmount'] ?? 0;
     if (id_token_amount === 0) { alert(token_id + " token emission amount is 0."); throw new Error(token_id + " token emission amount is 0.") }
     id_token_amount += 1;
@@ -61,7 +61,7 @@ async function* mint_tx(title: string, constants: ConstantContent, version: cont
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = await window.ergo!.get_utxos();
 
-    let outputs: OutputBuilder[] = [
+    const outputs: OutputBuilder[] = [
         new OutputBuilder(
             SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
             mint_contract_address(constants, version)
@@ -95,7 +95,7 @@ async function* mint_tx(title: string, constants: ConstantContent, version: cont
 
     yield "Waiting for mint confirmation... (this may take a few minutes)";
 
-    let box = await wait_until_confirmation(transactionId);
+    const box = await wait_until_confirmation(transactionId);
     if (box == null) {
         alert("Mint tx failed.")
         throw new Error("Mint tx failed.")
@@ -138,7 +138,7 @@ export async function* submit_project(
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
 
-    let addressContent: ConstantContent = {
+    const addressContent: ConstantContent = {
         "owner": owner_ergotree ? owner_ergotree : ErgoAddress.fromBase58(walletPk).ergoTree,
         "dev_addr": get_dev_contract_address(),
         "dev_hash": get_dev_contract_hash(),
@@ -148,8 +148,8 @@ export async function* submit_project(
     };
 
     // Get token emission amount.
-    let token_data = await get_token_data(token_id);
-    let id_token_amount = token_data["amount"] + 1;
+    const token_data = await get_token_data(token_id);
+    const id_token_amount = token_data["amount"] + 1;
 
     // Build the mint tx.
     yield "Preparing mint transaction...";
@@ -159,9 +159,9 @@ export async function* submit_project(
         yield mintResult.value;
         mintResult = await mintGen.next();
     }
-    let mint_box = mintResult.value;
+    const mint_box = mintResult.value;
 
-    let project_id = mint_box.assets[0].tokenId;
+    const project_id = mint_box.assets[0].tokenId;
 
     if (project_id === null) { alert("Token minting failed!"); return null; }
 
@@ -194,7 +194,7 @@ export async function* submit_project(
     }
 
     // Building the project output
-    let outputs: OutputBuilder[] = [new OutputBuilder(
+    const outputs: OutputBuilder[] = [new OutputBuilder(
         minRequiredValue,                       // Minimum value in ERG that a box can have
         ergoTreeAddress        // Address of the project contract
     )

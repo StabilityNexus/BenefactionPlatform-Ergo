@@ -33,7 +33,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       soldTokens = ctx.minimumTokensSold;              // minimum reached
       collectedFunds = soldTokens * ctx.exchangeRate;
 
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
         // { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },   There are no PFTs on contract.  All PFT were exchanged with their respectives APTs
       ];
@@ -406,7 +406,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       soldTokens = ctx.minimumTokensSold;              // minimum reached
       collectedFunds = soldTokens * ctx.exchangeRate;
 
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },  // Any PFT exchanged
       ];
@@ -535,7 +535,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       soldTokens = ctx.minimumTokensSold;              // minimum reached
       collectedFunds = soldTokens * ctx.exchangeRate;
 
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },  // Any PFT exchanged
       ];
@@ -661,7 +661,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
       soldTokens = ctx.minimumTokensSold - 1n;              // minimum not reached
       collectedFunds = soldTokens * ctx.exchangeRate;
 
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
         // { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },   There are no PFTs on contract.  All PFT were exchanged with their respectives APTs
       ];

@@ -36,7 +36,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       soldTokens = ctx.totalPFTokens / 2n; // Half of the total PFTs has been sold.
       collectedFunds = soldTokens * ctx.exchangeRate;
 
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }, // 100k PFT total
       ];
@@ -287,7 +287,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       soldTokens = ctx.totalPFTokens / 2n; // Half of the total PFTs has been sold.
       const collectedFunds = soldTokens * ctx.exchangeRate;
 
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }, // 100k PFT total
       ];
@@ -368,7 +368,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       const exchangedTokens = soldTokens - refundedTokens; // The rest of the APTs where exchanged per PFTs
       const collectedFunds = exchangedTokens * ctx.exchangeRate;  // Exchanged funds can be retired, but not the refunded funds.
 
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }, // 100k PFT total
       ];
@@ -450,7 +450,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
       soldTokens = ctx.totalPFTokens / 2n; // Half of the total PFTs has been sold.
       const collectedFunds = soldTokens * ctx.exchangeRate;
 
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }, // 100k PFT total
       ];

@@ -219,8 +219,8 @@ describe.each(testModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     const firstRefundAmount = firstRefundTokens * ctx.exchangeRate;
 
     // Build and execute first refund tx
-    let soldTokens = ctx.minimumTokensSold / 2n;
-    let contractAfterFirstAssets = [
+    const soldTokens = ctx.minimumTokensSold / 2n;
+    const contractAfterFirstAssets = [
       { tokenId: ctx.projectNftId, amount: BigInt(projectBox.assets[0].amount) + firstRefundTokens },
       { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
     ];

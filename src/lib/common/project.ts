@@ -91,7 +91,7 @@ export async function is_ended(project: Project): Promise<boolean> {
         return project.block_limit < currentTime;
     } else {
         // In block height mode, compare with current block height
-        let height = await project.platform.get_current_height();
+        const height = await project.platform.get_current_height();
         return project.block_limit < height;
     }
 }

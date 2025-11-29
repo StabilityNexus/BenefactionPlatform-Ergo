@@ -32,7 +32,7 @@ export async function rebalance(
         const inputs = [project.box, ...walletUtxos];
 
         // Building the project output
-        let contract_output = new OutputBuilder(
+        const contract_output = new OutputBuilder(
             BigInt(project.value),
             get_ergotree_hex(project.constants, project.version)
         )
@@ -42,7 +42,7 @@ export async function rebalance(
             });
 
         console.log("PFT current amount " + project.current_pft_amount / Math.pow(10, project.token_details.decimals))
-        let contract_token_amount = project.current_pft_amount + token_amount;
+        const contract_token_amount = project.current_pft_amount + token_amount;
         console.log("contract token amount " + contract_token_amount / Math.pow(10, project.token_details.decimals))
 
         if (contract_token_amount > 0) {
@@ -87,7 +87,7 @@ export async function rebalance(
         });
 
 
-        let outputs: OutputBuilder[] = [contract_output];
+        const outputs: OutputBuilder[] = [contract_output];
 
         // Building withdraw to address output
         if (token_amount < 0) {

@@ -28,7 +28,7 @@ export async function temp_exchange(
     const inputs = [project.box, ...(await window.ergo!.get_utxos())];
 
     // Building the project output
-    let contractOutput = new OutputBuilder(
+    const contractOutput = new OutputBuilder(
         BigInt(project.value),
         get_ergotree_hex(project.constants, project.version)
     )
@@ -74,7 +74,7 @@ export async function temp_exchange(
         R9: SString(project.content.raw)
     });
 
-    let walletOutput = new OutputBuilder(
+    const walletOutput = new OutputBuilder(
         SAFE_MIN_BOX_VALUE,
         walletPk
     )
@@ -83,7 +83,7 @@ export async function temp_exchange(
             amount: BigInt(token_amount)
         })
 
-    let outputs = [contractOutput, walletOutput];
+    const outputs = [contractOutput, walletOutput];
 
     // Building the unsigned transaction
     const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())

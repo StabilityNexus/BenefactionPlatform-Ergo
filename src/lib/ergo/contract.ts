@@ -88,8 +88,8 @@ export function get_template_hash(version: contract_version): string {
     contract = handle_contract_generator(version)(random_constants.owner, random_constants.dev_hash ?? get_dev_contract_hash(), random_constants.dev_fee, random_constants.pft_token_id);
   }
 
-  let ergoTree = compile(contract, { version: 1, network: network_id });
-  let templateBytes = ergoTree.template;
+  const ergoTree = compile(contract, { version: 1, network: network_id });
+  const templateBytes = ergoTree.template;
   return uint8ArrayToHex(sha256(templateBytes));
 }
 
@@ -117,10 +117,10 @@ function get_contract_hash(constants: ConstantContent, version: contract_version
  */
 export function mint_contract_address(constants: ConstantContent, version: contract_version) {
   const contract_bytes_hash = get_contract_hash(constants, version);
-  let contract = MINT_CONTRACT.replace(/`\+contract_bytes_hash\+`/g, contract_bytes_hash);
+  const contract = MINT_CONTRACT.replace(/`\+contract_bytes_hash\+`/g, contract_bytes_hash);
 
-  let ergoTree = compile(contract, { version: 1, network: network_id })
+  const ergoTree = compile(contract, { version: 1, network: network_id })
 
-  let network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
+  const network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
   return ergoTree.toAddress(network).toString();
 }

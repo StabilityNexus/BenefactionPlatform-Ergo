@@ -29,14 +29,14 @@ export async function buy_refund(
 
     // Calculate base token amount based on project's base token
     const isERGBase = !project.base_token_id || project.base_token_id === "";
-    let base_token_amount = Math.abs(token_amount) * project.exchange_rate;
+    const base_token_amount = Math.abs(token_amount) * project.exchange_rate;
 
 
     // Get the wallet address (will be the user address)
     const walletPk = await getChangeAddress();
 
     // Get the UTXOs from the current wallet to use as inputs
-    let walletUtxos = await window.ergo!.get_utxos();
+    const walletUtxos = await window.ergo!.get_utxos();
 
     // For refunds, ensure we have the project tokens in inputs
     if (token_amount < 0) {
@@ -82,7 +82,7 @@ export async function buy_refund(
 
     // Building the project output
 
-    let output = new OutputBuilder(
+    const output = new OutputBuilder(
         BigInt(contractErgValue).toString(),
         get_ergotree_hex(project.constants, project.version)
     )
@@ -138,8 +138,8 @@ export async function buy_refund(
     }
 
     // Update counters
-    let sold_counter = BigInt(token_amount > 0 ? project.sold_counter + token_amount : project.sold_counter);
-    let refund_counter = BigInt(token_amount < 0 ? project.refund_counter + Math.abs(token_amount) : project.refund_counter);
+    const sold_counter = BigInt(token_amount > 0 ? project.sold_counter + token_amount : project.sold_counter);
+    const refund_counter = BigInt(token_amount < 0 ? project.refund_counter + Math.abs(token_amount) : project.refund_counter);
 
     output.setAdditionalRegisters({
         R4: SPair(SBool(project.is_timestamp_limit), SLong(BigInt(project.block_limit))).toHex(),
@@ -150,12 +150,12 @@ export async function buy_refund(
         R9: SString(project.content.raw)
     });
 
-    let outputs = [output];
+    const outputs = [output];
 
     // Create user outputs based on action type
     if (token_amount > 0) {
         // Buy: user gets project tokens
-        let userOutput = new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk)
+        const userOutput = new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk)
             .addTokens({
                 tokenId: project.project_id,
                 amount: token_amount.toString()
@@ -168,14 +168,14 @@ export async function buy_refund(
         // The user output only contains what they receive back (base tokens)
         if (isERGBase) {
             // For ERG refunds, user gets ERG
-            let userOutput = new OutputBuilder(
+            const userOutput = new OutputBuilder(
                 (BigInt(base_token_amount) + SAFE_MIN_BOX_VALUE).toString(), // Add minimum box value
                 walletPk
             );
             outputs.push(userOutput);
         } else if (project.base_token_id) {
             // For token refunds, user gets base tokens
-            let userOutput = new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk)
+            const userOutput = new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk)
                 .addTokens({
                     tokenId: project.base_token_id,
                     amount: base_token_amount.toString()

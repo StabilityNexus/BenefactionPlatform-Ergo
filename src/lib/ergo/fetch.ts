@@ -49,7 +49,7 @@ export async function fetch_token_details(id: string): Promise<TokenEIP4> {
 
     try {
         if (response.ok) {
-            let json_data = await response.json();
+            const json_data = await response.json();
             if (json_data['type'] == 'EIP-004') {
                 return {
                     "name": json_data['name'],
@@ -96,7 +96,7 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
 
                 // Check if numConfirmations is greater than 0
                 if (json_data.numConfirmations > 0) {
-                    let e = json_data['outputs'][0];
+                    const e = json_data['outputs'][0];
                     return {
                         boxId: e.boxId,
                         value: e.value,
@@ -141,12 +141,12 @@ export async function fetchProjectsFromBlockchain() {
     try {
         for (const version of versions) {
             moreDataAvailable = true;
-            let params = {
+            const params = {
                 offset: 0, // Starts at 0 for each version
                 limit: 100, // Increased limit for fewer requests
             };
 
-            let template = get_template_hash(version);
+            const template = get_template_hash(version);
 
             while (moreDataAvailable) {
                 const url = get(explorer_uri) + '/api/v1/boxes/unspent/search';
@@ -212,19 +212,19 @@ export async function fetchProjectsFromBlockchain() {
                             }
                         }
 
-                        let project_id = e.assets[0].tokenId;
-                        let token_id = constants.pft_token_id;
-                        let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
+                        const project_id = e.assets[0].tokenId;
+                        const token_id = constants.pft_token_id;
+                        const [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
 
 
-                        let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
-                        let base_token_id = constants.base_token_id ?? "";
+                        const exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
+                        const base_token_id = constants.base_token_id ?? "";
 
-                        let current_pft_amount = (e.assets.find((asset: any) => asset.tokenId === constants.pft_token_id)?.amount) ?? 0;
-                        let total_pft_amount = current_pft_amount + auxiliar_exchange_counter;
-                        let unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
-                        let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
-                        let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
+                        const current_pft_amount = (e.assets.find((asset: any) => asset.tokenId === constants.pft_token_id)?.amount) ?? 0;
+                        const total_pft_amount = current_pft_amount + auxiliar_exchange_counter;
+                        const unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
+                        const current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
+                        const minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
 
 
                         let block_limit: number = 0;

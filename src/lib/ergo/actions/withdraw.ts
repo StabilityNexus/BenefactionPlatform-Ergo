@@ -41,7 +41,7 @@ export async function withdraw(
     const inputs = [project.box, ...(await window.ergo!.get_utxos())];
 
     // Building the project output
-    let outputs: OutputBuilder[] = [];
+    const outputs: OutputBuilder[] = [];
 
     const devAddress = project.constants.dev_addr ?? get_dev_contract_address();
     const devFeePercentage = project.constants.dev_fee;

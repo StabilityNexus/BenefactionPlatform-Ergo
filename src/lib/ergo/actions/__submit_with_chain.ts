@@ -15,7 +15,7 @@ import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '..
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
 
 async function get_token_data(token_id: string): Promise<{amount: number, decimals: number}> {
-    let token_fetch = await fetch_token_details(token_id);
+    const token_fetch = await fetch_token_details(token_id);
     let id_token_amount = token_fetch['emissionAmount'] ?? 0;
     if (id_token_amount === 0) { alert(token_id+" token emission amount is 0."); throw new Error(token_id+" token emission amount is 0.") }
     id_token_amount += 1;
@@ -37,7 +37,7 @@ export async function submit_project(
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
 
-    let addressContent: ConstantContent = {
+    const addressContent: ConstantContent = {
         "owner": walletPk,
         "dev_addr": get_dev_contract_address(),
         "dev_hash": get_dev_contract_hash(),
@@ -46,14 +46,14 @@ export async function submit_project(
     };
 
     // Get token emission amount.
-    let token_data = await get_token_data(token_id);
-    let id_token_amount = token_data["amount"];
-    let id_token_decimals = token_data["decimals"];
+    const token_data = await get_token_data(token_id);
+    const id_token_amount = token_data["amount"];
+    const id_token_decimals = token_data["decimals"];
 
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = await window.ergo!.get_utxos();
 
-    let mintOutput = new OutputBuilder(
+    const mintOutput = new OutputBuilder(
             SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
             mint_contract_address(addressContent, version)
         )
@@ -64,7 +64,7 @@ export async function submit_project(
             description: "Temporal-funding Token for the " + title + " project. Please, exchange the PFT for the project token on Bene once the deadline has passed."
         });
 
-    let contractOutput = new OutputBuilder(
+    const contractOutput = new OutputBuilder(
             SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
             get_ergotree_hex(addressContent, version)    // Address of the project contract
         )

@@ -61,7 +61,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
       const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; // Contract loses 10k APT
 
       let value = BigInt(projectBox.value);
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: newAPTAmount },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
       ];
@@ -118,7 +118,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
       const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; // Contract loses 10k APT
 
       let value = BigInt(projectBox.value);
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: newAPTAmount },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
       ];
@@ -174,7 +174,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
       const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; // Contract loses 10k APT
 
       let value = BigInt(projectBox.value);
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: newAPTAmount },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
       ];
@@ -231,7 +231,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
       const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; // Contract loses 10k APT
 
       let value = BigInt(projectBox.value);
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: newAPTAmount },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
       ];
@@ -287,7 +287,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
       const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy; // Contract loses 10k APT
 
       let value = BigInt(projectBox.value);
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: newAPTAmount },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
       ];
@@ -399,7 +399,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
 
       let value = BigInt(projectBox.value);
       // Copy assets, excluding the base token if it's there (we handle payment next)
-      let assets = [
+      const assets = [
         { tokenId: ctx.projectNftId, amount: newAPTAmount },
         { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
       ];
