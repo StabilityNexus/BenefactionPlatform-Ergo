@@ -104,8 +104,7 @@ h1, h2, h3,
 
 
 .primary-btn {
-  @apply bg-primary text-primary-foreground rounded-xl py-2 px-4 text-sm
-  transition shadow-lg hover:bg-accent;
+  @apply bg-primary text-primary-foreground rounded-xl py-2 px-4 text-sm transition shadow-lg hover:bg-accent;
   box-shadow: 0 0 8px rgba(0, 148, 255, 0.45);
 }
 .primary-btn:hover {
