@@ -92,8 +92,7 @@ h1, h2, h3,
   background: var(--glass-bg);
   border: 2px solid var(--glass-border);
   backdrop-filter: blur(20px);
-  @apply rounded-xl px-4 py-3 w-full text-primary placeholder-primary/50
-  transition focus:ring-2 focus:ring-accent;
+  @apply rounded-xl px-4 py-3 w-full text-primary placeholder-primary/50 transition focus:ring-2 focus:ring-accent;
 }
 
 
