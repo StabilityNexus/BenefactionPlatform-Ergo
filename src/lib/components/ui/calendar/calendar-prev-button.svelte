@@ -5,7 +5,6 @@
 	import { cn } from "$lib/utils.js";
 
 	type $$Props = CalendarPrimitive.PrevButtonProps;
-	type $$Events = CalendarPrimitive.PrevButtonEvents;
 
 	let className: $$Props["class"] = undefined;
 	export { className as class };

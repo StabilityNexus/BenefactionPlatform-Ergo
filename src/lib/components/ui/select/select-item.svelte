@@ -4,7 +4,6 @@
 	import { cn } from "$lib/utils.js";
 
 	type $$Props = SelectPrimitive.ItemProps;
-	type $$Events = SelectPrimitive.ItemEvents;
 
 	let className: $$Props["class"] = undefined;
 	export let value: $$Props["value"];

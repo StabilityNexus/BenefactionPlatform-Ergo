@@ -6,7 +6,6 @@
 	type $$Props = MenubarPrimitive.SubTriggerProps & {
 		inset?: boolean;
 	};
-	type $$Events = MenubarPrimitive.SubTriggerEvents;
 
 	let className: $$Props["class"] = undefined;
 	export let inset: $$Props["inset"] = undefined;

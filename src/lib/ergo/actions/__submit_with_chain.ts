@@ -4,7 +4,6 @@ import {
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
-    type Box
 } from '@fleet-sdk/core';
 import { SInt, SPair } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
@@ -12,7 +11,7 @@ import { type contract_version, get_ergotree_hex, mint_contract_address } from '
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
 import { type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
-import { fetch_token_details, wait_until_confirmation } from '../fetch';
+import { fetch_token_details} from '../fetch';
 
 async function get_token_data(token_id: string): Promise<{amount: number, decimals: number}> {
     const token_fetch = await fetch_token_details(token_id);

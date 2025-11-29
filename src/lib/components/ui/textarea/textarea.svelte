@@ -4,8 +4,7 @@
 	import { cn } from "$lib/utils.js";
 
 	type $$Props = HTMLTextareaAttributes;
-	type $$Events = TextareaEvents;
-
+	
 	let className: $$Props["class"] = undefined;
 	export let value: $$Props["value"] = undefined;
 	export { className as class };

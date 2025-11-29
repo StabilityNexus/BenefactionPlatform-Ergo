@@ -4,8 +4,7 @@
 	import { cn } from "$lib/utils.js";
 
 	type $$Props = MenubarPrimitive.RadioItemProps;
-	type $$Events = MenubarPrimitive.RadioItemEvents;
-
+	
 	let className: $$Props["class"] = undefined;
 	export let value: $$Props["value"];
 	export { className as class };

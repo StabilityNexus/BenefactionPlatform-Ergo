@@ -149,7 +149,7 @@
 
           {#if $walletBalance.tokens && $walletBalance.tokens.length > 0}
             <div class="text-xs text-muted-foreground mt-2 mb-1">Tokens</div>
-            {#each $walletBalance.tokens.slice(0, 3) as token}
+            {#each $walletBalance.tokens.slice(0, 3) as token (token.tokenId)}
               <div class="flex items-center justify-between text-xs">
                 <span class="font-mono">{token.tokenId.slice(0, 8)}...</span>
                 <span>{Number(token.amount)}</span>

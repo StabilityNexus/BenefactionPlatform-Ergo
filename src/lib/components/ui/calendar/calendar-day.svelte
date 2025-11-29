@@ -4,7 +4,6 @@
 	import { cn } from "$lib/utils.js";
 
 	type $$Props = CalendarPrimitive.DayProps;
-	type $$Events = CalendarPrimitive.DayEvents;
 
 	export let date: $$Props["date"];
 	export let month: $$Props["month"];

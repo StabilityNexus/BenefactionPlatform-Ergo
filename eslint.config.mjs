@@ -43,11 +43,21 @@ export default ts.config(
       },
     },
   },
+  {
+    ignores: [
+      '**/.svelte-kit/**',
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/build/**',
+      '**/coverage/**'
+    ]
+  },
 
   // 7. Place for your own rule overrides
   {
     rules: {
       // You can tweak things here later, for example:
+      '@typescript-eslint/no-explicit-any': 'warn',
       // '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       // 'no-console': 'warn',
     },

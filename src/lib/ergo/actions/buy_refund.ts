@@ -133,7 +133,6 @@ export async function buy_refund(
                 tokenId: project.base_token_id,
                 amount: BigInt(newBaseTokenAmount).toString()
             });
-        } else {
         }
     }
 
@@ -162,8 +161,6 @@ export async function buy_refund(
             });
         outputs.push(userOutput);
     } else if (token_amount < 0) {
-        const refundTokenAmount = Math.abs(token_amount);
-
         // For refunds, user needs to provide the project tokens as input
         // The user output only contains what they receive back (base tokens)
         if (isERGBase) {
@@ -196,21 +193,33 @@ export async function buy_refund(
 
     // Final sanity check: ensure all token amounts in outputs are > 0
     try {
-        const invalidTokens: Array<{ outIndex: number, tokenId: string, amount: string }> = [];
-        (unsignedTransaction.outputs || []).forEach((o: any, idx: number) => {
-            (o.assets || []).forEach((t: any) => {
-                const amt = BigInt(typeof t.amount === 'string' ? t.amount : (t.amount?.toString() ?? '0'));
-                if (amt <= 0n) {
-                    invalidTokens.push({ outIndex: idx, tokenId: t.tokenId, amount: amt.toString() });
-                }
-            });
-        });
-        if (invalidTokens.length > 0) {
+	const invalidTokens: Array<{ outIndex: number; tokenId: string; amount: string }> = [];
+
+	(unsignedTransaction.outputs || []).forEach((o: any, idx: number) => {
+		(o.assets || []).forEach((t: any) => {
+			const amt = BigInt(
+				typeof t.amount === "string"
+					? t.amount
+					: (t.amount?.toString() ?? "0")
+			);
+			if (amt <= 0n) {
+				invalidTokens.push({
+					outIndex: idx,
+					tokenId: t.tokenId,
+					amount: amt.toString()
+				});
+			}
+		});
+	});
+
+    if (invalidTokens.length > 0) {
             throw new Error("Transaction has non-positive token amounts in outputs");
         }
     } catch (e) {
-        throw e;
+        console.error("Invalid transaction structure detected", e);
+        throw e; // now adds meaningful debugging info
     }
+
 
     try {
         // Sign the transaction

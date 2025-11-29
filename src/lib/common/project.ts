@@ -38,7 +38,7 @@ export function createR8Structure(content: ConstantContent) {
     function getErgoTree(input: string): string {
         try {
             return ErgoAddress.fromBase58(input).ergoTree;
-        } catch (e) {
+        } catch {
             return input;
         }
     }
@@ -114,7 +114,7 @@ export function getProjectContent(id: string, value: string): ProjectContent {
             link: parsed.link || null,
             image: parsed.image || "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg"
         };
-    } catch (error) {
+    } catch {
         return {
 
             raw: value,
@@ -138,7 +138,7 @@ export function getConstantContent(value: string): ConstantContent | null {
             pft_token_id: parsed.pft_token_id || parsed.token_id || null,
             base_token_id: parsed.base_token_id || ""  // Default to empty string for ERG
         }
-    } catch (error) {
+    } catch {
         return null;
     }
 }

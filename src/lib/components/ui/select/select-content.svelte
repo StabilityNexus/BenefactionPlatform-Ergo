@@ -4,7 +4,6 @@
 	import { cn, flyAndScale } from "$lib/utils.js";
 
 	type $$Props = SelectPrimitive.ContentProps;
-	type $$Events = SelectPrimitive.ContentEvents;
 
 	export let sideOffset: $$Props["sideOffset"] = 4;
 	export let inTransition: $$Props["inTransition"] = flyAndScale;

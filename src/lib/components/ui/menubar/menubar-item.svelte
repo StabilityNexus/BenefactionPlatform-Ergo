@@ -5,8 +5,7 @@
 	type $$Props = MenubarPrimitive.ItemProps & {
 		inset?: boolean;
 	};
-	type $$Events = MenubarPrimitive.ItemEvents;
-
+	
 	let className: $$Props["class"] = undefined;
 	export let inset: $$Props["inset"] = undefined;
 	export { className as class };

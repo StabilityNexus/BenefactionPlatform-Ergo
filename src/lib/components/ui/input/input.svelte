@@ -4,7 +4,6 @@
 	import { cn } from "$lib/utils.js";
 
 	type $$Props = HTMLInputAttributes;
-	type $$Events = InputEvents;
 
 	let className: $$Props["class"] = undefined;
 	export let value: $$Props["value"] = undefined;
