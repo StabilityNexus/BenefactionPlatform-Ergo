@@ -516,10 +516,10 @@
             let owner_ergotree = "";
             if (ownerMode === "timelock" && ownerBlockHeight && ownerAddress) {
                 try {
-                    owner_ergotree = compile_refund_contract(
+                    owner_ergotree = ""; /*compile_refund_contract(
                         ownerAddress,
                         ownerBlockHeight,
-                    );
+                    );*/ 
                 } catch (e: any) {
                     console.error("Error compiling timelock contract:", e);
                     errorMessage =
@@ -547,10 +547,10 @@
                     return;
                 }
                 try {
-                    owner_ergotree = compile_multisig_contract(
+                    owner_ergotree = ""; /*compile_multisig_contract(
                         validAddresses,
                         multisigRequired,
-                    );
+                    );*/
                 } catch (e: any) {
                     console.error("Error compiling multisig contract:", e);
                     errorMessage =
