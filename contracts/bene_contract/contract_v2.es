@@ -74,17 +74,20 @@
 
   // HELP FUNCTIONS
 
-  def temporaryFundingTokenAmountOnContract(contract: Box): Long =
+  def temporaryFundingTokenAmountOnContract(contract: Box): Long = {
     // APT amount that serves as temporary funding token that is currently on the contract available to exchange.
+
     val pfts = contract.tokens.filter { (token: (Coll[Byte], Long)) => 
       token._1 == pftTokenId
     }
-    val proof_funding_token_amount = if (pfts.size > 0) pfts(0)._2 else 0L
-    val sold = contract.R6[Coll[Long]].get(0)
-    val refunded = contract.R6[Coll[Long]].get(1)
-    val exchanged = contract.R6[Coll[Long]].get(2)  // If the exchanged APT -> PFT amount is not accounted for, it will result in double-counting the sold amount.
+    val proof_funding_token_amount = if (pfts.size > 0) { pfts(0)._2 } else { 0L }
+    val sold                       = contract.R6[Coll[Long]].get(0)
+    val refunded                   = contract.R6[Coll[Long]].get(1)
+    val exchanged                   = contract.R6[Coll[Long]].get(2)  // If the exchanged APT -> PFT amount is not accounted for, it will result in double-counting the sold amount.
+
     val calculation = proof_funding_token_amount - sold + refunded + exchanged
     if (calculation < 0L) 0L else calculation
+  }
 
   def getBaseTokenAmount(box: Box): Long = {
     if (isERGBase) {
