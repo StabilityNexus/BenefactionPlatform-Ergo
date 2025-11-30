@@ -1,7 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -54,7 +54,7 @@
     --footer-border-color: hsl(0 0% 100% / 0.1);
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;

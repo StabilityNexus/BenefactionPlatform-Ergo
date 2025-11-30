@@ -6,9 +6,10 @@ export class NautilusWalletAdapter extends BaseWalletAdapter {
   name = 'Nautilus Wallet';
   icon = '/wallet-icons/nautilus.svg';
   downloadUrls: WalletDownloadUrls = {
-    chrome: 'https://chrome.google.com/webstore/detail/nautilus-wallet/gjlmehlldlphhljhpnlddaodbjjcchai',
+    chrome:
+      'https://chrome.google.com/webstore/detail/nautilus-wallet/gjlmehlldlphhljhpnlddaodbjjcchai',
     firefox: 'https://addons.mozilla.org/en-US/firefox/addon/nautilus/',
-    browserExtension: 'https://github.com/capt-nemo429/nautilus-wallet'
+    browserExtension: 'https://github.com/capt-nemo429/nautilus-wallet',
   };
 
   async connect(): Promise<boolean> {
@@ -51,6 +52,7 @@ export class NautilusWalletAdapter extends BaseWalletAdapter {
       if (!nautilus) return false;
       return await nautilus.isConnected();
     } catch (error) {
+      this.handleError(error, 'isNotConnected');
       return false;
     }
   }
@@ -83,24 +85,26 @@ export class NautilusWalletAdapter extends BaseWalletAdapter {
         throw new Error('Wallet not connected');
       }
 
-      const addr = address || await this.getChangeAddress();
-      
+      const addr = address || (await this.getChangeAddress());
+
       // Use the same API endpoint as the existing platform
-      const response = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${addr}/balance/confirmed`);
+      const response = await fetch(
+        `https://api.ergoplatform.com/api/v1/addresses/${addr}/balance/confirmed`
+      );
       if (!response.ok) {
         throw new Error(`API request failed with status: ${response.status}`);
       }
 
       const data = await response.json();
-      
+
       return {
         nanoErgs: BigInt(data.nanoErgs),
         tokens: data.tokens.map((token: any) => ({
           tokenId: token.tokenId,
           amount: BigInt(token.amount),
           name: token.name,
-          decimals: token.decimals
-        }))
+          decimals: token.decimals,
+        })),
       };
     } catch (error) {
       this.handleError(error, 'getBalance');
@@ -154,8 +158,10 @@ export class NautilusWalletAdapter extends BaseWalletAdapter {
   }
 
   isInstalled(): boolean {
-    return typeof window !== 'undefined' && 
-           typeof window.ergoConnector !== 'undefined' && 
-           typeof window.ergoConnector.nautilus !== 'undefined';
+    return (
+      typeof window !== 'undefined' &&
+      typeof window.ergoConnector !== 'undefined' &&
+      typeof window.ergoConnector.nautilus !== 'undefined'
+    );
   }
 }

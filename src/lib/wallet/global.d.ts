@@ -16,7 +16,7 @@ declare global {
       };
       [key: string]: any;
     };
-    
+
     ergo?: {
       get_utxos(amount?: string, token_id?: string): Promise<any[]>;
       get_balance(token_id?: string): Promise<string>;
