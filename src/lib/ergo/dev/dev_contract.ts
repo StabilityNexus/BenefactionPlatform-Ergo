@@ -1,170 +1,178 @@
-import { compile } from "@fleet-sdk/compiler";
-import { blake2b256, hex, sha256 } from "@fleet-sdk/crypto";
-import { uint8ArrayToHex } from "../utils";
-import { Network } from "@fleet-sdk/core";
-import { network_id } from "../envs";
-import { distributeFunds } from "./distribute_funds";
-import { explorer_uri } from "$lib/common/store";
-import { get } from "svelte/store";
+import { compile } from '@fleet-sdk/compiler';
+import { blake2b256, hex, sha256 } from '@fleet-sdk/crypto';
+import { uint8ArrayToHex } from '../utils';
+import { Network } from '@fleet-sdk/core';
+import { network_id } from '../envs';
+import { distributeFunds } from './distribute_funds';
+import { explorer_uri } from '$lib/common/store';
+import { get } from 'svelte/store';
 
 import DEV_FEE_CONTRACT from '../../../../contracts/dev_fee_contract/dev_fee.es?raw';
 
 function wallets() {
-    let bruno;
-    let lgd;
-    let jm;
-    let order;
+  let bruno;
+  let lgd;
+  let jm;
+  let order;
 
-    if (network_id == "mainnet") {
-        bruno = "9fBF4dceTsqdhsYUNVZHjsv4jqoKVzVv3KywFCycbkEXEq5j6bp";
-        lgd = "9gkRrMRdSstibAsVzCtYumUGbXDPQZHkfuAaqmA49FNH3tN4XDg";
-        jm = "9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD";
-        order = "9h9hjN2KC3jEyCa6KEYKBotPRESdo9oa29yyKcoSLWwtaX2VvhM";
-    }
-    else {
-        bruno = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
-        lgd = "3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S";
-        jm = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
-        order = "3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S";
-    }
+  if (network_id == 'mainnet') {
+    bruno = '9fBF4dceTsqdhsYUNVZHjsv4jqoKVzVv3KywFCycbkEXEq5j6bp';
+    lgd = '9gkRrMRdSstibAsVzCtYumUGbXDPQZHkfuAaqmA49FNH3tN4XDg';
+    jm = '9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD';
+    order = '9h9hjN2KC3jEyCa6KEYKBotPRESdo9oa29yyKcoSLWwtaX2VvhM';
+  } else {
+    bruno = '3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve';
+    lgd = '3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S';
+    jm = '3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve';
+    order = '3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S';
+  }
 
-    return {
-        "bruno": bruno,
-        "lgd": lgd,
-        "jm": jm,
-        "order": order
-    }
+  return {
+    bruno: bruno,
+    lgd: lgd,
+    jm: jm,
+    order: order,
+  };
 }
 
 function generate_contract(): string {
-    const w = wallets()
-    const bruno = w['bruno']
-    const lgd = w['lgd']
-    const jm = w['jm']
-    const order = w['order']
+  const w = wallets();
+  const bruno = w['bruno'];
+  const lgd = w['lgd'];
+  const jm = w['jm'];
+  const order = w['order'];
 
-    return DEV_FEE_CONTRACT
-        .replace(/`\+bruno\+`/g, bruno)
-        .replace(/`\+lgd\+`/g, lgd)
-        .replace(/`\+jm\+`/g, jm)
-        .replace(/`\+order\+`/g, order);
+  return DEV_FEE_CONTRACT.replace(/`\+bruno\+`/g, bruno)
+    .replace(/`\+lgd\+`/g, lgd)
+    .replace(/`\+jm\+`/g, jm)
+    .replace(/`\+order\+`/g, order);
 }
 
 export function get_dev_contract_hash(): string {
-    return uint8ArrayToHex(
-        blake2b256(
-            compile(generate_contract(), { version: 1, network: network_id }).bytes  // Compile contract to ergo tree
-        )                                                         // Blake2b256 hash of contract bytes
-    );
+  return uint8ArrayToHex(
+    blake2b256(
+      compile(generate_contract(), { version: 1, network: network_id }).bytes // Compile contract to ergo tree
+    ) // Blake2b256 hash of contract bytes
+  );
 }
 
 export function get_dev_contract_address(): string {
-    const network = (network_id == "mainnet") ? Network.Mainnet : Network.Testnet;
-    return compile(generate_contract(), { version: 1, network: network_id }).toAddress(network).toString()
+  const network = network_id == 'mainnet' ? Network.Mainnet : Network.Testnet;
+  return compile(generate_contract(), { version: 1, network: network_id })
+    .toAddress(network)
+    .toString();
 }
 
 export function get_dev_fee(): number {
-    return 5;  // Should be 5, but needs to update dev_fee_contract first; for now, no dev fees.
+  return 5; // Should be 5, but needs to update dev_fee_contract first; for now, no dev fees.
 }
 
 function get_template_hash(): string {
-    const contract = generate_contract();
-    return hex.encode(sha256(compile(contract, { version: 1, network: network_id }).template))
+  const contract = generate_contract();
+  return hex.encode(sha256(compile(contract, { version: 1, network: network_id }).template));
 }
 
 export async function download_dev() {
-    try {
-        const params = {
-            offset: 0,
-            limit: 500,
-        };
-        const moreDataAvailable = true;
+  try {
+    const params = {
+      offset: 0,
+      limit: 500,
+    };
+    const moreDataAvailable = true;
 
-        while (moreDataAvailable) {
-            const url = get(explorer_uri) + '/api/v1/boxes/unspent/search';
-            const response = await fetch(url + '?' + new URLSearchParams({
-                offset: params.offset.toString(),
-                limit: params.limit.toString(),
-            }), {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    "ergoTreeTemplateHash": get_template_hash(),
-                    "registers": {},
-                    "constants": {},
-                    "assets": []
-                }),
-            });
-
-            if (response.ok) {
-                const json_data = await response.json();
-                return json_data.items.map(e => ({
-                    boxId: e.boxId,
-                    value: e.value,
-                    assets: e.assets,
-                    ergoTree: e.ergoTree,
-                    creationHeight: e.creationHeight,
-                    additionalRegisters: Object.entries(e.additionalRegisters).reduce((acc, [key, value]) => {
-                        acc[key] = value.serializedValue;
-                        return acc;
-                    }, {} as Record<string, any>),
-                    index: e.index,
-                    transactionId: e.transactionId
-                }));
-            } else {
-                console.log(response)
-            }
+    while (moreDataAvailable) {
+      const url = get(explorer_uri) + '/api/v1/boxes/unspent/search';
+      const response = await fetch(
+        url +
+          '?' +
+          new URLSearchParams({
+            offset: params.offset.toString(),
+            limit: params.limit.toString(),
+          }),
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ergoTreeTemplateHash: get_template_hash(),
+            registers: {},
+            constants: {},
+            assets: [],
+          }),
         }
-    } catch (error) {
-        console.error('Error while making the POST request:', error);
+      );
+
+      if (response.ok) {
+        const json_data = await response.json();
+        return json_data.items.map((e) => ({
+          boxId: e.boxId,
+          value: e.value,
+          assets: e.assets,
+          ergoTree: e.ergoTree,
+          creationHeight: e.creationHeight,
+          additionalRegisters: Object.entries(e.additionalRegisters).reduce(
+            (acc, [key, value]) => {
+              acc[key] = value.serializedValue;
+              return acc;
+            },
+            {} as Record<string, any>
+          ),
+          index: e.index,
+          transactionId: e.transactionId,
+        }));
+      } else {
+        console.log(response);
+      }
     }
-    return []
+  } catch (error) {
+    console.error('Error while making the POST request:', error);
+  }
+  return [];
 }
 
 export async function execute_dev(box) {
-    try {
-        console.log(`Executing action with Box ID: ${box.boxId} and Value: ${box.value}`);
+  try {
+    console.log(`Executing action with Box ID: ${box.boxId} and Value: ${box.value}`);
 
-        const w = wallets()
-        const bruno = w['bruno']
-        const lgd = w['lgd']
-        const jm = w['jm']
-        const order = w['order']
+    const w = wallets();
+    const bruno = w['bruno'];
+    const lgd = w['lgd'];
+    const jm = w['jm'];
+    const order = w['order'];
 
-        // Check if this is a token distribution (R4 contains token ID)
-        let tokenId: string | undefined = undefined;
-        let totalAmount = box.value;
+    // Check if this is a token distribution (R4 contains token ID)
+    let tokenId: string | undefined = undefined;
+    let totalAmount = box.value;
 
-        if (box.additionalRegisters && box.additionalRegisters.R4) {
-            const r4Value = box.additionalRegisters.R4;
+    if (box.additionalRegisters && box.additionalRegisters.R4) {
+      const r4Value = box.additionalRegisters.R4;
 
-            if (r4Value.startsWith('0e')) {
-                // Parse Coll[Byte]: 0e[length][data]
-                const lengthByte = r4Value.substring(2, 4);
-                const lengthValue = parseInt(lengthByte, 16);
-                const extractedTokenId = r4Value.substring(4, 4 + (lengthValue * 2));
+      if (r4Value.startsWith('0e')) {
+        // Parse Coll[Byte]: 0e[length][data]
+        const lengthByte = r4Value.substring(2, 4);
+        const lengthValue = parseInt(lengthByte, 16);
+        const extractedTokenId = r4Value.substring(4, 4 + lengthValue * 2);
 
-                // Validate token ID is 32 bytes (64 hex chars)
-                if (extractedTokenId && extractedTokenId.length === 64) {
-                    tokenId = extractedTokenId;
+        // Validate token ID is 32 bytes (64 hex chars)
+        if (extractedTokenId && extractedTokenId.length === 64) {
+          tokenId = extractedTokenId;
 
-                    // Find the token amount in box assets
-                    if (box.assets) {
-                        for (const asset of box.assets) {
-                            if (asset.tokenId === tokenId) {
-                                totalAmount = Number(asset.amount);
-                                break;
-                            }
-                        }
-                    }
-                }
+          // Find the token amount in box assets
+          if (box.assets) {
+            for (const asset of box.assets) {
+              if (asset.tokenId === tokenId) {
+                totalAmount = Number(asset.amount);
+                break;
+              }
             }
+          }
         }
-
-        distributeFunds(box, bruno, lgd, jm, order, 32, 32, 32, 4, totalAmount, tokenId);
-    } catch (e) {
-        console.error("Error executing action:", e.message);
+      }
     }
+
+    distributeFunds(box, bruno, lgd, jm, order, 32, 32, 32, 4, totalAmount, tokenId);
+  } catch (e) {
+    console.error('Error executing action:', e.message);
+  }
 }

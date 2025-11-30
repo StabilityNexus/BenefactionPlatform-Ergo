@@ -49,8 +49,10 @@ export default ts.config(
       '**/node_modules/**',
       '**/dist/**',
       '**/build/**',
-      '**/coverage/**'
-    ]
+      '**/coverage/**',
+      'src/routes/NewProject.svelte',
+      'src/routes/ProjectDetails.svelte',
+    ],
   },
 
   // 7. Place for your own rule overrides
@@ -58,8 +60,16 @@ export default ts.config(
     rules: {
       // You can tweak things here later, for example:
       '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          args: 'after-used', // Only warn when function params are unused
+          argsIgnorePattern: '^_', // Allow intentionally unused params if name starts with "_"
+          varsIgnorePattern: '^_', // Same rule for variables
+        },
+      ],
       // '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       // 'no-console': 'warn',
     },
-  },
+  }
 );

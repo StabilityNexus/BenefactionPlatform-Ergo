@@ -1,46 +1,46 @@
-import { MockChain, type KeyedMockChainParty, type NonKeyedMockChainParty } from "@fleet-sdk/mock-chain";
-import { compile } from "@fleet-sdk/compiler";
-import { ErgoAddress } from "@fleet-sdk/core";
-import { blake2b256 } from "@fleet-sdk/crypto";
-import * as fs from "fs";
-import * as path from "path";
-import { ConstantContent, createR8Structure } from "$lib/common/project";
+import {
+  MockChain,
+  type KeyedMockChainParty,
+  type NonKeyedMockChainParty,
+} from '@fleet-sdk/mock-chain';
+import { compile } from '@fleet-sdk/compiler';
+import { ErgoAddress } from '@fleet-sdk/core';
+import { blake2b256 } from '@fleet-sdk/crypto';
+import * as fs from 'fs';
+import * as path from 'path';
+import { ConstantContent, createR8Structure } from '$lib/common/project';
 
 // ===== Utility Functions ===== //
 
 export function uint8ArrayToHex(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString("hex");
+  return Buffer.from(bytes).toString('hex');
 }
 
 // ===== Contract Loading ===== //
 // Read v2 contract template from file system
-const contractsDir = path.resolve(__dirname, "../../contracts/bene_contract");
-export const BENE_CONTRACT_V2 = fs.readFileSync(
-  path.join(contractsDir, "contract_v2.es"),
-  "utf-8"
-);
+const contractsDir = path.resolve(__dirname, '../../contracts/bene_contract');
+export const BENE_CONTRACT_V2 = fs.readFileSync(path.join(contractsDir, 'contract_v2.es'), 'utf-8');
 
 // ===== Test Parameters ===== //
 
 // TOKEN CONFIGURATION: Configure ALL parameters for the token you're testing
 // ⚠️ CRITICAL: exchangeRate = FUNDING_GOAL / TOTAL_PFT_TOKENS must be >= 1 (BigInt truncates!)
 
-export const TOTAL_PFT_TOKENS = 100_000n;       // 100,000 tokens
+export const TOTAL_PFT_TOKENS = 100_000n; // 100,000 tokens
 
 // --- ERG ---
-export const ERG_BASE_TOKEN = "";
-export const ERG_BASE_TOKEN_NAME = "ERG";
+export const ERG_BASE_TOKEN = '';
+export const ERG_BASE_TOKEN_NAME = 'ERG';
 export const ERG_BASE_TOKEN_DECIMALS = 9;
-export const ERG_FUNDING_GOAL = 100_000_000_000n;  // 100 ERG = 100 * 10^9
+export const ERG_FUNDING_GOAL = 100_000_000_000n; // 100 ERG = 100 * 10^9
 // exchangeRate = 100,000,000,000 / 100,000 = 1,000,000 nanoERG per token
 
 // --- SigmaUSD ---
-export const USD_BASE_TOKEN = "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04";
-export const USD_BASE_TOKEN_NAME = "SigmaUSD";
+export const USD_BASE_TOKEN = '03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04';
+export const USD_BASE_TOKEN_NAME = 'SigmaUSD';
 export const USD_BASE_TOKEN_DECIMALS = 2;
-export const USD_FUNDING_GOAL = 10_000_000n;  // 100,000 SigUSD = 100,000 * 10^2
+export const USD_FUNDING_GOAL = 10_000_000n; // 100,000 SigUSD = 100,000 * 10^2
 // exchangeRate = 10,000,000 / 100,000 = 100 = 1.00 SigUSD per token
-
 
 // ===== Test Context Setup ===== //
 
@@ -77,7 +77,7 @@ export interface BeneTestContext {
 // - Project metadata: name, description, image (stored in R8/R9 registers)
 // - Specific funding amounts (tests override defaults as needed)
 export function setupBeneTestContext(
-  baseTokenId: string,      // PAYMENT token: "" for ERG mode, or token ID for custom token mode
+  baseTokenId: string, // PAYMENT token: "" for ERG mode, or token ID for custom token mode
   baseTokenName: string,
   ownerAddress: ErgoAddress | null = null
 ): BeneTestContext {
@@ -85,40 +85,45 @@ export function setupBeneTestContext(
   const mockChain = new MockChain({ height: 800_000 });
 
   // STEP 2: Create mock participants (wallets/addresses) on the blockchain
-  const projectOwner = mockChain.newParty("ProjectOwner");  // Creator of the fundraising project (in case ownerAddress is provided, this party is simply used to execute transactions)
-  const buyer = mockChain.newParty("Buyer");                // User who will buy tokens
+  const projectOwner = mockChain.newParty('ProjectOwner'); // Creator of the fundraising project (in case ownerAddress is provided, this party is simply used to execute transactions)
+  const buyer = mockChain.newParty('Buyer'); // User who will buy tokens
 
   // STEP 3: Define project parameters (using values from configuration above)
-  const fundingGoal = ERG_FUNDING_GOAL;                  // From config: varies by token decimals
-  const totalPFTokens = TOTAL_PFT_TOKENS;            // From config: total tokens to sell
-  const exchangeRate = fundingGoal / totalPFTokens;  // Calculated price per token (MUST be >= 1!)
-  const minimumTokensSold = totalPFTokens / 2n;      // Minimum threshold: 50% (owner chooses - can be any value)
-  const deadlineBlock = 800_200;                     // Campaign deadline: block 800,200 (owner chooses)
+  const fundingGoal = ERG_FUNDING_GOAL; // From config: varies by token decimals
+  const totalPFTokens = TOTAL_PFT_TOKENS; // From config: total tokens to sell
+  const exchangeRate = fundingGoal / totalPFTokens; // Calculated price per token (MUST be >= 1!)
+  const minimumTokensSold = totalPFTokens / 2n; // Minimum threshold: 50% (owner chooses - can be any value)
+  const deadlineBlock = 800_200; // Campaign deadline: block 800,200 (owner chooses)
   // Calculate deadline timestamp based on MockChain's 2-minute block time
-  const deadlineTimestamp = BigInt(mockChain.timestamp) + (BigInt(deadlineBlock - 800_000) * 120_000n);
-  const devFeePercentage = 5;                        // Platform fee: 5% of raised funds (platform constant)
+  const deadlineTimestamp =
+    BigInt(mockChain.timestamp) + BigInt(deadlineBlock - 800_000) * 120_000n;
+  const devFeePercentage = 5; // Platform fee: 5% of raised funds (platform constant)
 
   // Validation: Ensure exchange rate is valid
   if (exchangeRate === 0n) {
     throw new Error(
       `❌ INVALID CONFIGURATION: Exchange rate is 0!\n` +
-      `   FUNDING_GOAL (${fundingGoal}) / TOTAL_PFT_TOKENS (${totalPFTokens}) = ${exchangeRate}\n` +
-      `   Exchange rate must be >= 1 (smallest unit).\n` +
-      `   Either increase FUNDING_GOAL or decrease TOTAL_PFT_TOKENS.`
+        `   FUNDING_GOAL (${fundingGoal}) / TOTAL_PFT_TOKENS (${totalPFTokens}) = ${exchangeRate}\n` +
+        `   Exchange rate must be >= 1 (smallest unit).\n` +
+        `   Either increase FUNDING_GOAL or decrease TOTAL_PFT_TOKENS.`
     );
   }
 
   // LOGGING: Display test configuration (only once per test run)
-  const decimalDivisor = 10 ** ERG_BASE_TOKEN_DECIMALS;  // Use actual decimals from config
+  const decimalDivisor = 10 ** ERG_BASE_TOKEN_DECIMALS; // Use actual decimals from config
 
   // Only log configuration if this is the first time setup is called
   if (!(globalThis as any).__beneTestConfigLogged) {
-    console.log("\n" + "=".repeat(80));
-    console.log("BENE CONTRACT TEST CONFIGURATION");
-    console.log("=".repeat(80));
-    console.log(`Payment Token:        ${baseTokenName} (${ERG_BASE_TOKEN_DECIMALS} decimals) ${baseTokenId === "" ? "[native ERG]" : ""}`);
-    if (baseTokenId !== "") {
-      console.log(`   Token ID:             ${baseTokenId.substring(0, 20)}...${baseTokenId.substring(baseTokenId.length - 10)}`);
+    console.log('\n' + '='.repeat(80));
+    console.log('BENE CONTRACT TEST CONFIGURATION');
+    console.log('='.repeat(80));
+    console.log(
+      `Payment Token:        ${baseTokenName} (${ERG_BASE_TOKEN_DECIMALS} decimals) ${baseTokenId === '' ? '[native ERG]' : ''}`
+    );
+    if (baseTokenId !== '') {
+      console.log(
+        `   Token ID:             ${baseTokenId.substring(0, 20)}...${baseTokenId.substring(baseTokenId.length - 10)}`
+      );
     }
 
     const fundingGoalDisplay = Number(fundingGoal) / decimalDivisor;
@@ -128,52 +133,56 @@ export function setupBeneTestContext(
 
     const exchangeRateDisplay = Number(exchangeRate) / decimalDivisor;
     console.log(`Exchange Rate:        ${exchangeRateDisplay} ${baseTokenName} per token`);
-    console.log(`   (Inverse):            ${(1 / exchangeRateDisplay).toFixed(6)} tokens per ${baseTokenName}`);
+    console.log(
+      `   (Inverse):            ${(1 / exchangeRateDisplay).toFixed(6)} tokens per ${baseTokenName}`
+    );
     console.log(`   (Smallest units):     ${exchangeRate.toLocaleString()} per token`);
 
-    console.log(`Minimum to Sell:      ${minimumTokensSold.toLocaleString()} tokens (${(Number(minimumTokensSold) / Number(totalPFTokens) * 100).toFixed(0)}%)`);
+    console.log(
+      `Minimum to Sell:      ${minimumTokensSold.toLocaleString()} tokens (${((Number(minimumTokensSold) / Number(totalPFTokens)) * 100).toFixed(0)}%)`
+    );
     console.log(`Deadline Block:       ${deadlineBlock.toLocaleString()}`);
     console.log(`Deadline Timestamp:   ${deadlineTimestamp.toLocaleString()}`);
     console.log(`Platform Dev Fee:     ${devFeePercentage}%`);
-    console.log("=".repeat(80) + "\n");
+    console.log('='.repeat(80) + '\n');
 
     (globalThis as any).__beneTestConfigLogged = true;
   }
 
   // STEP 4: Calculate payment mode flags
-  const isErgMode = baseTokenId === "";                   // true = accept ERG, false = accept custom token
+  const isErgMode = baseTokenId === ''; // true = accept ERG, false = accept custom token
 
   // STEP 5: Fund the buyer with ERG for transaction fees
-  buyer.addBalance({ nanoergs: 50_000_000_000n });  // Give buyer 50 ERG for gas fees
+  buyer.addBalance({ nanoergs: 50_000_000_000n }); // Give buyer 50 ERG for gas fees
 
   // STEP 6: If using custom token mode, also give buyer the payment tokens
   if (!isErgMode) {
-    const buyerTokenAmount = fundingGoal * 10n;  // Give buyer 10x the funding goal to ensure sufficient funds
+    const buyerTokenAmount = fundingGoal * 10n; // Give buyer 10x the funding goal to ensure sufficient funds
     buyer.addUTxOs({
-      value: 10_000_000_000n,                      // 10 ERG for transaction fees
-      ergoTree: buyer.address.ergoTree,            // Buyer's address
+      value: 10_000_000_000n, // 10 ERG for transaction fees
+      ergoTree: buyer.address.ergoTree, // Buyer's address
       assets: [{ tokenId: baseTokenId, amount: buyerTokenAmount }], // Sufficient custom tokens
-      creationHeight: mockChain.height - 50,       // Created 50 blocks ago
+      creationHeight: mockChain.height - 50, // Created 50 blocks ago
       additionalRegisters: {},
     });
   }
 
-  const projectNftId = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";  // APT token ID (hardcoded for testing)
-  const pftTokenId = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";    // PFT/reward token ID (hardcoded for testing)
+  const projectNftId = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'; // APT token ID (hardcoded for testing)
+  const pftTokenId = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'; // PFT/reward token ID (hardcoded for testing)
 
   // STEP 8: Compile the Bene smart contract with actual values replacing placeholders
   // In case is not provided, use the projectOwner. If is provided, the actual project owner will not be added into the contract.
   if (ownerAddress === null) {
     const ownerAddressStr = projectOwner.address.toString();
-    ownerAddress = ErgoAddress.fromBase58(ownerAddressStr)
+    ownerAddress = ErgoAddress.fromBase58(ownerAddressStr);
   }
 
   // STEP 8a: Convert owner address to ErgoTree hex for P2S/P2PK support
   const ownerErgoTree = ownerAddress.ergoTree;
 
   // STEP 8b: Create dev fee contract (simple contract that accepts any transaction)
-  const devFeeContract = compile(`{ sigmaProp(true) }`);        // Always returns true (for testing)
-  const devFeeContractBytes = devFeeContract.bytes;              // Get bytes property (not method!)
+  const devFeeContract = compile(`{ sigmaProp(true) }`); // Always returns true (for testing)
+  const devFeeContractBytes = devFeeContract.bytes; // Get bytes property (not method!)
   const devFeeContractHashBytes = blake2b256(devFeeContractBytes); // Hash the contract
   const devFeeContractHash = uint8ArrayToHex(devFeeContractHashBytes); // Convert to hex string
 
@@ -182,7 +191,7 @@ export function setupBeneTestContext(
     dev_hash: devFeeContractHash,
     dev_fee: devFeePercentage,
     pft_token_id: pftTokenId,
-    base_token_id: baseTokenId
+    base_token_id: baseTokenId,
   });
 
   // STEP 8c: Compile the contract source code into ErgoTree (executable bytecode)
@@ -194,29 +203,29 @@ export function setupBeneTestContext(
   // STEP 10: Return the complete test context object
   // This object contains everything needed for testing: blockchain, actors, and configuration
   return {
-    mockChain,           // The simulated blockchain
-    constants,            // Constant content for the project
-    projectOwner,        // Project creator's wallet
-    buyer,               // Token buyer's wallet
-    beneContract,        // The smart contract party
-    beneErgoTree,        // Compiled contract bytecode
-    projectNftId,        // APT token ID
-    pftTokenId,          // PFT token ID
-    baseTokenId,         // Payment token ID ("" for ERG)
-    baseTokenName,       // Human-readable name ("ERG", "SigUSD", etc.)
-    baseTokenDecimals: ERG_BASE_TOKEN_DECIMALS,  // Number of decimals (9 for ERG, 2 for SigUSD, etc.)
-    isErgMode,           // true if accepting ERG, false if accepting custom token
-    fundingGoal,         // Total amount to raise
-    exchangeRate,        // Price per APT token
-    totalPFTokens,       // Total APT tokens available (100,000)
-    minimumTokensSold,   // Minimum threshold (50,000)
-    deadlineBlock,       // Campaign deadline (block 800,200)
-    deadlineTimestamp,   // Campaign deadline (timestamp)
-    devFeePercentage,    // Platform fee (5%)
+    mockChain, // The simulated blockchain
+    constants, // Constant content for the project
+    projectOwner, // Project creator's wallet
+    buyer, // Token buyer's wallet
+    beneContract, // The smart contract party
+    beneErgoTree, // Compiled contract bytecode
+    projectNftId, // APT token ID
+    pftTokenId, // PFT token ID
+    baseTokenId, // Payment token ID ("" for ERG)
+    baseTokenName, // Human-readable name ("ERG", "SigUSD", etc.)
+    baseTokenDecimals: ERG_BASE_TOKEN_DECIMALS, // Number of decimals (9 for ERG, 2 for SigUSD, etc.)
+    isErgMode, // true if accepting ERG, false if accepting custom token
+    fundingGoal, // Total amount to raise
+    exchangeRate, // Price per APT token
+    totalPFTokens, // Total APT tokens available (100,000)
+    minimumTokensSold, // Minimum threshold (50,000)
+    deadlineBlock, // Campaign deadline (block 800,200)
+    deadlineTimestamp, // Campaign deadline (timestamp)
+    devFeePercentage, // Platform fee (5%)
   };
 }
 
-import { SBool, SLong, SPair } from "@fleet-sdk/serializer";
+import { SBool, SLong, SPair } from '@fleet-sdk/serializer';
 
 export function createR4(ctx: BeneTestContext, useTimestamp: boolean = false) {
   return useTimestamp

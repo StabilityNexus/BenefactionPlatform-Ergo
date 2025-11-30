@@ -111,16 +111,13 @@
 // None
 
 
-  def temporaryFundingTokenAmountOnContract(contract: Box): Long = {
+  def temporaryFundingTokenAmountOnContract(contract: Box): Long =
     // APT amount that serves as temporary funding token that is currently on the contract available to exchange.
-
     val proof_funding_token_amount = if (contract.tokens.size == 1) 0L else contract.tokens(1)._2
-    val sold                       = contract.R6[Coll[Long]].get(0)
-    val refunded                   = contract.R6[Coll[Long]].get(1)
-    val exchanged                   = contract.R6[Coll[Long]].get(2)  // If the exchanged APT -> PFT amount is not accounted for, it will result in double-counting the sold amount.
-
+    val sold = contract.R6[Coll[Long]].get(0)
+    val refunded = contract.R6[Coll[Long]].get(1)
+    val exchanged = contract.R6[Coll[Long]].get(2)  // If the exchanged APT -> PFT amount is not accounted for, it will result in double-counting the sold amount.
     proof_funding_token_amount - sold + refunded + exchanged
-  }
 
   def isSigmaPropEqualToBoxProp(propAndBox: (SigmaProp, Box)): Boolean = {
 
