@@ -7,35 +7,35 @@ import {
   type Box,
   BOX_VALUE_PER_BYTE,
   ErgoAddress,
-} from '@fleet-sdk/core';
-import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
-import { SString } from '../utils';
-import { type contract_version, get_ergotree_hex, mint_contract_address } from '../contract';
-import { createR8Structure, type ConstantContent } from '$lib/common/project';
-import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
-import { fetch_token_details, wait_until_confirmation } from '../fetch';
+} from "@fleet-sdk/core";
+import { SBool, SColl, SPair } from "@fleet-sdk/serializer";
+import { SString } from "../utils";
+import { type contract_version, get_ergotree_hex, mint_contract_address } from "../contract";
+import { createR8Structure, type ConstantContent } from "$lib/common/project";
+import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from "../dev/dev_contract";
+import { fetch_token_details, wait_until_confirmation } from "../fetch";
 import {
   getCurrentHeight,
   getChangeAddress,
   signTransaction,
   submitTransaction,
-} from '../wallet-utils';
+} from "../wallet-utils";
 import {
   validateProjectContent,
   type ProjectContent,
   estimateRegisterSizes,
   estimateTotalBoxSize,
-} from '../utils/box-size-calculator';
+} from "../utils/box-size-calculator";
 
 async function get_token_data(token_id: string): Promise<{ amount: number; decimals: number }> {
   const token_fetch = await fetch_token_details(token_id);
-  let id_token_amount = token_fetch['emissionAmount'] ?? 0;
+  let id_token_amount = token_fetch["emissionAmount"] ?? 0;
   if (id_token_amount === 0) {
-    alert(token_id + ' token emission amount is 0.');
-    throw new Error(token_id + ' token emission amount is 0.');
+    alert(token_id + " token emission amount is 0.");
+    throw new Error(token_id + " token emission amount is 0.");
   }
   id_token_amount += 1;
-  return { amount: id_token_amount, decimals: token_fetch['decimals'] };
+  return { amount: id_token_amount, decimals: token_fetch["decimals"] };
 }
 
 function playBeep() {
@@ -44,7 +44,7 @@ function playBeep() {
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
 
-  osc.type = 'triangle';
+  osc.type = "triangle";
   osc.frequency.setValueAtTime(660, audioCtx.currentTime);
 
   osc.connect(gain);
@@ -80,9 +80,9 @@ async function* mint_tx(
       mint_contract_address(constants, version)
     ).mintToken({
       amount: BigInt(amount),
-      name: title + ' APT', // A pro for use IDT (identity token) and TFT (temporal funding token) with the same token is that the TFT token that the user holds has the same id than the project.  This allows the user to verify the exact project in case than two projects has the same name.
+      name: title + " APT", // A pro for use IDT (identity token) and TFT (temporal funding token) with the same token is that the TFT token that the user holds has the same id than the project.  This allows the user to verify the exact project in case than two projects has the same name.
       decimals: decimals,
-      description: 'Temporal-funding Token for the ' + title + ' project.',
+      description: "Temporal-funding Token for the " + title + " project.",
     }),
   ];
 
@@ -95,7 +95,7 @@ async function* mint_tx(
     .build() // Build the transaction
     .toEIP12Object(); // Convert the transaction to an EIP-12 compatible object
 
-  yield 'Please sign the mint transaction...';
+  yield "Please sign the mint transaction...";
 
   // Sign the transaction
   const signedTransaction = await signTransaction(unsignedTransaction);
@@ -103,14 +103,14 @@ async function* mint_tx(
   // Send the transaction to the Ergo network
   const transactionId = await submitTransaction(signedTransaction);
 
-  console.log('Mint tx id: ' + transactionId);
+  console.log("Mint tx id: " + transactionId);
 
-  yield 'Waiting for mint confirmation... (this may take a few minutes)';
+  yield "Waiting for mint confirmation... (this may take a few minutes)";
 
   const box = await wait_until_confirmation(transactionId);
   if (box == null) {
-    alert('Mint tx failed.');
-    throw new Error('Mint tx failed.');
+    alert("Mint tx failed.");
+    throw new Error("Mint tx failed.");
   }
 
   return box;
@@ -127,15 +127,15 @@ export async function* submit_project(
   projectContent: string, // Project content (JSON with title, description, image, link)
   minimumSold: number, // Minimum amount sold to allow withdrawal
   title: string,
-  base_token_id: string = '', // Base token ID for contributions (empty for ERG)
-  owner_ergotree: string = '' // Optional: Owner ErgoTree (if different from wallet)
+  base_token_id: string = "", // Base token ID for contributions (empty for ERG)
+  owner_ergotree: string = "" // Optional: Owner ErgoTree (if different from wallet)
 ): AsyncGenerator<string, string | null, void> {
   // Parse and validate project content
   let parsedContent: ProjectContent;
   try {
     parsedContent = JSON.parse(projectContent);
   } catch {
-    alert('Invalid project content format.');
+    alert("Invalid project content format.");
     return null;
   }
 
@@ -160,11 +160,11 @@ export async function* submit_project(
 
   // Get token emission amount.
   const token_data = await get_token_data(token_id);
-  const id_token_amount = token_data['amount'] + 1;
+  const id_token_amount = token_data["amount"] + 1;
 
   // Build the mint tx.
-  yield 'Preparing mint transaction...';
-  const mintGen = mint_tx(title, addressContent, version, id_token_amount, token_data['decimals']);
+  yield "Preparing mint transaction...";
+  const mintGen = mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"]);
   let mintResult = await mintGen.next();
   while (!mintResult.done) {
     yield mintResult.value;
@@ -175,7 +175,7 @@ export async function* submit_project(
   const project_id = mint_box.assets[0].tokenId;
 
   if (project_id === null) {
-    alert('Token minting failed!');
+    alert("Token minting failed!");
     return null;
   }
 
@@ -218,7 +218,7 @@ export async function* submit_project(
           amount: BigInt(id_token_amount), // The mint contract force to spend all the id_token_amount
         },
         {
-          tokenId: token_id ?? '',
+          tokenId: token_id ?? "",
           amount: token_amount.toString(),
         },
       ])
@@ -244,10 +244,10 @@ export async function* submit_project(
   try {
     playBeep();
   } catch (error) {
-    console.error('Error executing play beep:', error);
+    console.error("Error executing play beep:", error);
   }
 
-  yield 'Please sign the project transaction...';
+  yield "Please sign the project transaction...";
 
   // Sign the transaction
   const signedTransaction = await signTransaction(unsignedTransaction);
@@ -255,6 +255,6 @@ export async function* submit_project(
   // Send the transaction to the Ergo network
   const transactionId = await submitTransaction(signedTransaction);
 
-  console.log('Transaction id -> ', transactionId);
+  console.log("Transaction id -> ", transactionId);
   return transactionId;
 }

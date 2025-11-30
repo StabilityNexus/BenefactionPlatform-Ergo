@@ -2,10 +2,10 @@
 // Tests the token purchase flow where users buy APT tokens with ERG (or custom tokens)
 // Verifies payment validation, token distribution, and counter updates
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from '@fleet-sdk/core';
-import { SByte, SColl, SLong } from '@fleet-sdk/serializer';
-import { stringToBytes } from '@scure/base';
+import { describe, it, expect, beforeEach } from "vitest";
+import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
+import { SByte, SColl, SLong } from "@fleet-sdk/serializer";
+import { stringToBytes } from "@scure/base";
 import {
   setupBeneTestContext,
   ERG_BASE_TOKEN,
@@ -14,7 +14,7 @@ import {
   USD_BASE_TOKEN,
   USD_BASE_TOKEN_NAME,
   createR4,
-} from './bene_contract_helpers';
+} from "./bene_contract_helpers";
 
 // EXECUTION FLOW:
 // 1. beforeEach() → Creates fresh blockchain + initial project box with 100k APT tokens
@@ -23,12 +23,12 @@ import {
 // 4. Assertions verify payment received and tokens distributed
 
 const baseModes = [
-  { name: 'USD Token Mode', token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
-  { name: 'ERG Mode', token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
+  { name: "USD Token Mode", token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
+  { name: "ERG Mode", token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
 ];
 
-describe.each(baseModes)('Bene Contract v1.2 - Buy APT Tokens (%s)', (mode) => {
-  describe('Initial scenario with any sold tokens', () => {
+describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
+  describe("Initial scenario with any sold tokens", () => {
     let ctx: BeneTestContext; // Test environment (blockchain, actors, config)
     let projectBox: Box; // The contract's UTXO holding tokens and funds
 
@@ -52,7 +52,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Buy APT Tokens (%s)', (mode) => {
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(), // Counters: [0 sold, 0 refunded, 0 exchanged]
           R7: SLong(ctx.exchangeRate).toHex(), // [price: 1M, token_len: 0]
           R8: ctx.constants.toHex(), // Owner details (empty)
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(), // Metadata (empty)
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(), // Metadata (empty)
         },
       });
 
@@ -60,7 +60,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Buy APT Tokens (%s)', (mode) => {
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should allow buying APT tokens', () => {
+    it("should allow buying APT tokens", () => {
       // ARRANGE: Calculate transaction amounts
       const tokensToBuy = 10_000n; // Buyer wants 10,000 APT
       const paymentAmount = tokensToBuy * ctx.exchangeRate; // Cost: 10,000 * 1M = 10 ERG
@@ -118,7 +118,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Buy APT Tokens (%s)', (mode) => {
       expect(result).toBe(true); // Transaction valid
     });
 
-    it('should fail when payment is insufficient for token amount', () => {
+    it("should fail when payment is insufficient for token amount", () => {
       // ARRANGE: Calculate transaction amounts
       const tokensToBuy = 10_000n; // Buyer wants 10,000 APT
       const insufficientPayment = (tokensToBuy * ctx.exchangeRate) / 2n; // Cost: 10,000 * 1M / 2 = 5 ERG (INSUFFICIENT)
@@ -175,7 +175,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Buy APT Tokens (%s)', (mode) => {
       expect(result).toBe(false); // Transaction invalid
     });
 
-    it('should fail when sold counter is not correct', () => {
+    it("should fail when sold counter is not correct", () => {
       // ARRANGE: Calculate transaction amounts
       const tokensToBuy = 10_000n; // Buyer wants 10,000 APT
       const paymentAmount = tokensToBuy * ctx.exchangeRate; // Cost: 10,000 * 1M / 2 =  10 ERG (CORRECT)
@@ -232,7 +232,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Buy APT Tokens (%s)', (mode) => {
       expect(result).toBe(false); // Transaction invalid
     });
 
-    it('should fail when refunded counter is not correct', () => {
+    it("should fail when refunded counter is not correct", () => {
       // ARRANGE: Calculate transaction amounts
       const tokensToBuy = 10_000n; // Buyer wants 10,000 APT
       const paymentAmount = tokensToBuy * ctx.exchangeRate; // Cost: 10,000 * 1M / 2 =  10 ERG (CORRECT)
@@ -289,7 +289,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Buy APT Tokens (%s)', (mode) => {
       expect(result).toBe(false); // Transaction invalid
     });
 
-    it('should fail when exchanged counter is not correct', () => {
+    it("should fail when exchanged counter is not correct", () => {
       // ARRANGE: Calculate transaction amounts
       const tokensToBuy = 10_000n; // Buyer wants 10,000 APT
       const paymentAmount = tokensToBuy * ctx.exchangeRate; // Cost: 10,000 * 1M / 2 =  10 ERG (CORRECT)
@@ -347,7 +347,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Buy APT Tokens (%s)', (mode) => {
     });
   });
 
-  describe('Scenario where no APT tokens remain unsold (Sold Out)', () => {
+  describe("Scenario where no APT tokens remain unsold (Sold Out)", () => {
     let ctx: BeneTestContext; // Test environment (blockchain, actors, config)
     let projectBox: Box; // The contract's UTXO holding tokens and funds
 
@@ -390,7 +390,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Buy APT Tokens (%s)', (mode) => {
           R6: SColl(SLong, [soldAmount, 0n, 0n]).toHex(), // Counters: [100k sold, 0 refunded, 0 exchanged]
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -398,7 +398,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Buy APT Tokens (%s)', (mode) => {
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should fail when attempting to buy tokens because onlyTemporaryUnsoldTokens is violated (Contract Sold Out)', () => {
+    it("should fail when attempting to buy tokens because onlyTemporaryUnsoldTokens is violated (Contract Sold Out)", () => {
       // ARRANGE: Attempt to buy 1 token
       const tokensToBuy = 1n; // Buyer tries to buy 1 token
       const paymentAmount = tokensToBuy * ctx.exchangeRate;

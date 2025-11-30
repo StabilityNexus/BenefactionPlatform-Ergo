@@ -1,6 +1,6 @@
-import { OutputBuilder, TransactionBuilder } from '@fleet-sdk/core';
-import { get_dev_contract_address } from './dev_contract';
-import { ErgoPlatform } from '../platform';
+import { OutputBuilder, TransactionBuilder } from "@fleet-sdk/core";
+import { get_dev_contract_address } from "./dev_contract";
+import { ErgoPlatform } from "../platform";
 
 export async function distributeFunds(
   box: any,
@@ -25,7 +25,7 @@ export async function distributeFunds(
     // For token distributions we already needed wallet UTXOs to cover ERG for outputs.
     // The executor pays miner fee, so include wallet UTXOs when available for both ERG and token distributions.
     let inputs = [box];
-    if (typeof window !== 'undefined' && (window as any).ergo) {
+    if (typeof window !== "undefined" && (window as any).ergo) {
       const walletUtxos = await (window as any).ergo!.get_utxos();
       // prepend wallet utxos so that they can cover miner fee / additional ERG if needed
       inputs = [box, ...walletUtxos];
@@ -33,7 +33,7 @@ export async function distributeFunds(
       // If token distribution and no wallet available, we cannot provide the extra ERG for outputs
       if (isTokenDistribution) {
         throw new Error(
-          'Token distribution requires a connected wallet to provide ERG for outputs and fees.'
+          "Token distribution requires a connected wallet to provide ERG for outputs and fees."
         );
       }
     }
@@ -50,13 +50,13 @@ export async function distributeFunds(
     const calculatedTotal = brunoAmount + lgdAmount + jmAmount + orderAmount;
 
     if (totalAmount !== calculatedTotal) {
-      console.log('Invalid shares: The total amount does not match the sum of calculated shares.');
-      console.log('Total amount: ' + totalAmount);
-      console.log('Calculated total: ' + calculatedTotal);
-      console.log('Bruno amount: ' + brunoAmount);
-      console.log('LGD amount: ' + lgdAmount);
-      console.log('JM amount: ' + jmAmount);
-      console.log('Order amount: ' + orderAmount);
+      console.log("Invalid shares: The total amount does not match the sum of calculated shares.");
+      console.log("Total amount: " + totalAmount);
+      console.log("Calculated total: " + calculatedTotal);
+      console.log("Bruno amount: " + brunoAmount);
+      console.log("LGD amount: " + lgdAmount);
+      console.log("JM amount: " + jmAmount);
+      console.log("Order amount: " + orderAmount);
       throw new Error(
         `Invalid shares: The total amount (${totalAmount}) does not match the sum of calculated shares (${calculatedTotal}). Details: Bruno (${brunoAmount}), LGD (${lgdAmount}), JM (${jmAmount}), Order (${orderAmount}).`
       );
@@ -64,13 +64,13 @@ export async function distributeFunds(
 
     // Ensure valid distribution
     if (orderAmount < 0) {
-      console.log('Invalid distribution: total shares exceed 100%');
-      console.log('Total amount: ' + totalAmount);
-      console.log('Bruno: ' + brunoAmount);
-      console.log('LGD: ' + lgdAmount);
-      console.log('JM: ' + jmAmount);
-      console.log('Order: ' + orderAmount);
-      throw new Error('Invalid distribution: total shares exceed 100%');
+      console.log("Invalid distribution: total shares exceed 100%");
+      console.log("Total amount: " + totalAmount);
+      console.log("Bruno: " + brunoAmount);
+      console.log("LGD: " + lgdAmount);
+      console.log("JM: " + jmAmount);
+      console.log("Order: " + orderAmount);
+      throw new Error("Invalid distribution: total shares exceed 100%");
     }
 
     // Build outputs for each recipient
@@ -113,7 +113,7 @@ export async function distributeFunds(
     // Get wallet address for change. If wallet is present, send change back to wallet (executor pays fee).
     // Otherwise fallback to dev contract address.
     const changeAddress =
-      typeof window !== 'undefined' && (window as any).ergo
+      typeof window !== "undefined" && (window as any).ergo
         ? await (window as any).ergo!.get_change_address()
         : get_dev_contract_address();
 
@@ -133,10 +133,10 @@ export async function distributeFunds(
     // Submit the transaction
     const transactionId = await (window as any).ergo!.submit_tx(signedTransaction);
 
-    console.log('Transaction ID:', transactionId);
+    console.log("Transaction ID:", transactionId);
     return transactionId;
   } catch (error) {
-    console.error('Error distributing funds:', error);
+    console.error("Error distributing funds:", error);
     return null;
   }
 }

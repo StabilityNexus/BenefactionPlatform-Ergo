@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   Box,
   OutputBuilder,
   TransactionBuilder,
   RECOMMENDED_MIN_FEE_VALUE,
   ErgoTree,
-} from '@fleet-sdk/core';
-import { SByte, SColl, SLong } from '@fleet-sdk/serializer';
-import { stringToBytes } from '@scure/base';
+} from "@fleet-sdk/core";
+import { SByte, SColl, SLong } from "@fleet-sdk/serializer";
+import { stringToBytes } from "@scure/base";
 import {
   setupBeneTestContext,
   ERG_BASE_TOKEN,
@@ -16,16 +16,16 @@ import {
   USD_BASE_TOKEN,
   USD_BASE_TOKEN_NAME,
   createR4,
-} from './bene_contract_helpers';
-import { compile } from '@fleet-sdk/compiler';
+} from "./bene_contract_helpers";
+import { compile } from "@fleet-sdk/compiler";
 
 const baseModes = [
-  { name: 'USD Token Mode', token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
-  { name: 'ERG Mode', token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
+  { name: "USD Token Mode", token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
+  { name: "ERG Mode", token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
 ];
 
-describe.each(baseModes)('Bene Contract v1.2 - Add Tokens (%s)', (mode) => {
-  describe('Adds more tokens', () => {
+describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
+  describe("Adds more tokens", () => {
     let ctx: BeneTestContext;
     let projectBox: Box;
 
@@ -46,14 +46,14 @@ describe.each(baseModes)('Bene Contract v1.2 - Add Tokens (%s)', (mode) => {
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should allow project owner to add more PFT tokens', () => {
+    it("should allow project owner to add more PFT tokens", () => {
       // Arrange
       const tokensToAdd = 50_000n;
       const newPFTAmount = BigInt(projectBox.assets[1].amount) + tokensToAdd;
@@ -104,7 +104,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Add Tokens (%s)', (mode) => {
       expect(updatedBox.assets[1].amount).toEqual(newPFTAmount);
     });
 
-    it('should fail when non-owner tries to add tokens', () => {
+    it("should fail when non-owner tries to add tokens", () => {
       // Arrange
       const tokensToAdd = 50_000n;
 
@@ -171,14 +171,14 @@ describe.each(baseModes)('Bene Contract v1.2 - Add Tokens (%s)', (mode) => {
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should allow project owner to add more PFT tokens', () => {
+    it("should allow project owner to add more PFT tokens", () => {
       // Arrange
       const tokensToAdd = 50_000n;
       const newPFTAmount = tokensToAdd;
@@ -229,7 +229,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Add Tokens (%s)', (mode) => {
       expect(updatedBox.assets[1].amount).toEqual(newPFTAmount);
     });
 
-    it('should fail when non-owner tries to add tokens', () => {
+    it("should fail when non-owner tries to add tokens", () => {
       // Arrange
       const tokensToAdd = 50_000n;
 
@@ -275,7 +275,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Add Tokens (%s)', (mode) => {
     });
   });
 
-  describe('Adds more tokens with complex owner script authorization', () => {
+  describe("Adds more tokens with complex owner script authorization", () => {
     let ctx: BeneTestContext;
     let projectBox: Box;
     let ownerContract: ErgoTree;
@@ -299,14 +299,14 @@ describe.each(baseModes)('Bene Contract v1.2 - Add Tokens (%s)', (mode) => {
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should allow project owner to add more PFT tokens', () => {
+    it("should allow project owner to add more PFT tokens", () => {
       const customOwnerContract = ctx.mockChain.addParty(
         ownerContract.toAddress().ergoTree,
         `Custom owner contract`

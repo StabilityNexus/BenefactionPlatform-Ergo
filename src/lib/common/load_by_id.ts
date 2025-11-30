@@ -1,6 +1,6 @@
-import { type Project } from './project';
-import { project_detail } from './store';
-import { fetchProjects } from '$lib/ergo/fetch';
+import { type Project } from "./project";
+import { project_detail } from "./store";
+import { fetchProjects } from "$lib/ergo/fetch";
 
 export async function loadProjectById(projectId: string) {
   try {
@@ -14,7 +14,7 @@ export async function loadProjectById(projectId: string) {
     project_detail.set(project);
   } catch (error) {
     console.error(
-      `Failed to load project: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to load project: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }

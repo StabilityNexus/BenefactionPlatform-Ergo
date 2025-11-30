@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   Box,
   OutputBuilder,
@@ -9,10 +9,10 @@ import {
   TokensCollection,
   SAFE_MIN_BOX_VALUE,
   ErgoTree,
-} from '@fleet-sdk/core';
-import { SByte, SColl, SLong } from '@fleet-sdk/serializer';
-import { stringToBytes } from '@scure/base';
-import { compile } from '@fleet-sdk/compiler';
+} from "@fleet-sdk/core";
+import { SByte, SColl, SLong } from "@fleet-sdk/serializer";
+import { stringToBytes } from "@scure/base";
+import { compile } from "@fleet-sdk/compiler";
 import {
   setupBeneTestContext,
   ERG_BASE_TOKEN,
@@ -21,24 +21,24 @@ import {
   USD_BASE_TOKEN,
   USD_BASE_TOKEN_NAME,
   createR4,
-} from './bene_contract_helpers';
-import { OneOrMore } from '@fleet-sdk/common';
+} from "./bene_contract_helpers";
+import { OneOrMore } from "@fleet-sdk/common";
 
 // EXECUTION FLOW:
 // Owner can withdraw raised funds if minimum reached (split: project + dev fee)
 
 const baseModes = [
-  { name: 'USD Token Mode', token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
-  { name: 'ERG Mode', token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
+  { name: "USD Token Mode", token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
+  { name: "ERG Mode", token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
 ];
 
-describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
+describe.each(baseModes)("Bene Contract v1.2 - Withdraw funds (%s)", (mode) => {
   let ctx: BeneTestContext; // Test environment
   let projectBox: Box; // Contract box
   let soldTokens: bigint;
   let collectedFunds: bigint;
 
-  describe('Withdraw funds after minimum reached', () => {
+  describe("Withdraw funds after minimum reached", () => {
     beforeEach(() => {
       // Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
       ctx = setupBeneTestContext(mode.token, mode.tokenName);
@@ -75,7 +75,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
           R6: SColl(SLong, [soldTokens, 0n, ctx.totalPFTokens]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -83,7 +83,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should pass full withdraw', () => {
+    it("should pass full withdraw", () => {
       const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n;
       const projectAmount = collectedFunds - devFeeAmount;
       const devFeeContract = compile(`{ sigmaProp(true) }`);
@@ -126,7 +126,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
       expect(result).toBe(true);
     });
 
-    it('should pass partial withdraw', () => {
+    it("should pass partial withdraw", () => {
       const remainingAmount = collectedFunds / 2n;
       const devFeeAmount = ((collectedFunds / 2n) * BigInt(ctx.devFeePercentage)) / 100n;
       const projectAmount = collectedFunds / 2n - devFeeAmount;
@@ -192,7 +192,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
       expect(result).toBe(true);
     });
 
-    it('should fail if owner tries to get more funds', () => {
+    it("should fail if owner tries to get more funds", () => {
       const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n - 1n;
       const projectAmount = collectedFunds - devFeeAmount;
       const devFeeContract = compile(`{ sigmaProp(true) }`);
@@ -238,7 +238,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
       expect(result).toBe(false);
     });
 
-    it('should fail if dev tries to get more funds', () => {
+    it("should fail if dev tries to get more funds", () => {
       const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n + 1n;
       const projectAmount = collectedFunds - devFeeAmount;
       const devFeeContract = compile(`{ sigmaProp(true) }`);
@@ -284,7 +284,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
       expect(result).toBe(false);
     });
 
-    it('should fail if owner address is incorrect', () => {
+    it("should fail if owner address is incorrect", () => {
       const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n;
       const projectAmount = collectedFunds - devFeeAmount;
       const devFeeContract = compile(`{ sigmaProp(true) }`);
@@ -332,7 +332,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
       expect(result).toBe(false);
     });
 
-    it('should fail if dev address is incorrect', () => {
+    it("should fail if dev address is incorrect", () => {
       const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n;
       const projectAmount = collectedFunds - devFeeAmount;
       const devFeeContract = compile(`{ sigmaProp(HEIGHT == 1) }`);
@@ -379,7 +379,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
     });
   });
 
-  describe('Withdraw funds after minimum reached. any PFT exchanged.', () => {
+  describe("Withdraw funds after minimum reached. any PFT exchanged.", () => {
     beforeEach(() => {
       // Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
       ctx = setupBeneTestContext(mode.token, mode.tokenName);
@@ -416,7 +416,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -424,7 +424,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should pass partial withdraw', () => {
+    it("should pass partial withdraw", () => {
       const remainingAmount = collectedFunds / 2n;
       const devFeeAmount = ((collectedFunds / 2n) * BigInt(ctx.devFeePercentage)) / 100n;
       const projectAmount = collectedFunds / 2n - devFeeAmount;
@@ -495,7 +495,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
     });
   });
 
-  describe('Withdraw funds after minimum reached. complex owner contract.', () => {
+  describe("Withdraw funds after minimum reached. complex owner contract.", () => {
     let ownerContract: ErgoTree;
 
     beforeEach(() => {
@@ -536,7 +536,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -544,7 +544,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should pass partial withdraw', () => {
+    it("should pass partial withdraw", () => {
       const remainingAmount = collectedFunds / 2n;
       const devFeeAmount = ((collectedFunds / 2n) * BigInt(ctx.devFeePercentage)) / 100n;
       const projectAmount = collectedFunds / 2n - devFeeAmount;
@@ -615,7 +615,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
     });
   });
 
-  describe('Withdraw funds before minimum reached', () => {
+  describe("Withdraw funds before minimum reached", () => {
     beforeEach(() => {
       // Initialize test context with BASE_TOKEN (see bene_contract_helpers.ts to change)
       ctx = setupBeneTestContext(mode.token, mode.tokenName);
@@ -652,7 +652,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -660,7 +660,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw funds (%s)', (mode) => {
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should fail full withdraw', () => {
+    it("should fail full withdraw", () => {
       const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n;
       const projectAmount = collectedFunds - devFeeAmount;
       const devFeeContract = compile(`{ sigmaProp(true) }`);

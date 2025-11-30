@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { createEventDispatcher } from 'svelte';
-  import * as Dialog from '$lib/components/ui/dialog';
-  import { Button } from '$lib/components/ui/button';
+  import { onMount } from "svelte";
+  import { createEventDispatcher } from "svelte";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import { Button } from "$lib/components/ui/button";
 
-  export let title: string = 'Know Your Assumptions';
-  export let closeBtnText: string = 'I understand and I agree';
+  export let title: string = "Know Your Assumptions";
+  export let closeBtnText: string = "I understand and I agree";
 
   let showModal = false;
   let isButtonEnabled = false;
@@ -14,7 +14,7 @@
   const dispatch = createEventDispatcher<Record<string, any>>();
 
   onMount(() => {
-    showModal = localStorage.getItem('acceptedKYA') !== 'true';
+    showModal = localStorage.getItem("acceptedKYA") !== "true";
   });
 
   function checkScroll(e: Event) {
@@ -26,12 +26,12 @@
 
   function close() {
     showModal = false;
-    localStorage.setItem('acceptedKYA', 'true');
-    dispatch('close');
+    localStorage.setItem("acceptedKYA", "true");
+    dispatch("close");
   }
 
   $: if (!showModal) {
-    dispatch('close');
+    dispatch("close");
   }
 </script>
 
@@ -39,7 +39,7 @@
 <span
   class="text-gray-500 cursor-pointer"
   on:click={() => (showModal = true)}
-  on:keydown={(e) => e.key === 'Enter' && (showModal = true)}
+  on:keydown={(e) => e.key === "Enter" && (showModal = true)}
   role="button"
   tabindex="0"
 >

@@ -1,16 +1,16 @@
 <script lang="ts">
-  import ProjectCard from './ProjectCard.svelte';
-  import ProjectCardSkeleton from './ProjectCardSkeleton.svelte';
-  import { type Project } from '$lib/common/project';
-  import { projects } from '$lib/common/store';
-  import { fetchProjects } from '$lib/ergo/fetch';
-  import * as Alert from '$lib/components/ui/alert';
-  import { Loader2, Search, Filter } from 'lucide-svelte';
-  import { onMount, onDestroy } from 'svelte';
-  import { get } from 'svelte/store';
-  import { Input } from '$lib/components/ui/input';
-  import { Button } from '$lib/components/ui/button';
-  import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+  import ProjectCard from "./ProjectCard.svelte";
+  import ProjectCardSkeleton from "./ProjectCardSkeleton.svelte";
+  import { type Project } from "$lib/common/project";
+  import { projects } from "$lib/common/store";
+  import { fetchProjects } from "$lib/ergo/fetch";
+  import * as Alert from "$lib/components/ui/alert";
+  import { Loader2, Search, Filter } from "lucide-svelte";
+  import { onMount, onDestroy } from "svelte";
+  import { get } from "svelte/store";
+  import { Input } from "$lib/components/ui/input";
+  import { Button } from "$lib/components/ui/button";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
 
   let allFetchedItems: Map<string, Project> = new Map();
   let listedItems: Map<string, Project> | null = null;
@@ -19,8 +19,8 @@
   let isFiltering: boolean = false;
   let totalProjectsCount: number = 0;
 
-  let searchQuery: string = '';
-  let sortBy: 'newest' | 'oldest' | 'amount' | 'name' = 'newest';
+  let searchQuery: string = "";
+  let sortBy: "newest" | "oldest" | "amount" | "name" = "newest";
   let hideTestProjects: boolean = true;
   let filterOpen = false;
   let debouncedSearch: ReturnType<typeof setTimeout> | null = null;
@@ -30,8 +30,8 @@
   async function applyFiltersAndSearch(sourceItems: Map<string, Project>) {
     const filteredItemsMap = new Map<string, Project>();
 
-    if (typeof sourceItems.entries !== 'function') {
-      console.error('applyFiltersAndSearch received non-Map sourceItems:', sourceItems);
+    if (typeof sourceItems.entries !== "function") {
+      console.error("applyFiltersAndSearch received non-Map sourceItems:", sourceItems);
       listedItems = new Map();
       return;
     }
@@ -44,9 +44,9 @@
       }
 
       if (shouldAdd && hideTestProjects) {
-        const name = item.content.title?.toLowerCase() || '';
-        const description = item.content.description?.toLowerCase() || '';
-        if (name.includes('test') || description.includes('test')) {
+        const name = item.content.title?.toLowerCase() || "";
+        const description = item.content.description?.toLowerCase() || "";
+        if (name.includes("test") || description.includes("test")) {
           shouldAdd = false;
         }
       }
@@ -67,24 +67,24 @@
     const sortedItemsArray = Array.from(filteredItemsMap.entries());
 
     switch (sortBy) {
-      case 'newest':
+      case "newest":
         sortedItemsArray.sort(
           ([, a], [, b]) => (b.box.creationHeight ?? 0) - (a.box.creationHeight ?? 0)
         );
         break;
-      case 'oldest':
+      case "oldest":
         sortedItemsArray.sort(
           ([, a], [, b]) => (a.box.creationHeight ?? 0) - (b.box.creationHeight ?? 0)
         );
         break;
-      case 'amount':
+      case "amount":
         sortedItemsArray.sort(
           ([, a], [, b]) => (b.content.targetAmount ?? 0) - (a.content.targetAmount ?? 0)
         );
         break;
-      case 'name':
+      case "name":
         sortedItemsArray.sort(([, a], [, b]) =>
-          (a.content.title || '').localeCompare(b.content.title || '')
+          (a.content.title || "").localeCompare(b.content.title || "")
         );
         break;
     }
@@ -97,9 +97,9 @@
     try {
       await fetchProjects();
     } catch (err: unknown) {
-      console.error('Error fetching projects:', err);
+      console.error("Error fetching projects:", err);
       const msg = (err as Error)?.message ?? String(err);
-      errorMessage = msg || 'An error occurred while fetching campaigns.';
+      errorMessage = msg || "An error occurred while fetching campaigns.";
     }
   }
 
@@ -124,7 +124,7 @@
     }, 300);
   }
 
-  async function handleSortChange(newSort: 'newest' | 'oldest' | 'amount' | 'name') {
+  async function handleSortChange(newSort: "newest" | "oldest" | "amount" | "name") {
     isFiltering = true;
     sortBy = newSort;
     await applyFiltersAndSearch(allFetchedItems);
@@ -207,35 +207,35 @@
           <DropdownMenu.Label>Sort By</DropdownMenu.Label>
           <DropdownMenu.Separator />
           <DropdownMenu.Item
-            class={sortBy === 'newest' ? 'bg-orange-500/10' : ''}
-            on:click={() => handleSortChange('newest')}
+            class={sortBy === "newest" ? "bg-orange-500/10" : ""}
+            on:click={() => handleSortChange("newest")}
           >
-            {sortBy === 'newest' ? '✓ ' : ''}Newest First
+            {sortBy === "newest" ? "✓ " : ""}Newest First
           </DropdownMenu.Item>
           <DropdownMenu.Item
-            class={sortBy === 'oldest' ? 'bg-orange-500/10' : ''}
-            on:click={() => handleSortChange('oldest')}
+            class={sortBy === "oldest" ? "bg-orange-500/10" : ""}
+            on:click={() => handleSortChange("oldest")}
           >
-            {sortBy === 'oldest' ? '✓ ' : ''}Oldest First
+            {sortBy === "oldest" ? "✓ " : ""}Oldest First
           </DropdownMenu.Item>
           <DropdownMenu.Item
-            class={sortBy === 'amount' ? 'bg-orange-500/10' : ''}
-            on:click={() => handleSortChange('amount')}
+            class={sortBy === "amount" ? "bg-orange-500/10" : ""}
+            on:click={() => handleSortChange("amount")}
           >
-            {sortBy === 'amount' ? '✓ ' : ''}Highest Value
+            {sortBy === "amount" ? "✓ " : ""}Highest Value
           </DropdownMenu.Item>
           <DropdownMenu.Item
-            class={sortBy === 'name' ? 'bg-orange-500/10' : ''}
-            on:click={() => handleSortChange('name')}
+            class={sortBy === "name" ? "bg-orange-500/10" : ""}
+            on:click={() => handleSortChange("name")}
           >
-            {sortBy === 'name' ? '✓ ' : ''}Alphabetical
+            {sortBy === "name" ? "✓ " : ""}Alphabetical
           </DropdownMenu.Item>
 
           <DropdownMenu.Separator />
           <DropdownMenu.Label>Filters</DropdownMenu.Label>
           <DropdownMenu.Item on:click={handleTestFilterToggle}>
             <div class="flex items-center">
-              <span class="mr-2 w-4">{hideTestProjects ? '✓' : ''}</span>
+              <span class="mr-2 w-4">{hideTestProjects ? "✓" : ""}</span>
               <span>Hide "Test" Campaigns</span>
             </div>
           </DropdownMenu.Item>
@@ -313,14 +313,14 @@
     font-size: 2.2rem;
     margin: 20px 0 30px;
     color: orange;
-    font-family: 'Russo One', sans-serif;
+    font-family: "Russo One", sans-serif;
     letter-spacing: 0.02em;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     position: relative;
   }
 
   .project-title::after {
-    content: '';
+    content: "";
     position: absolute;
     bottom: -10px;
     left: 50%;

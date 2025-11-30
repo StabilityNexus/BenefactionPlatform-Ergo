@@ -1,43 +1,43 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import EasyMDE from 'easymde';
-  import 'easymde/dist/easymde.min.css';
-  import { block_to_date, time_to_block } from '$lib/common/countdown';
-  import { web_explorer_uri_tx } from '$lib/common/store';
-  import { ErgoPlatform } from '$lib/ergo/platform';
-  import { Label } from '$lib/components/ui/label/index.js';
-  import { Button } from '$lib/components/ui/button';
-  import { Input } from '$lib/components/ui/input';
-  import * as Select from '$lib/components/ui/select';
-  import { get } from 'svelte/store';
-  import { explorer_uri, user_tokens } from '$lib/common/store';
-  import { walletConnected } from '$lib/wallet/wallet-manager';
-  import { formatTransactionError } from '$lib/common/error-utils';
+  import { onMount } from "svelte";
+  import EasyMDE from "easymde";
+  import "easymde/dist/easymde.min.css";
+  import { block_to_date, time_to_block } from "$lib/common/countdown";
+  import { web_explorer_uri_tx } from "$lib/common/store";
+  import { ErgoPlatform } from "$lib/ergo/platform";
+  import { Label } from "$lib/components/ui/label/index.js";
+  import { Button } from "$lib/components/ui/button";
+  import { Input } from "$lib/components/ui/input";
+  import * as Select from "$lib/components/ui/select";
+  import { get } from "svelte/store";
+  import { explorer_uri, user_tokens } from "$lib/common/store";
+  import { walletConnected } from "$lib/wallet/wallet-manager";
+  import { formatTransactionError } from "$lib/common/error-utils";
   import {
     validateProjectContent,
     getUsagePercentage,
     type ProjectContent,
-  } from '$lib/ergo/utils/box-size-calculator';
-  import { walletAddress } from '$lib/wallet/wallet-manager';
+  } from "$lib/ergo/utils/box-size-calculator";
+  import { walletAddress } from "$lib/wallet/wallet-manager";
 
   let platform = new ErgoPlatform();
 
   let rewardTokenOption: object | null = null;
   let rewardTokenId: string | null = null;
   let rewardTokenDecimals: number = 0;
-  let rewardTokenName: string = 'Token';
+  let rewardTokenName: string = "Token";
 
   let baseTokenOption: object | null = null;
-  let baseTokenId: string = '';
+  let baseTokenId: string = "";
   let baseTokenDecimals: number = 9;
-  let baseTokenName: string = 'ERG';
-  let customBaseTokenId: string = '';
+  let baseTokenName: string = "ERG";
+  let customBaseTokenId: string = "";
   let isCustomBaseToken: boolean = false;
 
   $: if (baseTokenOption === undefined) {
     baseTokenOption = null;
     baseTokenDecimals = 9;
-    baseTokenName = 'ERG';
+    baseTokenName = "ERG";
   }
 
   let tokenAmountToSellRaw: number;
@@ -45,19 +45,19 @@
   let maxTokenAmountToSell: number;
 
   let deadlineValue: number;
-  let deadlineUnit: 'days' | 'minutes' = 'days';
+  let deadlineUnit: "days" | "minutes" = "days";
   let deadlineValueBlock: number | undefined;
-  let deadlineMode: 'timestamp' | 'block' = 'timestamp';
-  let timestampInputMode: 'duration' | 'datetime' = 'duration'; // New: how to input timestamp
-  let deadlineDateTime: string = ''; // New: for datetime-local input
+  let deadlineMode: "timestamp" | "block" = "timestamp";
+  let timestampInputMode: "duration" | "datetime" = "duration"; // New: how to input timestamp
+  let deadlineDateTime: string = ""; // New: for datetime-local input
   let is_timestamp_limit: boolean = true; // Default to timestamp mode (R4._1 = true)
   let deadlineValueText: string;
 
-  let ownerMode: 'wallet' | 'timelock' | 'multisig' | 'custom' = 'wallet';
+  let ownerMode: "wallet" | "timelock" | "multisig" | "custom" = "wallet";
   let ownerBlockHeight: number | undefined;
-  let ownerAddress: string = '';
-  let ownerErgoTreeHex: string = '';
-  let multisigAddresses: string[] = ['', ''];
+  let ownerAddress: string = "";
+  let ownerErgoTreeHex: string = "";
+  let multisigAddresses: string[] = ["", ""];
   let multisigRequired: number = 2;
   let initializedOwnerAddress = false;
 
@@ -72,15 +72,15 @@
   let maxGoalPrecise: number;
   let minGoalPrecise: number;
 
-  let projectTitle: string = '';
-  let projectDescription: string = '';
-  let projectImage: string = '';
-  let projectLink: string = '';
+  let projectTitle: string = "";
+  let projectDescription: string = "";
+  let projectImage: string = "";
+  let projectLink: string = "";
 
   let transactionId: string | null = null;
   let errorMessage: string | null = null;
   let isSubmitting: boolean = false;
-  let statusMessage: string = '';
+  let statusMessage: string = "";
 
   let userTokens: Array<{
     tokenId: string;
@@ -120,7 +120,7 @@
   };
 
   let minViablePrice = 0;
-  let exchangeRateWarning = '';
+  let exchangeRateWarning = "";
 
   let editorElement: HTMLTextAreaElement;
   let editor: EasyMDE;
@@ -130,24 +130,24 @@
       editor = new EasyMDE({
         element: editorElement,
         initialValue: projectDescription,
-        placeholder: 'Describe your project goals, roadmap, and vision...',
+        placeholder: "Describe your project goals, roadmap, and vision...",
         status: false,
         spellChecker: false,
         toolbar: [
-          'bold',
-          'italic',
-          'heading',
-          '|',
-          'quote',
-          'unordered-list',
-          'ordered-list',
-          '|',
-          'link',
-          'preview',
+          "bold",
+          "italic",
+          "heading",
+          "|",
+          "quote",
+          "unordered-list",
+          "ordered-list",
+          "|",
+          "link",
+          "preview",
         ],
       });
 
-      editor.codemirror.on('change', () => {
+      editor.codemirror.on("change", () => {
         projectDescription = editor.value();
       });
     }
@@ -168,15 +168,15 @@
   $: {
     if (rewardTokenId) {
       const token = userTokens.find((t) => t.tokenId === rewardTokenId);
-      rewardTokenName = token ? token.title : 'Token';
+      rewardTokenName = token ? token.title : "Token";
     } else {
-      rewardTokenName = 'Token';
+      rewardTokenName = "Token";
     }
   }
 
   $: {
     if (baseTokenOption && baseTokenOption.value !== null) {
-      if (baseTokenOption.value === 'custom') {
+      if (baseTokenOption.value === "custom") {
         isCustomBaseToken = true;
         baseTokenId = customBaseTokenId;
       } else {
@@ -184,13 +184,13 @@
         baseTokenId = baseTokenOption.value;
         const baseToken = availableBaseTokens.find((t) => t.tokenId === baseTokenId);
         baseTokenDecimals = baseToken?.decimals || 0;
-        baseTokenName = baseToken?.title || 'Unknown';
+        baseTokenName = baseToken?.title || "Unknown";
       }
     } else {
       isCustomBaseToken = false;
-      baseTokenId = '';
+      baseTokenId = "";
       baseTokenDecimals = 9;
-      baseTokenName = 'ERG';
+      baseTokenName = "ERG";
     }
   }
 
@@ -199,7 +199,7 @@
   }
 
   // Sync deadlineMode with is_timestamp_limit
-  $: is_timestamp_limit = deadlineMode === 'timestamp';
+  $: is_timestamp_limit = deadlineMode === "timestamp";
 
   $: if (isCustomBaseToken && customBaseTokenId && customBaseTokenId.length >= 64) {
     fetchTokenDetails(customBaseTokenId).then(({ name, decimals }) => {
@@ -210,7 +210,7 @@
 
   $: {
     if (rewardTokenId && baseTokenId && rewardTokenId === baseTokenId) {
-      formErrors.tokenConflict = 'The Campaign Token and Contribution Currency cannot be the same.';
+      formErrors.tokenConflict = "The Campaign Token and Contribution Currency cannot be the same.";
     } else {
       formErrors.tokenConflict = null;
     }
@@ -220,14 +220,14 @@
   $: {
     const DEFAULT_CURRENCIES = [
       {
-        tokenId: '03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04',
-        title: 'SigUSD',
+        tokenId: "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04",
+        title: "SigUSD",
         decimals: 2,
         balance: 0,
       },
       {
-        tokenId: '886b7721bef42f60c6317d37d8752da8aca01898cae7dae61808c4a14225edc8',
-        title: 'GluonW GAU',
+        tokenId: "886b7721bef42f60c6317d37d8752da8aca01898cae7dae61808c4a14225edc8",
+        title: "GluonW GAU",
         decimals: 9,
         balance: 0,
       },
@@ -262,7 +262,7 @@
     tokenAmountToSellRaw = tokenAmountToSellPrecise * Math.pow(10, rewardTokenDecimals);
 
     if (tokenAmountToSellPrecise > maxTokenAmountToSell) {
-      formErrors.amountExceedsBalance = 'Amount exceeds available balance.';
+      formErrors.amountExceedsBalance = "Amount exceeds available balance.";
     } else {
       formErrors.amountExceedsBalance = null;
     }
@@ -270,7 +270,7 @@
 
   $: {
     const exchangeRateNum =
-      typeof exchangeRatePrecise === 'string'
+      typeof exchangeRatePrecise === "string"
         ? parseFloat(exchangeRatePrecise)
         : exchangeRatePrecise;
 
@@ -284,23 +284,23 @@
       exchangeRateRaw = 0;
     } else {
       formErrors.exchangeRate = null;
-      exchangeRateWarning = '';
+      exchangeRateWarning = "";
     }
   }
 
   $: {
-    if (deadlineMode === 'timestamp') {
-      if (timestampInputMode === 'duration' && deadlineValue && deadlineValue > 0) {
+    if (deadlineMode === "timestamp") {
+      if (timestampInputMode === "duration" && deadlineValue && deadlineValue > 0) {
         // Duration mode: calculate from days/minutes
         calculateBlockLimit(deadlineValue, deadlineUnit);
-      } else if (timestampInputMode === 'datetime' && deadlineDateTime) {
+      } else if (timestampInputMode === "datetime" && deadlineDateTime) {
         // Datetime mode: use specific date/time
         calculateFromDateTime(deadlineDateTime);
       } else {
         deadlineValueBlock = undefined;
-        deadlineValueText = '';
+        deadlineValueText = "";
       }
-    } else if (deadlineMode === 'block') {
+    } else if (deadlineMode === "block") {
       // In block mode, deadlineValueBlock is set directly by the user
       // Just update the text representation
       if (deadlineValueBlock && deadlineValueBlock > 0) {
@@ -312,11 +312,11 @@
             deadlineValueText = `Block ${deadlineValueBlock}`;
           });
       } else {
-        deadlineValueText = '';
+        deadlineValueText = "";
       }
     } else {
       deadlineValueBlock = undefined;
-      deadlineValueText = '';
+      deadlineValueText = "";
     }
   }
 
@@ -329,10 +329,10 @@
   } as ProjectContent;
 
   let contentValidation = validateProjectContent({
-    title: '',
-    description: '',
-    image: '',
-    link: '',
+    title: "",
+    description: "",
+    image: "",
+    link: "",
   });
   let contentUsagePercentage = 0;
   let validationTimer: any;
@@ -355,48 +355,48 @@
       maxGoalPrecise !== undefined &&
       minGoalPrecise > maxGoalPrecise
     ) {
-      formErrors.goalOrder = 'The minimum goal cannot be greater than the maximum goal.';
+      formErrors.goalOrder = "The minimum goal cannot be greater than the maximum goal.";
     } else {
       formErrors.goalOrder = null;
     }
   }
 
-  async function calculateBlockLimit(value: number, unit: 'days' | 'minutes') {
+  async function calculateBlockLimit(value: number, unit: "days" | "minutes") {
     if (!platform || !value || value <= 0) {
       deadlineValueBlock = undefined;
-      deadlineValueText = '';
+      deadlineValueText = "";
       return;
     }
     try {
       let target_date = new Date();
       let milliseconds;
-      if (unit === 'days') {
+      if (unit === "days") {
         milliseconds = value * 24 * 60 * 60 * 1000;
       } else {
         milliseconds = value * 60 * 1000;
       }
       target_date.setTime(target_date.getTime() + milliseconds);
 
-      if (deadlineMode === 'timestamp') {
+      if (deadlineMode === "timestamp") {
         // In timestamp mode, use the timestamp directly
         deadlineValueBlock = target_date.getTime();
-        deadlineValueText = target_date.toISOString().replace('T', ' ').substring(0, 16) + ' UTC';
+        deadlineValueText = target_date.toISOString().replace("T", " ").substring(0, 16) + " UTC";
       } else {
         // In block mode, convert time to block height
         deadlineValueBlock = await time_to_block(target_date.getTime(), platform);
         deadlineValueText = await block_to_date(deadlineValueBlock, platform);
       }
     } catch (error) {
-      console.error('Error calculating block limit:', error);
+      console.error("Error calculating block limit:", error);
       deadlineValueBlock = undefined;
-      deadlineValueText = 'Error calculating deadline';
+      deadlineValueText = "Error calculating deadline";
     }
   }
 
   async function calculateFromDateTime(datetimeString: string) {
     if (!platform || !datetimeString) {
       deadlineValueBlock = undefined;
-      deadlineValueText = '';
+      deadlineValueText = "";
       return;
     }
     try {
@@ -406,13 +406,13 @@
       // Check if the date is valid and in the future
       if (isNaN(target_date.getTime())) {
         deadlineValueBlock = undefined;
-        deadlineValueText = 'Invalid date';
+        deadlineValueText = "Invalid date";
         return;
       }
 
       if (target_date.getTime() <= Date.now()) {
         deadlineValueBlock = undefined;
-        deadlineValueText = 'Date must be in the future';
+        deadlineValueText = "Date must be in the future";
         return;
       }
 
@@ -420,9 +420,9 @@
       deadlineValueBlock = target_date.getTime();
       deadlineValueText = target_date.toLocaleString();
     } catch (error) {
-      console.error('Error calculating from datetime:', error);
+      console.error("Error calculating from datetime:", error);
       deadlineValueBlock = undefined;
-      deadlineValueText = 'Error calculating deadline';
+      deadlineValueText = "Error calculating deadline";
     }
   }
 
@@ -456,7 +456,7 @@
       formErrors.invalidToken ||
       formErrors.amountExceedsBalance
     ) {
-      errorMessage = 'Please correct the errors before submitting.';
+      errorMessage = "Please correct the errors before submitting.";
       return;
     }
 
@@ -479,35 +479,35 @@
     });
 
     try {
-      let owner_ergotree = '';
-      if (ownerMode === 'timelock' && ownerBlockHeight && ownerAddress) {
+      let owner_ergotree = "";
+      if (ownerMode === "timelock" && ownerBlockHeight && ownerAddress) {
         try {
           owner_ergotree = compile_refund_contract(ownerAddress, ownerBlockHeight);
         } catch (e: any) {
-          console.error('Error compiling timelock contract:', e);
-          errorMessage = 'Error compiling timelock contract: ' + (e.message || e);
+          console.error("Error compiling timelock contract:", e);
+          errorMessage = "Error compiling timelock contract: " + (e.message || e);
           isSubmitting = false;
           return;
         }
-      } else if (ownerMode === 'custom' && ownerErgoTreeHex) {
+      } else if (ownerMode === "custom" && ownerErgoTreeHex) {
         owner_ergotree = ownerErgoTreeHex;
-      } else if (ownerMode === 'multisig') {
-        const validAddresses = multisigAddresses.filter((a) => a.trim() !== '');
+      } else if (ownerMode === "multisig") {
+        const validAddresses = multisigAddresses.filter((a) => a.trim() !== "");
         if (validAddresses.length < 2) {
-          errorMessage = 'At least 2 addresses are required for multisig.';
+          errorMessage = "At least 2 addresses are required for multisig.";
           isSubmitting = false;
           return;
         }
         if (multisigRequired > validAddresses.length) {
-          errorMessage = 'Required signatures cannot exceed number of addresses.';
+          errorMessage = "Required signatures cannot exceed number of addresses.";
           isSubmitting = false;
           return;
         }
         try {
           owner_ergotree = compile_multisig_contract(validAddresses, multisigRequired);
         } catch (e: any) {
-          console.error('Error compiling multisig contract:', e);
-          errorMessage = 'Error compiling multisig contract: ' + (e.message || e);
+          console.error("Error compiling multisig contract:", e);
+          errorMessage = "Error compiling multisig contract: " + (e.message || e);
           isSubmitting = false;
           return;
         }
@@ -538,7 +538,7 @@
       errorMessage = formatTransactionError(error);
     } finally {
       isSubmitting = false;
-      statusMessage = '';
+      statusMessage = "";
     }
   }
 
@@ -549,14 +549,14 @@
       if (response.ok) {
         const data = await response.json();
         return {
-          name: data.name || id.slice(0, 6) + '...' + id.slice(-4),
+          name: data.name || id.slice(0, 6) + "..." + id.slice(-4),
           decimals: data.decimals !== null ? data.decimals : 0,
         };
       }
     } catch (error) {
       console.error(`Error fetching token details for ${id}:`, error);
     }
-    return { name: id.slice(0, 6) + '...' + id.slice(-4), decimals: 0 };
+    return { name: id.slice(0, 6) + "..." + id.slice(-4), decimals: 0 };
   }
 
   async function getUserTokens() {
@@ -568,7 +568,7 @@
       }
       userTokens = await Promise.all(
         Array.from(tokens.entries())
-          .filter(([tokenId, _]) => tokenId !== 'ERG')
+          .filter(([tokenId, _]) => tokenId !== "ERG")
           .map(async ([tokenId, balance]) => {
             const { name, decimals } = await fetchTokenDetails(tokenId);
             return {
@@ -580,7 +580,7 @@
           })
       );
     } catch (error) {
-      console.error('Error fetching user tokens:', error);
+      console.error("Error fetching user tokens:", error);
     }
   }
 
@@ -795,7 +795,7 @@
                   placeholder="Enter the token ID"
                   class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs font-mono"
                 />
-                {#if customBaseTokenId && baseTokenName !== 'ERG' && baseTokenName !== 'Unknown' && baseTokenName !== customBaseTokenId.slice(0, 6) + '...' + customBaseTokenId.slice(-4)}
+                {#if customBaseTokenId && baseTokenName !== "ERG" && baseTokenName !== "Unknown" && baseTokenName !== customBaseTokenId.slice(0, 6) + "..." + customBaseTokenId.slice(-4)}
                   <p class="text-xs text-green-400 mt-1">
                     Found: {baseTokenName} (Decimals: {baseTokenDecimals})
                   </p>
@@ -868,7 +868,7 @@
                 </div>
               </div>
               <p class="text-xs mt-2 text-muted-foreground">
-                {#if deadlineMode === 'timestamp'}
+                {#if deadlineMode === "timestamp"}
                   Timestamp mode uses precise time-based deadlines (recommended for most campaigns).
                 {:else}
                   Block height mode uses blockchain block numbers for deadlines.
@@ -878,15 +878,15 @@
 
             <div class="form-group">
               <Label for="deadlineValue" class="text-sm font-medium mb-2 block text-foreground/90"
-                >{deadlineMode === 'timestamp' ? 'Deadline' : 'Block Height'}</Label
+                >{deadlineMode === "timestamp" ? "Deadline" : "Block Height"}</Label
               >
-              {#if deadlineMode === 'timestamp'}
+              {#if deadlineMode === "timestamp"}
                 <!-- Timestamp mode: choose between duration or specific datetime -->
                 <div class="mb-3">
                   <div class="flex gap-2 mb-2">
                     <button
                       type="button"
-                      on:click={() => (timestampInputMode = 'duration')}
+                      on:click={() => (timestampInputMode = "duration")}
                       class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {timestampInputMode ===
                       'duration'
                         ? 'bg-orange-500 text-black font-medium'
@@ -896,7 +896,7 @@
                     </button>
                     <button
                       type="button"
-                      on:click={() => (timestampInputMode = 'datetime')}
+                      on:click={() => (timestampInputMode = "datetime")}
                       class="flex-1 px-3 py-2 text-sm rounded-md transition-colors {timestampInputMode ===
                       'datetime'
                         ? 'bg-orange-500 text-black font-medium'
@@ -907,7 +907,7 @@
                   </div>
                 </div>
 
-                {#if timestampInputMode === 'duration'}
+                {#if timestampInputMode === "duration"}
                   <!-- Duration input (existing) -->
                   <div class="flex space-x-2">
                     <Input
@@ -1046,7 +1046,7 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
               <button
                 type="button"
-                on:click={() => (ownerMode = 'wallet')}
+                on:click={() => (ownerMode = "wallet")}
                 class="px-3 py-2 text-xs md:text-sm rounded-md transition-colors {ownerMode ===
                 'wallet'
                   ? 'bg-orange-500 text-black font-medium'
@@ -1057,7 +1057,7 @@
               <button
                 disabled
                 type="button"
-                on:click={() => (ownerMode = 'timelock')}
+                on:click={() => (ownerMode = "timelock")}
                 class="px-3 py-2 text-xs md:text-sm rounded-md transition-colors {ownerMode ===
                 'timelock'
                   ? 'bg-orange-500 text-black font-medium'
@@ -1068,7 +1068,7 @@
               <button
                 disabled
                 type="button"
-                on:click={() => (ownerMode = 'multisig')}
+                on:click={() => (ownerMode = "multisig")}
                 class="px-3 py-2 text-xs md:text-sm rounded-md transition-colors {ownerMode ===
                 'multisig'
                   ? 'bg-orange-500 text-black font-medium'
@@ -1078,7 +1078,7 @@
               </button>
               <button
                 type="button"
-                on:click={() => (ownerMode = 'custom')}
+                on:click={() => (ownerMode = "custom")}
                 class="px-3 py-2 text-xs md:text-sm rounded-md transition-colors {ownerMode ===
                 'custom'
                   ? 'bg-orange-500 text-black font-medium'
@@ -1088,7 +1088,7 @@
               </button>
             </div>
 
-            {#if ownerMode === 'timelock'}
+            {#if ownerMode === "timelock"}
               <div class="space-y-3 p-4 bg-orange-500/5 rounded-lg border border-orange-500/10">
                 <div>
                   <Label
@@ -1122,7 +1122,7 @@
                   />
                 </div>
               </div>
-            {:else if ownerMode === 'multisig'}
+            {:else if ownerMode === "multisig"}
               <div class="space-y-3 p-4 bg-orange-500/5 rounded-lg border border-orange-500/10">
                 <Label class="text-xs font-medium mb-1.5 block text-foreground/80">
                   Wallet Addresses
@@ -1151,7 +1151,7 @@
                 <button
                   type="button"
                   class="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-1"
-                  on:click={() => (multisigAddresses = [...multisigAddresses, ''])}
+                  on:click={() => (multisigAddresses = [...multisigAddresses, ""])}
                 >
                   + Add Address
                 </button>
@@ -1174,7 +1174,7 @@
                   </div>
                 </div>
               </div>
-            {:else if ownerMode === 'custom'}
+            {:else if ownerMode === "custom"}
               <div class="space-y-3 p-4 bg-orange-500/5 rounded-lg border border-orange-500/10">
                 <div>
                   <Label
@@ -1335,7 +1335,7 @@
 
               {#if contentTooLarge}
                 <p class="text-red-400 text-xs mt-2 bg-red-500/10 p-2 rounded">
-                  ⚠️ {contentValidation.message || 'The campaign content is too large.'}
+                  ⚠️ {contentValidation.message || "The campaign content is too large."}
                 </p>
               {:else if contentUsagePercentage > 90}
                 <p class="text-yellow-400 text-xs mt-2 bg-yellow-500/10 p-2 rounded">
@@ -1401,7 +1401,7 @@
               contentTooLarge}
             class="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-black border-none h-12 text-lg font-bold rounded-lg shadow-lg shadow-orange-500/20 transition-all duration-200 hover:scale-[1.02] hover:shadow-orange-500/40 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none disabled:grayscale"
           >
-            {isSubmitting ? statusMessage || 'Submitting Campaign...' : 'Launch Campaign'}
+            {isSubmitting ? statusMessage || "Submitting Campaign..." : "Launch Campaign"}
           </Button>
         {/if}
       </div>
@@ -1413,7 +1413,7 @@
   .project-title {
     font-size: 2.5rem;
     color: orange;
-    font-family: 'Russo One', sans-serif;
+    font-family: "Russo One", sans-serif;
     letter-spacing: 0.02em;
     text-shadow: 0 0 40px rgba(255, 165, 0, 0.2);
   }

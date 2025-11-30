@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher } from "svelte";
   import {
     explorer_uri,
     web_explorer_uri_tx,
     web_explorer_uri_tkn,
     web_explorer_uri_addr,
-  } from '$lib/common/store';
-  import { get } from 'svelte/store';
+  } from "$lib/common/store";
+  import { get } from "svelte/store";
 
   // The 'open' prop is used to control the modal's visibility.
   // Using `export let open = false;` allows the parent component to control it with `bind:open`.
@@ -25,7 +25,7 @@
 
   // Synchronize the input value when the modal opens.
   $: if (open) {
-    newExplorerUri = get(explorer_uri) || '';
+    newExplorerUri = get(explorer_uri) || "";
     newWebExplorerTx = get(web_explorer_uri_tx);
     newWebExplorerTkn = get(web_explorer_uri_tkn);
     newWebExplorerAddr = get(web_explorer_uri_addr);

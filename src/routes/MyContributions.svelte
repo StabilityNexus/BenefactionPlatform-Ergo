@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { ErgoPlatform } from '$lib/ergo/platform';
-  import { type Project } from '$lib/common/project';
-  import ProjectList from './ProjectList.svelte';
-  import { get } from 'svelte/store';
-  import { user_tokens, address } from '$lib/common/store';
-  import { walletConnected } from '$lib/wallet/wallet-manager';
+  import { ErgoPlatform } from "$lib/ergo/platform";
+  import { type Project } from "$lib/common/project";
+  import ProjectList from "./ProjectList.svelte";
+  import { get } from "svelte/store";
+  import { user_tokens, address } from "$lib/common/store";
+  import { walletConnected } from "$lib/wallet/wallet-manager";
 
   let platform = new ErgoPlatform();
 
@@ -27,7 +27,7 @@
         (tokens.has(project.project_id) && (tokens.get(project.project_id) ?? 0) > 0)
       );
     } catch (error) {
-      console.error('Error checking project token:', error);
+      console.error("Error checking project token:", error);
       return false;
     }
   };

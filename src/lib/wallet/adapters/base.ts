@@ -1,4 +1,4 @@
-import type { ErgoWalletAdapter, WalletBalance, WalletEvent, WalletDownloadUrls } from '../types';
+import type { ErgoWalletAdapter, WalletBalance, WalletEvent, WalletDownloadUrls } from "../types";
 
 export abstract class BaseWalletAdapter implements ErgoWalletAdapter {
   abstract id: string;
@@ -11,11 +11,11 @@ export abstract class BaseWalletAdapter implements ErgoWalletAdapter {
   constructor() {
     // Initialize event listener map
     const events: WalletEvent[] = [
-      'connect',
-      'disconnect',
-      'addressChanged',
-      'networkChanged',
-      'balanceChanged',
+      "connect",
+      "disconnect",
+      "addressChanged",
+      "networkChanged",
+      "balanceChanged",
     ];
     events.forEach((event) => {
       this.eventListeners.set(event, new Set());

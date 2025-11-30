@@ -5,12 +5,12 @@
     walletConnecting,
     walletError,
     walletConnected,
-  } from '$lib/wallet/wallet-manager';
-  import * as Dialog from '$lib/components/ui/dialog';
-  import { Button } from '$lib/components/ui/button';
-  import { Badge } from '$lib/components/ui/badge';
-  import * as Alert from '$lib/components/ui/alert';
-  import { ExternalLink, Download, Loader2, AlertCircle } from 'lucide-svelte';
+  } from "$lib/wallet/wallet-manager";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import { Button } from "$lib/components/ui/button";
+  import { Badge } from "$lib/components/ui/badge";
+  import * as Alert from "$lib/components/ui/alert";
+  import { ExternalLink, Download, Loader2, AlertCircle } from "lucide-svelte";
 
   export let open = false;
   let connectingWalletId: string | null = null;
@@ -39,18 +39,18 @@
     const userAgent = navigator.userAgent.toLowerCase();
     let downloadUrl = downloadUrls.browserExtension;
 
-    if (userAgent.includes('chrome') && downloadUrls.chrome) {
+    if (userAgent.includes("chrome") && downloadUrls.chrome) {
       downloadUrl = downloadUrls.chrome;
-    } else if (userAgent.includes('firefox') && downloadUrls.firefox) {
+    } else if (userAgent.includes("firefox") && downloadUrls.firefox) {
       downloadUrl = downloadUrls.firefox;
-    } else if (userAgent.includes('edge') && downloadUrls.edge) {
+    } else if (userAgent.includes("edge") && downloadUrls.edge) {
       downloadUrl = downloadUrls.edge;
-    } else if (userAgent.includes('safari') && downloadUrls.safari) {
+    } else if (userAgent.includes("safari") && downloadUrls.safari) {
       downloadUrl = downloadUrls.safari;
     }
 
     if (downloadUrl) {
-      window.open(downloadUrl, '_blank');
+      window.open(downloadUrl, "_blank");
     }
   }
 </script>
@@ -94,7 +94,7 @@
                       class="w-6 h-6"
                       on:error={(e) => {
                         // Fallback to a generic wallet icon if image fails to load
-                        e.target.style.display = 'none';
+                        e.target.style.display = "none";
                       }}
                     />
                   </div>
@@ -128,7 +128,7 @@
                         alt={wallet.name}
                         class="w-6 h-6 opacity-50"
                         on:error={(e) => {
-                          e.target.style.display = 'none';
+                          e.target.style.display = "none";
                         }}
                       />
                     </div>

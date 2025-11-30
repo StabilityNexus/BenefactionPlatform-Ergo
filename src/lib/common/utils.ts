@@ -8,13 +8,13 @@ function stringToArrayBuffer(str: string): ArrayBuffer {
 function arrayBufferToHex(buffer: ArrayBuffer): string {
   const byteArray = new Uint8Array(buffer);
   return Array.from(byteArray)
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 // Function to compute SHA-256 hash
 export async function sha256(input: string): Promise<string> {
   const data = stringToArrayBuffer(input);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   return arrayBufferToHex(hashBuffer);
 }

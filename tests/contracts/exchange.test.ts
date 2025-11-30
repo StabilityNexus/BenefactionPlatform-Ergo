@@ -3,10 +3,10 @@
 // This is only allowed AFTER the minimum funding threshold is reached
 // Verifies exchange counter updates and token conservation
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from '@fleet-sdk/core';
-import { SByte, SColl, SLong } from '@fleet-sdk/serializer';
-import { stringToBytes } from '@scure/base';
+import { describe, it, expect, beforeEach } from "vitest";
+import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
+import { SByte, SColl, SLong } from "@fleet-sdk/serializer";
+import { stringToBytes } from "@scure/base";
 import {
   setupBeneTestContext,
   ERG_BASE_TOKEN,
@@ -15,7 +15,7 @@ import {
   USD_BASE_TOKEN,
   USD_BASE_TOKEN_NAME,
   createR4,
-} from './bene_contract_helpers';
+} from "./bene_contract_helpers";
 
 // EXECUTION FLOW:
 // 1. beforeEach() → Creates blockchain + project box with MINIMUM REACHED (50k tokens sold)
@@ -24,14 +24,14 @@ import {
 // 4. Contract validates minimum is reached and exchange ratio is correct
 
 const baseModes = [
-  { name: 'USD Token Mode', token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
-  { name: 'ERG Mode', token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
+  { name: "USD Token Mode", token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
+  { name: "ERG Mode", token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
 ];
 
-describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode) => {
+describe.each(baseModes)("Bene Contract v1.2 - Exchange APT → PFT (%s)", (mode) => {
   let ctx: BeneTestContext; // Test environment
 
-  describe('Still any APT exchanged', () => {
+  describe("Still any APT exchanged", () => {
     let projectBox: Box; // Contract box
     let soldTokens: bigint;
 
@@ -68,7 +68,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(), // [50k sold, 0 refunded, 0 exchanged]
           R7: SLong(ctx.exchangeRate).toHex(), // [price, token_len]
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -86,7 +86,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should allow exchanging APT tokens for PFT tokens', () => {
+    it("should allow exchanging APT tokens for PFT tokens", () => {
       // ARRANGE: Prepare exchange transaction
       // Find buyer's box containing APT tokens
       const buyerAPTBox = ctx.buyer.utxos
@@ -156,7 +156,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
       expect(buyerPFTBox!.assets[0].amount).toEqual(aptToExchange); // Buyer got 10,000 PFT
     });
 
-    it('should fail when exchange ratio is incorrect', () => {
+    it("should fail when exchange ratio is incorrect", () => {
       // ARRANGE: Prepare exchange transaction
       // Find buyer's box containing APT tokens
       const buyerAPTBox = ctx.buyer.utxos
@@ -215,7 +215,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
       expect(result).toBe(false);
     });
 
-    it('should fail when tries to avoid increment exchange counter', () => {
+    it("should fail when tries to avoid increment exchange counter", () => {
       // ARRANGE: Prepare exchange transaction
       // Find buyer's box containing APT tokens
       const buyerAPTBox = ctx.buyer.utxos
@@ -269,7 +269,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
       expect(result).toBe(false);
     });
 
-    it('should fail when tries to modify refund counter', () => {
+    it("should fail when tries to modify refund counter", () => {
       // ARRANGE: Prepare exchange transaction
       // Find buyer's box containing APT tokens
       const buyerAPTBox = ctx.buyer.utxos
@@ -327,7 +327,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
     });
   });
 
-  describe('Minimum not raised', () => {
+  describe("Minimum not raised", () => {
     let projectBox: Box; // Contract box
     let soldTokens: bigint;
 
@@ -364,7 +364,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(), // [49k sold, 0 refunded, 0 exchanged]
           R7: SLong(ctx.exchangeRate).toHex(), // [price, token_len]
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -382,7 +382,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should not allow exchanging APT tokens for PFT tokens', () => {
+    it("should not allow exchanging APT tokens for PFT tokens", () => {
       // ARRANGE: Prepare exchange transaction
       // Find buyer's box containing APT tokens
       const buyerAPTBox = ctx.buyer.utxos
@@ -441,7 +441,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
     });
   });
 
-  describe('Minimum was raised, but actually not', () => {
+  describe("Minimum was raised, but actually not", () => {
     let projectBox: Box; // Contract box
     let soldTokens: bigint;
     let refundTokens: bigint;
@@ -482,7 +482,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
           R6: SColl(SLong, [soldTokens, refundTokens, 0n]).toHex(), // [50k sold, 1 refunded, 0 exchanged]
           R7: SLong(ctx.exchangeRate).toHex(), // [price, token_len]
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -500,7 +500,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should allow exchanging APT tokens for PFT tokens', () => {
+    it("should allow exchanging APT tokens for PFT tokens", () => {
       // ARRANGE: Prepare exchange transaction
       // Find buyer's box containing APT tokens
       const buyerAPTBox = ctx.buyer.utxos
@@ -558,7 +558,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
     });
   });
 
-  describe('Some APT exchanged', () => {
+  describe("Some APT exchanged", () => {
     let projectBox: Box;
     let soldTokens: bigint;
     let alreadyExchanged: bigint;
@@ -596,7 +596,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
           R6: SColl(SLong, [soldTokens, 0n, alreadyExchanged]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -612,7 +612,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should allow exchanging APT tokens for PFT tokens', () => {
+    it("should allow exchanging APT tokens for PFT tokens", () => {
       const buyerAPTBox = ctx.buyer.utxos
         .toArray()
         .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))!;
@@ -673,7 +673,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
       expect(buyerPFTBox!.assets[0].amount).toEqual(aptToExchange);
     });
 
-    it('should fail when exchange ratio is incorrect', () => {
+    it("should fail when exchange ratio is incorrect", () => {
       const buyerAPTBox = ctx.buyer.utxos
         .toArray()
         .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))!;
@@ -724,7 +724,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
       expect(result).toBe(false);
     });
 
-    it('should fail when tries to avoid increment exchange counter', () => {
+    it("should fail when tries to avoid increment exchange counter", () => {
       const buyerAPTBox = ctx.buyer.utxos
         .toArray()
         .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))!;
@@ -773,7 +773,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Exchange APT → PFT (%s)', (mode
       expect(result).toBe(false);
     });
 
-    it('should fail when tries to modify refund counter', () => {
+    it("should fail when tries to modify refund counter", () => {
       const buyerAPTBox = ctx.buyer.utxos
         .toArray()
         .find((box) => box.assets.some((asset) => asset.tokenId === ctx.projectNftId))!;

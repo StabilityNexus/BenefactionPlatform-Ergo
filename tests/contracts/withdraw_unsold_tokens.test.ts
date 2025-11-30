@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   Box,
   OutputBuilder,
   TransactionBuilder,
   RECOMMENDED_MIN_FEE_VALUE,
   ErgoTree,
-} from '@fleet-sdk/core';
-import { SByte, SColl, SLong } from '@fleet-sdk/serializer';
-import { stringToBytes } from '@scure/base';
+} from "@fleet-sdk/core";
+import { SByte, SColl, SLong } from "@fleet-sdk/serializer";
+import { stringToBytes } from "@scure/base";
 import {
   setupBeneTestContext,
   ERG_BASE_TOKEN,
@@ -16,19 +16,19 @@ import {
   USD_BASE_TOKEN,
   USD_BASE_TOKEN_NAME,
   createR4,
-} from './bene_contract_helpers';
-import { compile } from '@fleet-sdk/compiler';
+} from "./bene_contract_helpers";
+import { compile } from "@fleet-sdk/compiler";
 
 // EXECUTION FLOW:
 // Owner can withdraw unsold PFT tokens at any time
 
 const baseModes = [
-  { name: 'USD Token Mode', token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
-  { name: 'ERG Mode', token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
+  { name: "USD Token Mode", token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
+  { name: "ERG Mode", token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
 ];
 
-describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mode) => {
-  describe('Withdraw Unsold Tokens with any APT sold exchanged for PFTs', () => {
+describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mode) => {
+  describe("Withdraw Unsold Tokens with any APT sold exchanged for PFTs", () => {
     let ctx: BeneTestContext;
     let projectBox: Box; // Contract box
     let soldTokens: bigint;
@@ -68,7 +68,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
           R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -76,12 +76,12 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should allow withdrawing unsold PFT tokens', () => {
+    it("should allow withdrawing unsold PFT tokens", () => {
       // ARRANGE: Owner wants to withdraw 50k unsold PFT tokens
       const tokensToWithdraw = 50_000n; // Withdraw 50k
       const remainingPFT = ctx.totalPFTokens - tokensToWithdraw; // 50k will remain in contract
 
-      console.log('\n🏦 WITHDRAW UNSOLD TOKENS:');
+      console.log("\n🏦 WITHDRAW UNSOLD TOKENS:");
       console.log(`   Tokens Sold:       10,000 (from beforeEach)`);
       console.log(`   Tokens Available:  90,000 (100k - 10k sold)`);
       console.log(`   Tokens to Withdraw: ${tokensToWithdraw.toLocaleString()} PFT`);
@@ -136,7 +136,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
       expect(updatedPft?.amount).toEqual(remainingPFT); // Contract has 50k PFT remaining
     });
 
-    it('should fail fully withdrawing unsold PFT tokens, because there are contributors with their APTs sold that will want to exchange them for PFTs', () => {
+    it("should fail fully withdrawing unsold PFT tokens, because there are contributors with their APTs sold that will want to exchange them for PFTs", () => {
       // ARRANGE: Owner wants to withdraw 50k unsold PFT tokens
       const tokensToWithdraw = ctx.totalPFTokens - soldTokens;
 
@@ -167,12 +167,12 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
       expect(result).toBe(false);
     });
 
-    it('should fail trying to avoid APTs', () => {
+    it("should fail trying to avoid APTs", () => {
       // ARRANGE: Owner wants to withdraw 50k unsold PFT tokens
       const tokensToWithdraw = 50_000n; // Withdraw 50k
       const remainingPFT = ctx.totalPFTokens - tokensToWithdraw; // 50k will remain in contract
 
-      console.log('\n🏦 WITHDRAW UNSOLD TOKENS:');
+      console.log("\n🏦 WITHDRAW UNSOLD TOKENS:");
       console.log(`   Tokens Sold:       10,000 (from beforeEach)`);
       console.log(`   Tokens Available:  90,000 (100k - 10k sold)`);
       console.log(`   Tokens to Withdraw: ${tokensToWithdraw.toLocaleString()} PFT`);
@@ -226,12 +226,12 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
       expect(result).toBe(false); // Transaction fails
     });
 
-    it('should fail due to failed owner authentication', () => {
+    it("should fail due to failed owner authentication", () => {
       // ARRANGE: Owner wants to withdraw 50k unsold PFT tokens
       const tokensToWithdraw = 50_000n; // Withdraw 50k
       const remainingPFT = ctx.totalPFTokens - tokensToWithdraw; // 50k will remain in contract
 
-      console.log('\n🏦 WITHDRAW UNSOLD TOKENS:');
+      console.log("\n🏦 WITHDRAW UNSOLD TOKENS:");
       console.log(`   Tokens Sold:       10,000 (from beforeEach)`);
       console.log(`   Tokens Available:  90,000 (100k - 10k sold)`);
       console.log(`   Tokens to Withdraw: ${tokensToWithdraw.toLocaleString()} PFT`);
@@ -282,7 +282,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
     });
   });
 
-  describe('Withdraw unsold tokens with all sold APT changed per PFTs ', () => {
+  describe("Withdraw unsold tokens with all sold APT changed per PFTs ", () => {
     let ctx: BeneTestContext;
     let projectBox: Box; // Contract box
     let soldTokens: bigint;
@@ -321,7 +321,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
           R6: SColl(SLong, [soldTokens, 0n, soldTokens]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -329,7 +329,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should allow fully withdrawing unsold PFT tokens', () => {
+    it("should allow fully withdrawing unsold PFT tokens", () => {
       // ARRANGE: Owner wants to withdraw all the unsold PFT tokens
       const tokensToWithdraw = ctx.totalPFTokens - soldTokens;
 
@@ -359,7 +359,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
     });
   });
 
-  describe('Withdraw unsold tokens with all sold APT changed per PFTs after minimum raised and some APT refunded before minimum raised', () => {
+  describe("Withdraw unsold tokens with all sold APT changed per PFTs after minimum raised and some APT refunded before minimum raised", () => {
     let ctx: BeneTestContext;
     let projectBox: Box; // Contract box
     let soldTokens: bigint;
@@ -400,7 +400,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
           R6: SColl(SLong, [soldTokens, refundedTokens, exchangedTokens]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -408,7 +408,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should allow fully withdrawing unsold PFT tokens', () => {
+    it("should allow fully withdrawing unsold PFT tokens", () => {
       // ARRANGE: Owner wants to withdraw all the unsold PFT tokens
       const tokensToWithdraw = ctx.totalPFTokens - soldTokens;
 
@@ -438,7 +438,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
     });
   });
 
-  describe('Withdraw unsold tokens with complex owner script authorization', () => {
+  describe("Withdraw unsold tokens with complex owner script authorization", () => {
     let ctx: BeneTestContext;
     let projectBox: Box; // Contract box
     let soldTokens: bigint;
@@ -480,7 +480,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
           R6: SColl(SLong, [soldTokens, 0n, soldTokens]).toHex(),
           R7: SLong(ctx.exchangeRate).toHex(),
           R8: ctx.constants.toHex(),
-          R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+          R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
         },
       });
 
@@ -488,7 +488,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
       projectBox = ctx.beneContract.utxos.toArray()[0];
     });
 
-    it('should allow fully withdrawing unsold PFT tokens', () => {
+    it("should allow fully withdrawing unsold PFT tokens", () => {
       const customOwnerContract = ctx.mockChain.addParty(
         ownerContract.toAddress().ergoTree,
         `Custom owner contract`
@@ -530,7 +530,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Withdraw Unsold Tokens (%s)', (mo
       expect(ctx.beneContract.utxos.length).toEqual(0);
     });
 
-    it('should fail due to failed owner authentication', () => {
+    it("should fail due to failed owner authentication", () => {
       // ARRANGE: Owner wants to withdraw all the unsold PFT tokens
       const tokensToWithdraw = ctx.totalPFTokens - soldTokens;
 

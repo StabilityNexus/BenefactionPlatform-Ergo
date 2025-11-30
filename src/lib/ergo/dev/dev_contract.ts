@@ -1,13 +1,13 @@
-import { compile } from '@fleet-sdk/compiler';
-import { blake2b256, hex, sha256 } from '@fleet-sdk/crypto';
-import { uint8ArrayToHex } from '../utils';
-import { Network } from '@fleet-sdk/core';
-import { network_id } from '../envs';
-import { distributeFunds } from './distribute_funds';
-import { explorer_uri } from '$lib/common/store';
-import { get } from 'svelte/store';
+import { compile } from "@fleet-sdk/compiler";
+import { blake2b256, hex, sha256 } from "@fleet-sdk/crypto";
+import { uint8ArrayToHex } from "../utils";
+import { Network } from "@fleet-sdk/core";
+import { network_id } from "../envs";
+import { distributeFunds } from "./distribute_funds";
+import { explorer_uri } from "$lib/common/store";
+import { get } from "svelte/store";
 
-import DEV_FEE_CONTRACT from '../../../../contracts/dev_fee_contract/dev_fee.es?raw';
+import DEV_FEE_CONTRACT from "../../../../contracts/dev_fee_contract/dev_fee.es?raw";
 
 function wallets() {
   let bruno;
@@ -15,16 +15,16 @@ function wallets() {
   let jm;
   let order;
 
-  if (network_id == 'mainnet') {
-    bruno = '9fBF4dceTsqdhsYUNVZHjsv4jqoKVzVv3KywFCycbkEXEq5j6bp';
-    lgd = '9gkRrMRdSstibAsVzCtYumUGbXDPQZHkfuAaqmA49FNH3tN4XDg';
-    jm = '9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD';
-    order = '9h9hjN2KC3jEyCa6KEYKBotPRESdo9oa29yyKcoSLWwtaX2VvhM';
+  if (network_id == "mainnet") {
+    bruno = "9fBF4dceTsqdhsYUNVZHjsv4jqoKVzVv3KywFCycbkEXEq5j6bp";
+    lgd = "9gkRrMRdSstibAsVzCtYumUGbXDPQZHkfuAaqmA49FNH3tN4XDg";
+    jm = "9ejNy2qoifmzfCiDtEiyugthuXMriNNPhNKzzwjPtHnrK3esvbD";
+    order = "9h9hjN2KC3jEyCa6KEYKBotPRESdo9oa29yyKcoSLWwtaX2VvhM";
   } else {
-    bruno = '3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve';
-    lgd = '3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S';
-    jm = '3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve';
-    order = '3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S';
+    bruno = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
+    lgd = "3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S";
+    jm = "3WzH5yEJongYHmBJnoMs3zeK3t3fouMi3pigKdEURWcD61pU6Eve";
+    order = "3WxiAefTPNZckPoXq4sUx2SSPYyqhXppee7P1AP1C1A8bQyFP79S";
   }
 
   return {
@@ -37,10 +37,10 @@ function wallets() {
 
 function generate_contract(): string {
   const w = wallets();
-  const bruno = w['bruno'];
-  const lgd = w['lgd'];
-  const jm = w['jm'];
-  const order = w['order'];
+  const bruno = w["bruno"];
+  const lgd = w["lgd"];
+  const jm = w["jm"];
+  const order = w["order"];
 
   return DEV_FEE_CONTRACT.replace(/`\+bruno\+`/g, bruno)
     .replace(/`\+lgd\+`/g, lgd)
@@ -57,7 +57,7 @@ export function get_dev_contract_hash(): string {
 }
 
 export function get_dev_contract_address(): string {
-  const network = network_id == 'mainnet' ? Network.Mainnet : Network.Testnet;
+  const network = network_id == "mainnet" ? Network.Mainnet : Network.Testnet;
   return compile(generate_contract(), { version: 1, network: network_id })
     .toAddress(network)
     .toString();
@@ -81,18 +81,18 @@ export async function download_dev() {
     const moreDataAvailable = true;
 
     while (moreDataAvailable) {
-      const url = get(explorer_uri) + '/api/v1/boxes/unspent/search';
+      const url = get(explorer_uri) + "/api/v1/boxes/unspent/search";
       const response = await fetch(
         url +
-          '?' +
+          "?" +
           new URLSearchParams({
             offset: params.offset.toString(),
             limit: params.limit.toString(),
           }),
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             ergoTreeTemplateHash: get_template_hash(),
@@ -126,7 +126,7 @@ export async function download_dev() {
       }
     }
   } catch (error) {
-    console.error('Error while making the POST request:', error);
+    console.error("Error while making the POST request:", error);
   }
   return [];
 }
@@ -136,10 +136,10 @@ export async function execute_dev(box) {
     console.log(`Executing action with Box ID: ${box.boxId} and Value: ${box.value}`);
 
     const w = wallets();
-    const bruno = w['bruno'];
-    const lgd = w['lgd'];
-    const jm = w['jm'];
-    const order = w['order'];
+    const bruno = w["bruno"];
+    const lgd = w["lgd"];
+    const jm = w["jm"];
+    const order = w["order"];
 
     // Check if this is a token distribution (R4 contains token ID)
     let tokenId: string | undefined = undefined;
@@ -148,7 +148,7 @@ export async function execute_dev(box) {
     if (box.additionalRegisters && box.additionalRegisters.R4) {
       const r4Value = box.additionalRegisters.R4;
 
-      if (r4Value.startsWith('0e')) {
+      if (r4Value.startsWith("0e")) {
         // Parse Coll[Byte]: 0e[length][data]
         const lengthByte = r4Value.substring(2, 4);
         const lengthValue = parseInt(lengthByte, 16);
@@ -173,6 +173,6 @@ export async function execute_dev(box) {
 
     distributeFunds(box, bruno, lgd, jm, order, 32, 32, 32, 4, totalAmount, tokenId);
   } catch (e) {
-    console.error('Error executing action:', e.message);
+    console.error("Error executing action:", e.message);
   }
 }

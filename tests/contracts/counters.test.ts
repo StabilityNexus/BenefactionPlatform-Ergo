@@ -3,10 +3,10 @@
 // by creating invalid states between Physical Tokens and Register Counters.
 // Tries to create a malicious scenario for temporaryFundingTokenAmountOnContract function.
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from '@fleet-sdk/core';
-import { SByte, SColl, SLong } from '@fleet-sdk/serializer';
-import { stringToBytes } from '@scure/base';
+import { describe, it, expect, beforeEach } from "vitest";
+import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
+import { SByte, SColl, SLong } from "@fleet-sdk/serializer";
+import { stringToBytes } from "@scure/base";
 import {
   setupBeneTestContext,
   ERG_BASE_TOKEN,
@@ -15,14 +15,14 @@ import {
   USD_BASE_TOKEN,
   USD_BASE_TOKEN_NAME,
   createR4,
-} from './bene_contract_helpers';
+} from "./bene_contract_helpers";
 
 const baseModes = [
-  { name: 'USD Token Mode', token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
-  { name: 'ERG Mode', token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
+  { name: "USD Token Mode", token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
+  { name: "ERG Mode", token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
 ];
 
-describe.each(baseModes)('Bene Contract v1.2 - Counter Hacker Scenarios (%s)', (mode) => {
+describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (mode) => {
   let ctx: BeneTestContext;
   let projectBox: Box;
 
@@ -57,7 +57,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Counter Hacker Scenarios (%s)', (
         R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
         R7: SLong(ctx.exchangeRate).toHex(),
         R8: ctx.constants.toHex(),
-        R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
       },
     });
 
@@ -192,7 +192,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Counter Hacker Scenarios (%s)', (
         R6: SColl(SLong, [50000n, 0n, 0n]).toHex(), // Sold 50k (Minimum Reached)
         R7: SLong(ctx.exchangeRate).toHex(),
         R8: ctx.constants.toHex(),
-        R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
       },
     });
     projectBox = ctx.beneContract.utxos.toArray()[0];
@@ -273,7 +273,7 @@ describe.each(baseModes)('Bene Contract v1.2 - Counter Hacker Scenarios (%s)', (
         R6: SColl(SLong, [soldAmount, 0n, 0n]).toHex(), // Sold 10k (Min NOT Reached)
         R7: SLong(ctx.exchangeRate).toHex(),
         R8: ctx.constants.toHex(),
-        R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
       },
     });
     const refundReadyBox = ctx.beneContract.utxos.toArray()[0];

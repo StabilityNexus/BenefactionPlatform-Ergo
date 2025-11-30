@@ -1,9 +1,9 @@
 // eslint.config.mjs
-import js from '@eslint/js';
-import svelte from 'eslint-plugin-svelte';
-import globals from 'globals';
-import ts from 'typescript-eslint';
-import svelteConfig from './svelte.config.js';
+import js from "@eslint/js";
+import svelte from "eslint-plugin-svelte";
+import globals from "globals";
+import ts from "typescript-eslint";
+import svelteConfig from "./svelte.config.js";
 
 /** @type {import('eslint').Linter.Config[]} */
 export default ts.config(
@@ -32,11 +32,11 @@ export default ts.config(
 
   // 6. Extra config specifically for Svelte + TS files
   {
-    files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
+    files: ["**/*.svelte", "**/*.svelte.ts", "**/*.svelte.js"],
     languageOptions: {
       parserOptions: {
         projectService: true,
-        extraFileExtensions: ['.svelte'],
+        extraFileExtensions: [".svelte"],
         parser: ts.parser,
         // Hook ESLint into your Svelte config (routes, aliases, etc.)
         svelteConfig,
@@ -45,13 +45,13 @@ export default ts.config(
   },
   {
     ignores: [
-      '**/.svelte-kit/**',
-      '**/node_modules/**',
-      '**/dist/**',
-      '**/build/**',
-      '**/coverage/**',
-      'src/routes/NewProject.svelte',
-      'src/routes/ProjectDetails.svelte',
+      "**/.svelte-kit/**",
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/coverage/**",
+      "src/routes/NewProject.svelte",
+      "src/routes/ProjectDetails.svelte",
     ],
   },
 
@@ -59,13 +59,13 @@ export default ts.config(
   {
     rules: {
       // You can tweak things here later, for example:
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': [
-        'warn',
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
         {
-          args: 'after-used', // Only warn when function params are unused
-          argsIgnorePattern: '^_', // Allow intentionally unused params if name starts with "_"
-          varsIgnorePattern: '^_', // Same rule for variables
+          args: "after-used", // Only warn when function params are unused
+          argsIgnorePattern: "^_", // Allow intentionally unused params if name starts with "_"
+          varsIgnorePattern: "^_", // Same rule for variables
         },
       ],
       // '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],

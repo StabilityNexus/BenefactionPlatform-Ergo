@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { block_to_date } from '$lib/common/countdown';
-  import { is_ended, min_raised, type Project } from '$lib/common/project';
-  import { project_detail, connected, balance } from '$lib/common/store';
-  import { badgeVariants } from '$lib/components/ui/badge';
-  import { Button } from '$lib/components/ui/button';
-  import * as Card from '$lib/components/ui/card';
-  import { ErgoPlatform } from '$lib/ergo/platform';
-  import { mode } from 'mode-watcher';
-  import { getBaseTokenDisplayInfo, formatBaseTokenAmount } from '$lib/ergo/token_utils';
+  import { block_to_date } from "$lib/common/countdown";
+  import { is_ended, min_raised, type Project } from "$lib/common/project";
+  import { project_detail, connected, balance } from "$lib/common/store";
+  import { badgeVariants } from "$lib/components/ui/badge";
+  import { Button } from "$lib/components/ui/button";
+  import * as Card from "$lib/components/ui/card";
+  import { ErgoPlatform } from "$lib/ergo/platform";
+  import { mode } from "mode-watcher";
+  import { getBaseTokenDisplayInfo, formatBaseTokenAmount } from "$lib/ergo/token_utils";
 
   export let project: Project;
 
@@ -15,8 +15,8 @@
 
   let deadline_passed = false;
   let is_min_raised = false;
-  let statusMessage = '';
-  let statusColor = '';
+  let statusMessage = "";
+  let statusColor = "";
   let baseSymbol = platform.main_token;
   let baseDecimals = 9;
 
@@ -65,21 +65,21 @@
 
     if (isMaxReached) {
       statusMessage = `Reached maximum goal of ${maxDisplay}; currently closed for contributions.`;
-      statusColor = 'bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20';
+      statusColor = "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20";
     } else if (deadline_passed) {
       statusMessage = is_min_raised
         ? `Reached minimum of ${minDisplay}; open for contributions up to ${maxDisplay}.`
         : `Did not raise minimum of ${minDisplay} before ${limit_date}; open for contributions up to ${maxDisplay}.`;
       statusColor = is_min_raised
-        ? 'bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20'
-        : 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/20';
+        ? "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20"
+        : "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/20";
     } else {
       statusMessage = is_min_raised
         ? `Reached minimum of ${minDisplay}; open for contributions up to ${maxDisplay}.`
         : `Aiming to raise a minimum of ${minDisplay} before ${limit_date}.`;
       statusColor = is_min_raised
-        ? 'bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20'
-        : 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/20';
+        ? "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20"
+        : "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/20";
     }
   }
   load();
@@ -105,12 +105,12 @@
         <a
           href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es"
           target="_blank"
-          class={badgeVariants({ variant: 'outline' })}
+          class={badgeVariants({ variant: "outline" })}
         >
-          Contract version: {project.version.replace('_', '.')}
+          Contract version: {project.version.replace("_", ".")}
         </a>
         <!-- svelte-ignore a11y-missing-attribute -->
-        <a class={badgeVariants({ variant: 'outline' })}
+        <a class={badgeVariants({ variant: "outline" })}
           >Creation height: {project.box.creationHeight}</a
         >
       </div>

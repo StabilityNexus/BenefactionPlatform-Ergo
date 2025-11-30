@@ -2,24 +2,24 @@
 // Tests the initial deployment of a Bene fundraising project
 // Verifies that the project box is created with correct tokens and registers
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { RECOMMENDED_MIN_FEE_VALUE } from '@fleet-sdk/core';
-import { SByte, SColl, SLong } from '@fleet-sdk/serializer';
-import { stringToBytes } from '@scure/base';
+import { describe, it, expect, beforeEach } from "vitest";
+import { RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
+import { SByte, SColl, SLong } from "@fleet-sdk/serializer";
+import { stringToBytes } from "@scure/base";
 import {
   setupBeneTestContext,
   ERG_BASE_TOKEN,
   ERG_BASE_TOKEN_NAME,
   type BeneTestContext,
   createR4,
-} from './bene_contract_helpers';
+} from "./bene_contract_helpers";
 
 // EXECUTION FLOW:
 // 1. beforeEach() → Creates fresh mock blockchain with setupBeneTestContext()
 // 2. Test creates initial project box with tokens and configuration
 // 3. Assertions verify the box was created correctly
 
-describe('Bene Contract v1.2 - Project Creation', () => {
+describe("Bene Contract v1.2 - Project Creation", () => {
   let ctx: BeneTestContext; // Holds the test environment (blockchain, actors, config)
 
   // SETUP: Runs before each test to create a fresh mock blockchain
@@ -28,20 +28,20 @@ describe('Bene Contract v1.2 - Project Creation', () => {
     ctx = setupBeneTestContext(ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME);
   });
 
-  describe('Project Creation', () => {
-    it('should successfully create a Bene project box', () => {
+  describe("Project Creation", () => {
+    it("should successfully create a Bene project box", () => {
       // ARRANGE: Prepare test data for contract creation
 
       // Owner information stored in R8 register
       const ownerDetails = JSON.stringify({
-        name: 'Project Owner',
-        contact: 'owner@example.com',
+        name: "Project Owner",
+        contact: "owner@example.com",
       });
 
       // Project information stored in R9 register
       const projectMetadata = JSON.stringify({
-        title: 'Test Fundraising Project',
-        description: 'A test project for Bene platform',
+        title: "Test Fundraising Project",
+        description: "A test project for Bene platform",
       });
 
       // ACT: Create the initial project box (UTXO) on the blockchain
@@ -64,8 +64,8 @@ describe('Bene Contract v1.2 - Project Creation', () => {
           R5: SLong(ctx.minimumTokensSold).toHex(), // Minimum to sell: 50,000 tokens
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(), // Counters: [sold, refunded, exchanged] = [0, 0, 0]
           R7: SLong(ctx.exchangeRate).toHex(), // [price, token_id_length] = [1M, 0]
-          R8: SColl(SByte, stringToBytes('utf8', ownerDetails)).toHex(), // Owner details (JSON)
-          R9: SColl(SByte, stringToBytes('utf8', projectMetadata)).toHex(), // Project metadata (JSON)
+          R8: SColl(SByte, stringToBytes("utf8", ownerDetails)).toHex(), // Owner details (JSON)
+          R9: SColl(SByte, stringToBytes("utf8", projectMetadata)).toHex(), // Project metadata (JSON)
         },
       });
 

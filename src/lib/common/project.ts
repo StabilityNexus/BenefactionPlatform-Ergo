@@ -1,6 +1,6 @@
-import { type contract_version } from '$lib/ergo/contract';
-import { type Platform } from './platform';
-import { ErgoAddress, SByte, SColl, type Amount, type Box } from '@fleet-sdk/core';
+import { type contract_version } from "$lib/ergo/contract";
+import { type Platform } from "./platform";
+import { ErgoAddress, SByte, SColl, type Amount, type Box } from "@fleet-sdk/core";
 
 export interface TokenEIP4 {
   name: string;
@@ -30,7 +30,7 @@ export interface ConstantContent {
 export function createR8Structure(content: ConstantContent) {
   function numberToHex(num: number): string {
     let hex = BigInt(num).toString(16);
-    if (hex.length % 2 !== 0) hex = '0' + hex;
+    if (hex.length % 2 !== 0) hex = "0" + hex;
     return hex;
   }
 
@@ -38,13 +38,13 @@ export function createR8Structure(content: ConstantContent) {
     try {
       return ErgoAddress.fromBase58(input).ergoTree;
     } catch (error) {
-      console.error('Invalid Ergo address:', input, error);
+      console.error("Invalid Ergo address:", input, error);
       return input;
     }
   }
 
   const ownerErgoTree = getErgoTree(content.owner);
-  const baseTokenId = content.base_token_id || '';
+  const baseTokenId = content.base_token_id || "";
 
   const r8Data = SColl(SColl(SByte), [
     ownerErgoTree, // Index 0
@@ -109,20 +109,20 @@ export function getProjectContent(id: string, value: string): ProjectContent {
     const parsed = JSON.parse(value);
     return {
       raw: value,
-      title: parsed.title || 'Id ' + id,
-      description: parsed.description || 'No description provided.',
+      title: parsed.title || "Id " + id,
+      description: parsed.description || "No description provided.",
       link: parsed.link || null,
       image:
-        parsed.image || 'https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg',
+        parsed.image || "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg",
     };
   } catch (error) {
-    console.error('Error parsing project content JSON:', error);
+    console.error("Error parsing project content JSON:", error);
     return {
       raw: value,
-      title: 'Id ' + id,
-      description: 'No description provided.',
+      title: "Id " + id,
+      description: "No description provided.",
       link: null,
-      image: 'https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg',
+      image: "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg",
     };
   }
 }
@@ -137,10 +137,10 @@ export function getConstantContent(value: string): ConstantContent | null {
       dev_hash: parsed.dev_hash,
       dev_fee: parsed.dev_fee,
       pft_token_id: parsed.pft_token_id || parsed.token_id || null,
-      base_token_id: parsed.base_token_id || '', // Default to empty string for ERG
+      base_token_id: parsed.base_token_id || "", // Default to empty string for ERG
     };
   } catch (error) {
-    console.error('Error parsing constant content JSON:', error);
+    console.error("Error parsing constant content JSON:", error);
     return null;
   }
 }

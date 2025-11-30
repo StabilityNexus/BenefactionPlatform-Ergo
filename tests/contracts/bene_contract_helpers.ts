@@ -2,24 +2,24 @@ import {
   MockChain,
   type KeyedMockChainParty,
   type NonKeyedMockChainParty,
-} from '@fleet-sdk/mock-chain';
-import { compile } from '@fleet-sdk/compiler';
-import { ErgoAddress } from '@fleet-sdk/core';
-import { blake2b256 } from '@fleet-sdk/crypto';
-import * as fs from 'fs';
-import * as path from 'path';
-import { ConstantContent, createR8Structure } from '$lib/common/project';
+} from "@fleet-sdk/mock-chain";
+import { compile } from "@fleet-sdk/compiler";
+import { ErgoAddress } from "@fleet-sdk/core";
+import { blake2b256 } from "@fleet-sdk/crypto";
+import * as fs from "fs";
+import * as path from "path";
+import { ConstantContent, createR8Structure } from "$lib/common/project";
 
 // ===== Utility Functions ===== //
 
 export function uint8ArrayToHex(bytes: Uint8Array): string {
-  return Buffer.from(bytes).toString('hex');
+  return Buffer.from(bytes).toString("hex");
 }
 
 // ===== Contract Loading ===== //
 // Read v2 contract template from file system
-const contractsDir = path.resolve(__dirname, '../../contracts/bene_contract');
-export const BENE_CONTRACT_V2 = fs.readFileSync(path.join(contractsDir, 'contract_v2.es'), 'utf-8');
+const contractsDir = path.resolve(__dirname, "../../contracts/bene_contract");
+export const BENE_CONTRACT_V2 = fs.readFileSync(path.join(contractsDir, "contract_v2.es"), "utf-8");
 
 // ===== Test Parameters ===== //
 
@@ -29,15 +29,15 @@ export const BENE_CONTRACT_V2 = fs.readFileSync(path.join(contractsDir, 'contrac
 export const TOTAL_PFT_TOKENS = 100_000n; // 100,000 tokens
 
 // --- ERG ---
-export const ERG_BASE_TOKEN = '';
-export const ERG_BASE_TOKEN_NAME = 'ERG';
+export const ERG_BASE_TOKEN = "";
+export const ERG_BASE_TOKEN_NAME = "ERG";
 export const ERG_BASE_TOKEN_DECIMALS = 9;
 export const ERG_FUNDING_GOAL = 100_000_000_000n; // 100 ERG = 100 * 10^9
 // exchangeRate = 100,000,000,000 / 100,000 = 1,000,000 nanoERG per token
 
 // --- SigmaUSD ---
-export const USD_BASE_TOKEN = '03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04';
-export const USD_BASE_TOKEN_NAME = 'SigmaUSD';
+export const USD_BASE_TOKEN = "03faf2cb329f2e90d6d23b58d91bbb6c046aa143261cc21f52fbe2824bfcbf04";
+export const USD_BASE_TOKEN_NAME = "SigmaUSD";
 export const USD_BASE_TOKEN_DECIMALS = 2;
 export const USD_FUNDING_GOAL = 10_000_000n; // 100,000 SigUSD = 100,000 * 10^2
 // exchangeRate = 10,000,000 / 100,000 = 100 = 1.00 SigUSD per token
@@ -85,8 +85,8 @@ export function setupBeneTestContext(
   const mockChain = new MockChain({ height: 800_000 });
 
   // STEP 2: Create mock participants (wallets/addresses) on the blockchain
-  const projectOwner = mockChain.newParty('ProjectOwner'); // Creator of the fundraising project (in case ownerAddress is provided, this party is simply used to execute transactions)
-  const buyer = mockChain.newParty('Buyer'); // User who will buy tokens
+  const projectOwner = mockChain.newParty("ProjectOwner"); // Creator of the fundraising project (in case ownerAddress is provided, this party is simply used to execute transactions)
+  const buyer = mockChain.newParty("Buyer"); // User who will buy tokens
 
   // STEP 3: Define project parameters (using values from configuration above)
   const fundingGoal = ERG_FUNDING_GOAL; // From config: varies by token decimals
@@ -114,13 +114,13 @@ export function setupBeneTestContext(
 
   // Only log configuration if this is the first time setup is called
   if (!(globalThis as any).__beneTestConfigLogged) {
-    console.log('\n' + '='.repeat(80));
-    console.log('BENE CONTRACT TEST CONFIGURATION');
-    console.log('='.repeat(80));
+    console.log("\n" + "=".repeat(80));
+    console.log("BENE CONTRACT TEST CONFIGURATION");
+    console.log("=".repeat(80));
     console.log(
-      `Payment Token:        ${baseTokenName} (${ERG_BASE_TOKEN_DECIMALS} decimals) ${baseTokenId === '' ? '[native ERG]' : ''}`
+      `Payment Token:        ${baseTokenName} (${ERG_BASE_TOKEN_DECIMALS} decimals) ${baseTokenId === "" ? "[native ERG]" : ""}`
     );
-    if (baseTokenId !== '') {
+    if (baseTokenId !== "") {
       console.log(
         `   Token ID:             ${baseTokenId.substring(0, 20)}...${baseTokenId.substring(baseTokenId.length - 10)}`
       );
@@ -144,13 +144,13 @@ export function setupBeneTestContext(
     console.log(`Deadline Block:       ${deadlineBlock.toLocaleString()}`);
     console.log(`Deadline Timestamp:   ${deadlineTimestamp.toLocaleString()}`);
     console.log(`Platform Dev Fee:     ${devFeePercentage}%`);
-    console.log('='.repeat(80) + '\n');
+    console.log("=".repeat(80) + "\n");
 
     (globalThis as any).__beneTestConfigLogged = true;
   }
 
   // STEP 4: Calculate payment mode flags
-  const isErgMode = baseTokenId === ''; // true = accept ERG, false = accept custom token
+  const isErgMode = baseTokenId === ""; // true = accept ERG, false = accept custom token
 
   // STEP 5: Fund the buyer with ERG for transaction fees
   buyer.addBalance({ nanoergs: 50_000_000_000n }); // Give buyer 50 ERG for gas fees
@@ -167,8 +167,8 @@ export function setupBeneTestContext(
     });
   }
 
-  const projectNftId = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'; // APT token ID (hardcoded for testing)
-  const pftTokenId = 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'; // PFT/reward token ID (hardcoded for testing)
+  const projectNftId = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"; // APT token ID (hardcoded for testing)
+  const pftTokenId = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"; // PFT/reward token ID (hardcoded for testing)
 
   // STEP 8: Compile the Bene smart contract with actual values replacing placeholders
   // In case is not provided, use the projectOwner. If is provided, the actual project owner will not be added into the contract.
@@ -225,7 +225,7 @@ export function setupBeneTestContext(
   };
 }
 
-import { SBool, SLong, SPair } from '@fleet-sdk/serializer';
+import { SBool, SLong, SPair } from "@fleet-sdk/serializer";
 
 export function createR4(ctx: BeneTestContext, useTimestamp: boolean = false) {
   return useTimestamp

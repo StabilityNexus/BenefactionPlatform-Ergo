@@ -1,11 +1,11 @@
-import { ErgoAddress, SByte, SColl, SConstant, SGroupElement } from '@fleet-sdk/core';
-import { stringToBytes } from '@scure/base';
-import { connected } from '../common/store';
-import { get } from 'svelte/store';
+import { ErgoAddress, SByte, SColl, SConstant, SGroupElement } from "@fleet-sdk/core";
+import { stringToBytes } from "@scure/base";
+import { connected } from "../common/store";
+import { get } from "svelte/store";
 
 export function serializedToRendered(serializedValue: string): string {
   // Assuming the serialized value always starts with a pattern to strip (e.g., '0e')
-  const patternToStrip = '0e';
+  const patternToStrip = "0e";
   if (serializedValue.startsWith(patternToStrip)) {
     // Remove the pattern and return the hex string
     return serializedValue.substring(patternToStrip.length).substring(2);
@@ -25,7 +25,7 @@ export function hexToUtf8(hexString: string): string | null {
     const byteArray = new Uint8Array(hexString.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)));
 
     // Crea un nuevo TextDecoder para convertir el array de bytes a una cadena UTF-8
-    const decoder = new TextDecoder('utf-8');
+    const decoder = new TextDecoder("utf-8");
     const utf8String = decoder.decode(byteArray);
 
     return utf8String;
@@ -41,7 +41,7 @@ export function generate_pk_proposition(wallet_pk: string): string {
 }
 
 export function SString(value: string): string {
-  return SConstant(SColl(SByte, stringToBytes('utf8', value)));
+  return SConstant(SColl(SByte, stringToBytes("utf8", value)));
 }
 
 export function stringToRendered(value: string): string {
@@ -57,5 +57,5 @@ export async function is_local_addr(value: string): Promise<boolean> {
 }
 
 export function uint8ArrayToHex(array: Uint8Array): string {
-  return [...new Uint8Array(array)].map((x) => x.toString(16).padStart(2, '0')).join('');
+  return [...new Uint8Array(array)].map((x) => x.toString(16).padStart(2, "0")).join("");
 }

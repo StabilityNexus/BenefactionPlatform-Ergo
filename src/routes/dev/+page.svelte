@@ -1,47 +1,47 @@
 <script>
-  import { onMount } from 'svelte';
-  import { download_dev, execute_dev } from '$lib/ergo/dev/dev_contract';
-  import Button from '$lib/components/ui/button/button.svelte';
+  import { onMount } from "svelte";
+  import { download_dev, execute_dev } from "$lib/ergo/dev/dev_contract";
+  import Button from "$lib/components/ui/button/button.svelte";
 
-  let message = 'Developer fees not yet taken (mainnet only)';
+  let message = "Developer fees not yet taken (mainnet only)";
   let items = [];
   let error = null;
   let loading = false;
 
   function shortHex(hex, len = 10) {
-    if (!hex) return '';
+    if (!hex) return "";
     if (hex.length <= len) return hex;
-    return hex.slice(0, len) + '…' + hex.slice(-4);
+    return hex.slice(0, len) + "…" + hex.slice(-4);
   }
 
   function formatErg(nanoErg) {
-    if (typeof nanoErg !== 'number') return nanoErg;
+    if (typeof nanoErg !== "number") return nanoErg;
     return (nanoErg / 1e9).toLocaleString(undefined, {
       maximumFractionDigits: 9,
     });
   }
 
   function formatTokenAmount(amount) {
-    if (amount === undefined || amount === null) return '-';
+    if (amount === undefined || amount === null) return "-";
     try {
       return Number(amount).toLocaleString();
     } catch (err) {
-      console.error('Error formatting token amount:', err);
+      console.error("Error formatting token amount:", err);
       return amount;
     }
   }
 
   // Try to parse R4 register Coll[Byte] representation like '0e20<hex...>' and return tokenId if present
   function parseR4TokenId(r4) {
-    if (!r4 || typeof r4 !== 'string') return null;
-    if (!r4.startsWith('0e')) return null;
+    if (!r4 || typeof r4 !== "string") return null;
+    if (!r4.startsWith("0e")) return null;
     try {
       const lengthByteHex = r4.substring(2, 4);
       const length = parseInt(lengthByteHex, 16);
       const tokenHex = r4.substring(4, 4 + length * 2);
       if (tokenHex && tokenHex.length === 64) return tokenHex;
     } catch (err) {
-      console.error('Error parsing R4 tokenId:', err);
+      console.error("Error parsing R4 tokenId:", err);
       return null;
     }
     return null;
@@ -99,7 +99,7 @@
     <h1>{message}</h1>
     <div class="meta">
       <div class="badge">Boxes: {items.length}</div>
-      <div class="badge">{loading ? 'Loading…' : 'Ready'}</div>
+      <div class="badge">{loading ? "Loading…" : "Ready"}</div>
     </div>
 
     <div class="summary">

@@ -2,8 +2,8 @@
  * Utility functions for multi-token support in the Benefaction Platform
  */
 
-import { type Project } from '../common/project';
-import { fetch_token_details } from './fetch';
+import { type Project } from "../common/project";
+import { fetch_token_details } from "./fetch";
 
 /**
  * Validates if the user has sufficient base tokens for a contribution
@@ -17,7 +17,7 @@ export async function validateBaseTokenBalance(
   tokenAmount: number,
   userBoxes: any[]
 ): Promise<{ valid: boolean; requiredAmount: number; availableAmount: number }> {
-  const isERGBase = !project.base_token_id || project.base_token_id === '';
+  const isERGBase = !project.base_token_id || project.base_token_id === "";
   const requiredBaseTokenAmount = tokenAmount * project.exchange_rate;
 
   if (isERGBase) {
@@ -57,10 +57,10 @@ export async function getBaseTokenDisplayInfo(baseTokenId: string): Promise<{
   symbol: string;
   decimals: number;
 }> {
-  if (!baseTokenId || baseTokenId === '') {
+  if (!baseTokenId || baseTokenId === "") {
     return {
-      name: 'Ergo',
-      symbol: 'ERG',
+      name: "Ergo",
+      symbol: "ERG",
       decimals: 9,
     };
   }
@@ -76,7 +76,7 @@ export async function getBaseTokenDisplayInfo(baseTokenId: string): Promise<{
     console.warn(`Failed to fetch token details for ${baseTokenId}:`, error);
     return {
       name: `Token ${baseTokenId.slice(0, 8)}...`,
-      symbol: 'TOKEN',
+      symbol: "TOKEN",
       decimals: 0,
     };
   }

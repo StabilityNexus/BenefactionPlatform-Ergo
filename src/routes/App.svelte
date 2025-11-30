@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy } from "svelte";
   import {
     address,
     connected,
@@ -10,28 +10,28 @@
     temporal_token_amount,
     timer,
     user_tokens,
-  } from '$lib/common/store';
-  import MyProjects from './MyProjects.svelte';
-  import MyContributions from './MyContributions.svelte';
-  import NewProject from './NewProject.svelte';
-  import TokenAcquisition from './TokenAcquisition.svelte';
-  import ProjectDetails from './ProjectDetails.svelte';
-  import { ErgoPlatform } from '$lib/ergo/platform';
-  import { loadProjectById } from '$lib/common/load_by_id';
-  import { browser } from '$app/environment';
-  import { page } from '$app/stores';
-  import { type Project } from '$lib/common/project';
-  import Kya from './kya.svelte';
-  import Theme from './Theme.svelte';
-  import { Badge } from '$lib/components/ui/badge';
-  import { get } from 'svelte/store';
-  import { fade } from 'svelte/transition';
+  } from "$lib/common/store";
+  import MyProjects from "./MyProjects.svelte";
+  import MyContributions from "./MyContributions.svelte";
+  import NewProject from "./NewProject.svelte";
+  import TokenAcquisition from "./TokenAcquisition.svelte";
+  import ProjectDetails from "./ProjectDetails.svelte";
+  import { ErgoPlatform } from "$lib/ergo/platform";
+  import { loadProjectById } from "$lib/common/load_by_id";
+  import { browser } from "$app/environment";
+  import { page } from "$app/stores";
+  import { type Project } from "$lib/common/project";
+  import Kya from "./kya.svelte";
+  import Theme from "./Theme.svelte";
+  import { Badge } from "$lib/components/ui/badge";
+  import { get } from "svelte/store";
+  import { fade } from "svelte/transition";
   // New wallet system imports
-  import WalletButton from '$lib/components/WalletButton.svelte';
-  import { walletConnected, walletAddress, walletBalance } from '$lib/wallet/wallet-manager';
-  import SettingsModal from './SettingsModal.svelte';
+  import WalletButton from "$lib/components/WalletButton.svelte";
+  import { walletConnected, walletAddress, walletBalance } from "$lib/wallet/wallet-manager";
+  import SettingsModal from "./SettingsModal.svelte";
 
-  let activeTab = 'acquireTokens';
+  let activeTab = "acquireTokens";
   let mobileMenuOpen = false;
   let showSettingsModal = false;
 
@@ -39,8 +39,8 @@
 
   // Footer-related logic
   const footerMessages = [
-    'Direct P2P to your node. No central servers. Powered by Ergo Blockchain.',
-    'Fund and support community-driven initiatives.',
+    "Direct P2P to your node. No central servers. Powered by Ergo Blockchain.",
+    "Fund and support community-driven initiatives.",
   ];
   let activeMessageIndex = 0;
   let scrollingTextElement: HTMLElement;
@@ -52,24 +52,24 @@
   onMount(async () => {
     if (!browser) return;
 
-    const projectId = $page.url.searchParams.get('project');
-    const platformId = $page.url.searchParams.get('chain');
+    const projectId = $page.url.searchParams.get("project");
+    const platformId = $page.url.searchParams.get("chain");
 
     if (projectId && platformId == platform.id) {
       await loadProjectById(projectId, platform);
     }
 
     // Setup footer scrolling text
-    scrollingTextElement?.addEventListener('animationiteration', handleAnimationIteration);
+    scrollingTextElement?.addEventListener("animationiteration", handleAnimationIteration);
   });
 
   onDestroy(() => {
-    scrollingTextElement?.removeEventListener('animationiteration', handleAnimationIteration);
+    scrollingTextElement?.removeEventListener("animationiteration", handleAnimationIteration);
   });
 
   // Subscribe to new wallet system instead of old connected store
   walletConnected.subscribe(async (isConnected) => {
-    console.log('Wallet connection state changed:', isConnected);
+    console.log("Wallet connection state changed:", isConnected);
     if (isConnected) {
       // Sync old stores with new wallet system for backward compatibility
       const walletAddr = get(walletAddress);
@@ -78,7 +78,7 @@
       address.set(walletAddr);
       connected.set(true);
       balance.set(Number(walletBal.nanoErgs));
-      network.set('ergo-mainnet'); // Set appropriate network
+      network.set("ergo-mainnet"); // Set appropriate network
 
       // Update the balance information whenever connection state changes
       await updateWalletInfo();
@@ -121,25 +121,25 @@
     try {
       current_height = await platform.get_current_height();
     } catch (error) {
-      console.error('Error fetching current height:', error);
+      console.error("Error fetching current height:", error);
     }
   }
   getCurrentHeight();
 
   async function changeUrl(project: Project | null) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     const url = new URL(window.location.href);
 
     if (project !== null) {
-      url.searchParams.set('chain', platform.id);
-      url.searchParams.set('project', project.project_id);
+      url.searchParams.set("chain", platform.id);
+      url.searchParams.set("project", project.project_id);
     } else {
-      url.searchParams.delete('chain');
-      url.searchParams.delete('project');
+      url.searchParams.delete("chain");
+      url.searchParams.delete("project");
     }
 
-    window.history.pushState({}, '', url);
+    window.history.pushState({}, "", url);
   }
 
   $: changeUrl($project_detail);
@@ -151,7 +151,7 @@
       // Update current height
       current_height = await platform.get_current_height();
     } catch (error) {
-      console.error('Error updating wallet info:', error);
+      console.error("Error updating wallet info:", error);
     }
   }
 
@@ -168,7 +168,7 @@
         clearInterval(balanceUpdateInterval);
       }
       if (scrollingTextElement) {
-        scrollingTextElement.removeEventListener('animationiteration', handleAnimationIteration);
+        scrollingTextElement.removeEventListener("animationiteration", handleAnimationIteration);
       }
     };
   });
@@ -183,17 +183,17 @@
 
     <nav class="desktop-nav">
       <ul class="nav-links">
-        <li class={activeTab === 'acquireTokens' ? 'active' : ''}>
-          <a href="#" on:click={() => changeTab('acquireTokens')}> Contribute to a Campaign </a>
+        <li class={activeTab === "acquireTokens" ? "active" : ""}>
+          <a href="#" on:click={() => changeTab("acquireTokens")}> Contribute to a Campaign </a>
         </li>
-        <li class={activeTab === 'myContributions' ? 'active' : ''}>
-          <a href="#" on:click={() => changeTab('myContributions')}> My Contributions </a>
+        <li class={activeTab === "myContributions" ? "active" : ""}>
+          <a href="#" on:click={() => changeTab("myContributions")}> My Contributions </a>
         </li>
-        <li class={activeTab === 'myProjects' ? 'active' : ''}>
-          <a href="#" on:click={() => changeTab('myProjects')}> My Campaigns </a>
+        <li class={activeTab === "myProjects" ? "active" : ""}>
+          <a href="#" on:click={() => changeTab("myProjects")}> My Campaigns </a>
         </li>
-        <li class={activeTab === 'submitProject' ? 'active' : ''}>
-          <a href="#" on:click={() => changeTab('submitProject')}> New Campaign </a>
+        <li class={activeTab === "submitProject" ? "active" : ""}>
+          <a href="#" on:click={() => changeTab("submitProject")}> New Campaign </a>
         </li>
       </ul>
     </nav>
@@ -256,17 +256,17 @@
 {#if mobileMenuOpen}
   <div class="mobile-nav" transition:fade={{ duration: 200 }}>
     <ul class="mobile-nav-links">
-      <li class={activeTab === 'acquireTokens' ? 'active' : ''}>
-        <a href="#" on:click={() => changeTab('acquireTokens')}> Contribute to a Campaign </a>
+      <li class={activeTab === "acquireTokens" ? "active" : ""}>
+        <a href="#" on:click={() => changeTab("acquireTokens")}> Contribute to a Campaign </a>
       </li>
-      <li class={activeTab === 'myContributions' ? 'active' : ''}>
-        <a href="#" on:click={() => changeTab('myContributions')}> My Contributions </a>
+      <li class={activeTab === "myContributions" ? "active" : ""}>
+        <a href="#" on:click={() => changeTab("myContributions")}> My Contributions </a>
       </li>
-      <li class={activeTab === 'myProjects' ? 'active' : ''}>
-        <a href="#" on:click={() => changeTab('myProjects')}> My Campaigns </a>
+      <li class={activeTab === "myProjects" ? "active" : ""}>
+        <a href="#" on:click={() => changeTab("myProjects")}> My Campaigns </a>
       </li>
-      <li class={activeTab === 'submitProject' ? 'active' : ''}>
-        <a href="#" on:click={() => changeTab('submitProject')}> New Campaign </a>
+      <li class={activeTab === "submitProject" ? "active" : ""}>
+        <a href="#" on:click={() => changeTab("submitProject")}> New Campaign </a>
       </li>
     </ul>
   </div>
@@ -274,16 +274,16 @@
 
 <main class="responsive-main">
   {#if $project_detail === null}
-    {#if activeTab === 'acquireTokens'}
+    {#if activeTab === "acquireTokens"}
       <TokenAcquisition />
     {/if}
-    {#if activeTab === 'myContributions'}
+    {#if activeTab === "myContributions"}
       <MyContributions />
     {/if}
-    {#if activeTab === 'myProjects'}
+    {#if activeTab === "myProjects"}
       <MyProjects />
     {/if}
-    {#if activeTab === 'submitProject'}
+    {#if activeTab === "submitProject"}
       <NewProject />
     {/if}
   {:else}

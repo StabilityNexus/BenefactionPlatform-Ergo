@@ -1,7 +1,7 @@
-import { writable, derived, get } from 'svelte/store';
-import type { WalletState, WalletInfo, WalletConnector, ErgoWalletAdapter } from './types';
-import { NautilusWalletAdapter } from './adapters/nautilus';
-import { SafewWalletAdapter } from './adapters/safew';
+import { writable, derived, get } from "svelte/store";
+import type { WalletState, WalletInfo, WalletConnector, ErgoWalletAdapter } from "./types";
+import { NautilusWalletAdapter } from "./adapters/nautilus";
+import { SafewWalletAdapter } from "./adapters/safew";
 
 // Create wallet store
 const createWalletStore = () => {
@@ -39,7 +39,7 @@ export const walletStore = createWalletStore();
 export const walletConnected = derived(walletStore, ($store) => !!$store.connectedWallet);
 export const walletAddress = derived(
   walletStore,
-  ($store) => $store.connectedWallet?.address || ''
+  ($store) => $store.connectedWallet?.address || ""
 );
 export const walletBalance = derived(
   walletStore,
@@ -53,31 +53,31 @@ export const availableWallets = derived(walletStore, ($store) => $store.availabl
 // Wallet connectors configuration
 const walletConnectors: WalletConnector[] = [
   {
-    id: 'nautilus',
-    name: 'Nautilus Wallet',
-    shortName: 'Nautilus',
-    iconUrl: '/wallet-icons/nautilus.png',
-    iconBackground: '#1a73e8',
-    iconAccent: '#4285f4',
+    id: "nautilus",
+    name: "Nautilus Wallet",
+    shortName: "Nautilus",
+    iconUrl: "/wallet-icons/nautilus.png",
+    iconBackground: "#1a73e8",
+    iconAccent: "#4285f4",
     downloadUrls: {
       chrome:
-        'https://chrome.google.com/webstore/detail/nautilus-wallet/gjlmehlldlphhljhpnlddaodbjjcchai',
-      firefox: 'https://addons.mozilla.org/en-US/firefox/addon/nautilus/',
-      browserExtension: 'https://github.com/capt-nemo429/nautilus-wallet',
+        "https://chrome.google.com/webstore/detail/nautilus-wallet/gjlmehlldlphhljhpnlddaodbjjcchai",
+      firefox: "https://addons.mozilla.org/en-US/firefox/addon/nautilus/",
+      browserExtension: "https://github.com/capt-nemo429/nautilus-wallet",
     },
     createConnector: () => new NautilusWalletAdapter(),
   },
   {
-    id: 'safew',
-    name: 'SAFEW',
-    shortName: 'SAFEW',
-    iconUrl: '/wallet-icons/safew.png',
-    iconBackground: '#ff6b35',
-    iconAccent: '#ff8c42',
+    id: "safew",
+    name: "SAFEW",
+    shortName: "SAFEW",
+    iconUrl: "/wallet-icons/safew.png",
+    iconBackground: "#ff6b35",
+    iconAccent: "#ff8c42",
     downloadUrls: {
-      chrome: 'https://chrome.google.com/webstore/detail/safew/jkcclpkbediabkjkoeghfimdcjnggpan',
-      firefox: 'https://addons.mozilla.org/en-US/firefox/addon/safew/',
-      browserExtension: 'https://github.com/ThierryM1212/SAFEW',
+      chrome: "https://chrome.google.com/webstore/detail/safew/jkcclpkbediabkjkoeghfimdcjnggpan",
+      firefox: "https://addons.mozilla.org/en-US/firefox/addon/safew/",
+      browserExtension: "https://github.com/ThierryM1212/SAFEW",
     },
     createConnector: () => new SafewWalletAdapter(),
   },
@@ -115,7 +115,7 @@ export class WalletManager {
         try {
           await this.currentAdapter.disconnect();
         } catch (error) {
-          console.warn('Error disconnecting previous adapter:', error);
+          console.warn("Error disconnecting previous adapter:", error);
         }
         this.currentAdapter = null;
       }
@@ -140,7 +140,7 @@ export class WalletManager {
       // Add timeout to prevent hanging connections
       const connectPromise = adapter.connect();
       const timeoutPromise = new Promise<boolean>((_, reject) => {
-        setTimeout(() => reject(new Error('Connection timeout after 30 seconds')), 30000);
+        setTimeout(() => reject(new Error("Connection timeout after 30 seconds")), 30000);
       });
 
       const connected = await Promise.race([connectPromise, timeoutPromise]);
@@ -189,17 +189,17 @@ export class WalletManager {
       this.startBalanceUpdates();
 
       // Store connection for auto-reconnect
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('ergo_wallet_connection', walletId);
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("ergo_wallet_connection", walletId);
         // Also store connection timestamp for debugging
-        localStorage.setItem('ergo_wallet_connection_time', new Date().toISOString());
+        localStorage.setItem("ergo_wallet_connection_time", new Date().toISOString());
       }
 
       walletStore.setModalOpen(false);
       return true;
     } catch (error) {
-      console.error('Wallet connection error:', error);
-      walletStore.setError(error instanceof Error ? error.message : 'Connection failed');
+      console.error("Wallet connection error:", error);
+      walletStore.setError(error instanceof Error ? error.message : "Connection failed");
       return false;
     } finally {
       walletStore.setConnecting(false);
@@ -209,34 +209,34 @@ export class WalletManager {
   private async syncWithOldStores(walletInfo: WalletInfo): Promise<void> {
     try {
       // Import the old stores to maintain compatibility
-      const { address, connected, balance, network, user_tokens } = await import('../common/store');
+      const { address, connected, balance, network, user_tokens } = await import("../common/store");
 
       // Update old stores with new wallet info
       address.set(walletInfo.address);
       connected.set(true);
       balance.set(Number(walletInfo.balance.nanoErgs));
-      network.set(walletInfo.networkId === 'mainnet' ? 'ergo-mainnet' : 'ergo-testnet');
+      network.set(walletInfo.networkId === "mainnet" ? "ergo-mainnet" : "ergo-testnet");
 
       // Clear cached token data to ensure fresh data for this wallet
       user_tokens.set(new Map());
 
-      console.log('Synced new wallet system with old stores and cleared token cache');
+      console.log("Synced new wallet system with old stores and cleared token cache");
     } catch (error) {
-      console.error('Failed to sync with old stores:', error);
+      console.error("Failed to sync with old stores:", error);
     }
   }
 
   async disconnectWallet(): Promise<void> {
     try {
       // Import the old stores to maintain compatibility
-      const { address, connected, balance, network, user_tokens } = await import('../common/store');
+      const { address, connected, balance, network, user_tokens } = await import("../common/store");
 
       if (this.currentAdapter) {
         try {
           // Try to disconnect from wallet, but don't fail if it doesn't work
           await this.currentAdapter.disconnect();
         } catch (error) {
-          console.warn('Wallet disconnect method failed, continuing with cleanup:', error);
+          console.warn("Wallet disconnect method failed, continuing with cleanup:", error);
         }
         this.currentAdapter = null;
       }
@@ -257,17 +257,17 @@ export class WalletManager {
       user_tokens.set(new Map());
 
       // Clear stored connection
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('ergo_wallet_connection');
+      if (typeof localStorage !== "undefined") {
+        localStorage.removeItem("ergo_wallet_connection");
       }
 
       // Small delay to ensure proper cleanup before next connection
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      console.log('Wallet disconnected successfully');
+      console.log("Wallet disconnected successfully");
     } catch (error) {
-      console.error('Wallet disconnection error:', error);
-      walletStore.setError(error instanceof Error ? error.message : 'Disconnection failed');
+      console.error("Wallet disconnection error:", error);
+      walletStore.setError(error instanceof Error ? error.message : "Disconnection failed");
     }
   }
 
@@ -287,7 +287,7 @@ export class WalletManager {
           : null,
       }));
     } catch (error) {
-      console.error('Balance refresh error:', error);
+      console.error("Balance refresh error:", error);
     }
   }
 
@@ -303,7 +303,7 @@ export class WalletManager {
           addresses = await this.currentAdapter.getAddresses();
         } catch (_err) {
           // keep previous addresses if fetching fails
-          console.log('Using cached addresses due to fetch failure', _err);
+          console.log("Using cached addresses due to fetch failure", _err);
         }
         walletStore.update((s) => ({
           ...s,
@@ -318,16 +318,16 @@ export class WalletManager {
       }
     } catch (_err) {
       // ignore transient errors
-      console.log('Address polling error, ignoring', _err);
+      console.log("Address polling error, ignoring", _err);
     }
   }
 
   private setupWalletEventListeners(adapter: ErgoWalletAdapter) {
-    adapter.on('disconnect', () => {
+    adapter.on("disconnect", () => {
       this.disconnectWallet();
     });
 
-    adapter.on('addressChanged', async () => {
+    adapter.on("addressChanged", async () => {
       try {
         const address = await adapter.getChangeAddress();
         const addresses = await adapter.getAddresses();
@@ -342,11 +342,11 @@ export class WalletManager {
             : null,
         }));
       } catch (error) {
-        console.error('Address change error:', error);
+        console.error("Address change error:", error);
       }
     });
 
-    adapter.on('balanceChanged', () => {
+    adapter.on("balanceChanged", () => {
       this.refreshBalance();
     });
   }
@@ -377,19 +377,19 @@ export class WalletManager {
   }
 
   private async setupAutoReconnect() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
     // Wait for wallets to be available
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    const storedWalletId = localStorage.getItem('ergo_wallet_connection');
+    const storedWalletId = localStorage.getItem("ergo_wallet_connection");
     if (storedWalletId) {
       try {
         // Attempt to reconnect to the stored wallet
         await this.connectWallet(storedWalletId);
       } catch (error) {
-        console.error('Auto-reconnect failed:', error);
-        localStorage.removeItem('ergo_wallet_connection');
+        console.error("Auto-reconnect failed:", error);
+        localStorage.removeItem("ergo_wallet_connection");
       }
     }
   }

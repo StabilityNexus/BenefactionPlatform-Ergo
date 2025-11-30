@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { walletAddress } from '$lib/wallet/wallet-manager';
-  import * as Dialog from '$lib/components/ui/dialog';
-  import { Button } from '$lib/components/ui/button';
-  import * as Alert from '$lib/components/ui/alert';
-  import { AlertCircle, RefreshCw, RotateCw } from 'lucide-svelte';
+  import { onMount } from "svelte";
+  import { walletAddress } from "$lib/wallet/wallet-manager";
+  import * as Dialog from "$lib/components/ui/dialog";
+  import { Button } from "$lib/components/ui/button";
+  import * as Alert from "$lib/components/ui/alert";
+  import { AlertCircle, RefreshCw, RotateCw } from "lucide-svelte";
 
   let previousAddress: string | null = null;
   let showRefreshDialog = false;
@@ -13,11 +13,11 @@
   // Track wallet address changes (using derived store)
   $: if ($walletAddress !== previousAddress) {
     // Only act when we have a valid new address and a previous address existed
-    if (previousAddress !== null && $walletAddress && $walletAddress !== '') {
+    if (previousAddress !== null && $walletAddress && $walletAddress !== "") {
       console.log(
-        'WalletAddressChangeHandler: Address changed from',
+        "WalletAddressChangeHandler: Address changed from",
         previousAddress,
-        'to',
+        "to",
         $walletAddress
       );
       handleAddressChange();
@@ -36,7 +36,7 @@
     // Trigger a soft refresh by navigating to the same page
     // This will cause components to re-fetch data
     window.dispatchEvent(
-      new CustomEvent('wallet-address-changed', {
+      new CustomEvent("wallet-address-changed", {
         detail: { newAddress: $walletAddress },
       })
     );
@@ -48,7 +48,7 @@
 
   function handleHardRefresh() {
     // Store a flag in sessionStorage to show a success message after reload
-    sessionStorage.setItem('wallet_address_changed', 'true');
+    sessionStorage.setItem("wallet_address_changed", "true");
 
     // Hard refresh the page
     window.location.reload();
@@ -56,10 +56,10 @@
 
   // Check if we just did a hard refresh
   onMount(() => {
-    if (sessionStorage.getItem('wallet_address_changed') === 'true') {
-      sessionStorage.removeItem('wallet_address_changed');
+    if (sessionStorage.getItem("wallet_address_changed") === "true") {
+      sessionStorage.removeItem("wallet_address_changed");
       // Could show a toast notification here if you have a toast system
-      console.log('Wallet address change refresh completed');
+      console.log("Wallet address change refresh completed");
     }
   });
 </script>

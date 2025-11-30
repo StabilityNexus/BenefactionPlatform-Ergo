@@ -5,13 +5,13 @@
     walletAddress,
     walletBalance,
     walletConnecting,
-  } from '$lib/wallet/wallet-manager';
-  import { Button } from '$lib/components/ui/button';
-  import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-  import { Badge } from '$lib/components/ui/badge';
-  import WalletModal from './WalletModal.svelte';
-  import { Copy, ExternalLink, LogOut, Wallet, RefreshCw } from 'lucide-svelte';
-  import { web_explorer_uri_addr } from '$lib/common/store';
+  } from "$lib/wallet/wallet-manager";
+  import { Button } from "$lib/components/ui/button";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+  import { Badge } from "$lib/components/ui/badge";
+  import WalletModal from "./WalletModal.svelte";
+  import { Copy, ExternalLink, LogOut, Wallet, RefreshCw } from "lucide-svelte";
+  import { web_explorer_uri_addr } from "$lib/common/store";
 
   let showModal = false;
   let copySuccess = false;
@@ -36,19 +36,19 @@
         copySuccess = true;
         setTimeout(() => (copySuccess = false), 2000);
       } catch (err) {
-        console.error('Failed to copy address:', err);
+        console.error("Failed to copy address:", err);
       }
     }
   }
 
   function openExplorer() {
     if ($walletAddress) {
-      window.open(`${$web_explorer_uri_addr}${$walletAddress}`, '_blank');
+      window.open(`${$web_explorer_uri_addr}${$walletAddress}`, "_blank");
     }
   }
 
   function formatAddress(address: string): string {
-    if (!address) return '';
+    if (!address) return "";
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   }
 

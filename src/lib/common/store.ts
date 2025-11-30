@@ -1,15 +1,15 @@
-import { writable } from 'svelte/store';
-import type { Project } from './project';
+import { writable } from "svelte/store";
+import type { Project } from "./project";
 import {
   DEFAULT_WEB_EXPLORER_URI_TX,
   DEFAULT_WEB_EXPLORER_URI_TKN,
   DEFAULT_WEB_EXPLORER_URI_ADDR,
-} from '$lib/ergo/envs';
+} from "$lib/ergo/envs";
 
 export const address = writable<string | null>(null);
 export const network = writable<string | null>(null);
 export const connected = writable<boolean>(false);
-export const wallet_address = writable<string>('');
+export const wallet_address = writable<string>("");
 export const balance = writable<number | null>(null);
 export const temporal_token_amount = writable<number | null>(null);
 export const project_token_amount = writable<string | null>(null);
@@ -23,7 +23,7 @@ export const projects = writable<{ data: Map<string, Project>; last_fetch: numbe
   last_fetch: 0,
 });
 export const user_tokens = writable<Map<string, number>>(new Map());
-export const explorer_uri = writable<string | null>('https://api.ergoplatform.com');
+export const explorer_uri = writable<string | null>("https://api.ergoplatform.com");
 export const web_explorer_uri_tx = writable<string>(DEFAULT_WEB_EXPLORER_URI_TX);
 export const web_explorer_uri_tkn = writable<string>(DEFAULT_WEB_EXPLORER_URI_TKN);
 export const web_explorer_uri_addr = writable<string>(DEFAULT_WEB_EXPLORER_URI_ADDR);

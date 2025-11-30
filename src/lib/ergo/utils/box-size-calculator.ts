@@ -2,11 +2,11 @@
  * Utilities for calculating and validating Ergo box sizes
  */
 
-import { SInt, SLong, SColl, SPair, SBool } from '@fleet-sdk/serializer';
-import { SString } from '../utils';
-import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
-import { get_ergotree_hex } from '../contract';
-import type { ConstantContent } from '$lib/common/project';
+import { SInt, SLong, SColl, SPair, SBool } from "@fleet-sdk/serializer";
+import { SString } from "../utils";
+import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from "../dev/dev_contract";
+import { get_ergotree_hex } from "../contract";
+import type { ConstantContent } from "$lib/common/project";
 
 /**
  * Calculate the UTF-8 byte length of a string
@@ -20,7 +20,7 @@ export function utf8ByteLength(str: string): number {
  */
 export function hexByteLength(hexStr: string): number {
   if (!hexStr) return 0;
-  const stripped = hexStr.startsWith('0x') ? hexStr.slice(2) : hexStr;
+  const stripped = hexStr.startsWith("0x") ? hexStr.slice(2) : hexStr;
   return Math.ceil(stripped.length / 2);
 }
 
@@ -117,18 +117,18 @@ export function calculateR8Size(): number {
   try {
     // Use typical address content structure
     const addressContent = {
-      owner: '9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T', // Typical address
+      owner: "9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T", // Typical address
       dev_addr: get_dev_contract_address(),
       dev_hash: get_dev_contract_hash(),
       dev_fee: get_dev_fee(),
-      pft_token_id: 'a3f7c9e12bd45890ef12aa7c6d54b9317c0df4a28b6e5590d4f1b3e8c92d77af',
-      base_token_id: '', // Empty for ERG
+      pft_token_id: "a3f7c9e12bd45890ef12aa7c6d54b9317c0df4a28b6e5590d4f1b3e8c92d77af",
+      base_token_id: "", // Empty for ERG
     };
 
     const r8Hex = SString(JSON.stringify(addressContent));
     return hexByteLength(r8Hex) + 1; // +1 for register overhead
   } catch (error) {
-    console.warn('Could not calculate R8 size dynamically, using measured value:', error);
+    console.warn("Could not calculate R8 size dynamically, using measured value:", error);
     return 251; // Fallback to measured value
   }
 }
@@ -158,7 +158,7 @@ export function calculateRegisterSizesEstimate(): {
       r7: hexByteLength(r7Hex) + PER_REGISTER_OVERHEAD,
     };
   } catch (error) {
-    console.warn('Could not calculate register sizes dynamically, using measured values:', error);
+    console.warn("Could not calculate register sizes dynamically, using measured values:", error);
     // Fallback to measured values
     return {
       r4: 6,
@@ -177,19 +177,19 @@ export function calculateErgoTreeSize(): number {
   try {
     // Use the same random constants as in contract.ts get_template_hash()
     const random_constants: ConstantContent = {
-      owner: '9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T', // RANDOM
+      owner: "9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T", // RANDOM
       dev_addr: get_dev_contract_address(),
       dev_hash: get_dev_contract_hash(),
       dev_fee: get_dev_fee(),
-      pft_token_id: 'a3f7c9e12bd45890ef12aa7c6d54b9317c0df4a28b6e5590d4f1b3e8c92d77af', // RANDOM
-      base_token_id: '2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717', // RANDOM
+      pft_token_id: "a3f7c9e12bd45890ef12aa7c6d54b9317c0df4a28b6e5590d4f1b3e8c92d77af", // RANDOM
+      base_token_id: "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717", // RANDOM
     };
 
     const ergoTreeHex = get_ergotree_hex(random_constants);
     return hexByteLength(ergoTreeHex);
   } catch (error) {
     // Fallback to measured value if calculation fails
-    console.warn('Could not calculate ErgoTree size dynamically, using measured value:', error);
+    console.warn("Could not calculate ErgoTree size dynamically, using measured value:", error);
     return 300; // This is the actual measured size of v2 contracts
   }
 }
@@ -213,7 +213,7 @@ export function getErgoTreeSize(): number {
  */
 export function estimateCompleteBoxSize(
   content: ProjectContent,
-  contractVersion: string = 'v2'
+  contractVersion: string = "v2"
 ): number {
   const BASE_BOX_OVERHEAD = 60;
   const PER_TOKEN_BYTES = 40;

@@ -4,18 +4,18 @@ import {
   TransactionBuilder,
   SLong,
   SAFE_MIN_BOX_VALUE,
-} from '@fleet-sdk/core';
+} from "@fleet-sdk/core";
 
-import { SString } from '../utils';
-import { createR8Structure, type Project } from '../../common/project';
-import { get_ergotree_hex } from '../contract';
+import { SString } from "../utils";
+import { createR8Structure, type Project } from "../../common/project";
+import { get_ergotree_hex } from "../contract";
 import {
   getCurrentHeight,
   getChangeAddress,
   signTransaction,
   submitTransaction,
-} from '../wallet-utils';
-import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
+} from "../wallet-utils";
+import { SBool, SColl, SPair } from "@fleet-sdk/serializer";
 
 // Function to submit a project to the blockchain
 export async function buy_refund(project: Project, token_amount: number): Promise<string | null> {
@@ -28,7 +28,7 @@ export async function buy_refund(project: Project, token_amount: number): Promis
   token_amount = Math.trunc(token_amount * Math.pow(10, project.token_details.decimals));
 
   // Calculate base token amount based on project's base token
-  const isERGBase = !project.base_token_id || project.base_token_id === '';
+  const isERGBase = !project.base_token_id || project.base_token_id === "";
   const base_token_amount = Math.abs(token_amount) * project.exchange_rate;
 
   // Get the wallet address (will be the user address)
@@ -197,7 +197,7 @@ export async function buy_refund(project: Project, token_amount: number): Promis
 
     (unsignedTransaction.outputs || []).forEach((o: any, idx: number) => {
       (o.assets || []).forEach((t: any) => {
-        const amt = BigInt(typeof t.amount === 'string' ? t.amount : (t.amount?.toString() ?? '0'));
+        const amt = BigInt(typeof t.amount === "string" ? t.amount : (t.amount?.toString() ?? "0"));
         if (amt <= 0n) {
           invalidTokens.push({
             outIndex: idx,
@@ -209,10 +209,10 @@ export async function buy_refund(project: Project, token_amount: number): Promis
     });
 
     if (invalidTokens.length > 0) {
-      throw new Error('Transaction has non-positive token amounts in outputs');
+      throw new Error("Transaction has non-positive token amounts in outputs");
     }
   } catch (e) {
-    console.error('Invalid transaction structure detected', e);
+    console.error("Invalid transaction structure detected", e);
     throw e; // now adds meaningful debugging info
   }
 
@@ -223,10 +223,10 @@ export async function buy_refund(project: Project, token_amount: number): Promis
     // Send the transaction to the Ergo network
     const transactionId = await submitTransaction(signedTransaction);
 
-    console.log('Transaction id -> ', transactionId);
+    console.log("Transaction id -> ", transactionId);
     return transactionId;
   } catch (e) {
-    console.log('Transaction error:', e);
+    console.log("Transaction error:", e);
     throw e; // Re-throw to help with debugging
   }
 }

@@ -59,11 +59,11 @@ export interface WalletDownloadUrls {
 }
 
 export type WalletEvent =
-  | 'connect'
-  | 'disconnect'
-  | 'addressChanged'
-  | 'networkChanged'
-  | 'balanceChanged';
+  | "connect"
+  | "disconnect"
+  | "addressChanged"
+  | "networkChanged"
+  | "balanceChanged";
 
 export interface WalletInfo {
   adapter: ErgoWalletAdapter;
@@ -78,7 +78,7 @@ export interface WalletModalConfig {
   title?: string;
   showRecentTransactions?: boolean;
   showBalance?: boolean;
-  theme?: 'light' | 'dark' | 'auto';
+  theme?: "light" | "dark" | "auto";
 }
 
 // Wallet connector interface similar to RainbowKit

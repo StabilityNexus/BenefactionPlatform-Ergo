@@ -1,33 +1,33 @@
-import { type Box, SAFE_MIN_BOX_VALUE } from '@fleet-sdk/core';
+import { type Box, SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
 import {
   type ConstantContent,
   type Project,
   type TokenEIP4,
   getConstantContent,
   getProjectContent,
-} from '../common/project';
-import { ErgoPlatform } from './platform';
-import { hexToUtf8 } from './utils';
-import { type contract_version, get_template_hash } from './contract';
-import { explorer_uri, projects } from '$lib/common/store';
-import { get } from 'svelte/store';
+} from "../common/project";
+import { ErgoPlatform } from "./platform";
+import { hexToUtf8 } from "./utils";
+import { type contract_version, get_template_hash } from "./contract";
+import { explorer_uri, projects } from "$lib/common/store";
+import { get } from "svelte/store";
 
 const expectedSigmaTypesV1 = {
-  R4: 'SInt',
-  R5: 'SLong',
-  R6: 'Coll[SLong]',
-  R7: 'SLong',
-  R8: 'Coll[SByte]',
-  R9: 'Coll[SByte]',
+  R4: "SInt",
+  R5: "SLong",
+  R6: "Coll[SLong]",
+  R7: "SLong",
+  R8: "Coll[SByte]",
+  R9: "Coll[SByte]",
 };
 
 const expectedSigmaTypesV2 = {
-  R4: '(SBoolean, SLong)',
-  R5: 'SLong',
-  R6: 'Coll[SLong]',
-  R7: 'SLong',
-  R8: 'Coll[Coll[SByte]]',
-  R9: 'Coll[SByte]',
+  R4: "(SBoolean, SLong)",
+  R5: "SLong",
+  R6: "Coll[SLong]",
+  R7: "SLong",
+  R8: "Coll[Coll[SByte]]",
+  R9: "Coll[SByte]",
 };
 
 // Cache duration (e.g. 5 minutes)
@@ -37,7 +37,7 @@ const CACHE_DURATION_MS = 1000 * 60 * 5;
 let inFlightFetch: Promise<Map<string, Project>> | null = null;
 
 function hasValidSigmaTypes(additionalRegisters: any, version: contract_version): boolean {
-  const expectedTypes = version === 'v2' ? expectedSigmaTypesV2 : expectedSigmaTypesV1;
+  const expectedTypes = version === "v2" ? expectedSigmaTypesV2 : expectedSigmaTypesV1;
   for (const [key, expectedType] of Object.entries(expectedTypes)) {
     if (additionalRegisters[key] && additionalRegisters[key].sigmaType !== expectedType) {
       return false;
@@ -47,44 +47,44 @@ function hasValidSigmaTypes(additionalRegisters: any, version: contract_version)
 }
 
 export async function fetch_token_details(id: string): Promise<TokenEIP4> {
-  console.log('Fetching token details for ', id);
-  const url = get(explorer_uri) + '/api/v1/tokens/' + id;
+  console.log("Fetching token details for ", id);
+  const url = get(explorer_uri) + "/api/v1/tokens/" + id;
   const response = await fetch(url, {
-    method: 'GET',
+    method: "GET",
   });
 
   try {
     if (response.ok) {
       const json_data = await response.json();
-      if (json_data['type'] == 'EIP-004') {
+      if (json_data["type"] == "EIP-004") {
         return {
-          name: json_data['name'],
-          description: json_data['description'],
-          decimals: json_data['decimals'],
-          emissionAmount: json_data['emissionAmount'],
+          name: json_data["name"],
+          description: json_data["description"],
+          decimals: json_data["decimals"],
+          emissionAmount: json_data["emissionAmount"],
         };
-      } else if (json_data['type'] == null) {
+      } else if (json_data["type"] == null) {
         return {
           name: id.slice(0, 6),
-          description: '',
+          description: "",
           decimals: 0,
-          emissionAmount: json_data['emissionAmount'],
+          emissionAmount: json_data["emissionAmount"],
         };
       }
     }
   } catch (e) {
-    console.error('Failed to fetch token details:', e);
+    console.error("Failed to fetch token details:", e);
   }
   return {
-    name: 'token',
-    description: '',
+    name: "token",
+    description: "",
     decimals: 0,
     emissionAmount: null,
   };
 }
 
 export async function wait_until_confirmation(tx_id: string): Promise<Box | null> {
-  const url = get(explorer_uri) + '/api/v1/transactions/' + tx_id;
+  const url = get(explorer_uri) + "/api/v1/transactions/" + tx_id;
 
   // Wait for 90 seconds before retrying
   await new Promise((resolve) => setTimeout(resolve, 90000));
@@ -95,7 +95,7 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
     try {
       // Perform GET request to fetch transaction details
       const response = await fetch(url, {
-        method: 'GET',
+        method: "GET",
       });
 
       if (response.ok) {
@@ -103,7 +103,7 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
 
         // Check if numConfirmations is greater than 0
         if (json_data.numConfirmations > 0) {
-          const e = json_data['outputs'][0];
+          const e = json_data["outputs"][0];
           return {
             boxId: e.boxId,
             value: e.value,
@@ -142,11 +142,11 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
 
 // Internal function for fetching projects from blockchain
 export async function fetchProjectsFromBlockchain() {
-  console.log('Fetch projects from blockchain');
+  console.log("Fetch projects from blockchain");
   const registers = {};
   let moreDataAvailable;
 
-  const versions: contract_version[] = ['v2', 'v1_1', 'v1_0'];
+  const versions: contract_version[] = ["v2", "v1_1", "v1_0"];
 
   try {
     for (const version of versions) {
@@ -159,17 +159,17 @@ export async function fetchProjectsFromBlockchain() {
       const template = get_template_hash(version);
 
       while (moreDataAvailable) {
-        const url = get(explorer_uri) + '/api/v1/boxes/unspent/search';
+        const url = get(explorer_uri) + "/api/v1/boxes/unspent/search";
         const response = await fetch(
           url +
-            '?' +
+            "?" +
             new URLSearchParams({
               offset: params.offset.toString(),
               limit: params.limit.toString(),
             }),
           {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               ergoTreeTemplateHash: template,
               registers: registers,
@@ -180,7 +180,7 @@ export async function fetchProjectsFromBlockchain() {
         );
 
         if (!response.ok) {
-          console.error('Error while making the POST request');
+          console.error("Error while making the POST request");
           moreDataAvailable = false; // Stop loop on error
           break;
         }
@@ -196,37 +196,37 @@ export async function fetchProjectsFromBlockchain() {
           if (hasValidSigmaTypes(e.additionalRegisters, version)) {
             let constants: ConstantContent | null = null;
 
-            if (version === 'v1_0' || version === 'v1_1') {
+            if (version === "v1_0" || version === "v1_1") {
               constants = getConstantContent(
-                hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? ''
+                hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? ""
               );
               if (constants === null) {
-                console.warn('constants null');
+                console.warn("constants null");
                 continue;
               }
             } else {
               try {
-                if (!e.additionalRegisters.R8) throw new Error('R8 missing');
+                if (!e.additionalRegisters.R8) throw new Error("R8 missing");
 
                 // Parse R8 using regex/split as requested, handling brackets, quotes, and spaces
                 const rawValues = e.additionalRegisters.R8.renderedValue
-                  .replace(/[[\]"'\s]/g, '')
-                  .split(',')
+                  .replace(/[[\]"'\s]/g, "")
+                  .split(",")
                   .filter((s: string) => s.length > 0);
 
                 console.log(rawValues);
-                if (rawValues.length < 3) throw new Error('Insufficient R8 constants');
+                if (rawValues.length < 3) throw new Error("Insufficient R8 constants");
 
                 constants = {
                   owner: rawValues[0],
                   dev_hash: rawValues[1],
                   dev_fee: parseInt(rawValues[2], 16),
                   pft_token_id: rawValues[3],
-                  base_token_id: rawValues[4] ?? '',
+                  base_token_id: rawValues[4] ?? "",
                   raw: e.additionalRegisters.R8.serializedValue,
                 };
               } catch (err) {
-                console.warn('Failed to parse R8 constants', err);
+                console.warn("Failed to parse R8 constants", err);
                 continue;
               }
             }
@@ -237,7 +237,7 @@ export async function fetchProjectsFromBlockchain() {
               JSON.parse(e.additionalRegisters.R6.renderedValue);
 
             const exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
-            const base_token_id = constants.base_token_id ?? '';
+            const base_token_id = constants.base_token_id ?? "";
 
             const current_pft_amount =
               e.assets.find((asset: any) => asset.tokenId === constants.pft_token_id)?.amount ?? 0;
@@ -252,21 +252,21 @@ export async function fetchProjectsFromBlockchain() {
 
             let block_limit: number = 0;
             let is_timestamp_limit = false;
-            if (version === 'v2') {
+            if (version === "v2") {
               const r4Value = JSON.parse(
                 e.additionalRegisters.R4?.renderedValue.replace(/\[([a-f0-9]+)(,.*)/, '["$1"$2')
               );
               if (!Array.isArray(r4Value) || r4Value.length < 2)
-                throw new Error('R4 is not a valid tuple (Type, Deadline).');
+                throw new Error("R4 is not a valid tuple (Type, Deadline).");
 
               is_timestamp_limit = r4Value[0] === true;
               block_limit = Number(r4Value[1]);
               console.log(
-                'Parsed R4 for v2:',
+                "Parsed R4 for v2:",
                 r4Value,
-                'is_timestamp_limit:',
+                "is_timestamp_limit:",
                 is_timestamp_limit,
-                'block_limit:',
+                "block_limit:",
                 block_limit
               );
             } else {
@@ -276,9 +276,9 @@ export async function fetchProjectsFromBlockchain() {
             let base_token_details = undefined;
             if (
               base_token_id &&
-              base_token_id !== '' &&
+              base_token_id !== "" &&
               base_token_id !== undefined &&
-              base_token_id !== '00'.repeat(32)
+              base_token_id !== "00".repeat(32)
             ) {
               try {
                 base_token_details = await fetch_token_details(base_token_id);
@@ -324,7 +324,7 @@ export async function fetchProjectsFromBlockchain() {
               exchange_rate: exchange_rate,
               content: getProjectContent(
                 token_id.slice(0, 8),
-                hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ''
+                hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ""
               ),
               constants: constants,
               value: e.value,
@@ -344,7 +344,7 @@ export async function fetchProjectsFromBlockchain() {
       }
     }
   } catch (error) {
-    console.error('Error while making the POST request:', error);
+    console.error("Error while making the POST request:", error);
     return new Map(); // Returns empty map in case of error
   }
 }
@@ -366,7 +366,7 @@ export async function fetchProjects(force: boolean = false): Promise<Map<string,
   inFlightFetch = (async () => {
     try {
       if (force) {
-        console.log('[fetchProjects] Forcing reload, clearing store...');
+        console.log("[fetchProjects] Forcing reload, clearing store...");
         projects.set({ data: new Map(), last_fetch: Date.now() });
       } else {
         projects.update((current) => ({ ...current, last_fetch: Date.now() }));
@@ -376,7 +376,7 @@ export async function fetchProjects(force: boolean = false): Promise<Map<string,
 
       return get(projects).data;
     } catch (error) {
-      console.error('Critical error during fetchProjects:', error);
+      console.error("Critical error during fetchProjects:", error);
       // In case of error, return the data we had before the failure
       return get(projects).data;
     } finally {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { type Project, is_ended, max_raised, min_raised } from '$lib/common/project';
+  import { type Project, is_ended, max_raised, min_raised } from "$lib/common/project";
   import {
     address,
     connected,
@@ -9,27 +9,27 @@
     timer,
     balance,
     explorer_uri,
-  } from '$lib/common/store';
-  import { Progress } from '$lib/components/ui/progress';
-  import { Button } from '$lib/components/ui/button';
-  import { block_to_time } from '$lib/common/countdown';
-  import { formatTransactionError } from '$lib/common/error-utils';
-  import { ErgoPlatform } from '$lib/ergo/platform';
-  import { web_explorer_uri_tkn, web_explorer_uri_tx } from '$lib/common/store';
-  import { mode } from 'mode-watcher';
-  import { Input } from '$lib/components/ui/input';
-  import { Label } from '$lib/components/ui/label/index.js';
-  import { badgeVariants } from '$lib/components/ui/badge/index.js';
-  import { get } from 'svelte/store';
-  import { onDestroy } from 'svelte';
-  import { fetchProjects } from '$lib/ergo/fetch';
-  import { marked } from 'marked';
-  import { Forum, web_explorer_uri_addr } from 'forum-application';
+  } from "$lib/common/store";
+  import { Progress } from "$lib/components/ui/progress";
+  import { Button } from "$lib/components/ui/button";
+  import { block_to_time } from "$lib/common/countdown";
+  import { formatTransactionError } from "$lib/common/error-utils";
+  import { ErgoPlatform } from "$lib/ergo/platform";
+  import { web_explorer_uri_tkn, web_explorer_uri_tx } from "$lib/common/store";
+  import { mode } from "mode-watcher";
+  import { Input } from "$lib/components/ui/input";
+  import { Label } from "$lib/components/ui/label/index.js";
+  import { badgeVariants } from "$lib/components/ui/badge/index.js";
+  import { get } from "svelte/store";
+  import { onDestroy } from "svelte";
+  import { fetchProjects } from "$lib/ergo/fetch";
+  import { marked } from "marked";
+  import { Forum, web_explorer_uri_addr } from "forum-application";
 
   // --- ANIMATION IMPORTS ---
-  import { fade, fly, scale, slide } from 'svelte/transition';
-  import { quintOut, elasticOut } from 'svelte/easing';
-  import { ErgoAddress } from '@fleet-sdk/core';
+  import { fade, fly, scale, slide } from "svelte/transition";
+  import { quintOut, elasticOut } from "svelte/easing";
+  import { ErgoAddress } from "@fleet-sdk/core";
 
   let project: Project = $project_detail;
 
@@ -56,7 +56,7 @@
           clipboardCopied = false;
         }, 2000);
       })
-      .catch((err) => console.error('Failed to copy ID: ', err));
+      .catch((err) => console.error("Failed to copy ID: ", err));
   }
 
   // Make these reactive to project changes - FIXED: Current amount = sold - refunded
@@ -65,13 +65,13 @@
   $: max = project.current_pft_amount;
   $: percentage = parseInt(((currentVal / max) * 100).toString());
   $: baseTokenName =
-    !project.base_token_id || project.base_token_id === ''
+    !project.base_token_id || project.base_token_id === ""
       ? platform.main_token
-      : project.base_token_details?.name || 'tokens';
+      : project.base_token_details?.name || "tokens";
 
   // Calculate project funds correctly based on base token type
   $: projectFundsAmount = (() => {
-    const isERGBase = !project.base_token_id || project.base_token_id === '';
+    const isERGBase = !project.base_token_id || project.base_token_id === "";
     if (isERGBase) {
       return project.current_value / Math.pow(10, 9);
     } else {
@@ -89,7 +89,7 @@
 
   // Calculate display-friendly exchange rate
   $: displayExchangeRate = (() => {
-    const isERGBase = !project.base_token_id || project.base_token_id === '';
+    const isERGBase = !project.base_token_id || project.base_token_id === "";
     if (isERGBase) {
       return project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
     } else {
@@ -102,51 +102,51 @@
 
   // States for amounts
   let show_submit = false;
-  let label_submit = '';
-  let info_type_to_show: 'buy' | 'dev' | 'dev-collect' | 'dev-withdraw' | '' = '';
+  let label_submit = "";
+  let info_type_to_show: "buy" | "dev" | "dev-collect" | "dev-withdraw" | "" = "";
   let function_submit: ((event?: any) => Promise<void>) | null = null;
   let value_submit = 0;
   let submit_info = {
-    prefix: '',
-    amount: '',
-    token: '',
+    prefix: "",
+    amount: "",
+    token: "",
   };
   let hide_submit_info = false;
-  let submit_amount_label = '';
+  let submit_amount_label = "";
 
   $: submit_info = (() => {
     const cleanAmount = (num) =>
       Number(num)
         .toFixed(10)
-        .replace(/\.?0+$/, '');
+        .replace(/\.?0+$/, "");
 
     if (function_submit === add_tokens) {
       return {
-        prefix: 'Add:',
+        prefix: "Add:",
         amount: cleanAmount(value_submit),
         token: project.token_details.name,
       };
     }
     if (function_submit === withdraw_tokens) {
       return {
-        prefix: 'Withdraw:',
+        prefix: "Withdraw:",
         amount: cleanAmount(value_submit),
         token: project.token_details.name,
       };
     }
     if (function_submit === withdraw_erg) {
-      const isERGBase = !project.base_token_id || project.base_token_id === '';
+      const isERGBase = !project.base_token_id || project.base_token_id === "";
       const tokenName = isERGBase
         ? platform.main_token
-        : project.base_token_details?.name || 'tokens';
+        : project.base_token_details?.name || "tokens";
       return {
-        prefix: 'Withdraw:',
+        prefix: "Withdraw:",
         amount: cleanAmount(value_submit),
         token: tokenName,
       };
     }
     if (function_submit === refund) {
-      const isERGBase = !project.base_token_id || project.base_token_id === '';
+      const isERGBase = !project.base_token_id || project.base_token_id === "";
       let baseAmount, tokenName;
       if (isERGBase) {
         const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
@@ -154,19 +154,19 @@
         tokenName = platform.main_token;
       } else {
         const baseTokenDecimals = project.base_token_details?.decimals || 0;
-        tokenName = project.base_token_details?.name || 'tokens';
+        tokenName = project.base_token_details?.name || "tokens";
         const actualRate =
           project.exchange_rate * Math.pow(10, project.token_details.decimals - baseTokenDecimals);
         baseAmount = value_submit * actualRate;
       }
       return {
-        prefix: 'Refund:',
+        prefix: "Refund:",
         amount: cleanAmount(baseAmount),
         token: tokenName,
       };
     }
     if (function_submit === buy) {
-      const isERGBase = !project.base_token_id || project.base_token_id === '';
+      const isERGBase = !project.base_token_id || project.base_token_id === "";
       let tokens;
       if (isERGBase) {
         const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
@@ -178,22 +178,22 @@
         tokens = value_submit / actualRate;
       }
       return {
-        prefix: 'You will receive:',
+        prefix: "You will receive:",
         amount: cleanAmount(tokens),
         token: project.token_details.name,
       };
     }
     if (function_submit === temp_exchange) {
       return {
-        prefix: 'Exchange:',
+        prefix: "Exchange:",
         amount: cleanAmount(value_submit),
         token: project.token_details.name,
       };
     }
     return {
-      prefix: 'Action:',
+      prefix: "Action:",
       amount: cleanAmount(value_submit),
-      token: 'tokens',
+      token: "tokens",
     };
   })();
 
@@ -214,7 +214,7 @@
   let maxAddTokenAmount = 0;
 
   async function getWalletBalances() {
-    const isERGBase = !project.base_token_id || project.base_token_id === '';
+    const isERGBase = !project.base_token_id || project.base_token_id === "";
     userTokens = await platform.get_balance();
 
     if (isERGBase) {
@@ -316,8 +316,8 @@
 
   function setupAddTokens() {
     getWalletBalances();
-    info_type_to_show = 'dev';
-    label_submit = 'How many tokens do you want to add?';
+    info_type_to_show = "dev";
+    label_submit = "How many tokens do you want to add?";
     function_submit = add_tokens;
     value_submit = 0;
     show_submit = true;
@@ -339,8 +339,8 @@
 
   function setupWithdrawTokens() {
     getWalletBalances();
-    info_type_to_show = 'dev-withdraw';
-    label_submit = 'How many tokens do you want to withdraw?';
+    info_type_to_show = "dev-withdraw";
+    label_submit = "How many tokens do you want to withdraw?";
     function_submit = withdraw_tokens;
     value_submit = 0;
     show_submit = true;
@@ -362,9 +362,9 @@
 
   function setupWithdrawErg() {
     getWalletBalances();
-    info_type_to_show = 'dev-collect';
-    const isERGBase = !project.base_token_id || project.base_token_id === '';
-    const baseTokenName = isERGBase ? 'ERGs' : project.base_token_details?.name || 'tokens';
+    info_type_to_show = "dev-collect";
+    const isERGBase = !project.base_token_id || project.base_token_id === "";
+    const baseTokenName = isERGBase ? "ERGs" : project.base_token_details?.name || "tokens";
     label_submit = `How many ${baseTokenName} do you want to withdraw?`;
     function_submit = withdraw_erg;
     value_submit = 0;
@@ -387,11 +387,11 @@
 
   function setupBuy() {
     getWalletBalances();
-    info_type_to_show = 'buy';
-    const isERGBase = !project.base_token_id || project.base_token_id === '';
+    info_type_to_show = "buy";
+    const isERGBase = !project.base_token_id || project.base_token_id === "";
     const baseTokenName = isERGBase
       ? platform.main_token
-      : project.base_token_details?.name || 'tokens';
+      : project.base_token_details?.name || "tokens";
     label_submit = `How many ${baseTokenName} do you want to contribute?`;
     function_submit = buy;
     value_submit = 0;
@@ -403,7 +403,7 @@
   async function buy() {
     isSubmitting = true;
     try {
-      const isERGBase = !project.base_token_id || project.base_token_id === '';
+      const isERGBase = !project.base_token_id || project.base_token_id === "";
       let token_amount = 0;
       if (isERGBase) {
         const actualRate = project.exchange_rate * Math.pow(10, project.token_details.decimals - 9);
@@ -420,7 +420,7 @@
         await refreshProjectFromContract();
       }
     } catch (error) {
-      errorMessage = error.message || 'Error occurred while buying tokens';
+      errorMessage = error.message || "Error occurred while buying tokens";
     } finally {
       isSubmitting = false;
     }
@@ -428,13 +428,13 @@
 
   function setupRefund() {
     getWalletBalances();
-    info_type_to_show = '';
-    label_submit = 'How many APT do you want to refund?';
+    info_type_to_show = "";
+    label_submit = "How many APT do you want to refund?";
     function_submit = refund;
     value_submit = 0;
     show_submit = true;
     hide_submit_info = false;
-    submit_amount_label = 'APT';
+    submit_amount_label = "APT";
   }
 
   async function refund() {
@@ -446,7 +446,7 @@
         await refreshProjectFromContract();
       }
     } catch (error) {
-      errorMessage = error.message || 'Error occurred while refunding tokens';
+      errorMessage = error.message || "Error occurred while refunding tokens";
     } finally {
       isSubmitting = false;
     }
@@ -454,8 +454,8 @@
 
   function setupTempExchange() {
     getWalletBalances();
-    info_type_to_show = '';
-    label_submit = 'Exchange ' + project.content.title + ' APT per ' + project.token_details.name;
+    info_type_to_show = "";
+    label_submit = "Exchange " + project.content.title + " APT per " + project.token_details.name;
     function_submit = temp_exchange;
     value_submit = 0;
     show_submit = true;
@@ -469,7 +469,7 @@
       const result = await platform.temp_exchange(project, value_submit);
       transactionId = result;
     } catch (error) {
-      errorMessage = error.message || 'Error occurred while exchange TFT <-> PFT';
+      errorMessage = error.message || "Error occurred while exchange TFT <-> PFT";
     } finally {
       isSubmitting = false;
     }
@@ -484,7 +484,7 @@
           showCopyMessage = false;
         }, 2000);
       })
-      .catch((err) => console.error('Failed to copy text: ', err));
+      .catch((err) => console.error("Failed to copy text: ", err));
   }
 
   function close_submit_form() {
@@ -497,7 +497,7 @@
   let deadline_passed = false;
   let is_min_raised = false;
   let is_max_raised = false;
-  let limit_date = '';
+  let limit_date = "";
   async function load() {
     deadline_passed = await is_ended(project);
     is_min_raised = await min_raised(project);
@@ -523,7 +523,7 @@
     const address = await $address;
     is_owner =
       connected &&
-      ErgoAddress.fromBase58((await address) ?? '').ergoTree === project.constants.owner;
+      ErgoAddress.fromBase58((await address) ?? "").ergoTree === project.constants.owner;
   }
   checkIfIsOwner();
   let timerValue = get(timer);
@@ -540,7 +540,7 @@
   }
   setTargetDate();
 
-  let progressColor = 'white';
+  let progressColor = "white";
   let countdownAnimation = false;
   function updateCountdown() {
     var currentDate = new Date().getTime();
@@ -559,16 +559,16 @@
     }
 
     if (is_min_raised) {
-      progressColor = '#A8E6A1';
+      progressColor = "#A8E6A1";
     } else {
       if (diff <= 0) {
-        progressColor = '#FF6F61';
+        progressColor = "#FF6F61";
         countdownAnimation = false;
       } else if (diff < 24 * 60 * 60 * 1000) {
-        progressColor = '#FFF5A3';
+        progressColor = "#FFF5A3";
         countdownAnimation = true;
       } else {
-        progressColor = 'white';
+        progressColor = "white";
         countdownAnimation = false;
       }
     }
@@ -582,7 +582,7 @@
       (await platform.get_balance(project.pft_token_id)).get(project.pft_token_id) ?? 0;
     const formattedProjectTokens =
       (user_project_tokens / Math.pow(10, project.token_details.decimals)).toString() +
-      ' ' +
+      " " +
       project.token_details.name;
     project_token_amount.set(formattedProjectTokens);
 
@@ -612,7 +612,7 @@
         await get_user_project_tokens();
       }
     } catch (error) {
-      console.error('Error refreshing project data:', error);
+      console.error("Error refreshing project data:", error);
     }
   }
 
@@ -624,7 +624,7 @@
   });
 </script>
 
-<div class="project-detail" style={$mode === 'light' ? 'color: black;' : 'color: #ddd;'}>
+<div class="project-detail" style={$mode === "light" ? "color: black;" : "color: #ddd;"}>
   <div class="project-container">
     <div class="project-info" in:fly={{ y: 30, duration: 800, delay: 200, easing: quintOut }}>
       <div class="project-header">
@@ -633,8 +633,8 @@
           <a
             href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es"
             target="_blank"
-            class={badgeVariants({ variant: 'outline' })}
-            >Contract version: {project.version.replace('_', '.')}</a
+            class={badgeVariants({ variant: "outline" })}
+            >Contract version: {project.version.replace("_", ".")}</a
           >
         </div>
       </div>
@@ -643,7 +643,7 @@
 
       <div class="project-description">
         <div class="markdown-content">
-          {@html marked.parse(project.content.description || '', {
+          {@html marked.parse(project.content.description || "", {
             breaks: true,
           })}
         </div>
@@ -748,17 +748,17 @@
             </div>
             <div class="amount-ergs">
               {(() => {
-                const isERGBase = !project.base_token_id || project.base_token_id === '';
+                const isERGBase = !project.base_token_id || project.base_token_id === "";
                 if (isERGBase) {
                   return (
-                    (min * project.exchange_rate) / Math.pow(10, 9) + ' ' + platform.main_token
+                    (min * project.exchange_rate) / Math.pow(10, 9) + " " + platform.main_token
                   );
                 } else {
                   const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                  const baseTokenName = project.base_token_details?.name || 'tokens';
+                  const baseTokenName = project.base_token_details?.name || "tokens";
                   return (
                     (min * project.exchange_rate) / Math.pow(10, baseTokenDecimals) +
-                    ' ' +
+                    " " +
                     baseTokenName
                   );
                 }
@@ -774,19 +774,19 @@
             </div>
             <div class="amount-ergs">
               {(() => {
-                const isERGBase = !project.base_token_id || project.base_token_id === '';
+                const isERGBase = !project.base_token_id || project.base_token_id === "";
                 if (isERGBase) {
                   return (
                     (currentVal * project.exchange_rate) / Math.pow(10, 9) +
-                    ' ' +
+                    " " +
                     platform.main_token
                   );
                 } else {
                   const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                  const baseTokenName = project.base_token_details?.name || 'tokens';
+                  const baseTokenName = project.base_token_details?.name || "tokens";
                   return (
                     (currentVal * project.exchange_rate) / Math.pow(10, baseTokenDecimals) +
-                    ' ' +
+                    " " +
                     baseTokenName
                   );
                 }
@@ -802,17 +802,17 @@
             </div>
             <div class="amount-ergs">
               {(() => {
-                const isERGBase = !project.base_token_id || project.base_token_id === '';
+                const isERGBase = !project.base_token_id || project.base_token_id === "";
                 if (isERGBase) {
                   return (
-                    (max * project.exchange_rate) / Math.pow(10, 9) + ' ' + platform.main_token
+                    (max * project.exchange_rate) / Math.pow(10, 9) + " " + platform.main_token
                   );
                 } else {
                   const baseTokenDecimals = project.base_token_details?.decimals || 0;
-                  const baseTokenName = project.base_token_details?.name || 'tokens';
+                  const baseTokenName = project.base_token_details?.name || "tokens";
                   return (
                     (max * project.exchange_rate) / Math.pow(10, baseTokenDecimals) +
-                    ' ' +
+                    " " +
                     baseTokenName
                   );
                 }
@@ -833,10 +833,10 @@
               maxContributeAmount <= 0 ||
               project.sold_counter >= project.total_pft_amount}
             title={!$connected
-              ? 'Connect your wallet to contribute'
+              ? "Connect your wallet to contribute"
               : maxContributeAmount <= 0
-                ? 'Insufficient funds'
-                : 'Contribute'}
+                ? "Insufficient funds"
+                : "Contribute"}
           >
             Contribute
           </Button>
@@ -890,9 +890,9 @@
               on:click={setupWithdrawErg}
               disabled={!$connected || !is_min_raised || maxWithdrawErgAmount <= 0}
             >
-              Collect {!project.base_token_id || project.base_token_id === ''
+              Collect {!project.base_token_id || project.base_token_id === ""
                 ? platform.main_token
-                : project.base_token_details?.name || 'tokens'}
+                : project.base_token_details?.name || "tokens"}
             </Button>
           </div>
         </div>
@@ -911,8 +911,8 @@
     >
       <div
         class="actions-form"
-        class:light-mode={$mode === 'light'}
-        style={$mode === 'light' ? 'background: white;' : 'background: #2a2a2a;'}
+        class:light-mode={$mode === "light"}
+        style={$mode === "light" ? "background: white;" : "background: #2a2a2a;"}
         transition:scale={{
           start: 0.95,
           duration: 300,
@@ -932,7 +932,7 @@
                   target="_blank"
                   rel="noopener noreferrer"
                   class="transaction-link"
-                  class:light-mode={$mode === 'light'}
+                  class:light-mode={$mode === "light"}
                 >
                   <span>{transactionId.slice(0, 8)}...</span>
                   <svg
@@ -1006,7 +1006,7 @@
           {:else}
             <div class="form-container" in:slide>
               <div class="form-info">
-                {#if info_type_to_show === 'buy'}
+                {#if info_type_to_show === "buy"}
                   <p>
                     <strong>Exchange Rate:</strong>
                     {displayExchangeRate.toFixed(6)}
@@ -1023,21 +1023,21 @@
                     {baseTokenName}
                   </p>
                 {/if}
-                {#if info_type_to_show === 'dev-collect'}
+                {#if info_type_to_show === "dev-collect"}
                   <p>
                     <strong>Project Funds:</strong>
                     {projectFundsAmount.toFixed(4)}
                     {baseTokenName}
                   </p>
                 {/if}
-                {#if info_type_to_show === 'dev'}
+                {#if info_type_to_show === "dev"}
                   <p>
                     <strong>Your Token Balance:</strong>
                     {userProjectTokenBalance.toFixed(2)}
                     {project.token_details.name}
                   </p>
                 {/if}
-                {#if info_type_to_show === 'dev-withdraw'}
+                {#if info_type_to_show === "dev-withdraw"}
                   <p>
                     <strong>Project Unsold Balance:</strong>
                     {(
@@ -1094,7 +1094,7 @@
                   class="submit-btn"
                   style="background-color: #FF8C00; color: black;"
                 >
-                  {isSubmitting ? 'Processing...' : 'Submit'}
+                  {isSubmitting ? "Processing..." : "Submit"}
                 </Button>
               </div>
             </div>
@@ -1544,7 +1544,7 @@
     font-weight: 600;
   }
   .result-link {
-    font-family: 'SF Mono', 'Roboto Mono', monospace;
+    font-family: "SF Mono", "Roboto Mono", monospace;
     font-size: 1rem;
     color: #ffffff;
     text-decoration: none;

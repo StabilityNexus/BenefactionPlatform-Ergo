@@ -66,7 +66,7 @@
   }
 
   .skeleton-card::after {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     right: 0;

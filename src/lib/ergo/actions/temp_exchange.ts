@@ -4,18 +4,18 @@ import {
   TransactionBuilder,
   SLong,
   SAFE_MIN_BOX_VALUE,
-} from '@fleet-sdk/core';
+} from "@fleet-sdk/core";
 
-import { SString } from '../utils';
-import { createR8Structure, type Project } from '../../common/project';
-import { get_ergotree_hex } from '../contract';
+import { SString } from "../utils";
+import { createR8Structure, type Project } from "../../common/project";
+import { get_ergotree_hex } from "../contract";
 import {
   getCurrentHeight,
   getChangeAddress,
   signTransaction,
   submitTransaction,
-} from '../wallet-utils';
-import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
+} from "../wallet-utils";
+import { SBool, SColl, SPair } from "@fleet-sdk/serializer";
 
 // Function to submit a project to the blockchain
 export async function temp_exchange(
@@ -47,7 +47,7 @@ export async function temp_exchange(
   }
 
   // Handle base tokens for v2 multitoken contracts
-  if (project.version === 'v2' && project.base_token_id && project.base_token_id !== '') {
+  if (project.version === "v2" && project.base_token_id && project.base_token_id !== "") {
     // Find current base token amount in the project box
     let currentBaseTokenAmount = 0;
     for (const token of project.box.assets) {
@@ -103,7 +103,7 @@ export async function temp_exchange(
     // Send the transaction to the Ergo network
     const transactionId = await submitTransaction(signedTransaction);
 
-    console.log('Transaction id -> ', transactionId);
+    console.log("Transaction id -> ", transactionId);
     return transactionId;
   } catch (e) {
     console.log(e);

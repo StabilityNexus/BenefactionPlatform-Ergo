@@ -4,27 +4,27 @@ import {
   TransactionBuilder,
   SLong,
   SAFE_MIN_BOX_VALUE,
-} from '@fleet-sdk/core';
+} from "@fleet-sdk/core";
 
-import { SString } from '../utils';
-import { createR8Structure, type Project } from '../../common/project';
-import { get_ergotree_hex } from '../contract';
+import { SString } from "../utils";
+import { createR8Structure, type Project } from "../../common/project";
+import { get_ergotree_hex } from "../contract";
 import {
   getCurrentHeight,
   getChangeAddress,
   signTransaction,
   submitTransaction,
-} from '../wallet-utils';
-import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
+} from "../wallet-utils";
+import { SBool, SColl, SPair } from "@fleet-sdk/serializer";
 
 export async function rebalance(project: Project, token_amount: number): Promise<string | null> {
   try {
     token_amount = Math.trunc(token_amount * Math.pow(10, project.token_details.decimals));
 
     console.log(
-      'wants to add ',
+      "wants to add ",
       token_amount / Math.pow(10, project.token_details.decimals),
-      ' tokens of type ',
+      " tokens of type ",
       project.token_details.name
     );
 
@@ -46,12 +46,12 @@ export async function rebalance(project: Project, token_amount: number): Promise
     });
 
     console.log(
-      'PFT current amount ' +
+      "PFT current amount " +
         project.current_pft_amount / Math.pow(10, project.token_details.decimals)
     );
     const contract_token_amount = project.current_pft_amount + token_amount;
     console.log(
-      'contract token amount ' +
+      "contract token amount " +
         contract_token_amount / Math.pow(10, project.token_details.decimals)
     );
 
@@ -63,7 +63,7 @@ export async function rebalance(project: Project, token_amount: number): Promise
     }
 
     // Handle base tokens for v2 multitoken contracts
-    if (project.base_token_id && project.base_token_id !== '') {
+    if (project.base_token_id && project.base_token_id !== "") {
       // Find current base token amount in the project box
       let currentBaseTokenAmount = 0;
       for (const token of project.box.assets) {
@@ -123,21 +123,21 @@ export async function rebalance(project: Project, token_amount: number): Promise
     // Send the transaction to the Ergo network
     const transactionId = await submitTransaction(signedTransaction);
 
-    console.log('Transaction id -> ', transactionId);
+    console.log("Transaction id -> ", transactionId);
     return transactionId;
   } catch (error) {
-    console.error('Error in rebalance function:', error);
+    console.error("Error in rebalance function:", error);
     // Log full prover error dump if available
-    if ((error as any).info) console.error('Prover error info:\n', (error as any).info);
+    if ((error as any).info) console.error("Prover error info:\n", (error as any).info);
 
     // Check specific error conditions
-    if ((error as any).message && (error as any).message.includes('R7')) {
-      console.error('R7 register format error - check exchange rate and base token ID length');
+    if ((error as any).message && (error as any).message.includes("R7")) {
+      console.error("R7 register format error - check exchange rate and base token ID length");
     }
 
-    if ((error as any).message && (error as any).message.includes('INPUTS')) {
+    if ((error as any).message && (error as any).message.includes("INPUTS")) {
       console.error(
-        'Input validation error - ensure wallet has UTXOs and project box is accessible'
+        "Input validation error - ensure wallet has UTXOs and project box is accessible"
       );
     }
 

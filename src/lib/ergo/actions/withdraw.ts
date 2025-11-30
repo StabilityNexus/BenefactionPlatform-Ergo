@@ -1,21 +1,21 @@
-import { OutputBuilder, TransactionBuilder, SLong, SAFE_MIN_BOX_VALUE } from '@fleet-sdk/core';
-import { SString } from '../utils';
-import { createR8Structure, type Project } from '../../common/project';
-import { get_ergotree_hex } from '../contract';
+import { OutputBuilder, TransactionBuilder, SLong, SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
+import { SString } from "../utils";
+import { createR8Structure, type Project } from "../../common/project";
+import { get_ergotree_hex } from "../contract";
 import {
   getCurrentHeight,
   getChangeAddress,
   signTransaction,
   submitTransaction,
-} from '../wallet-utils';
-import { get_dev_contract_address } from '../dev/dev_contract';
-import { SColl, SPair, SByte, SBool } from '@fleet-sdk/serializer';
+} from "../wallet-utils";
+import { get_dev_contract_address } from "../dev/dev_contract";
+import { SColl, SPair, SByte, SBool } from "@fleet-sdk/serializer";
 
 // Function to submit a project to the blockchain
 export async function withdraw(project: Project, amount: number): Promise<string | null> {
   // Check if this is a multi-token contract (v2) with a base token
   const isMultiToken =
-    project.version === 'v2' && project.base_token_id && project.base_token_id !== '';
+    project.version === "v2" && project.base_token_id && project.base_token_id !== "";
   const isERGBase = !isMultiToken;
 
   // Convert amount to smallest unit
@@ -28,7 +28,7 @@ export async function withdraw(project: Project, amount: number): Promise<string
     amount = amount * Math.pow(10, baseTokenDecimals);
   }
 
-  console.log('wants withdraw ', amount, isERGBase ? '(ERG)' : '(base token)');
+  console.log("wants withdraw ", amount, isERGBase ? "(ERG)" : "(base token)");
 
   // Get the wallet address (will be the project address)
   const walletPk = await getChangeAddress();
@@ -60,13 +60,13 @@ export async function withdraw(project: Project, amount: number): Promise<string
   if (isERGBase) {
     // ERG withdrawal validation
     if (extractedBaseAmount > project.value) {
-      alert('Not enough ERG to withdraw.');
+      alert("Not enough ERG to withdraw.");
       return null;
     }
   } else {
     // Token withdrawal validation
     if (extractedBaseAmount > currentBaseTokenAmount) {
-      alert('Not enough base tokens to withdraw.');
+      alert("Not enough base tokens to withdraw.");
       return null;
     }
   }
@@ -88,12 +88,12 @@ export async function withdraw(project: Project, amount: number): Promise<string
   // Validation according to contract requirements
   if (isERGBase) {
     if (projectAmount < SAFE_MIN_BOX_VALUE) {
-      alert('The withdrawal amount is too small after fees.');
+      alert("The withdrawal amount is too small after fees.");
       return null;
     }
   } else {
     if (projectAmount <= 0) {
-      alert('The withdrawal amount is too small after fees.');
+      alert("The withdrawal amount is too small after fees.");
       return null;
     }
   }
@@ -105,7 +105,7 @@ export async function withdraw(project: Project, amount: number): Promise<string
   const allTokensWithdrawn = project.current_pft_amount === 0; // No PFT tokens left
   const isFullWithdrawal = allFundsWithdrawn && allTokensWithdrawn;
 
-  console.log('Withdrawal details:', {
+  console.log("Withdrawal details:", {
     extractedBaseAmount,
     devFeeAmount,
     projectAmount,
@@ -234,7 +234,7 @@ export async function withdraw(project: Project, amount: number): Promise<string
     // Send the transaction to the Ergo network
     const transactionId = await submitTransaction(signedTransaction);
 
-    console.log('Transaction id -> ', transactionId);
+    console.log("Transaction id -> ", transactionId);
     return transactionId;
   } catch (e) {
     console.log(e);

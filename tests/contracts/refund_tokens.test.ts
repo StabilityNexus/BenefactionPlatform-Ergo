@@ -3,10 +3,10 @@
 // Refunds are ONLY allowed when: (1) Past deadline AND (2) Minimum NOT reached
 // Verifies refund counter updates and payment returns
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from '@fleet-sdk/core';
-import { SByte, SColl, SLong, SBool, SPair } from '@fleet-sdk/serializer';
-import { stringToBytes } from '@scure/base';
+import { describe, it, expect, beforeEach } from "vitest";
+import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
+import { SByte, SColl, SLong, SBool, SPair } from "@fleet-sdk/serializer";
+import { stringToBytes } from "@scure/base";
 import {
   setupBeneTestContext,
   ERG_BASE_TOKEN,
@@ -15,7 +15,7 @@ import {
   USD_BASE_TOKEN_NAME,
   USD_BASE_TOKEN,
   createR4,
-} from './bene_contract_helpers';
+} from "./bene_contract_helpers";
 
 // EXECUTION FLOW:
 // 1. beforeEach() → Creates blockchain + project box with MINIMUM NOT REACHED (25k sold < 50k minimum)
@@ -24,20 +24,20 @@ import {
 // 4. Contract validates: deadline passed + minimum not reached + correct refund amount
 
 const baseModes = [
-  { name: 'USD Token Mode', token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
-  { name: 'ERG Mode', token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
+  { name: "USD Token Mode", token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
+  { name: "ERG Mode", token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
 ];
 
 const timeModes = [
-  { name: 'Block Height', useTimestamp: false },
-  { name: 'Timestamp', useTimestamp: true },
+  { name: "Block Height", useTimestamp: false },
+  { name: "Timestamp", useTimestamp: true },
 ];
 
 const testModes = baseModes.flatMap((base) =>
   timeModes.map((time) => ({ ...base, ...time, fullName: `${base.name} - ${time.name}` }))
 );
 
-describe.each(testModes)('Bene Contract v1.2 - Refund APT Tokens (%s)', (mode) => {
+describe.each(testModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) => {
   let ctx: BeneTestContext; // Test environment
   let projectBox: Box; // Contract box
 
@@ -74,7 +74,7 @@ describe.each(testModes)('Bene Contract v1.2 - Refund APT Tokens (%s)', (mode) =
         R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(), // [25k sold, 0 refunded, 0 exchanged]
         R7: SLong(ctx.exchangeRate).toHex(), // [price, token_len]
         R8: ctx.constants.toHex(),
-        R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
       },
     });
 
@@ -92,7 +92,7 @@ describe.each(testModes)('Bene Contract v1.2 - Refund APT Tokens (%s)', (mode) =
     projectBox = ctx.beneContract.utxos.toArray()[0];
   });
 
-  it('should allow refunding APT tokens after deadline when minimum not reached', () => {
+  it("should allow refunding APT tokens after deadline when minimum not reached", () => {
     // ARRANGE: Jump blockchain PAST the deadline
     ctx.mockChain.jumpTo(ctx.deadlineBlock + 2); // Move to block 800,202 (past 800,200 deadline)
 
@@ -107,7 +107,7 @@ describe.each(testModes)('Bene Contract v1.2 - Refund APT Tokens (%s)', (mode) =
     const newAPTAmount = BigInt(projectBox.assets[0].amount) + tokensToRefund; // Contract gains: 75,001 + 5k = 80,001 APT
 
     const decimalDivisor = 10 ** ctx.baseTokenDecimals;
-    console.log('\nREFUND TRANSACTION:');
+    console.log("\nREFUND TRANSACTION:");
     console.log(`   APT to Refund:     ${tokensToRefund.toLocaleString()}`);
     console.log(
       `   Refund Amount:     ${Number(refundAmount) / decimalDivisor} ${ctx.baseTokenName}`
@@ -227,7 +227,7 @@ describe.each(testModes)('Bene Contract v1.2 - Refund APT Tokens (%s)', (mode) =
     console.log(`   Refund successful!`);
   });
 
-  it('should allow multiple sequential refunds and update refund counter cumulatively', () => {
+  it("should allow multiple sequential refunds and update refund counter cumulatively", () => {
     // ARRANGE: Give buyer an additional APT box so we can refund in two separate txs
     const secondTokens = 3_000n;
     ctx.buyer.addUTxOs({
@@ -368,7 +368,7 @@ describe.each(testModes)('Bene Contract v1.2 - Refund APT Tokens (%s)', (mode) =
     expect(finalContract.assets[0].amount).toEqual(expectedAPTOnContract);
   });
 
-  it('should fail to refund before deadline', () => {
+  it("should fail to refund before deadline", () => {
     // ARRANGE: Try to refund BEFORE deadline (should fail)
     ctx.mockChain.jumpTo(ctx.deadlineBlock - 10); // Jump to block 800,190 (deadline is 800,200)
 
@@ -431,7 +431,7 @@ describe.each(testModes)('Bene Contract v1.2 - Refund APT Tokens (%s)', (mode) =
     expect(ctx.beneContract.utxos.length).toEqual(1); // Box not spent
   });
 
-  it('should fail to refund after deadline when minimum IS reached', () => {
+  it("should fail to refund after deadline when minimum IS reached", () => {
     // ARRANGE: Create scenario where minimum WAS reached (successful campaign - no refunds!)
     ctx.beneContract.utxos.clear(); // Clear existing box
     const soldTokens = ctx.minimumTokensSold; // 50,000 sold = minimum REACHED!
@@ -460,7 +460,7 @@ describe.each(testModes)('Bene Contract v1.2 - Refund APT Tokens (%s)', (mode) =
         R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(), // Minimum reached!
         R7: SLong(ctx.exchangeRate).toHex(),
         R8: ctx.constants.toHex(),
-        R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
+        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
       },
     });
 
@@ -527,7 +527,7 @@ describe.each(testModes)('Bene Contract v1.2 - Refund APT Tokens (%s)', (mode) =
     expect(ctx.beneContract.utxos.length).toEqual(1); // Box not spent
   });
 
-  it('should fail to refund at exact deadline (HEIGHT == R4)', () => {
+  it("should fail to refund at exact deadline (HEIGHT == R4)", () => {
     // ARRANGE: Jump to exact deadline block (equal to R4). Contract requires HEIGHT > R4.
     ctx.mockChain.jumpTo(ctx.deadlineBlock - 1); // exactly R4 (Fleet SDK's MockChain.execute() validates transactions at HEIGHT + 1, not at the current height.)
 
@@ -586,7 +586,7 @@ describe.each(testModes)('Bene Contract v1.2 - Refund APT Tokens (%s)', (mode) =
     expect(ctx.beneContract.utxos.length).toEqual(1);
   });
 
-  it('should fail to refund when refund amount is incorrect (wrong exchange value)', () => {
+  it("should fail to refund when refund amount is incorrect (wrong exchange value)", () => {
     // ARRANGE: Jump past deadline
     ctx.mockChain.jumpTo(ctx.deadlineBlock + 2);
 
@@ -654,7 +654,7 @@ describe.each(testModes)('Bene Contract v1.2 - Refund APT Tokens (%s)', (mode) =
     expect(ctx.beneContract.utxos.length).toEqual(1);
   });
 
-  it('should fail to refund when R6 refund counter does not match tokens added (counter mismatch)', () => {
+  it("should fail to refund when R6 refund counter does not match tokens added (counter mismatch)", () => {
     // ARRANGE: Jump past deadline
     ctx.mockChain.jumpTo(ctx.deadlineBlock + 2);
 
