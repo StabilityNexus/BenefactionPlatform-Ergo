@@ -8,6 +8,7 @@
     import { Label } from "$lib/components/ui/label/index.js";
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
+    import { FileUpload } from "$lib/components/ui/file-upload";
     import * as Select from "$lib/components/ui/select";
     import { get } from "svelte/store";
     import { explorer_uri, user_tokens } from "$lib/common/store";
@@ -1379,53 +1380,19 @@
                         />
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="form-group">
-                            <Label
-                                for="projectImage"
-                                class="text-sm font-medium mb-2 block text-foreground/90"
-                                >Image URL</Label
-                            >
-                            <div class="relative">
-                                <Input
-                                    type="text"
-                                    id="projectImage"
-                                    bind:value={projectImage}
-                                    placeholder="https://example.com/image.png"
-                                    required
-                                    class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 pl-9"
-                                />
-                                <div
-                                    class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                                >
-                                    <svg
-                                        width="14"
-                                        height="14"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        ><rect
-                                            x="3"
-                                            y="3"
-                                            width="18"
-                                            height="18"
-                                            rx="2"
-                                            ry="2"
-                                        ></rect><circle
-                                            cx="8.5"
-                                            cy="8.5"
-                                            r="1.5"
-                                        ></circle><polyline
-                                            points="21 15 16 10 5 21"
-                                        ></polyline></svg
-                                    >
-                                </div>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <FileUpload
+                            bind:value={projectImage}
+                            label="Campaign Image"
+                            placeholder="https://example.com/image.png"
+                            maxSizeKB={300}
+                        />
+                        <p class="text-xs mt-2 text-muted-foreground">
+                            Upload an image (max 300KB) or provide a URL. Smaller images are stored directly on-chain.
+                        </p>
+                    </div>
 
+                    <div class="grid grid-cols-1 gap-6">
                         <div class="form-group">
                             <Label
                                 for="projectLink"

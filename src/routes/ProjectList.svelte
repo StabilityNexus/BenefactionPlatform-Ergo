@@ -11,6 +11,7 @@
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
     import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+    import { Pagination } from "$lib/components/ui/pagination";
 
     let allFetchedItems: Map<string, Project> = new Map();
     let listedItems: Map<string, Project> | null = null;
@@ -24,6 +25,28 @@
     let hideTestProjects: boolean = true;
     let filterOpen = false;
     let debouncedSearch: any;
+
+    let currentPage: number = 1;
+    let itemsPerPage: number = 9;
+    $: totalPages = listedItems ? Math.ceil(listedItems.size / itemsPerPage) : 1;
+    
+    $: {
+        if (currentPage > totalPages && totalPages > 0) {
+            currentPage = totalPages;
+        }
+    }
+    $: paginatedItems = (() => {
+        if (!listedItems) return new Map<string, Project>();
+        const allItems = Array.from(listedItems.entries());
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        return new Map(allItems.slice(start, end));
+    })();
+
+    function handlePageChange(event: CustomEvent<{ page: number }>) {
+        currentPage = event.detail.page;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
 
     export let filterProject: ((project: Project) => Promise<boolean>) | null =
         null;
@@ -135,6 +158,7 @@
         clearTimeout(debouncedSearch);
         debouncedSearch = setTimeout(async () => {
             isFiltering = true;
+            currentPage = 1;
             await applyFiltersAndSearch(allFetchedItems);
             isFiltering = false;
         }, 300);
@@ -144,6 +168,7 @@
         newSort: "newest" | "oldest" | "amount" | "name",
     ) {
         isFiltering = true;
+        currentPage = 1;
         sortBy = newSort;
         await applyFiltersAndSearch(allFetchedItems);
         isFiltering = false;
@@ -151,6 +176,7 @@
 
     async function handleTestFilterToggle() {
         isFiltering = true;
+        currentPage = 1;
         hideTestProjects = !hideTestProjects;
         await applyFiltersAndSearch(allFetchedItems);
         isFiltering = false;
@@ -281,14 +307,24 @@
                 <ProjectCardSkeleton />
             {/each}
         </div>
-    {:else if listedItems && Array.from(listedItems).length > 0}
-        <div class="projects-grid">
-            {#each Array.from(listedItems) as [projectId, projectData] (projectId)}
-                <div class="project-card">
+    {:else if listedItems && listedItems.size > 0}
+        <div class="projects-grid" role="list" aria-label="Campaign list">
+            {#each Array.from(paginatedItems) as [projectId, projectData] (projectId)}
+                <article class="project-card" role="listitem">
                     <ProjectCard project={projectData} />
-                </div>
+                </article>
             {/each}
         </div>
+
+        {#if totalPages > 1}
+            <Pagination
+                {currentPage}
+                {totalPages}
+                totalItems={listedItems.size}
+                {itemsPerPage}
+                on:pageChange={handlePageChange}
+            />
+        {/if}
     {:else}
         <div class="no-projects-container">
             {#if searchQuery}
