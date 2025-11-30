@@ -8,7 +8,7 @@ import {
 import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
-import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
+import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
 import { get_dev_contract_address } from '../dev/dev_contract';
 import { SColl, SPair, SByte, SBool } from '@fleet-sdk/serializer';
 
@@ -38,7 +38,7 @@ export async function withdraw(
     const walletPk = await getChangeAddress();
 
     // Get the UTXOs from the current wallet to use as inputs
-    const inputs = [project.box, ...(await window.ergo!.get_utxos())];
+    const inputs = [project.box, ...(await getUtxos())];
 
     // Building the project output
     let outputs: OutputBuilder[] = [];

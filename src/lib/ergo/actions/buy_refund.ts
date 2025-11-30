@@ -9,7 +9,7 @@ import {
 import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
-import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
+import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
 import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
@@ -36,7 +36,7 @@ export async function buy_refund(
     const walletPk = await getChangeAddress();
 
     // Get the UTXOs from the current wallet to use as inputs
-    let walletUtxos = await window.ergo!.get_utxos();
+    let walletUtxos = await getUtxos();
 
     // For refunds, ensure we have the project tokens in inputs
     if (token_amount < 0) {

@@ -10,7 +10,7 @@ import {
 import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
-import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
+import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
 import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
 export async function rebalance(
@@ -26,7 +26,7 @@ export async function rebalance(
         // Get the wallet address (will be the project address)
         const walletPk = await getChangeAddress();
         // Get the UTXOs from the current wallet to use as inputs
-        const walletUtxos = await window.ergo!.get_utxos();
+        const walletUtxos = await getUtxos();
         // For adding tokens, we need the project box first, then a wallet UTXO
         // This ensures INPUTS.size > 1 and INPUTS(1) comes from project address
         const inputs = [project.box, ...walletUtxos];

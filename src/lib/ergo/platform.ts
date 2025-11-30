@@ -6,7 +6,7 @@ import { withdraw } from './actions/withdraw';
 import { buy_refund } from './actions/buy_refund';
 import { rebalance } from './actions/rebalance';
 import { balance, explorer_uri } from "../common/store";
-import { walletManager, walletConnected, walletAddress } from "wallet-svelte-component";
+import { walletManager, walletConnected, walletAddress, explorerUri as libExplorerUri } from "wallet-svelte-component";
 import { get } from "svelte/store";
 import { temp_exchange } from './actions/temp_exchange';
 import { type contract_version } from './contract';
@@ -18,6 +18,15 @@ export class ErgoPlatform implements Platform {
     icon = "";
     time_per_block = 2 * 60 * 1000;  // every 2 minutes
     last_version: contract_version = "v2";
+
+    constructor() {
+        // Sync explorer URI from app to wallet library
+        explorer_uri.subscribe(uri => {
+            if (uri) {
+                libExplorerUri.set(uri);
+            }
+        });
+    }
 
     async connect(): Promise<void> {
         // This method is now deprecated - wallet connection is handled by WalletManager

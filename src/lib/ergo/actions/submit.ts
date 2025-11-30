@@ -9,13 +9,13 @@ import {
     BOX_VALUE_PER_BYTE,
     ErgoAddress
 } from '@fleet-sdk/core';
-import { SBool, SColl, SInt, SPair } from '@fleet-sdk/serializer';
+import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
 import { type contract_version, get_ergotree_hex, mint_contract_address } from '../contract';
 import { createR8Structure, type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
-import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction } from '../wallet-utils';
+import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
 import {
     validateProjectContent,
     type ProjectContent,
@@ -59,7 +59,7 @@ async function* mint_tx(title: string, constants: ConstantContent, version: cont
     const walletPk = await getChangeAddress();
 
     // Get the UTXOs from the current wallet to use as inputs
-    const inputs = await window.ergo!.get_utxos();
+    const inputs = await getUtxos();
 
     let outputs: OutputBuilder[] = [
         new OutputBuilder(
