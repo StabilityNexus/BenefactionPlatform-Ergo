@@ -12,6 +12,7 @@
     import { get } from "svelte/store";
     import { explorer_uri, user_tokens } from "$lib/common/store";
     import { walletConnected, walletAddress } from "wallet-svelte-component";
+    import { ErgoAddress } from "@fleet-sdk/core";
     import { formatTransactionError } from "$lib/common/error-utils";
     import {
         validateProjectContent,
@@ -52,10 +53,12 @@
     let is_timestamp_limit: boolean = true; // Default to timestamp mode (R4._1 = true)
     let deadlineValueText: string;
 
-    let ownerMode: "wallet" | "timelock" | "multisig" | "custom" = "wallet";
+    let ownerMode: "wallet" | "timelock" | "multisig" | "custom" | "custom_pk" = "wallet";
     let ownerBlockHeight: number | undefined;
     let ownerAddress: string = "";
     let ownerErgoTreeHex: string = "";
+    // New input for custom address (Base58) mode
+    let customOwnerAddressInput: string = "";
     let multisigAddresses: string[] = ["", ""];
     let multisigRequired: number = 2;
     let initializedOwnerAddress = false;
@@ -63,6 +66,24 @@
     $: if ($walletAddress && !initializedOwnerAddress) {
         ownerAddress = $walletAddress;
         initializedOwnerAddress = true;
+    }
+
+    // Reactive conversion: when in custom_pk mode, convert Base58 address to ErgoTree hex
+    $: if (ownerMode === "custom_pk") {
+        if (customOwnerAddressInput && customOwnerAddressInput.trim() !== "") {
+            try {
+                const parsed = ErgoAddress.fromBase58(customOwnerAddressInput.trim());
+                ownerErgoTreeHex = parsed.ergoTree || "";
+            } catch (e) {
+                console.error("Invalid Ergo address provided:", e);
+                ownerErgoTreeHex = "";
+            }
+        } else {
+            ownerErgoTreeHex = "";
+        }
+    } else if (ownerMode === "wallet" && $walletAddress) {
+        // Clear ergotree when using wallet mode
+        ownerErgoTreeHex = "";
     }
 
     let exchangeRateRaw: number;
@@ -528,7 +549,7 @@
                     isSubmitting = false;
                     return;
                 }
-            } else if (ownerMode === "custom" && ownerErgoTreeHex) {
+            } else if ((ownerMode === "custom" || ownerMode === "custom_pk") && ownerErgoTreeHex) {
                 owner_ergotree = ownerErgoTreeHex;
             } else if (ownerMode === "multisig") {
                 const validAddresses = multisigAddresses.filter(
@@ -1170,7 +1191,7 @@
                                 The owner is the one who receives the funds and has the ability to add or withdraw contribution tokens.
                             </p>
                         </div>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
                             <button
                                 type="button"
                                 on:click={() => (ownerMode = "wallet")}
@@ -1180,6 +1201,16 @@
                                     : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
                             >
                                 Your Wallet
+                            </button>
+                            <button
+                                disabled
+                                type="button"
+                                on:click={() => (ownerMode = "custom_pk")}
+                                class="px-3 py-2 text-xs md:text-sm rounded-md transition-colors {ownerMode === 'custom_pk'
+                                    ? 'bg-orange-500 text-black font-medium'
+                                    : 'bg-background/50 border border-orange-500/20 hover:border-orange-500/40'}"
+                            >
+                                Address
                             </button>
                             <button
                                 disabled
@@ -1317,6 +1348,43 @@
                                             required</span
                                         >
                                     </div>
+                                </div>
+                            </div>
+                        {:else if ownerMode === "custom_pk"}
+                            <div
+                                class="space-y-3 p-4 bg-orange-500/5 rounded-lg border border-orange-500/10"
+                            >
+                                <div class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md text-xs text-yellow-700">
+                                    <strong>Important:</strong> Your current wallet will still be the only one authorized to perform the add/withdraw operations for contribution tokens during the campaign.
+                                </div>
+                                <div>
+                                    <Label
+                                        for="customOwnerAddress"
+                                        class="text-xs font-medium mb-1.5 block text-foreground/80"
+                                    >
+                                        Owner Wallet Address (P2PK)
+                                    </Label>
+                                    <Input
+                                        id="customOwnerAddress"
+                                        type="text"
+                                        bind:value={customOwnerAddressInput}
+                                        placeholder="9..."
+                                        class="w-full bg-background/50 border-orange-500/20 focus:border-orange-500/50 text-xs font-mono"
+                                    />
+
+                                    {#if ownerErgoTreeHex}
+                                        <p class="text-xs mt-2 text-green-400 break-all">
+                                            ✓ Valid Address (Tree: {ownerErgoTreeHex.slice(0, 10)}...{ownerErgoTreeHex.slice(-8)})
+                                        </p>
+                                    {:else if customOwnerAddressInput}
+                                        <p class="text-xs mt-2 text-red-400">
+                                            ⚠ Invalid Ergo Address
+                                        </p>
+                                    {/if}
+
+                                    <p class="text-xs mt-1 text-muted-foreground">
+                                        Enter the standard Ergo address (starts with '9') that will own this campaign.
+                                    </p>
                                 </div>
                             </div>
                         {:else if ownerMode === "custom"}
