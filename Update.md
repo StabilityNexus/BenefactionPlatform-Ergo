@@ -124,7 +124,7 @@ npm run build
 ```
 
 ### Environment
-- Port: 5000 (required for Replit)
+- Port: 5000 (required for )
 - HMR enabled with proper proxy support
 
 ### Testing

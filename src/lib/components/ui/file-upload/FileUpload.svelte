@@ -196,7 +196,6 @@
             on:click={() => !disabled && fileInput?.click()}
             on:keydown={handleKeydown}
             tabindex={disabled ? -1 : 0}
-            role="button"
             aria-label="Click or drag to upload an image"
         >
             <input

@@ -201,24 +201,16 @@
         <nav class="desktop-nav">
             <ul class="nav-links">
                 <li class={activeTab === "acquireTokens" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("acquireTokens")}>
-                        Contribute to a Campaign
-                    </a>
+                    <button type="button" class="nav-link" on:click={() => changeTab("acquireTokens")}>Contribute to a Campaign</button>
                 </li>
                 <li class={activeTab === "myContributions" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("myContributions")}>
-                        My Contributions
-                    </a>
+                    <button type="button" class="nav-link" on:click={() => changeTab("myContributions")}>My Contributions</button>
                 </li>
                 <li class={activeTab === "myProjects" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("myProjects")}>
-                        My Campaigns
-                    </a>
+                    <button type="button" class="nav-link" on:click={() => changeTab("myProjects")}>My Campaigns</button>
                 </li>
                 <li class={activeTab === "submitProject" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("submitProject")}>
-                        New Campaign
-                    </a>
+                    <button type="button" class="nav-link" on:click={() => changeTab("submitProject")}>New Campaign</button>
                 </li>
             </ul>
         </nav>
@@ -291,24 +283,16 @@
     <div class="mobile-nav" transition:fade={{ duration: 200 }}>
         <ul class="mobile-nav-links">
             <li class={activeTab === "acquireTokens" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("acquireTokens")}>
-                    Contribute to a Campaign
-                </a>
+                <button type="button" class="nav-link" on:click={() => changeTab("acquireTokens")}>Contribute to a Campaign</button>
             </li>
             <li class={activeTab === "myContributions" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("myContributions")}>
-                    My Contributions
-                </a>
+                <button type="button" class="nav-link" on:click={() => changeTab("myContributions")}>My Contributions</button>
             </li>
             <li class={activeTab === "myProjects" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("myProjects")}>
-                    My Campaigns
-                </a>
+                <button type="button" class="nav-link" on:click={() => changeTab("myProjects")}>My Campaigns</button>
             </li>
             <li class={activeTab === "submitProject" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("submitProject")}>
-                    New Campaign
-                </a>
+                <button type="button" class="nav-link" on:click={() => changeTab("submitProject")}>New Campaign</button>
             </li>
         </ul>
     </div>
@@ -545,7 +529,8 @@
         position: relative;
     }
 
-    .nav-links li a {
+    .nav-links li a,
+    .nav-links li .nav-link {
         color: inherit;
         text-decoration: none;
         font-weight: 500;
@@ -556,13 +541,15 @@
         border-bottom: 2px solid transparent;
     }
 
-    .nav-links li a:hover {
+    .nav-links li a:hover,
+    .nav-links li .nav-link:hover {
         color: orange;
         background: rgba(255, 165, 0, 0.05);
         box-shadow: 0 0 10px rgba(255, 165, 0, 0.1);
     }
 
-    .nav-links li.active a {
+    .nav-links li.active a,
+    .nav-links li.active .nav-link {
         border-bottom: 2px solid orange;
         color: orange;
         background: rgba(255, 165, 0, 0.1);
@@ -676,7 +663,8 @@
         gap: 0.5rem;
     }
 
-    .mobile-nav-links li a {
+    .mobile-nav-links li a,
+    .mobile-nav-links li .nav-link {
         color: white;
         text-decoration: none;
         font-weight: 500;
@@ -686,12 +674,14 @@
         transition: all 0.2s ease;
     }
 
-    .mobile-nav-links li a:hover {
+    .mobile-nav-links li a:hover,
+    .mobile-nav-links li .nav-link:hover {
         background-color: rgba(255, 165, 0, 0.1);
         box-shadow: 0 0 15px rgba(255, 165, 0, 0.1);
     }
 
-    .mobile-nav-links li.active a {
+    .mobile-nav-links li.active a,
+    .mobile-nav-links li.active .nav-link {
         background-color: rgba(255, 165, 0, 0.2);
         color: orange;
         box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);
