@@ -1,65 +1,175 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --background: 210 70% 97%; 
+    --foreground: 210 35% 18%;
+
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 72.22% 50.59%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --radius: 0.75rem;
+    --card-foreground: 210 40% 20%;
 
-    --footer-bg-color: hsl(0 0% 100% / 0.8);
-    --footer-border-color: hsl(0 0% 0% / 0.1);
+    --primary: 210 85% 45%; 
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 65% 92%;
+    --secondary-foreground: 210 35% 22%;
+
+    --muted: 210 55% 88%;
+    --muted-foreground: 210 30% 38%;
+
+    --accent: 200 98% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --border: 210 45% 80%;
+    --input: 210 45% 82%;
+    --ring: 200 98% 55%;
+    --radius: 0.9rem;
+
+    --background-gradient: linear-gradient(180deg, #e8f2ff, #cfe7ff, #e8f2ff);
+    --glass-bg: rgba(255, 255, 255, 0.35);
+    --glass-border: rgba(70, 150, 255, 0.35);
   }
 
-  .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+.dark {
+  /* Backgrounds */
+  --background: 220 40% 8%;           
+  --foreground: 210 95% 97%;          
+  --card: 220 28% 12%;                
+  --card-foreground: 210 90% 97%;
 
-    --footer-bg-color: hsl(0 0% 3.9% / 0.8);
-    --footer-border-color: hsl(0 0% 100% / 0.1);
-  }
+  --secondary: 220 25% 18%;
+  --secondary-foreground: 210 80% 96%;
+
+  --muted: 220 20% 22%;
+  --muted-foreground: 210 60% 85%;
+
+  --accent: 210 100% 55%;             
+  --accent-foreground: 0 0% 100%;
+
+  --primary: 210 100% 50%;            
+  --primary-foreground: 0 0% 100%;
+
+  --glass-bg: rgba(15, 25, 45, 0.6);   
+  --glass-border: rgba(0, 120, 255, 0.3);
+
+  --background-gradient: radial-gradient(circle at top, #0b0f1a, #05070d);
 }
- 
+
+}
+
+/* Body Styling */
 @layer base {
   * {
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    background: var(--background-gradient);
+    @apply text-foreground overflow-x-hidden font-[Russo_One];
   }
+}
+
+
+h1, h2, h3,
+.section-title,
+.campaign-title {
+  @apply text-primary;
+  text-shadow: 0 0 10px rgba(0, 140, 255, 0.5);
+}
+
+.read-more, a {
+  @apply text-accent;
+}
+.read-more:hover, a:hover {
+  text-shadow: 0 0 12px rgba(0, 140, 255, 0.7);
+}
+
+
+.search-bar {
+  background: var(--glass-bg);
+  border: 2px solid var(--glass-border);
+  backdrop-filter: blur(20px);
+  @apply rounded-xl px-4 py-3 w-full text-primary placeholder-primary/50 transition focus:ring-2 focus:ring-accent;
+}
+
+
+.project-card {
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  @apply rounded-2xl shadow-lg p-6 transition hover:-translate-y-2 hover:shadow-accent/30;
+}
+
+
+.primary-btn {
+  @apply bg-primary text-primary-foreground rounded-xl py-2 px-4 text-sm transition shadow-lg hover:bg-accent;
+  box-shadow: 0 0 8px rgba(0, 148, 255, 0.45);
+}
+.primary-btn:hover {
+  box-shadow: 0 0 18px rgba(0, 148, 255, 0.7);
+}
+
+.logo-text {
+  color: #ff9800 !important;
+  text-shadow: 0 0 8px rgba(255, 152, 0, 0.45);
+}
+
+
+.contribute-btn {
+  background-color: #0066ff !important;   
+  color: white !important;
+  border: none !important;
+  @apply rounded-xl px-6 py-2 font-semibold shadow-md transition;
+}
+
+.contribute-btn:hover {
+  background-color: #0052cc !important;  
+  box-shadow: 0 0 12px rgba(0, 82, 204, 0.5);
+}
+
+/* Dark card glow + texture */
+.dark .project-card {
+  background: linear-gradient(145deg, #0e1420, #0a0f18);
+  border: 1px solid rgba(0, 120, 255, 0.25);
+  box-shadow:
+    0 0 15px rgba(0, 120, 255, 0.15),
+    inset 0 0 15px rgba(0, 50, 120, 0.15);
+
+  transition: 0.25s ease-out;
+}
+
+.dark .project-card:hover {
+  transform: translateY(-6px);
+  box-shadow:
+    0 0 25px rgba(0, 140, 255, 0.35),
+    inset 0 0 20px rgba(0, 80, 200, 0.15);
+}
+
+.dark .deadline-tag,
+.dark .amount-box {
+  background: rgba(0, 140, 255, 0.12) !important;
+  border: 1px solid rgba(0, 140, 255, 0.35) !important;
+  color: hsl(var(--accent)) !important;
+  backdrop-filter: blur(8px);
+}
+
+.dark button,
+.dark .primary-btn,
+.dark .view-campaign-btn {
+  background: linear-gradient(90deg, #007bff, #00aaff) !important;
+  color: white !important;
+  border: none;
+  box-shadow:
+    0 0 12px rgba(0, 140, 255, 0.5),
+    0 0 20px rgba(0, 140, 255, 0.3) inset;
+}
+
+.dark button:hover,
+.dark .primary-btn:hover {
+  background: linear-gradient(90deg, #0094ff, #33bbff) !important;
+  box-shadow:
+    0 0 18px rgba(0, 180, 255, 0.65),
+    0 0 22px rgba(0, 120, 255, 0.5) inset;
 }
