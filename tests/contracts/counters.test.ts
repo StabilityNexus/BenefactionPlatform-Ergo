@@ -3,23 +3,31 @@
 // by creating invalid states between Physical Tokens and Register Counters.
 // Tries to create a malicious scenario for temporaryFundingTokenAmountOnContract function.
 
-import { describe, it, expect, beforeEach } from "vitest";
-import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
-import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
-import { stringToBytes } from "@scure/base";
-import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, USD_BASE_TOKEN, USD_BASE_TOKEN_NAME, createR4 } from "./bene_contract_helpers";
+import { describe, it, expect, beforeEach } from 'vitest';
+import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from '@fleet-sdk/core';
+import { SByte, SColl, SLong } from '@fleet-sdk/serializer';
+import { stringToBytes } from '@scure/base';
+import {
+  setupBeneTestContext,
+  ERG_BASE_TOKEN,
+  ERG_BASE_TOKEN_NAME,
+  type BeneTestContext,
+  USD_BASE_TOKEN,
+  USD_BASE_TOKEN_NAME,
+  createR4,
+} from './bene_contract_helpers';
 
 const baseModes = [
-  { name: "USD Token Mode", token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
-  { name: "ERG Mode", token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
+  { name: 'USD Token Mode', token: USD_BASE_TOKEN, tokenName: USD_BASE_TOKEN_NAME },
+  { name: 'ERG Mode', token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
 ];
 
-describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (mode) => {
+describe.each(baseModes)('Bene Contract v1.2 - Counter Hacker Scenarios (%s)', (mode) => {
   let ctx: BeneTestContext;
   let projectBox: Box;
 
   // Helper to inject legitimate funds to the buyer (so they can attempt the attack)
-  const giveTokensToBuyer = (tokens: { tokenId: string, amount: bigint }[]) => {
+  const giveTokensToBuyer = (tokens: { tokenId: string; amount: bigint }[]) => {
     ctx.buyer.addUTxOs({
       value: 10_000_000_000n, // 10 ERG for fees and change
       ergoTree: ctx.buyer.address.ergoTree,
@@ -35,7 +43,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
     // Setup: Initial Project Box (Standard state: 100k PFTs, 0 Sold)
     const initialAssets = [
       { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens }, // APT
-      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },        // PFT
+      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }, // PFT
     ];
 
     ctx.beneContract.addUTxOs({
@@ -49,7 +57,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
         R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
         R7: SLong(ctx.exchangeRate).toHex(),
         R8: ctx.constants.toHex(),
-        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+        R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
       },
     });
 
@@ -75,9 +83,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
     giveTokensToBuyer([{ tokenId: ctx.pftTokenId, amount: injectedPFT }]);
 
     let value = BigInt(projectBox.value);
-    let assets = [
+    const assets = [
       { tokenId: ctx.projectNftId, amount: newAPTAmount },
-      { tokenId: ctx.pftTokenId, amount: maliciousPFTAmount } // maliciously increased
+      { tokenId: ctx.pftTokenId, amount: maliciousPFTAmount }, // maliciously increased
     ];
 
     if (!ctx.isErgMode) {
@@ -119,9 +127,9 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
     const newAPTAmount = BigInt(projectBox.assets[0].amount) - tokensToBuy;
 
     let value = BigInt(projectBox.value);
-    let assets = [
+    const assets = [
       { tokenId: ctx.projectNftId, amount: newAPTAmount },
-      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
     ];
 
     if (!ctx.isErgMode) {
@@ -180,11 +188,11 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
       creationHeight: ctx.mockChain.height,
       additionalRegisters: {
         R4: createR4(ctx),
-        R5: SLong(50000n).toHex(),           // Min Sold 50k
+        R5: SLong(50000n).toHex(), // Min Sold 50k
         R6: SColl(SLong, [50000n, 0n, 0n]).toHex(), // Sold 50k (Minimum Reached)
         R7: SLong(ctx.exchangeRate).toHex(),
         R8: ctx.constants.toHex(),
-        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+        R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
       },
     });
     projectBox = ctx.beneContract.utxos.toArray()[0];
@@ -199,7 +207,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
       .addTokens([
         { tokenId: ctx.projectNftId, amount: newAPTAmount },
         { tokenId: ctx.pftTokenId, amount: newPFTAmount },
-        ...(ctx.isErgMode ? [] : [{ tokenId: ctx.baseTokenId, amount: 0n }])
+        ...(ctx.isErgMode ? [] : [{ tokenId: ctx.baseTokenId, amount: 0n }]),
       ])
       .setAdditionalRegisters({
         ...projectBox.additionalRegisters,
@@ -212,8 +220,8 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
       .to([
         contractOutputBuilder,
         new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          { tokenId: ctx.pftTokenId, amount: aptAmountToExchange }
-        ])
+          { tokenId: ctx.pftTokenId, amount: aptAmountToExchange },
+        ]),
       ])
       .sendChangeTo(ctx.buyer.address)
       .payFee(RECOMMENDED_MIN_FEE_VALUE)
@@ -244,7 +252,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
 
     const refundReadyAssets = [
       { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldAmount },
-      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
     ];
     let refundReadyValue = RECOMMENDED_MIN_FEE_VALUE;
 
@@ -265,7 +273,7 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
         R6: SColl(SLong, [soldAmount, 0n, 0n]).toHex(), // Sold 10k (Min NOT Reached)
         R7: SLong(ctx.exchangeRate).toHex(),
         R8: ctx.constants.toHex(),
-        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+        R9: SColl(SByte, stringToBytes('utf8', '{}')).toHex(),
       },
     });
     const refundReadyBox = ctx.beneContract.utxos.toArray()[0];
@@ -277,13 +285,15 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
     const newAPTAmount = BigInt(refundReadyBox.assets[0].amount) + tokensToRefund;
 
     let newValue = BigInt(refundReadyBox.value);
-    let newAssets = [
+    const newAssets = [
       { tokenId: ctx.projectNftId, amount: newAPTAmount },
-      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }
+      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
     ];
 
     if (!ctx.isErgMode) {
-      const currentBase = BigInt(refundReadyBox.assets.find(a => a.tokenId === ctx.baseTokenId)?.amount || 0n);
+      const currentBase = BigInt(
+        refundReadyBox.assets.find((a) => a.tokenId === ctx.baseTokenId)?.amount || 0n
+      );
       newAssets.push({ tokenId: ctx.baseTokenId, amount: currentBase - refundValue });
     } else {
       newValue -= refundValue;
@@ -304,8 +314,8 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
       .to([
         contractOutputBuilder,
         new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
-          ...(ctx.isErgMode ? [] : [{ tokenId: ctx.baseTokenId, amount: refundValue }])
-        ])
+          ...(ctx.isErgMode ? [] : [{ tokenId: ctx.baseTokenId, amount: refundValue }]),
+        ]),
       ])
       .sendChangeTo(ctx.buyer.address)
       .payFee(RECOMMENDED_MIN_FEE_VALUE)
@@ -314,5 +324,4 @@ describe.each(baseModes)("Bene Contract v1.2 - Counter Hacker Scenarios (%s)", (
     const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
     expect(result).toBe(false); // Fails due to incrementRefundCounterCorrectly
   });
-
 });

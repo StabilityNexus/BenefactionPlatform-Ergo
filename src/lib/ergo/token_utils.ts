@@ -13,38 +13,38 @@ import { fetch_token_details } from './fetch';
  * @returns Promise<boolean> indicating if user has sufficient base tokens
  */
 export async function validateBaseTokenBalance(
-    project: Project,
-    tokenAmount: number,
-    userBoxes: any[]
+  project: Project,
+  tokenAmount: number,
+  userBoxes: any[]
 ): Promise<{ valid: boolean; requiredAmount: number; availableAmount: number }> {
-    const isERGBase = !project.base_token_id || project.base_token_id === "";
-    const requiredBaseTokenAmount = tokenAmount * project.exchange_rate;
+  const isERGBase = !project.base_token_id || project.base_token_id === '';
+  const requiredBaseTokenAmount = tokenAmount * project.exchange_rate;
 
-    if (isERGBase) {
-        // For ERG, check total ERG value across all boxes
-        const totalERG = userBoxes.reduce((sum, box) => sum + box.value, 0);
-        return {
-            valid: totalERG >= requiredBaseTokenAmount,
-            requiredAmount: requiredBaseTokenAmount,
-            availableAmount: totalERG
-        };
-    } else {
-        // For tokens, check specific token balance
-        let availableTokenAmount = 0;
-        for (const box of userBoxes) {
-            for (const asset of box.assets || []) {
-                if (asset.tokenId === project.base_token_id) {
-                    availableTokenAmount += Number(asset.amount);
-                }
-            }
+  if (isERGBase) {
+    // For ERG, check total ERG value across all boxes
+    const totalERG = userBoxes.reduce((sum, box) => sum + box.value, 0);
+    return {
+      valid: totalERG >= requiredBaseTokenAmount,
+      requiredAmount: requiredBaseTokenAmount,
+      availableAmount: totalERG,
+    };
+  } else {
+    // For tokens, check specific token balance
+    let availableTokenAmount = 0;
+    for (const box of userBoxes) {
+      for (const asset of box.assets || []) {
+        if (asset.tokenId === project.base_token_id) {
+          availableTokenAmount += Number(asset.amount);
         }
-        
-        return {
-            valid: availableTokenAmount >= requiredBaseTokenAmount,
-            requiredAmount: requiredBaseTokenAmount,
-            availableAmount: availableTokenAmount
-        };
+      }
     }
+
+    return {
+      valid: availableTokenAmount >= requiredBaseTokenAmount,
+      requiredAmount: requiredBaseTokenAmount,
+      availableAmount: availableTokenAmount,
+    };
+  }
 }
 
 /**
@@ -53,33 +53,33 @@ export async function validateBaseTokenBalance(
  * @returns Promise with token display information
  */
 export async function getBaseTokenDisplayInfo(baseTokenId: string): Promise<{
-    name: string;
-    symbol: string;
-    decimals: number;
+  name: string;
+  symbol: string;
+  decimals: number;
 }> {
-    if (!baseTokenId || baseTokenId === "") {
-        return {
-            name: "Ergo",
-            symbol: "ERG",
-            decimals: 9
-        };
-    }
+  if (!baseTokenId || baseTokenId === '') {
+    return {
+      name: 'Ergo',
+      symbol: 'ERG',
+      decimals: 9,
+    };
+  }
 
-    try {
-        const tokenDetails = await fetch_token_details(baseTokenId);
-        return {
-            name: tokenDetails.name,
-            symbol: tokenDetails.name, // Assuming name is used as symbol
-            decimals: tokenDetails.decimals
-        };
-    } catch (error) {
-        console.warn(`Failed to fetch token details for ${baseTokenId}:`, error);
-        return {
-            name: `Token ${baseTokenId.slice(0, 8)}...`,
-            symbol: "TOKEN",
-            decimals: 0
-        };
-    }
+  try {
+    const tokenDetails = await fetch_token_details(baseTokenId);
+    return {
+      name: tokenDetails.name,
+      symbol: tokenDetails.name, // Assuming name is used as symbol
+      decimals: tokenDetails.decimals,
+    };
+  } catch (error) {
+    console.warn(`Failed to fetch token details for ${baseTokenId}:`, error);
+    return {
+      name: `Token ${baseTokenId.slice(0, 8)}...`,
+      symbol: 'TOKEN',
+      decimals: 0,
+    };
+  }
 }
 
 /**
@@ -90,8 +90,8 @@ export async function getBaseTokenDisplayInfo(baseTokenId: string): Promise<{
  * @returns Formatted string for display
  */
 export function formatBaseTokenAmount(amount: number, decimals: number, symbol: string): string {
-    const displayAmount = amount / Math.pow(10, decimals);
-    return `${displayAmount.toLocaleString()} ${symbol}`;
+  const displayAmount = amount / Math.pow(10, decimals);
+  return `${displayAmount.toLocaleString()} ${symbol}`;
 }
 
 /**
@@ -100,12 +100,12 @@ export function formatBaseTokenAmount(amount: number, decimals: number, symbol: 
  * @returns Promise with formatted exchange rate text
  */
 export async function getExchangeRateDisplay(project: Project): Promise<string> {
-    const baseTokenInfo = await getBaseTokenDisplayInfo(project.base_token_id);
-    const baseTokenAmount = formatBaseTokenAmount(
-        project.exchange_rate,
-        baseTokenInfo.decimals,
-        baseTokenInfo.symbol
-    );
-    
-    return `1 PFT = ${baseTokenAmount}`;
+  const baseTokenInfo = await getBaseTokenDisplayInfo(project.base_token_id);
+  const baseTokenAmount = formatBaseTokenAmount(
+    project.exchange_rate,
+    baseTokenInfo.decimals,
+    baseTokenInfo.symbol
+  );
+
+  return `1 PFT = ${baseTokenAmount}`;
 }

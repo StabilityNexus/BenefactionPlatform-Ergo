@@ -5,31 +5,31 @@ export interface ErgoWalletAdapter {
   name: string;
   icon: string;
   downloadUrls?: WalletDownloadUrls;
-  
+
   // Connection methods
   connect(): Promise<boolean>;
   disconnect(): Promise<void>;
   isConnected(): Promise<boolean>;
-  
+
   // Address management
   getAddresses(): Promise<string[]>;
   getChangeAddress(): Promise<string>;
-  
+
   // Balance queries
   getBalance(address?: string): Promise<WalletBalance>;
-  
+
   // Transaction methods
   signTransaction(unsignedTx: any): Promise<any>;
   submitTransaction(signedTx: any): Promise<string>;
-  
+
   // Network info
   getNetworkId(): Promise<string>;
   getCurrentHeight(): Promise<number>;
-  
+
   // Event handling
   on(event: WalletEvent, callback: (data: any) => void): void;
   off(event: WalletEvent, callback: (data: any) => void): void;
-  
+
   // Installation detection
   isInstalled(): boolean;
 }
@@ -58,11 +58,11 @@ export interface WalletDownloadUrls {
   desktop?: string;
 }
 
-export type WalletEvent = 
-  | 'connect' 
-  | 'disconnect' 
-  | 'addressChanged' 
-  | 'networkChanged' 
+export type WalletEvent =
+  | 'connect'
+  | 'disconnect'
+  | 'addressChanged'
+  | 'networkChanged'
   | 'balanceChanged';
 
 export interface WalletInfo {

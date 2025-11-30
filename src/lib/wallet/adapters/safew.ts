@@ -6,9 +6,10 @@ export class SafewWalletAdapter extends BaseWalletAdapter {
   name = 'SAFEW';
   icon = '/wallet-icons/safew.svg';
   downloadUrls: WalletDownloadUrls = {
-    chrome: 'https://chromewebstore.google.com/detail/safew-simple-and-fast-erg/fmpbldieijjehhalgjblbpgjmijencll',
+    chrome:
+      'https://chromewebstore.google.com/detail/safew-simple-and-fast-erg/fmpbldieijjehhalgjblbpgjmijencll',
     firefox: 'https://addons.mozilla.org/en-US/firefox/addon/safew/',
-    browserExtension: 'https://github.com/ThierryM1212/SAFEW/releases/latest'
+    browserExtension: 'https://github.com/ThierryM1212/SAFEW/releases/latest',
   };
 
   async connect(): Promise<boolean> {
@@ -88,23 +89,25 @@ export class SafewWalletAdapter extends BaseWalletAdapter {
         throw new Error('Wallet not connected');
       }
 
-      const addr = address || await this.getChangeAddress();
-      
-      const response = await fetch(`https://api.ergoplatform.com/api/v1/addresses/${addr}/balance/confirmed`);
+      const addr = address || (await this.getChangeAddress());
+
+      const response = await fetch(
+        `https://api.ergoplatform.com/api/v1/addresses/${addr}/balance/confirmed`
+      );
       if (!response.ok) {
         throw new Error(`API request failed with status: ${response.status}`);
       }
 
       const data = await response.json();
-      
+
       return {
         nanoErgs: BigInt(data.nanoErgs),
         tokens: data.tokens.map((token: any) => ({
           tokenId: token.tokenId,
           amount: BigInt(token.amount),
           name: token.name,
-          decimals: token.decimals
-        }))
+          decimals: token.decimals,
+        })),
       };
     } catch (error) {
       this.handleError(error, 'getBalance');
@@ -153,19 +156,19 @@ export class SafewWalletAdapter extends BaseWalletAdapter {
       if (!(await this.isConnected())) {
         throw new Error('Wallet not connected');
       }
-      
+
       // SafeW doesn't expose get_current_height() method
       // Fetch from Ergo Explorer API instead
       const response = await fetch('https://api.ergoplatform.com/api/v1/blocks?limit=1&offset=0');
       if (!response.ok) {
         throw new Error(`Failed to fetch current height: ${response.status}`);
       }
-      
+
       const data = await response.json();
       if (data.items && data.items.length > 0) {
         return data.items[0].height;
       }
-      
+
       throw new Error('Could not determine current blockchain height');
     } catch (error) {
       this.handleError(error, 'getCurrentHeight');
@@ -173,8 +176,10 @@ export class SafewWalletAdapter extends BaseWalletAdapter {
   }
 
   isInstalled(): boolean {
-    return typeof window !== 'undefined' && 
-           typeof window.ergoConnector !== 'undefined' && 
-           typeof window.ergoConnector.safew !== 'undefined';
+    return (
+      typeof window !== 'undefined' &&
+      typeof window.ergoConnector !== 'undefined' &&
+      typeof window.ergoConnector.safew !== 'undefined'
+    );
   }
 }

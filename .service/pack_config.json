@@ -1,15 +1,15 @@
 {
-    "include": [
-        "package.json",
-        "package-lock.json",
-        "components.json",
-        "postcss.config.js",
-        "svelte.config.js",
-        "tailwind.config.ts",
-        "tsconfig.json",
-        "vite.config.ts",
-        ".npmrc",
-        "src",
-        "static"
-    ]
+  "include": [
+    "package.json",
+    "package-lock.json",
+    "components.json",
+    "postcss.config.js",
+    "svelte.config.js",
+    "tailwind.config.ts",
+    "tsconfig.json",
+    "vite.config.ts",
+    ".npmrc",
+    "src",
+    "static"
+  ]
 }
