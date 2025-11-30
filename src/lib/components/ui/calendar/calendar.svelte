@@ -37,7 +37,7 @@
               <Calendar.HeadCell>
                 {weekday.slice(0, 2)}
               </Calendar.HeadCell>
-            {/each}/home/ajay/opensource/BenefactionPlatform-Ergo/src/lib/components/ui/calendar/calendar.svelte
+            {/each}
           </Calendar.GridRow>
         </Calendar.GridHead>
         <Calendar.GridBody>
