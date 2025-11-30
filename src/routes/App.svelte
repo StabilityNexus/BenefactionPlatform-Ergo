@@ -64,7 +64,7 @@
     onMount(async () => {
         if (!browser) return;
 
-        const projectId = $page.url.searchParams.get("project");
+        const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
         const platformId = $page.url.searchParams.get("chain");
 
         if (projectId && platformId == platform.id) {
@@ -151,10 +151,11 @@
 
         if (project !== null) {
             url.searchParams.set("chain", platform.id);
-            url.searchParams.set("project", project.project_id);
+            url.searchParams.set("campaign", project.project_id);
         } else {
             url.searchParams.delete("chain");
             url.searchParams.delete("project");
+            url.searchParams.delete("campaign");
         }
 
         window.history.pushState({}, "", url);
