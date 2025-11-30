@@ -1167,7 +1167,7 @@
                                 >Owner Configuration</Label
                             >
                             <p class="text-xs text-muted-foreground">
-                                The owner is the one who receives the funds
+                                The owner is the one who receives the funds and has the ability to add or withdraw contribution tokens.
                             </p>
                         </div>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
@@ -1323,6 +1323,12 @@
                             <div
                                 class="space-y-3 p-4 bg-orange-500/5 rounded-lg border border-orange-500/10"
                             >
+                                <!-- Alert -->
+                                <div class="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-md text-xs text-yellow-700">
+                                    <strong>Important:</strong> The custom owner ErgoTree must meet specific pattern requirements.  
+                                    In addition to being spendable, it must also allow self-spending to authorize contribution-token additions and withdrawals, and it must be implemented as a singleton to enable batch fund withdrawals.
+                                </div>
+
                                 <div>
                                     <Label
                                         for="ownerErgoTree"
