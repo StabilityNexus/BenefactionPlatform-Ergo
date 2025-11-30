@@ -1,8 +1,10 @@
 <script lang="ts">
   import type { HTMLTextareaAttributes } from 'svelte/elements';
   import { cn } from '$lib/utils.js';
+  import { TextareaEvents } from '.';
 
   type $$Props = HTMLTextareaAttributes;
+  type $$Events = TextareaEvents;
 
   let className: $$Props['class'] = undefined;
   export let value: $$Props['value'] = undefined;

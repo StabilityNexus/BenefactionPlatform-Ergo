@@ -4,6 +4,7 @@
   import { cn } from '$lib/utils.js';
 
   type $$Props = MenubarPrimitive.CheckboxItemProps;
+  type $$Events = MenubarPrimitive.CheckboxItemEvents;
 
   let className: $$Props['class'] = undefined;
   export let checked: $$Props['checked'] = false;

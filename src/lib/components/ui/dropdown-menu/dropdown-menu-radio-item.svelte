@@ -4,6 +4,7 @@
   import { cn } from '$lib/utils.js';
 
   type $$Props = DropdownMenuPrimitive.RadioItemProps;
+  type $$Events = DropdownMenuPrimitive.RadioItemEvents;
 
   let className: $$Props['class'] = undefined;
   export let value: $$Props['value'];

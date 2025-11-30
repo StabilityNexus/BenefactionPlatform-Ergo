@@ -3,6 +3,7 @@
   import { cn, flyAndScale } from '$lib/utils.js';
 
   type $$Props = MenubarPrimitive.ContentProps;
+  type $$Events = MenubarPrimitive.ContentEvents;
 
   let className: $$Props['class'] = undefined;
   export let sideOffset: $$Props['sideOffset'] = 8;

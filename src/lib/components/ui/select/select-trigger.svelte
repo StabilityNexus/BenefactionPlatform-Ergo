@@ -4,6 +4,7 @@
   import { cn } from '$lib/utils.js';
 
   type $$Props = SelectPrimitive.TriggerProps;
+  type $$Events = SelectPrimitive.TriggerEvents;
 
   let className: $$Props['class'] = undefined;
   export { className as class };

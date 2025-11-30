@@ -3,6 +3,7 @@
   import { cn, flyAndScale } from '$lib/utils.js';
 
   type $$Props = MenubarPrimitive.SubContentProps;
+  type $$Events = MenubarPrimitive.SubContentEvents;
 
   let className: $$Props['class'] = undefined;
   export let transition: $$Props['transition'] = flyAndScale;

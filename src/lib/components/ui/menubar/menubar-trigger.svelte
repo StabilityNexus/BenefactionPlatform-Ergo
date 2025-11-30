@@ -3,6 +3,7 @@
   import { cn } from '$lib/utils.js';
 
   type $$Props = MenubarPrimitive.TriggerProps;
+  type $$Events = MenubarPrimitive.TriggerEvents;
 
   let className: $$Props['class'] = undefined;
   export { className as class };
