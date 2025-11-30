@@ -11,14 +11,13 @@
     import * as Select from "$lib/components/ui/select";
     import { get } from "svelte/store";
     import { explorer_uri, user_tokens } from "$lib/common/store";
-    import { walletConnected } from "$lib/wallet/wallet-manager";
+    import { walletConnected, walletAddress } from "wallet-svelte-component";
     import { formatTransactionError } from "$lib/common/error-utils";
     import {
         validateProjectContent,
         getUsagePercentage,
         type ProjectContent,
     } from "$lib/ergo/utils/box-size-calculator";
-    import { walletAddress } from "$lib/wallet/wallet-manager";
 
     let platform = new ErgoPlatform();
 
@@ -106,7 +105,6 @@
         tokenConflict: string | null;
         goalOrder: string | null;
         invalidBaseToken: string | null;
-        invalidToken: string | null;
         invalidToken: string | null;
         exchangeRate: string | null;
         amountExceedsBalance: string | null;
@@ -235,11 +233,12 @@
                 balance: 0,
             },
             {
-                tokenId: "886b7721bef42f60c6317d37d8752da8aca01898cae7dae61808c4a14225edc8",
+                tokenId:
+                    "886b7721bef42f60c6317d37d8752da8aca01898cae7dae61808c4a14225edc8",
                 title: "GluonW GAU",
                 decimals: 9,
                 balance: 0,
-            }
+            },
         ];
 
         /*

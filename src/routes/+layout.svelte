@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { ModeWatcher } from "mode-watcher";
-	import WalletAddressChangeHandler from '$lib/components/WalletAddressChangeHandler.svelte';
+	import { WalletAddressChangeHandler } from 'wallet-svelte-component';
 </script>
 
 <ModeWatcher />

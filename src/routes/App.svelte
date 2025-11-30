@@ -10,6 +10,7 @@
         temporal_token_amount,
         timer,
         user_tokens,
+        web_explorer_uri_addr,
     } from "$lib/common/store";
     import MyProjects from "./MyProjects.svelte";
     import MyContributions from "./MyContributions.svelte";
@@ -26,14 +27,14 @@
     import { Badge } from "$lib/components/ui/badge";
     import { get } from "svelte/store";
     import { fade } from "svelte/transition";
-    // New wallet system imports
-    import WalletButton from "$lib/components/WalletButton.svelte";
+    // New wallet system imports (use upstream package directly)
     import {
+        WalletButton,
         walletManager,
         walletConnected,
         walletAddress,
         walletBalance,
-    } from "$lib/wallet/wallet-manager";
+    } from 'wallet-svelte-component';
     import SettingsModal from "./SettingsModal.svelte";
 
     let activeTab = "acquireTokens";
@@ -41,6 +42,9 @@
     let showWalletInfo = false;
     let mobileMenuOpen = false;
     let showSettingsModal = false;
+
+    // Reference to the wallet button wrapper to detect outside clicks
+    let walletButtonWrapper: HTMLElement | null = null;
 
     let platform = new ErgoPlatform();
 
@@ -176,6 +180,28 @@
         if (browser) {
             balanceUpdateInterval = setInterval(updateWalletInfo, 30000);
         }
+        // Add document click listener to close wallet modal when clicking outside
+        function handleDocumentClick(e: MouseEvent) {
+            try {
+                const target = e.target as Node;
+                const dropdown = document.querySelector('.bits-dropdown-menu-content-wrapper') || document.querySelector('.bits-dropdown-menu-root-open');
+                if (!dropdown) return;
+
+                // If click is inside wallet button or the dropdown, do nothing
+                if (walletButtonWrapper && (walletButtonWrapper.contains(target) || dropdown.contains(target))) {
+                    return;
+                }
+
+                // Otherwise, attempt to close the modal via walletManager
+                if (walletManager && typeof (walletManager as any).closeModal === 'function') {
+                    (walletManager as any).closeModal();
+                }
+            } catch (err) {
+                console.warn('Error handling document click for wallet modal:', err);
+            }
+        }
+
+        document.addEventListener('mousedown', handleDocumentClick, true);
 
         return () => {
             if (balanceUpdateInterval) {
@@ -183,10 +209,11 @@
             }
             if (scrollingTextElement) {
                 scrollingTextElement.removeEventListener(
-                    "animationiteration",
+                    'animationiteration',
                     handleAnimationIteration,
                 );
             }
+            document.removeEventListener('mousedown', handleDocumentClick, true);
         };
     });
 </script>
@@ -224,8 +251,8 @@
         </nav>
 
         <div class="user-section">
-            <div class="wallet-wrapper">
-                <WalletButton />
+            <div class="wallet-wrapper" bind:this={walletButtonWrapper}>
+                <WalletButton explorerUrl={$web_explorer_uri_addr}/>
             </div>
 
             {#if $walletConnected}
