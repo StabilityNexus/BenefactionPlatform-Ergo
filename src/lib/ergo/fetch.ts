@@ -31,9 +31,11 @@ const CACHE_DURATION_MS = 1000 * 60 * 5;
 let inFlightFetch: Promise<Map<string, Project>> | null = null;
 
 function hasValidSigmaTypes(additionalRegisters: any, version: contract_version): boolean {
+    if (!additionalRegisters) return false;
     const expectedTypes = version === "v2" ? expectedSigmaTypesV2 : expectedSigmaTypesV1;
     for (const [key, expectedType] of Object.entries(expectedTypes)) {
-        if (additionalRegisters[key] && additionalRegisters[key].sigmaType !== expectedType) {
+        // Check if register exists AND has correct type
+        if (!additionalRegisters[key] || additionalRegisters[key].sigmaType !== expectedType) {
             return false;
         }
     }
@@ -215,15 +217,15 @@ export async function fetchProjectById(projectId: string): Promise<Project | nul
              return null;
          }
 
-         const box = json_data.items[0]; 
-         
-         for (const v of versions) {
-             // Try to parse with each version. 
-             // Ideally we check the template hash, but parsing validation is also a good check.
-             const p = await parseProjectBox(box, v);
-             if (p) {
-                 console.log(`Successfully parsed project ${projectId} with version ${v}`);
-                 return p;
+         // Iterate through all items to find a valid project box
+         for (const box of json_data.items) {
+             for (const v of versions) {
+                 // Try to parse with each version. 
+                 const p = await parseProjectBox(box, v);
+                 if (p) {
+                     console.log(`Successfully parsed project ${projectId} with version ${v}`);
+                     return p;
+                 }
              }
          }
          
@@ -351,7 +353,7 @@ async function parseProjectBox(e: any, version: contract_version): Promise<Proje
         };
         return project;
     } else {
-        console.warn(`Box ${e.boxId} has invalid sigma types for version ${version}, skipping.`);
+        // console.warn(`Box ${e.boxId} has invalid sigma types for version ${version}, skipping.`);
         // console.log(e.additionalRegisters);
         return null;
     }
