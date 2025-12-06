@@ -11,6 +11,9 @@
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
     import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+    import { ErgoPlatform } from "$lib/ergo/platform";
+
+    const platform = new ErgoPlatform();
 
     let allFetchedItems: Map<string, Project> = new Map();
     let listedItems: Map<string, Project> | null = null;
@@ -21,7 +24,9 @@
 
     let searchQuery: string = "";
     let sortBy: "newest" | "oldest" | "amount" | "name" = "newest";
+    let activeTab: "all" | "active" | "finished" = "all";
     let hideTestProjects: boolean = true;
+
     let filterOpen = false;
     let debouncedSearch: any;
 
@@ -40,10 +45,37 @@
             return;
         }
 
+
+
+        const currentHeight = await platform.get_current_height();
+        const currentTime = new Date().getTime();
+
         for (const [id, item] of sourceItems.entries()) {
             let shouldAdd = true;
 
-            if (filterProject) {
+            // Tab filtering logic
+            if (activeTab === "active") {
+                const isEnded = item.is_timestamp_limit 
+                    ? item.block_limit < currentTime 
+                    : item.block_limit < currentHeight;
+                const isSoldOut = item.sold_counter == item.maximum_amount;
+                
+                if (isEnded || isSoldOut) {
+                    shouldAdd = false;
+                }
+            } else if (activeTab === "finished") {
+                const isEnded = item.is_timestamp_limit 
+                    ? item.block_limit < currentTime 
+                    : item.block_limit < currentHeight;
+                const isSoldOut = item.sold_counter == item.maximum_amount;
+                
+                if (!isEnded && !isSoldOut) {
+                    shouldAdd = false;
+                }
+            }
+
+
+            if (shouldAdd && filterProject) {
                 shouldAdd = await filterProject(item);
             }
 
@@ -149,6 +181,15 @@
         isFiltering = false;
     }
 
+
+
+    async function handleTabChange(tab: "all" | "active" | "finished") {
+        isFiltering = true;
+        activeTab = tab;
+        await applyFiltersAndSearch(allFetchedItems);
+        isFiltering = false;
+    }
+
     async function handleTestFilterToggle() {
         isFiltering = true;
         hideTestProjects = !hideTestProjects;
@@ -191,6 +232,36 @@
                 Showing: {Array.from(listedItems).length}
             </div>
         {/if}
+    </div>
+
+
+
+    <!-- Active/Finished Tabs -->
+    <div class="tabs-container mb-4 flex justify-center gap-2">
+        <Button 
+            variant={activeTab === 'all' ? 'default' : 'outline'} 
+            size="sm"
+            class={activeTab === 'all' ? "bg-orange-500 hover:bg-orange-600" : ""}
+            on:click={() => handleTabChange('all')}
+        >
+            All
+        </Button>
+        <Button 
+            variant={activeTab === 'active' ? 'default' : 'outline'} 
+            size="sm"
+            class={activeTab === 'active' ? "bg-orange-500 hover:bg-orange-600" : ""}
+            on:click={() => handleTabChange('active')}
+        >
+            Active
+        </Button>
+        <Button 
+            variant={activeTab === 'finished' ? 'default' : 'outline'} 
+            size="sm"
+            class={activeTab === 'finished' ? "bg-orange-500 hover:bg-orange-600" : ""}
+            on:click={() => handleTabChange('finished')}
+        >
+            Finished
+        </Button>
     </div>
 
     <div class="search-container mb-6">
