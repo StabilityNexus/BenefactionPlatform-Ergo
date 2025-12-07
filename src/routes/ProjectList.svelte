@@ -22,6 +22,11 @@
     let isFiltering: boolean = false;
     let totalProjectsCount: number = 0;
 
+    // Cache for block height
+    let cachedCurrentHeight: number | null = null;
+    let cachedCurrentHeightTimestamp: number = 0;
+    const HEIGHT_CACHE_TTL = 120000; // 2 minutes
+
     let searchQuery: string = "";
     let sortBy: "newest" | "oldest" | "amount" | "name" = "newest";
     let activeTab: "all" | "active" | "finished" = "all";
@@ -47,7 +52,23 @@
 
 
 
-        const currentHeight = await platform.get_current_height();
+        let currentHeight: number;
+        const now = new Date().getTime();
+
+        if (cachedCurrentHeight !== null && (now - cachedCurrentHeightTimestamp < HEIGHT_CACHE_TTL)) {
+            currentHeight = cachedCurrentHeight;
+        } else {
+            try {
+                currentHeight = await platform.get_current_height();
+                cachedCurrentHeight = currentHeight;
+                cachedCurrentHeightTimestamp = now;
+            } catch (error) {
+                console.error("Failed to fetch current height:", error);
+                // Fallback to cached value if available, else 0 to fail gracefully
+                currentHeight = cachedCurrentHeight ?? 0;
+            }
+        }
+
         const currentTime = new Date().getTime();
 
         for (const [id, item] of sourceItems.entries()) {
