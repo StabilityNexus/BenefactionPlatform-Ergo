@@ -54,16 +54,21 @@ import {
 async function get_token_data(token_id: string) {
   const data = await fetch_token_details(token_id);
 
-  const emission = (data["emissionAmount"] ?? 0) + 1;
+// Validate raw emission amount first
+const emissionAmount = data["emissionAmount"] ?? 0;
 
-  if (emission === 0) {
-    throw new Error("Token emission is 0 — cannot mint.");
-  }
+if (emissionAmount === 0) {
+    throw new Error("Token emission is 0 – cannot mint.");
+}
 
-  return {
-    amount: emission + 1,     // Minted supply for APT
+// Final minted supply for APT/IDT
+const emission = emissionAmount + 1;
+
+return {
+    amount: emission,
     decimals: data["decimals"]
-  };
+};
+
 }
 
 
@@ -188,7 +193,7 @@ export async function* submit_project(
 
 
   // -------------------------------
-  // (7) Build unsigned transation
+  // (7) Build unsigned transaction
   // -------------------------------
   const height = await getCurrentHeight();
   const utxos = await getUtxos();
