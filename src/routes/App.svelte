@@ -11,6 +11,7 @@
         timer,
         user_tokens,
         web_explorer_uri_addr,
+        searchQuery,
     } from "$lib/common/store";
     import MyProjects from "./MyProjects.svelte";
     import MyContributions from "./MyContributions.svelte";
@@ -66,23 +67,111 @@
 
         const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
         const platformId = $page.url.searchParams.get("chain");
+        const searchParam = $page.url.searchParams.get("search");
+        const tabParam = $page.url.searchParams.get("tab");
+
+        // Set flag to prevent URL updates during initialization
+        isUpdatingFromUrl = true;
 
         if (projectId && platformId == platform.id) {
             await loadProjectById(projectId, platform);
         }
+        
+        // Set active tab from URL parameter FIRST
+        if (tabParam) {
+            if (tabParam === "mycontributions") {
+                activeTab = "myContributions";
+            } else if (tabParam === "mycampaigns") {
+                activeTab = "myProjects";
+            } else if (tabParam === "newcampaign") {
+                activeTab = "submitProject";
+            }
+        }
+        
+        // Apply search parameter from URL if present
+        if (searchParam) {
+            searchQuery.set(searchParam);
+        }
+        
+        // Allow URL updates after initialization
+        isUpdatingFromUrl = false;
+        
+        // Mark initialization as complete
+        setTimeout(() => {
+            isInitialized = true;
+        }, 100);
+        
+        // Listen for popstate (back/forward navigation)
+        function handlePopState() {
+            const url = new URL(window.location.href);
+            const searchParam = url.searchParams.get("search");
+            const tabParam = url.searchParams.get("tab");
+            
+            // Update tab from URL
+            if (tabParam) {
+                if (tabParam === "mycontributions") {
+                    activeTab = "myContributions";
+                } else if (tabParam === "mycampaigns") {
+                    activeTab = "myProjects";
+                } else if (tabParam === "newcampaign") {
+                    activeTab = "submitProject";
+                }
+            } else {
+                activeTab = "acquireTokens";
+            }
+            
+            isUpdatingFromUrl = true;
+            searchQuery.set(searchParam || "");
+            isUpdatingFromUrl = false;
+        }
+        
+        window.addEventListener("popstate", handlePopState);
 
         // Setup footer scrolling text
         scrollingTextElement?.addEventListener(
             "animationiteration",
             handleAnimationIteration,
         );
-    });
+        
+        // Set up periodic balance refresh (every 30 seconds)
+        balanceUpdateInterval = setInterval(updateWalletInfo, 30000);
+        
+        // Add document click listener to close wallet modal when clicking outside
+        function handleDocumentClick(e: MouseEvent) {
+            try {
+                const target = e.target as Node;
+                const dropdown = document.querySelector('.bits-dropdown-menu-content-wrapper') || document.querySelector('.bits-dropdown-menu-root-open');
+                if (!dropdown) return;
 
-    onDestroy(() => {
-        scrollingTextElement?.removeEventListener(
-            "animationiteration",
-            handleAnimationIteration,
-        );
+                // If click is inside wallet button or the dropdown, do nothing
+                if (walletButtonWrapper && (walletButtonWrapper.contains(target) || dropdown.contains(target))) {
+                    return;
+                }
+
+                // Otherwise, attempt to close the modal via walletManager
+                if (walletManager && typeof (walletManager as any).closeModal === 'function') {
+                    (walletManager as any).closeModal();
+                }
+            } catch (err) {
+                console.warn('Error handling document click for wallet modal:', err);
+            }
+        }
+
+        document.addEventListener('mousedown', handleDocumentClick, true);
+        
+        return () => {
+            window.removeEventListener("popstate", handlePopState);
+            if (balanceUpdateInterval) {
+                clearInterval(balanceUpdateInterval);
+            }
+            if (scrollingTextElement) {
+                scrollingTextElement.removeEventListener(
+                    'animationiteration',
+                    handleAnimationIteration,
+                );
+            }
+            document.removeEventListener('mousedown', handleDocumentClick, true);
+        };
     });
 
     // Subscribe to new wallet system instead of old connected store
@@ -127,7 +216,60 @@
 
         activeTab = tab;
         mobileMenuOpen = false; // Close mobile menu after selection
+        
+        // Update URL when changing tabs
+        updateUrlForCurrentState();
     }
+    
+    // Function to update URL based on current state (tab, search, project)
+    function updateUrlForCurrentState() {
+        if (typeof window === "undefined") return;
+
+        const url = new URL(window.location.href);
+        const currentProject = get(project_detail);
+        const currentSearch = get(searchQuery);
+        const listTabs = ["acquireTokens", "myContributions", "myProjects"];
+
+        // Handle project parameters
+        if (currentProject !== null) {
+            url.searchParams.set("chain", platform.id);
+            url.searchParams.set("campaign", currentProject.project_id);
+        } else {
+            url.searchParams.delete("chain");
+            url.searchParams.delete("project");
+            url.searchParams.delete("campaign");
+        }
+        
+        // Handle tab parameter
+        if (activeTab === "myContributions") {
+            url.searchParams.set("tab", "mycontributions");
+        } else if (activeTab === "myProjects") {
+            url.searchParams.set("tab", "mycampaigns");
+        } else if (activeTab === "submitProject") {
+            url.searchParams.set("tab", "newcampaign");
+        } else {
+            // acquireTokens is the default, no tab parameter needed
+            url.searchParams.delete("tab");
+        }
+        
+        // Handle search parameter for list views
+        if (listTabs.includes(activeTab) && currentSearch) {
+            url.searchParams.set("search", currentSearch);
+        } else {
+            url.searchParams.delete("search");
+        }
+
+        window.history.pushState({}, "", url);
+    }
+    
+    // Subscribe to searchQuery changes to update URL
+    let isUpdatingFromUrl = false;
+    let isInitialized = false;
+    searchQuery.subscribe(() => {
+        if (browser && !isUpdatingFromUrl && isInitialized) {
+            updateUrlForCurrentState();
+        }
+    });
 
     function toggleMobileMenu() {
         mobileMenuOpen = !mobileMenuOpen;
@@ -145,20 +287,7 @@
     getCurrentHeight();
 
     async function changeUrl(project: Project | null) {
-        if (typeof window === "undefined") return;
-
-        const url = new URL(window.location.href);
-
-        if (project !== null) {
-            url.searchParams.set("chain", platform.id);
-            url.searchParams.set("campaign", project.project_id);
-        } else {
-            url.searchParams.delete("chain");
-            url.searchParams.delete("project");
-            url.searchParams.delete("campaign");
-        }
-
-        window.history.pushState({}, "", url);
+        updateUrlForCurrentState();
     }
 
     $: changeUrl($project_detail);
@@ -177,46 +306,6 @@
     // Set up periodic balance refresh (every 30 seconds)
     let balanceUpdateInterval: number;
 
-    onMount(() => {
-        if (browser) {
-            balanceUpdateInterval = setInterval(updateWalletInfo, 30000);
-        }
-        // Add document click listener to close wallet modal when clicking outside
-        function handleDocumentClick(e: MouseEvent) {
-            try {
-                const target = e.target as Node;
-                const dropdown = document.querySelector('.bits-dropdown-menu-content-wrapper') || document.querySelector('.bits-dropdown-menu-root-open');
-                if (!dropdown) return;
-
-                // If click is inside wallet button or the dropdown, do nothing
-                if (walletButtonWrapper && (walletButtonWrapper.contains(target) || dropdown.contains(target))) {
-                    return;
-                }
-
-                // Otherwise, attempt to close the modal via walletManager
-                if (walletManager && typeof (walletManager as any).closeModal === 'function') {
-                    (walletManager as any).closeModal();
-                }
-            } catch (err) {
-                console.warn('Error handling document click for wallet modal:', err);
-            }
-        }
-
-        document.addEventListener('mousedown', handleDocumentClick, true);
-
-        return () => {
-            if (balanceUpdateInterval) {
-                clearInterval(balanceUpdateInterval);
-            }
-            if (scrollingTextElement) {
-                scrollingTextElement.removeEventListener(
-                    'animationiteration',
-                    handleAnimationIteration,
-                );
-            }
-            document.removeEventListener('mousedown', handleDocumentClick, true);
-        };
-    });
 </script>
 
 <header class="navbar-container">

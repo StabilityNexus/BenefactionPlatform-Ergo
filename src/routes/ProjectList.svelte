@@ -2,7 +2,7 @@
     import ProjectCard from "./ProjectCard.svelte";
     import ProjectCardSkeleton from "./ProjectCardSkeleton.svelte";
     import { type Project } from "$lib/common/project";
-    import { projects } from "$lib/common/store";
+    import { projects, searchQuery } from "$lib/common/store";
     import { fetchProjects } from "$lib/ergo/fetch";
     import * as Alert from "$lib/components/ui/alert";
     import { Loader2, Search, Filter } from "lucide-svelte";
@@ -19,7 +19,6 @@
     let isFiltering: boolean = false;
     let totalProjectsCount: number = 0;
 
-    let searchQuery: string = "";
     let sortBy: "newest" | "oldest" | "amount" | "name" = "newest";
     let hideTestProjects: boolean = true;
     let filterOpen = false;
@@ -56,8 +55,8 @@
                 }
             }
 
-            if (shouldAdd && searchQuery) {
-                const searchLower = searchQuery.toLowerCase();
+            if (shouldAdd && $searchQuery) {
+                const searchLower = $searchQuery.toLowerCase();
                 const titleMatch =
                     item.content.title?.toLowerCase().includes(searchLower) ??
                     false;
@@ -131,7 +130,7 @@
         if (isLoadingApi) isLoadingApi = false;
     });
 
-    $: if (searchQuery !== undefined) {
+    $: if ($searchQuery !== undefined) {
         clearTimeout(debouncedSearch);
         debouncedSearch = setTimeout(async () => {
             isFiltering = true;
@@ -202,7 +201,7 @@
                 <Input
                     type="text"
                     placeholder="Search campaigns..."
-                    bind:value={searchQuery}
+                    bind:value={$searchQuery}
                     class="w-full rounded-lg border-orange-500/20 bg-background/80 pl-10 pr-10 backdrop-blur-lg transition-all duration-200 focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20"
                 />
                 {#if isFiltering}
