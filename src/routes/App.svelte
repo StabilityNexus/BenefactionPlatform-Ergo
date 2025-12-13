@@ -346,7 +346,7 @@
                         showSettingsModal = true;
                         mobileMenuOpen = false;
                     }}
-                    style="display: inline-flex; align-items: center; gap: 0.5rem;"
+                    class="settings-link"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -741,6 +741,25 @@
         display: block;
         border-radius: 8px;
         transition: all 0.2s ease;
+    }
+
+    /* Ensure mobile nav links (including Settings) fill the container and align icon+text */
+    .mobile-nav-links li a,
+    .mobile-nav-links li .settings-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .mobile-nav-links li .settings-link svg {
+        flex-shrink: 0;
+    }
+
+    /* Make sure hover state visually fills the menu width */
+    .mobile-nav-links li a:hover {
+        width: 100%;
     }
 
     .mobile-nav-links li a:hover {
