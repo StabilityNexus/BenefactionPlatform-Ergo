@@ -1,3 +1,4 @@
+
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
     import {
@@ -42,6 +43,8 @@
     let showWalletInfo = false;
     let mobileMenuOpen = false;
     let showSettingsModal = false;
+    let isDirectCampaign = false;
+    let isLoadingDirectCampaign = false;
 
     // Reference to the wallet button wrapper to detect outside clicks
     let walletButtonWrapper: HTMLElement | null = null;
@@ -60,23 +63,47 @@
     function handleAnimationIteration() {
         activeMessageIndex = (activeMessageIndex + 1) % footerMessages.length;
     }
+onMount(() => {
+    if (!isDirectCampaign) {
+        activeTab = activeTab || "acquireTokens"; // ensure some tab is active
+    }
+});
 
-    onMount(async () => {
-        if (!browser) return;
+   onMount(() => {
+    if (!browser) return;
 
-        const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
-        const platformId = $page.url.searchParams.get("chain");
+    const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
+    const platformId = $page.url.searchParams.get("chain");
 
-        if (projectId && platformId == platform.id) {
-            await loadProjectById(projectId, platform);
-        }
+    if (projectId && platformId === platform.id) {
+        isDirectCampaign = true;
+        isLoadingDirectCampaign = true;
+        activeTab = ""; // prevent default tab logic
 
-        // Setup footer scrolling text
-        scrollingTextElement?.addEventListener(
-            "animationiteration",
-            handleAnimationIteration,
-        );
-    });
+        // Fire async task without blocking UI
+        (async () => {
+            try {
+                const project = await loadProjectById(projectId, platform);
+                if (project) {
+                    project_detail.set(project);
+                } else {
+                    console.error("Project not found");
+                    activeTab = "acquireTokens";
+                    isDirectCampaign = false;
+                }
+            } catch (err) {
+                console.error("Error loading project:", err);
+                activeTab = "acquireTokens";
+                isDirectCampaign = false;
+            } finally {
+                isLoadingDirectCampaign = false;
+            }
+        })();
+    }
+});
+
+
+
 
     onDestroy(() => {
         scrollingTextElement?.removeEventListener(
@@ -343,23 +370,33 @@
 {/if}
 
 <main class="responsive-main">
-    {#if $project_detail === null}
+    {#if isDirectCampaign && isLoadingDirectCampaign}
+        <div class="flex items-center justify-center h-[60vh]">
+            <div class="flex flex-col items-center gap-3">
+                <div class="animate-spin h-8 w-8 border-4 border-orange-500 border-t-transparent rounded-full"></div>
+                <p class="text-sm opacity-70">Loading campaign…</p>
+            </div>
+        </div>
+
+    {:else if $project_detail !== null}
+        <ProjectDetails />
+
+    {:else}
         {#if activeTab === "acquireTokens"}
             <TokenAcquisition />
-        {/if}
-        {#if activeTab === "myContributions"}
+        {:else if activeTab === "myContributions"}
             <MyContributions />
-        {/if}
-        {#if activeTab === "myProjects"}
+        {:else if activeTab === "myProjects"}
             <MyProjects />
-        {/if}
-        {#if activeTab === "submitProject"}
+        {:else if activeTab === "submitProject"}
             <NewProject />
+        {:else}
+            <TokenAcquisition /> <!-- fallback in case of unknown tab -->
         {/if}
-    {:else}
-        <ProjectDetails />
     {/if}
 </main>
+
+
 
 <footer class="page-footer">
     <div class="footer-left">
