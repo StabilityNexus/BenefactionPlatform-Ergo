@@ -185,6 +185,7 @@
     })
     badMatches.size == 0 && selfOther.size == outOther.size
   }
+  val soldCounterRemainsConstant = !isReplicationBoxPresent || (selfSoldCounter == OUTPUTS(0).R6[Coll[Long]].get(0))
   val refundCounterRemainsConstant = !isReplicationBoxPresent || (selfRefundCounter == OUTPUTS(0).R6[Coll[Long]].get(1))
   val auxiliarExchangeCounterRemainsConstant = !isReplicationBoxPresent || (selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2))
   val mantainValue = !isReplicationBoxPresent || ({
