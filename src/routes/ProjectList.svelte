@@ -11,6 +11,8 @@
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
     import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+    import { page } from "$app/stores";
+    import { ErgoPlatform } from "$lib/ergo/platform";
 
     let allFetchedItems: Map<string, Project> = new Map();
     let listedItems: Map<string, Project> | null = null;
@@ -157,6 +159,18 @@
     }
 
     onMount(() => {
+        // Skip loading if we're viewing a specific campaign via URL params
+        const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
+        const platformId = $page.url.searchParams.get("chain");
+        const platform = new ErgoPlatform();
+        
+        if (projectId && platformId == platform.id) {
+            // We're viewing a specific campaign, don't load the full list
+            console.log("Skipping project list load - viewing specific campaign:", projectId);
+            isLoadingApi = false;
+            return;
+        }
+
         const cachedData = get(projects).data;
 
         // Decide whether to show the initial loader.

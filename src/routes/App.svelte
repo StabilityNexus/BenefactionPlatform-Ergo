@@ -61,15 +61,27 @@
         activeMessageIndex = (activeMessageIndex + 1) % footerMessages.length;
     }
 
-    onMount(async () => {
-        if (!browser) return;
-
+    // Reactive statement to handle URL parameter changes
+    $: if (browser) {
         const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
         const platformId = $page.url.searchParams.get("chain");
 
         if (projectId && platformId == platform.id) {
-            await loadProjectById(projectId, platform);
+            // Only load if we don't already have this project loaded
+            if (!$project_detail || $project_detail.project_id !== projectId) {
+                // Load the specific project directly without fetching all campaigns
+                loadProjectById(projectId);
+            }
+        } else if (!projectId || platformId != platform.id) {
+            // Clear project detail if URL params don't match
+            if ($project_detail) {
+                project_detail.set(null);
+            }
         }
+    }
+
+    onMount(async () => {
+        if (!browser) return;
 
         // Setup footer scrolling text
         scrollingTextElement?.addEventListener(

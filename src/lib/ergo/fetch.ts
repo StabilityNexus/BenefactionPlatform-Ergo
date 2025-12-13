@@ -40,6 +40,124 @@ function hasValidSigmaTypes(additionalRegisters: any, version: contract_version)
     return true;
 }
 
+// Helper function to parse a box into a Project object
+async function parseBoxToProject(e: any, version: contract_version): Promise<Project | null> {
+    if (!hasValidSigmaTypes(e.additionalRegisters, version)) {
+        return null;
+    }
+
+    let constants: ConstantContent | null = null;
+
+    if (version === "v1_0" || version === "v1_1") {
+        constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "");
+        if (constants === null) {
+            console.warn("constants null");
+            return null;
+        }
+    } else {
+        try {
+            if (!e.additionalRegisters.R8) throw new Error("R8 missing");
+
+            const rawValues = e.additionalRegisters.R8.renderedValue
+                .replace(/[\[\]"'\s]/g, "")
+                .split(",")
+                .filter((s: string) => s.length > 0);
+
+            if (rawValues.length < 3) throw new Error("Insufficient R8 constants");
+
+            constants = {
+                owner: rawValues[0],
+                dev_hash: rawValues[1],
+                dev_fee: parseInt(rawValues[2], 16),
+                pft_token_id: rawValues[3],
+                base_token_id: rawValues[4] ?? "",
+                raw: e.additionalRegisters.R8.serializedValue
+            };
+        } catch (err) {
+            console.warn("Failed to parse R8 constants", err);
+            return null;
+        }
+    }
+
+    let project_id = e.assets[0].tokenId;
+    let token_id = constants.pft_token_id;
+    let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
+
+    let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
+    let base_token_id = constants.base_token_id ?? "";
+
+    let current_pft_amount = (e.assets.find((asset: any) => asset.tokenId === constants.pft_token_id)?.amount) ?? 0;
+    let total_pft_amount = current_pft_amount + auxiliar_exchange_counter;
+    let unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
+    let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
+    let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
+
+    let block_limit: number = 0;
+    let is_timestamp_limit = false;
+    if (version === "v2") {
+        const r4Value = JSON.parse(e.additionalRegisters.R4?.renderedValue.replace(/\[([a-f0-9]+)(,.*)/, '["$1"$2'));
+        if (!Array.isArray(r4Value) || r4Value.length < 2) throw new Error("R4 is not a valid tuple (Type, Deadline).");
+
+        is_timestamp_limit = r4Value[0] === true;
+        block_limit = Number(r4Value[1]);
+    } else {
+        block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
+    }
+
+    let base_token_details = undefined;
+    if (base_token_id && base_token_id !== "" && base_token_id !== undefined && base_token_id !== "00".repeat(32)) {
+        try {
+            base_token_details = await fetch_token_details(base_token_id);
+        } catch (error) {
+            console.warn(`Failed to fetch base token details for ${base_token_id}:`, error);
+        }
+    }
+
+    const project: Project = {
+        version: version,
+        platform: new ErgoPlatform(),
+        box: {
+            boxId: e.boxId,
+            value: e.value,
+            assets: e.assets,
+            ergoTree: e.ergoTree,
+            creationHeight: e.creationHeight,
+            additionalRegisters: Object.entries(e.additionalRegisters).reduce((acc, [key, value]) => {
+                acc[key] = (value as any).serializedValue;
+                return acc;
+            }, {} as { [key: string]: string; }),
+            index: e.index,
+            transactionId: e.transactionId
+        },
+        project_id: project_id,
+        current_idt_amount: e.assets[0].amount,
+        pft_token_id: constants.pft_token_id,
+        base_token_id: base_token_id,
+        base_token_details: base_token_details,
+        block_limit: block_limit,
+        is_timestamp_limit: is_timestamp_limit,
+        minimum_amount: minimum_token_amount,
+        maximum_amount: total_pft_amount,
+        total_pft_amount: total_pft_amount,
+        current_pft_amount: current_pft_amount,
+        unsold_pft_amount: unsold_pft_amount,
+        refund_counter: refunded_token_amount,
+        sold_counter: token_amount_sold,
+        auxiliar_exchange_counter: auxiliar_exchange_counter,
+        exchange_rate: exchange_rate,
+        content: getProjectContent(
+            token_id.slice(0, 8),
+            hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ""
+        ),
+        constants: constants,
+        value: e.value,
+        current_value: current_erg_value,
+        token_details: await fetch_token_details(token_id)
+    };
+
+    return project;
+}
+
 export async function fetch_token_details(id: string): Promise<TokenEIP4> {
     console.log("Fetching token details for ", id);
     const url = get(explorer_uri) + '/api/v1/tokens/' + id;
@@ -130,6 +248,62 @@ export async function wait_until_confirmation(tx_id: string): Promise<Box | null
     }
 }
 
+// Function to fetch a single project by its token ID (project_id)
+export async function fetchProjectById(projectId: string): Promise<Project | null> {
+    console.log("Fetching single project by ID:", projectId);
+    const versions: contract_version[] = ["v2", "v1_1", "v1_0"];
+
+    try {
+        for (const version of versions) {
+            let template = get_template_hash(version);
+            const url = get(explorer_uri) + '/api/v1/boxes/unspent/search';
+            
+            const response = await fetch(url + '?' + new URLSearchParams({
+                offset: "0",
+                limit: "100",
+            }), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    "ergoTreeTemplateHash": template,
+                    "registers": {},
+                    "constants": {},
+                    "assets": [projectId] // Search for boxes containing this token ID
+                }),
+            });
+
+            if (!response.ok) {
+                console.error('Error while making the POST request for project ID:', projectId);
+                continue; // Try next version
+            }
+
+            const json_data = await response.json();
+
+            if (!json_data.items || json_data.items.length === 0) {
+                continue; // Try next version
+            }
+
+            // Find the box that has this token ID as its first asset (project_id)
+            for (const e of json_data.items) {
+                if (e.assets && e.assets.length > 0 && e.assets[0].tokenId === projectId) {
+                    const project = await parseBoxToProject(e, version);
+                    if (project) {
+                        // Also update the projects store cache
+                        const current = get(projects).data;
+                        current.set(project.project_id, project);
+                        projects.set({ data: current, last_fetch: get(projects).last_fetch });
+                        return project;
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error while fetching project by ID:', error);
+    }
+
+    return null;
+}
+
 // Internal function for fetching projects from blockchain
 export async function fetchProjectsFromBlockchain() {
     console.log("Fetch projects from blockchain");
@@ -178,125 +352,11 @@ export async function fetchProjectsFromBlockchain() {
                 }
 
                 for (const e of json_data.items) {
-                    if (hasValidSigmaTypes(e.additionalRegisters, version)) {
-                        let constants: ConstantContent | null = null;
-
-                        if (version === "v1_0" || version === "v1_1") {
-                            constants = getConstantContent(hexToUtf8(e.additionalRegisters.R8.renderedValue) ?? "");
-                            if (constants === null) { console.warn("constants null"); continue; }
-                        }
-                        else {
-                            try {
-                                if (!e.additionalRegisters.R8) throw new Error("R8 missing");
-
-                                // Parse R8 using regex/split as requested, handling brackets, quotes, and spaces
-                                const rawValues = e.additionalRegisters.R8.renderedValue
-                                    .replace(/[\[\]"'\s]/g, "")
-                                    .split(",")
-                                    .filter((s: string) => s.length > 0);
-
-                                console.log(rawValues)
-                                if (rawValues.length < 3) throw new Error("Insufficient R8 constants");
-
-                                constants = {
-                                    owner: rawValues[0],
-                                    dev_hash: rawValues[1],
-                                    dev_fee: parseInt(rawValues[2], 16),
-                                    pft_token_id: rawValues[3],
-                                    base_token_id: rawValues[4] ?? "",
-                                    raw: e.additionalRegisters.R8.serializedValue
-                                };
-                            } catch (err) {
-                                console.warn("Failed to parse R8 constants", err);
-                                continue;
-                            }
-                        }
-
-                        let project_id = e.assets[0].tokenId;
-                        let token_id = constants.pft_token_id;
-                        let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
-
-
-                        let exchange_rate = parseInt(e.additionalRegisters.R7.renderedValue);
-                        let base_token_id = constants.base_token_id ?? "";
-
-                        let current_pft_amount = (e.assets.find((asset: any) => asset.tokenId === constants.pft_token_id)?.amount) ?? 0;
-                        let total_pft_amount = current_pft_amount + auxiliar_exchange_counter;
-                        let unsold_pft_amount = current_pft_amount - token_amount_sold + refunded_token_amount + auxiliar_exchange_counter;
-                        let current_erg_value = e.value - Number(SAFE_MIN_BOX_VALUE);
-                        let minimum_token_amount = parseInt(e.additionalRegisters.R5.renderedValue);
-
-
-                        let block_limit: number = 0;
-                        let is_timestamp_limit = false;
-                        if (version === "v2") {
-                            const r4Value = JSON.parse(e.additionalRegisters.R4?.renderedValue.replace(/\[([a-f0-9]+)(,.*)/, '["$1"$2'));
-                            if (!Array.isArray(r4Value) || r4Value.length < 2) throw new Error("R4 is not a valid tuple (Type, Deadline).");
-
-                            is_timestamp_limit = r4Value[0] === true;
-                            block_limit = Number(r4Value[1]);
-                            console.log("Parsed R4 for v2:", r4Value, "is_timestamp_limit:", is_timestamp_limit, "block_limit:", block_limit);
-                        } else {
-                            block_limit = parseInt(e.additionalRegisters.R4.renderedValue);
-                        }
-
-                        let base_token_details = undefined;
-                        if (base_token_id && base_token_id !== "" && base_token_id !== undefined && base_token_id !== "00".repeat(32)) {
-                            try {
-                                base_token_details = await fetch_token_details(base_token_id);
-                            } catch (error) {
-                                console.warn(`Failed to fetch base token details for ${base_token_id}:`, error);
-                            }
-                        }
-
-                        const project: Project = {
-                            version: version,
-                            platform: new ErgoPlatform(),
-                            box: {
-                                boxId: e.boxId,
-                                value: e.value,
-                                assets: e.assets,
-                                ergoTree: e.ergoTree,
-                                creationHeight: e.creationHeight,
-                                additionalRegisters: Object.entries(e.additionalRegisters).reduce((acc, [key, value]) => {
-                                    acc[key] = (value as any).serializedValue;
-                                    return acc;
-                                }, {} as { [key: string]: string; }),
-                                index: e.index,
-                                transactionId: e.transactionId
-                            },
-                            project_id: project_id,
-                            current_idt_amount: e.assets[0].amount,
-                            pft_token_id: constants.pft_token_id,
-                            base_token_id: base_token_id,
-                            base_token_details: base_token_details,
-                            block_limit: block_limit,
-                            is_timestamp_limit: is_timestamp_limit,
-                            minimum_amount: minimum_token_amount,
-                            maximum_amount: total_pft_amount,
-                            total_pft_amount: total_pft_amount,
-                            current_pft_amount: current_pft_amount,
-                            unsold_pft_amount: unsold_pft_amount,
-                            refund_counter: refunded_token_amount,
-                            sold_counter: token_amount_sold,
-                            auxiliar_exchange_counter: auxiliar_exchange_counter,
-                            exchange_rate: exchange_rate,
-                            content: getProjectContent(
-                                token_id.slice(0, 8),
-                                hexToUtf8(e.additionalRegisters.R9.renderedValue) ?? ""
-                            ),
-                            constants: constants,
-                            value: e.value,
-                            current_value: current_erg_value,
-                            token_details: await fetch_token_details(token_id)
-                        };
-
+                    const project = await parseBoxToProject(e, version);
+                    if (project) {
                         const current = get(projects).data;
-                        current.set(project_id, project)
+                        current.set(project.project_id, project);
                         projects.set({ data: current, last_fetch: get(projects).last_fetch });
-                    } else {
-                        console.warn(`Box ${e.boxId} has invalid sigma types, skipping.`);
-                        console.log(e.additionalRegisters);
                     }
                 }
                 params.offset += params.limit;
