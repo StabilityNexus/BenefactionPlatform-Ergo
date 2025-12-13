@@ -249,9 +249,10 @@
 
   val minimumReached = {
     val minimumSalesThreshold = selfMinimumTokensSold
-    val soldCounter = selfSoldCounter
+    // FIX: Use NET sales (sold - refunded) instead of just gross
+    val netSoldCounter = selfSoldCounter - selfRefundCounter
 
-    soldCounter >= minimumSalesThreshold
+    netSoldCounter >= minimumSalesThreshold
   }
 
 
@@ -327,9 +328,10 @@
       // The minimum number of tokens has not been sold.
       val minimumNotReached = {
           val minimumSalesThreshold = selfMinimumTokensSold
-          val soldCounter = selfSoldCounter
+          // FIX: Use NET sales (sold - refunded) for consistency with minimumReached
+          val netSoldCounter = selfSoldCounter - selfRefundCounter
 
-          soldCounter < minimumSalesThreshold
+          netSoldCounter < minimumSalesThreshold
       }
 
       // Condition to check if the current height is beyond the block limit
