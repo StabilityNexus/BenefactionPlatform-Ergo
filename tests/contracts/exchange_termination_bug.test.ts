@@ -64,7 +64,7 @@ const baseModes = [
   { name: "ERG Mode", token: ERG_BASE_TOKEN, tokenName: ERG_BASE_TOKEN_NAME },
 ];
 
-describe.each(baseModes)("BUG: Exchange Action Cannot Terminate Contract (%s)", (mode) => {
+describe.each(baseModes)("BUG: Exchange Action Cannot Terminate Contract ($name)", (mode) => {
   let ctx: BeneTestContext;
   let projectBox: Box;
   let soldTokens: bigint;
