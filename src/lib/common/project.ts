@@ -84,21 +84,14 @@ export interface Project {
     constants: ConstantContent
 }
 
-export function is_ended(project: Project): boolean {
+export async function is_ended(project: Project): Promise<boolean> {
     if (project.is_timestamp_limit) {
         const currentTime = Date.now();
         return project.block_limit < currentTime;
     }
-
-    const height = project.platform.get_current_height();
-    if (typeof height === "number") {
-        return project.block_limit < height;
-    }
-
-    console.warn(
-        "is_ended: get_current_height did not return a number synchronously; assuming not ended.",
-    );
-    return false;
+    
+    const height = await project.platform.get_current_height();
+    return project.block_limit < height;
 }
 
 export async function min_raised(project: Project): Promise<boolean> {

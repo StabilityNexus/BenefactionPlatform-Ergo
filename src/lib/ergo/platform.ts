@@ -5,7 +5,7 @@ import { submit_project } from './actions/submit';
 import { withdraw } from './actions/withdraw';
 import { buy_refund } from './actions/buy_refund';
 import { rebalance } from './actions/rebalance';
-import { balance, explorer_uri } from "../common/store";
+import { balance, explorer_uri, cached_height } from "../common/store";
 import { walletManager, walletConnected, walletAddress, explorerUri as libExplorerUri } from "wallet-svelte-component";
 import { get } from "svelte/store";
 import { temp_exchange } from './actions/temp_exchange';
@@ -26,6 +26,45 @@ export class ErgoPlatform implements Platform {
                 libExplorerUri.set(uri);
             }
         });
+        
+        // Initialize and periodically update cached height
+        this.updateCachedHeight();
+        setInterval(() => this.updateCachedHeight(), 60000); // Update every minute
+    }
+
+    private async updateCachedHeight(): Promise<void> {
+        try {
+            // Check if wallet manager is available and connected
+            if (walletManager && walletManager.isConnected()) {
+                const adapter = walletManager.getConnectedWallet();
+                if (adapter && adapter.getCurrentHeight) {
+                    const height = await adapter.getCurrentHeight();
+                    cached_height.set(height);
+                    return;
+                }
+            }
+
+            // Try direct window.ergo if available
+            if (typeof window !== 'undefined' && window.ergo && window.ergo.get_current_height) {
+                const height = await window.ergo.get_current_height();
+                cached_height.set(height);
+                return;
+            }
+        } catch (error) {
+            console.warn('Failed to get height from wallet, falling back to API:', error);
+        }
+
+        // Fallback to API
+        try {
+            const response = await fetch(get(explorer_uri) + '/api/v1/networkState');
+            if (!response.ok) {
+                throw new Error(`API request failed with status: ${response.status}`);
+            }
+            const data = await response.json();
+            cached_height.set(data.height);
+        } catch (error) {
+            console.error("Failed to fetch network height:", error);
+        }
     }
 
     async connect(): Promise<void> {
@@ -46,38 +85,8 @@ export class ErgoPlatform implements Platform {
         }
     }
 
-    async get_current_height(): Promise<number> {
-        try {
-            // Check if wallet manager is available and connected
-            if (walletManager && walletManager.isConnected()) {
-                // Use wallet adapter's getCurrentHeight method which handles SafeW correctly
-                const adapter = walletManager.getConnectedWallet();
-                if (adapter && adapter.getCurrentHeight) {
-                    return await adapter.getCurrentHeight();
-                }
-            }
-
-            // Try direct window.ergo if available (for legacy compatibility with Nautilus)
-            if (typeof window !== 'undefined' && window.ergo && window.ergo.get_current_height) {
-                return await window.ergo.get_current_height();
-            }
-        } catch (error) {
-            console.warn('Failed to get height from wallet, falling back to API:', error);
-        }
-
-        // Fallback to fetching the current height from the Ergo API
-        try {
-            const response = await fetch(get(explorer_uri) + '/api/v1/networkState');
-            if (!response.ok) {
-                throw new Error(`API request failed with status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            return data.height; // Extract and return the height
-        } catch (error) {
-            console.error("Failed to fetch network height from API:", error);
-            throw new Error("Unable to get current height.");
-        }
+    get_current_height(): number {
+        return get(cached_height);
     }
 
     async get_balance(id?: string): Promise<Map<string, number>> {

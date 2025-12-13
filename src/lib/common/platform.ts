@@ -9,7 +9,7 @@ export interface Platform {
     time_per_block: number; // milliseconds
     last_version: contract_version;
     connect(): Promise<void>;
-    get_current_height(): number | Promise<number>;
+    get_current_height(): Promise<number>;
     get_balance(id?: string): Promise<Map<string, number>>;
     withdraw(project: Project, amount: number): Promise<string | null>;
     buy_refund(project: Project, token_amount: number): Promise<string | null>;

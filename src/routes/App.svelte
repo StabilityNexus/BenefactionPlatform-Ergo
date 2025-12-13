@@ -137,7 +137,7 @@
 
     async function getCurrentHeight() {
         try {
-            current_height = await platform.get_current_height();
+            current_height = platform.get_current_height();
         } catch (error) {
             console.error("Error fetching current height:", error);
         }
@@ -168,7 +168,7 @@
         try {
             await platform.get_balance(); // This updates the balance store
             // Update current height
-            current_height = await platform.get_current_height();
+            current_height = platform.get_current_height();
         } catch (error) {
             console.error("Error updating wallet info:", error);
         }
