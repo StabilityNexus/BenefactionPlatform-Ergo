@@ -11,6 +11,8 @@ export default defineConfig({
   resolve: {
     alias: {
       $lib: path.resolve(__dirname, './src/lib'),
+      // Mock wallet-svelte-component to avoid ESM resolution issues in tests
+      'wallet-svelte-component': path.resolve(__dirname, './tests/__mocks__/wallet-svelte-component.ts'),
     },
   },
 });
