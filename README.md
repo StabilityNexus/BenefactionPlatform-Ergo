@@ -51,7 +51,37 @@ Each project integrates a decentralized discussion forum.
 * **Protocol:** This system is based on the open reputation protocol, ensuring the permanence and transparency of interactions.
 * *More information:* [Reputation Systems Forum Protocol](https://github.com/reputation-systems/forum-application)
 
+#### 4. Analytics Dashboard
+Each project includes a comprehensive analytics dashboard for tracking campaign performance:
+* **Key Metrics:** Real-time tracking of total raised, contributor count, average contribution, and funding progress
+* **Visualizations:** Interactive charts for funding progress over time and contribution history
+* **Contributor Analysis:** Detailed breakdown of top contributors with bar charts and comprehensive data tables
+* **Time-Series Analytics:** Trend analysis through historical data visualization
+* **Exportable Reports:** Download analytics data in CSV or JSON format for external analysis
+
 ---
+
+## 📊 Analytics Features
+
+The platform includes a powerful analytics system that provides insights into campaign performance:
+
+### Key Metrics Collection
+* Real-time data collection from blockchain transactions
+* Automatic calculation of funding progress, contributor statistics, and average contributions
+* Historical metrics tracking with time-series data points
+
+### Visualization Components
+* **Funding Progress Chart:** Line chart showing percentage of funding goal reached over time
+* **Contribution History Chart:** Time-series visualization of total contributions
+* **Contributor Bar Chart:** Top 10 contributors ranked by contribution amount
+
+### Export Functionality
+* **CSV Export:** Structured data export for spreadsheet analysis
+* **JSON Export:** Complete analytics data in JSON format for programmatic access
+* Reports include metrics summary, time-series data, and detailed contributor information
+
+---
+
 
 ## 🏗️ Guide for Creators (Project Owners)
 
@@ -80,6 +110,17 @@ When creating the campaign, the following parameters are immutably recorded in t
 | **Withdraw Funds** | Success (Minimum Goal reached). | The contract automatically executes the fee split: 95% to the owner, 5% to the developer. |
 | **Withdraw Unsold Tokens (Stock)** | Available at any time. | Allows the owner to recover the *surplus stock* of PFTs that have not yet been sold, while maintaining the security invariant. |
 | **Add Stock (PFT)** | At any time. | Allows increasing the total PFT supply available for sale to extend the campaign or meet higher demand. |
+
+---
+
+## 🛠️ Technology Stack
+
+* **Framework:** SvelteKit with TypeScript
+* **Blockchain:** Ergo blockchain with Fleet SDK
+* **Styling:** Tailwind CSS with custom UI components
+* **Charts:** Custom SVG-based chart generation
+* **State Management:** Svelte stores
+* **Build Tool:** Vite
 
 ---
 
@@ -124,12 +165,13 @@ As a *client-side* application, you can run it locally without third-party depen
 
 ### Requirements
 * Node.js v20+
+* npm or yarn
 * Git
 
-### Steps
+### Quick Start
 1.  **Clone the Repository:**
     ```bash
-    git clone [https://github.com/StabilityNexus/BenefactionPlatform-Ergo](https://github.com/StabilityNexus/BenefactionPlatform-Ergo)
+    git clone https://github.com/StabilityNexus/BenefactionPlatform-Ergo
     cd BenefactionPlatform-Ergo
     ```
 
@@ -138,9 +180,37 @@ As a *client-side* application, you can run it locally without third-party depen
     npm install
     ```
 
-3.  **Run the Local Development Server:**
+3.  **Run the Development Server:**
     ```bash
     npm run dev
     ```
+    The application will be available at `http://localhost:5173`
 
+### Available Scripts
+* `npm run dev` - Start development server
+* `npm run build` - Build for production
+* `npm run preview` - Preview production build
+* `npm run check` - Run TypeScript type checking
+* `npm test` - Run test suite
+
+### Project Structure
+```
+src/
+├── routes/              # SvelteKit routes and pages
+│   ├── AnalyticsDashboard.svelte
+│   ├── ProjectDetails.svelte
+│   └── ...
+├── lib/
+│   ├── analytics/       # Analytics system
+│   │   ├── metrics-collector.ts
+│   │   ├── report-generator.ts
+│   │   └── chart-components.ts
+│   ├── components/      # Reusable components
+│   │   └── analytics/   # Analytics visualization components
+│   ├── ergo/           # Ergo blockchain integration
+│   └── common/         # Shared utilities
+└── ...
+```
+
+### Live Demo
 You can access the deployed version at: [BenefactionPlatform-Ergo](https://stabilitynexus.github.io/BenefactionPlatform-Ergo/)
