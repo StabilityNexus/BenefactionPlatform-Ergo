@@ -58,7 +58,7 @@
             }
 
             if (shouldAdd && statusFilter !== "all") {
-                const projectEnded = await is_ended(item);
+                const projectEnded = is_ended(item);
                 if (statusFilter === "active" && projectEnded) {
                     shouldAdd = false;
                 } else if (statusFilter === "finished" && !projectEnded) {

@@ -42,7 +42,7 @@
     }
 
     async function load() {
-        deadline_passed = await is_ended(project);
+        deadline_passed = is_ended(project);
         is_min_raised = await min_raised(project);
 
         // Handle both timestamp and block height modes
