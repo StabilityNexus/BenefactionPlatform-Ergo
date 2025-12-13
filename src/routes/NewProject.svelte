@@ -1686,7 +1686,7 @@
     .project-title {
         font-size: 2.5rem;
         color: orange;
-        font-family: "Russo One", sans-serif;
+        font-weight: 700; /* Use Inter's bold weight instead of custom font */
         letter-spacing: 0.02em;
         text-shadow: 0 0 40px rgba(255, 165, 0, 0.2);
     }
