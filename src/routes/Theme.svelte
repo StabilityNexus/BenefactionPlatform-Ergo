@@ -6,12 +6,6 @@
   import { Button } from "$lib/components/ui/button/index.js";
 
   function toggleTheme() {
-    // If system mode is active, default to dark on first click
-    if ($mode === "system") {
-      setMode("dark");
-      return;
-    }
-
     setMode($mode === "dark" ? "light" : "dark");
   }
 </script>
