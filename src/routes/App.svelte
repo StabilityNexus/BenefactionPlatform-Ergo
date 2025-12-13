@@ -8,6 +8,7 @@
         project_detail,
         project_token_amount,
         temporal_token_amount,
+        search_filter,
         timer,
         user_tokens,
         web_explorer_uri_addr,
@@ -48,6 +49,21 @@
 
     let platform = new ErgoPlatform();
 
+    let isSearchUrlSyncReady = false;
+
+    function readSearchFromUrl(): string {
+        if (typeof window === "undefined") return "";
+        const url = new URL(window.location.href);
+        return url.searchParams.get("search") ?? "";
+    }
+
+    function applySearchToStoreFromUrl() {
+        const next = readSearchFromUrl();
+        if (get(search_filter) !== next) {
+            search_filter.set(next);
+        }
+    }
+
     // Footer-related logic
     const footerMessages = [
         "Direct P2P to your node. No central servers. Powered by Ergo Blockchain.",
@@ -71,6 +87,13 @@
             await loadProjectById(projectId, platform);
         }
 
+        // Initialize search filter from URL (`?search=`)
+        search_filter.set($page.url.searchParams.get("search") ?? "");
+        isSearchUrlSyncReady = true;
+
+        // Keep search filter in sync with back/forward navigation
+        window.addEventListener("popstate", applySearchToStoreFromUrl);
+
         // Setup footer scrolling text
         scrollingTextElement?.addEventListener(
             "animationiteration",
@@ -79,6 +102,9 @@
     });
 
     onDestroy(() => {
+        if (browser) {
+            window.removeEventListener("popstate", applySearchToStoreFromUrl);
+        }
         scrollingTextElement?.removeEventListener(
             "animationiteration",
             handleAnimationIteration,
@@ -144,7 +170,10 @@
     }
     getCurrentHeight();
 
-    async function changeUrl(project: Project | null) {
+    async function changeUrl(
+        project: Project | null,
+        opts?: { replace?: boolean; search?: string },
+    ) {
         if (typeof window === "undefined") return;
 
         const url = new URL(window.location.href);
@@ -158,10 +187,31 @@
             url.searchParams.delete("campaign");
         }
 
-        window.history.pushState({}, "", url);
+        if (opts?.search !== undefined) {
+            const term = opts.search.trim();
+            if (term) url.searchParams.set("search", term);
+            else url.searchParams.delete("search");
+        }
+
+        const nextRel = `${url.pathname}${url.search}${url.hash}`;
+        const currentRel = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        if (nextRel === currentRel) return;
+
+        if (opts?.replace) {
+            window.history.replaceState({}, "", url);
+        } else {
+            window.history.pushState({}, "", url);
+        }
     }
 
-    $: changeUrl($project_detail);
+    $: changeUrl($project_detail, {
+        replace: false,
+        search: isSearchUrlSyncReady ? $search_filter : undefined,
+    });
+
+    $: if (isSearchUrlSyncReady) {
+        changeUrl($project_detail, { replace: true, search: $search_filter });
+    }
 
     // Function to update wallet information periodically
     async function updateWalletInfo() {
