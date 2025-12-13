@@ -229,24 +229,24 @@
         <nav class="desktop-nav">
             <ul class="nav-links">
                 <li class={activeTab === "acquireTokens" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("acquireTokens")}>
+                    <button type="button" on:click={() => changeTab("acquireTokens") }>
                         Contribute to a Campaign
-                    </a>
+                    </button>
                 </li>
                 <li class={activeTab === "myContributions" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("myContributions")}>
+                    <button type="button" on:click={() => changeTab("myContributions") }>
                         My Contributions
-                    </a>
+                    </button>
                 </li>
                 <li class={activeTab === "myProjects" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("myProjects")}>
+                    <button type="button" on:click={() => changeTab("myProjects") }>
                         My Campaigns
-                    </a>
+                    </button>
                 </li>
                 <li class={activeTab === "submitProject" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("submitProject")}>
+                    <button type="button" on:click={() => changeTab("submitProject") }>
                         New Campaign
-                    </a>
+                    </button>
                 </li>
             </ul>
         </nav>
@@ -319,24 +319,24 @@
     <div class="mobile-nav" transition:fade={{ duration: 200 }}>
         <ul class="mobile-nav-links">
             <li class={activeTab === "acquireTokens" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("acquireTokens")}>
+                <button type="button" on:click={() => changeTab("acquireTokens") }>
                     Contribute to a Campaign
-                </a>
+                </button>
             </li>
             <li class={activeTab === "myContributions" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("myContributions")}>
+                <button type="button" on:click={() => changeTab("myContributions") }>
                     My Contributions
-                </a>
+                </button>
             </li>
             <li class={activeTab === "myProjects" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("myProjects")}>
+                <button type="button" on:click={() => changeTab("myProjects") }>
                     My Campaigns
-                </a>
+                </button>
             </li>
             <li class={activeTab === "submitProject" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("submitProject")}>
+                <button type="button" on:click={() => changeTab("submitProject") }>
                     New Campaign
-                </a>
+                </button>
             </li>
         </ul>
     </div>
@@ -573,7 +573,7 @@
         position: relative;
     }
 
-    .nav-links li a {
+    .nav-links li a, .nav-links li button {
         color: inherit;
         text-decoration: none;
         font-weight: 500;
@@ -584,17 +584,31 @@
         border-bottom: 2px solid transparent;
     }
 
-    .nav-links li a:hover {
+    .nav-links li a:hover, .nav-links li button:hover {
         color: orange;
         background: rgba(255, 165, 0, 0.05);
         box-shadow: 0 0 10px rgba(255, 165, 0, 0.1);
     }
 
-    .nav-links li.active a {
+    .nav-links li.active a, .nav-links li.active button {
         border-bottom: 2px solid orange;
         color: orange;
         background: rgba(255, 165, 0, 0.1);
         box-shadow: 0 0 15px rgba(255, 165, 0, 0.15);
+    }
+
+    /* Make nav buttons visually match links and remove default button chrome */
+    .nav-links li button,
+    .mobile-nav-links li button {
+        background: none;
+        border: none;
+        padding: 0.5rem 0.75rem;
+        font: inherit;
+        color: inherit;
+        display: block;
+        text-align: left;
+        cursor: pointer;
+        border-radius: 8px;
     }
 
     /* User Section */
@@ -704,7 +718,7 @@
         gap: 0.5rem;
     }
 
-    .mobile-nav-links li a {
+    .mobile-nav-links li a, .mobile-nav-links li button {
         color: white;
         text-decoration: none;
         font-weight: 500;
@@ -714,12 +728,12 @@
         transition: all 0.2s ease;
     }
 
-    .mobile-nav-links li a:hover {
+    .mobile-nav-links li a:hover, .mobile-nav-links li button:hover {
         background-color: rgba(255, 165, 0, 0.1);
         box-shadow: 0 0 15px rgba(255, 165, 0, 0.1);
     }
 
-    .mobile-nav-links li.active a {
+    .mobile-nav-links li.active a, .mobile-nav-links li.active button {
         background-color: rgba(255, 165, 0, 0.2);
         color: orange;
         box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);
