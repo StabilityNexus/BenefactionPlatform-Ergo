@@ -6,11 +6,21 @@ import { browser } from '$app/environment';
 export async function loadProjectById(projectId: string) {
     try {
         const normalized = (projectId || "").trim();
+        if (!normalized) throw new Error("Empty project id");
 
         // 1) Try targeted fetch by exact token id (optimized - doesn't load full list)
-        let proj = await fetchProjectById(normalized);
+        let proj: Project | null = null;
+        try {
+            proj = await fetchProjectById(normalized);
+        } catch (e) {
+            console.warn("Targeted fetchProjectById failed; falling back to full map lookup", e);
+        }
         if (!proj && normalized.startsWith('apt:')) {
-            proj = await fetchProjectById(normalized.replace(/^apt:/i, ''));
+            try {
+                proj = await fetchProjectById(normalized.replace(/^apt:/i, ''));
+            } catch (e) {
+                console.warn("Targeted fetchProjectById (apt:) failed; falling back to full map lookup", e);
+            }
         }
         if (proj) {
             project_detail.set(proj);
@@ -49,11 +59,15 @@ export async function loadProjectById(projectId: string) {
         }
 
         // Prefix match (first 8 chars) or full-key startsWith
-        const prefix = normalized.slice(0, 8);
-        for (const [key, p] of projectsMap.entries()) {
-            if (key.startsWith(prefix) || key.startsWith(normalized)) {
-                project_detail.set(p);
-                return;
+        // Only perform prefix matching when normalized length meets minimum threshold
+        const MIN_PREFIX_LEN = 8;
+        if (normalized.length >= MIN_PREFIX_LEN) {
+            const prefix = normalized.slice(0, 8);
+            for (const [key, p] of projectsMap.entries()) {
+                if (key.startsWith(prefix) || key.startsWith(normalized)) {
+                    project_detail.set(p);
+                    return;
+                }
             }
         }
 
