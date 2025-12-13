@@ -11,6 +11,7 @@
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
     import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
+    import { searchQuery } from "$lib/common/search-store";
 
     let allFetchedItems: Map<string, Project> = new Map();
     let listedItems: Map<string, Project> | null = null;
@@ -19,7 +20,7 @@
     let isFiltering: boolean = false;
     let totalProjectsCount: number = 0;
 
-    let searchQuery: string = "";
+    // Remove local searchQuery, use store instead
     let sortBy: "newest" | "oldest" | "amount" | "name" = "newest";
     let hideTestProjects: boolean = true;
     let filterOpen = false;
@@ -56,8 +57,8 @@
                 }
             }
 
-            if (shouldAdd && searchQuery) {
-                const searchLower = searchQuery.toLowerCase();
+            if (shouldAdd && $searchQuery) {
+                const searchLower = $searchQuery.toLowerCase();
                 const titleMatch =
                     item.content.title?.toLowerCase().includes(searchLower) ??
                     false;
@@ -131,7 +132,7 @@
         if (isLoadingApi) isLoadingApi = false;
     });
 
-    $: if (searchQuery !== undefined) {
+    $: if ($searchQuery !== undefined) {
         clearTimeout(debouncedSearch);
         debouncedSearch = setTimeout(async () => {
             isFiltering = true;
@@ -202,7 +203,8 @@
                 <Input
                     type="text"
                     placeholder="Search campaigns..."
-                    bind:value={searchQuery}
+                    value={$searchQuery}
+                    on:input={(e) => searchQuery.set(e.currentTarget.value)}
                     class="w-full rounded-lg border-orange-500/20 bg-background/80 pl-10 pr-10 backdrop-blur-lg transition-all duration-200 focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20"
                 />
                 {#if isFiltering}
@@ -291,9 +293,9 @@
         </div>
     {:else}
         <div class="no-projects-container">
-            {#if searchQuery}
+            {#if $searchQuery}
                 <p class="no-projects-text">
-                    No campaigns found matching "<strong>{searchQuery}</strong
+                    No campaigns found matching "<strong>{$searchQuery}</strong
                     >".<br />
                     Try a different search term or adjust filters.
                 </p>

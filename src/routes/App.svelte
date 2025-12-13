@@ -27,6 +27,7 @@
     import { Badge } from "$lib/components/ui/badge";
     import { get } from "svelte/store";
     import { fade } from "svelte/transition";
+    import { searchQuery } from "$lib/common/search-store";
     // New wallet system imports (use upstream package directly)
     import {
         WalletButton,
@@ -66,6 +67,12 @@
 
         const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
         const platformId = $page.url.searchParams.get("chain");
+        const searchParam = $page.url.searchParams.get("search");
+
+        // Initialize search query from URL parameter
+        if (searchParam) {
+            searchQuery.init(searchParam);
+        }
 
         if (projectId && platformId == platform.id) {
             await loadProjectById(projectId, platform);
@@ -158,6 +165,14 @@
             url.searchParams.delete("campaign");
         }
 
+        // Preserve search parameter
+        const currentSearch = get(searchQuery);
+        if (currentSearch && currentSearch.trim()) {
+            url.searchParams.set("search", currentSearch.trim());
+        } else {
+            url.searchParams.delete("search");
+        }
+
         window.history.pushState({}, "", url);
     }
 
@@ -204,6 +219,15 @@
 
         document.addEventListener('mousedown', handleDocumentClick, true);
 
+        // Handle browser back/forward navigation
+        function handlePopState() {
+            const url = new URL(window.location.href);
+            const searchParam = url.searchParams.get('search') || '';
+            searchQuery.init(searchParam);
+        }
+
+        window.addEventListener('popstate', handlePopState);
+
         return () => {
             if (balanceUpdateInterval) {
                 clearInterval(balanceUpdateInterval);
@@ -215,6 +239,7 @@
                 );
             }
             document.removeEventListener('mousedown', handleDocumentClick, true);
+            window.removeEventListener('popstate', handlePopState);
         };
     });
 </script>
@@ -336,6 +361,29 @@
             <li class={activeTab === "submitProject" ? "active" : ""}>
                 <a href="#" on:click={() => changeTab("submitProject")}>
                     New Campaign
+                </a>
+            </li>
+            <li>
+                <a href="#" on:click={() => {
+                    showSettingsModal = true;
+                    mobileMenuOpen = false;
+                }}>
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        style="flex-shrink: 0;"
+                    >
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H1m18.2 5.2l-4.2-4.2m0-6l4.2-4.2"></path>
+                    </svg>
+                    Settings
                 </a>
             </li>
         </ul>
@@ -709,7 +757,9 @@
         text-decoration: none;
         font-weight: 500;
         padding: 0.75rem;
-        display: block;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
         border-radius: 8px;
         transition: all 0.2s ease;
     }
