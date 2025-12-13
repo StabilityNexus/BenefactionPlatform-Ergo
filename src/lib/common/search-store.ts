@@ -8,13 +8,21 @@ import { browser } from '$app/environment';
  * When the search query changes, the URL is updated with ?search= parameter.
  * When the URL changes (e.g., browser back/forward), the search query is updated.
  * 
- * Uses debouncing to prevent creating a history entry for every keystroke.
+ * Uses a "push once per typing burst" strategy to prevent history pollution:
+ * - First update in a burst: pushState (creates history entry)
+ * - Subsequent updates: replaceState (updates URL without new history)
+ * - After 500ms idle: reset for next burst
  */
-
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 function createSearchStore() {
     const { subscribe, set, update } = writable<string>('');
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let hasPushedForBurst = false;
+
+    const clearDebounce = () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = null;
+    };
 
     return {
         subscribe,
@@ -25,26 +33,27 @@ function createSearchStore() {
         set: (value: string) => {
             set(value);
             if (browser) {
-                // Clear existing timer
-                if (debounceTimer) {
-                    clearTimeout(debounceTimer);
-                }
+                clearDebounce();
 
-                // Use replaceState immediately for smooth UX (no history entry)
-                updateURL(value, true);
+                // Push once (so Back works), then replace while the user keeps typing
+                updateURL(value, hasPushedForBurst ? 'replace' : 'push');
+                hasPushedForBurst = true;
 
-                // After debounce, use pushState to create a single history entry
+                // Reset the burst after idle
                 debounceTimer = setTimeout(() => {
-                    updateURL(value, false);
-                }, 500); // 500ms debounce
+                    hasPushedForBurst = false;
+                    debounceTimer = null;
+                }, 500);
             }
         },
 
         /**
          * Initialize the search query without updating the URL
-         * Used when reading from URL on page load
+         * Used when reading from URL on page load or browser navigation
          */
         init: (initialValue: string) => {
+            if (browser) clearDebounce();
+            hasPushedForBurst = false;
             set(initialValue);
         },
 
@@ -55,9 +64,9 @@ function createSearchStore() {
 /**
  * Update the URL with the current search term
  * @param searchTerm - The search term to add to URL
- * @param replace - If true, use replaceState (no history entry), otherwise pushState
+ * @param mode - 'push' creates new history entry, 'replace' updates current entry
  */
-function updateURL(searchTerm: string, replace: boolean = false) {
+function updateURL(searchTerm: string, mode: 'push' | 'replace') {
     if (!browser) return;
 
     const url = new URL(window.location.href);
@@ -68,11 +77,9 @@ function updateURL(searchTerm: string, replace: boolean = false) {
         url.searchParams.delete('search');
     }
 
-    if (replace) {
-        // Replace current history entry (no new entry)
+    if (mode === 'replace') {
         window.history.replaceState({}, '', url);
     } else {
-        // Create new history entry
         window.history.pushState({}, '', url);
     }
 }
