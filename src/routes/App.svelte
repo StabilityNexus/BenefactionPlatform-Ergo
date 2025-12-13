@@ -339,11 +339,8 @@
                 </a>
             </li>
         </ul>
-        <div class="mobile-nav-footer">
-            <div class="mobile-nav-theme">
-                <span class="theme-label">Theme:</span>
-                <Theme />
-            </div>
+        <div class="mobile-theme-toggle">
+            <Theme />
         </div>
     </div>
 {/if}
@@ -474,9 +471,13 @@
         }
     }
 
-    :global(.bits-dropdown-menu-content-wrapper) {
-        position: absolute !important;
-        z-index: 999 !important;
+    /* Dropdown menu z-index - ensures dropdowns appear above all content including mobile menu */
+    :global(.bits-dropdown-menu-content-wrapper),
+    :global(.bits-dropdown-menu-content),
+    :global([data-bits-menu-content]),
+    :global([role="menu"]) {
+        position: fixed !important;
+        z-index: 9999 !important;
         pointer-events: auto !important;
     }
 
@@ -491,7 +492,7 @@
         top: 0;
         left: 0;
         right: 0;
-        z-index: 50;
+        z-index: 90;
         padding: 0.5rem 1rem;
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
@@ -635,7 +636,6 @@
         background: none;
         border: none;
         cursor: pointer;
-        z-index: 100;
         padding: 0.5rem;
         border-radius: 8px;
         transition: background-color 0.2s ease;
@@ -695,7 +695,7 @@
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
         padding: 1rem;
-        z-index: 99;
+        z-index: 100;
         border-radius: 16px;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         border: 1px solid rgba(255, 165, 0, 0.1);
@@ -731,26 +731,16 @@
         box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);
     }
 
-    /* Mobile Navigation Footer with Theme Toggle */
-    .mobile-nav-footer {
+    .mobile-theme-toggle {
         margin-top: 1rem;
         padding-top: 1rem;
-        border-top: 1px solid rgba(255, 165, 0, 0.2);
-    }
-
-    .mobile-nav-theme {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.75rem;
-        border-radius: 8px;
-        background-color: rgba(255, 165, 0, 0.05);
+        justify-content: center;
     }
 
-    .theme-label {
-        font-weight: 500;
-        color: var(--foreground);
-        font-size: 0.95rem;
+    .mobile-theme-toggle :global(button) {
+        width: 100%;
     }
 
     /* Responsive Header Adjustments */
@@ -783,14 +773,9 @@
             min-width: 0;
         }
         
-        /* Hide settings button on mobile to save space, but keep theme toggle in mobile menu */
-        .settings-button {
+        /* Force settings and theme off on mobile to save space */
+        .theme-toggle, .settings-button {
             display: none !important;
-        }
-        
-        /* Hide theme toggle from header on mobile, it's now in the mobile menu */
-        .theme-toggle {
-            display: none;
         }
 
         .mobile-menu-button {
