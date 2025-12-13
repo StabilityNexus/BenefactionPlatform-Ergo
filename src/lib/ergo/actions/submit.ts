@@ -5,7 +5,6 @@ import {
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
-    type Box,
     BOX_VALUE_PER_BYTE,
     ErgoAddress
 } from '@fleet-sdk/core';
@@ -14,7 +13,7 @@ import { SString } from '../utils';
 import { type contract_version, get_ergotree_hex, mint_contract_address } from '../contract';
 import { createR8Structure, type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
-import { fetch_token_details, wait_until_confirmation } from '../fetch';
+import { fetch_token_details } from '../fetch';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
 import {
     validateProjectContent,
@@ -54,56 +53,6 @@ function playBeep(frequency = 1000, duration = 3000) {
     osc.stop(now + 0.55);
 }
 
-async function* mint_tx(title: string, constants: ConstantContent, version: contract_version, amount: number, decimals: number): AsyncGenerator<string, Box, void> {
-    // Get the wallet address (will be the project address)
-    const walletPk = await getChangeAddress();
-
-    // Get the UTXOs from the current wallet to use as inputs
-    const inputs = await getUtxos();
-
-    let outputs: OutputBuilder[] = [
-        new OutputBuilder(
-            SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-            mint_contract_address(constants, version)
-        )
-            .mintToken({
-                amount: BigInt(amount),
-                name: title + " APT",    // A pro for use IDT (identity token) and TFT (temporal funding token) with the same token is that the TFT token that the user holds has the same id than the project.  This allows the user to verify the exact project in case than two projects has the same name.
-                decimals: decimals,
-                description: "Temporal-funding Token for the " + title + " project."
-            })
-    ]
-
-    // Building the unsigned transaction
-    const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
-        .from(inputs)                          // Inputs coming from the user's UTXOs
-        .to(outputs)                           // Outputs (the new project box)
-        .sendChangeTo(walletPk)                // Send change back to the wallet
-        .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
-        .build()                               // Build the transaction
-        .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
-
-    yield "Please sign the mint transaction...";
-
-    // Sign the transaction
-    const signedTransaction = await signTransaction(unsignedTransaction);
-
-    // Send the transaction to the Ergo network
-    const transactionId = await submitTransaction(signedTransaction);
-
-    console.log("Mint tx id: " + transactionId);
-
-    yield "Waiting for mint confirmation... (this may take a few minutes)";
-
-    let box = await wait_until_confirmation(transactionId);
-    if (box == null) {
-        alert("Mint tx failed.")
-        throw new Error("Mint tx failed.")
-    }
-
-    return box
-}
-
 // Function to submit a project to the blockchain
 export async function* submit_project(
     version: contract_version,
@@ -135,6 +84,16 @@ export async function* submit_project(
         return null;
     }
 
+    // Token amounts on-chain must be integers (smallest units).
+    // We validate this early because we later convert `token_amount` to `bigint`.
+    // Note: avoid `Number.isInteger/isSafeInteger` here to keep editor/tsserver compatibility
+    // when `.svelte-kit/tsconfig.json` hasn't been generated yet.
+    const MAX_SAFE_INT = 9007199254740991;
+    if (token_amount < 0 || token_amount !== Math.floor(token_amount) || token_amount > MAX_SAFE_INT) {
+        alert("Invalid token amount. It must be a non-negative safe integer (smallest units). ");
+        return null;
+    }
+
     // Get the wallet address (will be the project address)
     const walletPk = await getChangeAddress();
 
@@ -151,22 +110,41 @@ export async function* submit_project(
     let token_data = await get_token_data(token_id);
     let id_token_amount = token_data["amount"] + 1;
 
-    // Build the mint tx.
-    yield "Preparing mint transaction...";
-    const mintGen = mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"]);
-    let mintResult = await mintGen.next();
-    while (!mintResult.done) {
-        yield mintResult.value;
-        mintResult = await mintGen.next();
+    /*
+        Why chained transactions:
+        - In Ergo's UTXO model, an output box can only be spent by a *later* transaction.
+        - Minting creates a box protected by `mint_idt.es` that must be spent into the campaign contract.
+        - We therefore build a *chained* pair of transactions (Tx A -> Tx B) and ask the wallet to sign
+          the full bundle in a single prompt.
+
+        Safety/correctness:
+        - No confirmation wait is needed: Tx B references Tx A's output and both can be included in the
+          same block. Either both confirm or neither does.
+        - The minted token id is deterministic: it is derived from the first input box id of Tx A.
+    */
+
+    // Wallet UTXOs used to fund the chained bundle.
+    const walletUtxos = await getUtxos();
+    if (walletUtxos.length === 0) {
+        alert("No wallet UTXOs available.");
+        return null;
     }
-    let mint_box = mintResult.value;
 
-    let project_id = mint_box.assets[0].tokenId;
+    if (!token_id) {
+        alert("Invalid PFT token id.");
+        return null;
+    }
 
-    if (project_id === null) { alert("Token minting failed!"); return null; }
+    // CRITICAL: token id determinism.
+    // The minted token id MUST equal the boxId of the FIRST input of the minting transaction.
+    // We explicitly pick and lock `issuanceBox` to guarantee both:
+    // - `project_id` correctness, and
+    // - `issuanceBox` is actually the first input passed to FleetSDK.
+    const issuanceBox = walletUtxos[0];
+    const mintInputs = [issuanceBox, ...walletUtxos.filter((b: any) => b.boxId !== issuanceBox.boxId)];
 
-    // Get the UTXOs from the current wallet to use as inputs
-    const inputs = [mint_box, ...await window.ergo!.get_utxos()];
+    // Token id of an issued token is always the boxId of the first input of the issuance transaction.
+    const project_id = issuanceBox.boxId;
 
     const r4Hex = SPair(SBool(is_timestamp_limit), SLong(BigInt(blockLimit))).toHex();
     const r5Hex = SLong(BigInt(minimumSold)).toHex();
@@ -180,10 +158,18 @@ export async function* submit_project(
 
     const ergoTreeAddress = get_ergotree_hex(addressContent, version);
 
+    // Build token list programmatically.
+    // CRITICAL: never use placeholder token ids (e.g. `token_id ?? ""`) because it can create invalid boxes.
+    // Base token id is a *parameter* (in R8) and is not required to be present in the box at creation.
+    const projectTokens: Array<{ tokenId: string; amount: bigint }> = [
+        { tokenId: project_id, amount: BigInt(id_token_amount) },
+        { tokenId: token_id, amount: BigInt(token_amount) }
+    ];
+
     // Estimate total box size
     const totalEstimatedSize = estimateTotalBoxSize(
         ergoTreeAddress.length,
-        3, // number of tokens (project_id, pft_token_id, and possibly base_token_id)
+        projectTokens.length,
         registerSizes
     );
 
@@ -193,21 +179,23 @@ export async function* submit_project(
         minRequiredValue = SAFE_MIN_BOX_VALUE;
     }
 
-    // Building the project output
-    let outputs: OutputBuilder[] = [new OutputBuilder(
-        minRequiredValue,                       // Minimum value in ERG that a box can have
-        ergoTreeAddress        // Address of the project contract
+    // Tx A output: mint box locked by `mint_idt.es`. It will be immediately spent by Tx B.
+    const mintOutput = new OutputBuilder(
+        SAFE_MIN_BOX_VALUE,
+        mint_contract_address(addressContent, version)
+    ).mintToken({
+        amount: BigInt(id_token_amount),
+        name: title + " APT",
+        decimals: token_data["decimals"],
+        description: "Temporal-funding Token for the " + title + " project."
+    });
+
+    // Tx B output #0: campaign/project box. This must be OUTPUTS(0) for `mint_idt.es` validation.
+    const projectOutput = new OutputBuilder(
+        minRequiredValue,
+        ergoTreeAddress
     )
-        .addTokens([
-            {
-                tokenId: project_id,
-                amount: BigInt(id_token_amount)     // The mint contract force to spend all the id_token_amount
-            },
-            {
-                tokenId: token_id ?? "",
-                amount: token_amount.toString()
-            }
-        ])
+        .addTokens(projectTokens)
         .setAdditionalRegisters({
             R4: r4Hex,
             R5: r5Hex,
@@ -215,16 +203,26 @@ export async function* submit_project(
             R7: r7Hex,
             R8: r8Hex,
             R9: r9Hex
-        })];
+        });
 
-    // Building the unsigned transaction
+    // Build a chained bundle (Tx A -> Tx B). Wallet signs once.
     const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
-        .from(inputs)                          // Inputs coming from the user's UTXOs
-        .to(outputs)                           // Outputs (the new project box)
-        .sendChangeTo(walletPk)                // Send change back to the wallet
-        .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
-        .build()                               // Build the transaction
-        .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
+        // CRITICAL: force issuanceBox to be INPUTS(0) so minted token id is deterministic.
+        .from(mintInputs)
+        .to(mintOutput)
+        .sendChangeTo(walletPk)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build()
+        .chain((builder) =>
+            builder
+                // CRITICAL: `mint_idt.es` requires the campaign box to be OUTPUTS(0) of Tx B.
+                // Keep `projectOutput` as the first/only explicit output before change.
+                .to(projectOutput)
+                .payFee(RECOMMENDED_MIN_FEE_VALUE)
+                .sendChangeTo(walletPk)
+                .build()
+        )
+        .toEIP12Object();
 
     try {
         playBeep();
@@ -232,7 +230,7 @@ export async function* submit_project(
         console.error('Error executing play beep:', error);
     }
 
-    yield "Please sign the project transaction...";
+    yield "Please sign the campaign creation transaction...";
 
     // Sign the transaction
     const signedTransaction = await signTransaction(unsignedTransaction);
