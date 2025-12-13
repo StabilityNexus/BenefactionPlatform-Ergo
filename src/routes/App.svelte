@@ -782,8 +782,8 @@
             min-width: 0;
         }
         
-        /* Force settings and theme off on mobile to save space */
-        .theme-toggle, .settings-button {
+        /* Force settings off on mobile to save space */
+        .settings-button {
             display: none !important;
         }
 

@@ -340,13 +340,19 @@
 
     .project-title {
         text-align: center;
-        font-size: 2.2rem;
+        font-size: 1.875rem;
         margin: 20px 0 30px;
         color: orange;
         font-family: "Russo One", sans-serif;
         letter-spacing: 0.02em;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         position: relative;
+    }
+
+    @media (min-width: 768px) {
+        .project-title {
+            font-size: 3rem;
+        }
     }
 
     .project-title::after {
@@ -413,7 +419,7 @@
         }
 
         .project-title {
-            font-size: 1.8rem;
+            font-size: 1.875rem;
             margin: 15px 0 25px;
         }
     }
