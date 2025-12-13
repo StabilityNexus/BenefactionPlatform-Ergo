@@ -23,15 +23,15 @@ import {
     estimateTotalBoxSize
 } from '../utils/box-size-calculator';
 
-async function get_token_data(token_id: string): Promise<{ amount: number, decimals: number }> {
+async function get_token_data(token_id: string): Promise<{ amount: bigint; decimals: number }> {
     let token_fetch = await fetch_token_details(token_id);
-    let id_token_amount = token_fetch['emissionAmount'] ?? 0;
-    if (id_token_amount === 0) {
+    const emission = token_fetch['emissionAmount'] ?? 0;
+    if (emission === 0) {
         alert(token_id + " token emission amount is 0.");
-        throw new Error(token_id + " token emission amount is 0.")
+        throw new Error(token_id + " token emission amount is 0.");
     }
-    id_token_amount += 1;
-    return { "amount": id_token_amount, "decimals": token_fetch['decimals'] }
+    // Return emission amount as bigint (increment will be done in submit_project)
+    return { amount: BigInt(emission), decimals: token_fetch['decimals'] };
 }
 
 function playBeep(frequency = 1000, duration = 3000) {
@@ -125,9 +125,9 @@ export async function submit_project(
         "base_token_id": base_token_id
     };
 
-    // Get token emission amount
+    // Get token emission amount and add 1 for the identity token
     let token_data = await get_token_data(token_id);
-    let id_token_amount = token_data["amount"] + 1;
+    let id_token_amount = token_data.amount + 1n; // Add 1 using bigint arithmetic
 
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = await getUtxos();
@@ -144,9 +144,9 @@ export async function submit_project(
         mint_contract_address(addressContent, version)
     )
         .mintToken({
-            amount: BigInt(id_token_amount),
+            amount: id_token_amount, // Already bigint
             name: title + " APT",
-            decimals: token_data["decimals"],
+            decimals: token_data.decimals,
             description: "Temporal-funding Token for the " + title + " project."
         });
 
@@ -183,11 +183,11 @@ export async function submit_project(
         .addTokens([
             {
                 tokenId: project_id,  // Use predicted token ID
-                amount: BigInt(id_token_amount)
+                amount: id_token_amount // Already bigint
             },
             {
                 tokenId: token_id ?? "",
-                amount: token_amount.toString()
+                amount: BigInt(token_amount)
             }
         ])
         .setAdditionalRegisters({
