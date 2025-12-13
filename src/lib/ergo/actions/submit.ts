@@ -159,13 +159,29 @@ export async function submit_project(
     }
 
     // Get the UTXOs from the current wallet to use as inputs
-    const inputs = await getUtxos();
+    let inputs: Box[];
+    try {
+        inputs = await getUtxos();
+    } catch (error) {
+        console.error("Failed to fetch wallet UTXOs:", error);
+        alert("Failed to connect to wallet. Please ensure your wallet is connected and try again.");
+        return null;
+    }
 
-    // In a single transaction with multiple outputs, the token ID will be the first input's boxId
-    // This is because Ergo's token ID = box ID of the box that minted it
-    const project_id = inputs[0].boxId;
+    // Validate inputs array is not empty
+    if (!inputs || inputs.length === 0) {
+        alert("No wallet UTXOs available. Please fund your wallet with ERG to create a campaign.");
+        return null;
+    }
 
-    console.log("Predicted token ID:", project_id);
+    // Token ID prediction: In FleetSDK, the first input in the array becomes the first
+    // transaction input, making inputs[0].boxId the token ID for minted tokens.
+    // We use configureSelector to guarantee this input is included.
+    const mintingInput = inputs[0];
+    const project_id = mintingInput.boxId;
+
+    console.log("Predicted token ID (minting input):", project_id);
+    console.log("Minting input will be explicitly included in transaction");
 
     // Build the mint output (first output - MUST be first for token ID prediction)
     const mintOutput = new OutputBuilder(
@@ -233,6 +249,10 @@ export async function submit_project(
     // The mint output MUST be first so the token ID prediction works correctly
     const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
         .from(inputs)                          // Inputs from user's UTXOs
+        .configureSelector((selector) =>
+            // Guarantee the minting input is included (required for token ID prediction)
+            selector.ensureInclusion((input) => input.boxId === mintingInput.boxId)
+        )
         .to(mintOutput)                        // First output: mint box (MUST be first!)
         .to(contractOutput)                    // Second output: campaign box
         .sendChangeTo(walletPk)                // Send change back to wallet
@@ -246,15 +266,36 @@ export async function submit_project(
         console.error('Error executing play beep:', error);
     }
 
-    // Sign the transaction (user signs once for both outputs!)
-    const signedTransaction = await signTransaction(unsignedTransaction);
+    // Sign and submit the transaction with comprehensive error handling
+    try {
+        // Sign the transaction (user signs once for both outputs!)
+        const signedTransaction = await signTransaction(unsignedTransaction);
 
-    // Submit the transaction to the Ergo network
-    const transactionId = await submitTransaction(signedTransaction);
+        // Submit the transaction to the Ergo network
+        const transactionId = await submitTransaction(signedTransaction);
 
-    console.log("Transaction ID ->", transactionId);
-    console.log("Campaign created with token ID:", project_id);
-    console.log("Both mint and campaign boxes created atomically!");
+        console.log("✅ Transaction ID ->", transactionId);
+        console.log("✅ Campaign created with token ID:", project_id);
+        console.log("✅ Both mint and campaign boxes created atomically!");
 
-    return transactionId;
+        return transactionId;
+    } catch (error: any) {
+        console.error("❌ Transaction failed:", error);
+
+        // Provide user-friendly error messages based on error type
+        if (error.message?.toLowerCase().includes('reject')) {
+            alert("Transaction cancelled. You rejected the signature request.");
+        } else if (error.message?.toLowerCase().includes('insufficient')) {
+            alert("Insufficient funds. Please ensure you have enough ERG for the transaction and fees.");
+        } else if (error.message?.toLowerCase().includes('connect')) {
+            alert("Wallet connection lost. Please reconnect your wallet and try again.");
+        } else if (error.message?.toLowerCase().includes('network')) {
+            alert("Network error. Please check your connection and try again.");
+        } else {
+            const errorMsg = error.message || error.toString() || "Unknown error";
+            alert(`Transaction failed: ${errorMsg}\n\nPlease try again or contact support if the issue persists.`);
+        }
+
+        return null;
+    }
 }
