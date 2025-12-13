@@ -5,6 +5,7 @@
     async function projectFilter(project: Project) {
         return true;
     }
+    export let searchTerm = "";
 </script>
 
-<ProjectList filterProject={projectFilter}>Fundraising Campaigns</ProjectList>
+<ProjectList bind:searchTerm={searchTerm} filterProject={projectFilter}>Fundraising Campaigns</ProjectList>

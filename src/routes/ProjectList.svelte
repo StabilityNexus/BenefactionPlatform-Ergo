@@ -19,7 +19,7 @@
     let isFiltering: boolean = false;
     let totalProjectsCount: number = 0;
 
-    let searchQuery: string = "";
+    export let searchTerm: string = "";
     let sortBy: "newest" | "oldest" | "amount" | "name" = "newest";
     let hideTestProjects: boolean = true;
     let filterOpen = false;
@@ -56,8 +56,8 @@
                 }
             }
 
-            if (shouldAdd && searchQuery) {
-                const searchLower = searchQuery.toLowerCase();
+            if (shouldAdd && searchTerm) {
+                const searchLower = searchTerm.toLowerCase();
                 const titleMatch =
                     item.content.title?.toLowerCase().includes(searchLower) ??
                     false;
@@ -92,9 +92,11 @@
                 break;
             case "amount":
                 sortedItemsArray.sort(
-                    ([, a], [, b]) =>
-                        (b.content.targetAmount ?? 0) -
-                        (a.content.targetAmount ?? 0),
+                    ([, a], [, b]) => {
+                        const aValue = typeof a.box.value === 'number' ? a.box.value : Number(a.box.value) || 0;
+                        const bValue = typeof b.box.value === 'number' ? b.box.value : Number(b.box.value) || 0;
+                        return bValue - aValue;
+                    },
                 );
                 break;
             case "name":
@@ -131,7 +133,7 @@
         if (isLoadingApi) isLoadingApi = false;
     });
 
-    $: if (searchQuery !== undefined) {
+    $: if (searchTerm !== undefined) {
         clearTimeout(debouncedSearch);
         debouncedSearch = setTimeout(async () => {
             isFiltering = true;
@@ -202,7 +204,7 @@
                 <Input
                     type="text"
                     placeholder="Search campaigns..."
-                    bind:value={searchQuery}
+                    bind:value={searchTerm}
                     class="w-full rounded-lg border-orange-500/20 bg-background/80 pl-10 pr-10 backdrop-blur-lg transition-all duration-200 focus:border-orange-500/40 focus:ring-1 focus:ring-orange-500/20"
                 />
                 {#if isFiltering}
@@ -291,9 +293,9 @@
         </div>
     {:else}
         <div class="no-projects-container">
-            {#if searchQuery}
+            {#if searchTerm}
                 <p class="no-projects-text">
-                    No campaigns found matching "<strong>{searchQuery}</strong
+                    No campaigns found matching "<strong>{searchTerm}</strong
                     >".<br />
                     Try a different search term or adjust filters.
                 </p>

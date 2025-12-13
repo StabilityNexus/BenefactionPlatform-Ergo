@@ -27,7 +27,7 @@
     import { Badge } from "$lib/components/ui/badge";
     import { get } from "svelte/store";
     import { fade } from "svelte/transition";
-    // New wallet system imports (use upstream package directly)
+    // New waystem imports (use upstream package directly)
     import {
         WalletButton,
         walletManager,
@@ -39,6 +39,7 @@
 
     let activeTab = "acquireTokens";
     let showCopyMessage = false;
+    let searchTerm = "";
     let showWalletInfo = false;
     let mobileMenuOpen = false;
     let showSettingsModal = false;
@@ -64,11 +65,19 @@
     onMount(async () => {
         if (!browser) return;
 
+        const searchID = $page.url.searchParams.get("search");
+        if (searchID)
+    {
+            searchTerm = searchID;
+        }
+
+
+
         const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
         const platformId = $page.url.searchParams.get("chain");
 
         if (projectId && platformId == platform.id) {
-            await loadProjectById(projectId, platform);
+            await loadProjectById(projectId);
         }
 
         // Setup footer scrolling text
@@ -144,10 +153,18 @@
     }
     getCurrentHeight();
 
-    async function changeUrl(project: Project | null) {
+   async function changeUrl(project: Project | null) {
         if (typeof window === "undefined") return;
 
         const url = new URL(window.location.href);
+
+        // --- NEW: Search Sync Logic ---
+        if (searchTerm) {
+            url.searchParams.set("search", searchTerm);
+        } else {
+            url.searchParams.delete("search");
+        }
+        // ------------------------------
 
         if (project !== null) {
             url.searchParams.set("chain", platform.id);
@@ -160,7 +177,6 @@
 
         window.history.pushState({}, "", url);
     }
-
     $: changeUrl($project_detail);
 
     // Function to update wallet information periodically
@@ -175,7 +191,7 @@
     }
 
     // Set up periodic balance refresh (every 30 seconds)
-    let balanceUpdateInterval: number;
+    let balanceUpdateInterval: ReturnType<typeof setInterval>;
 
     onMount(() => {
         if (browser) {
@@ -217,6 +233,7 @@
             document.removeEventListener('mousedown', handleDocumentClick, true);
         };
     });
+    $: console.log("Searching for:", searchTerm), changeUrl(null);
 </script>
 
 <header class="navbar-container">
@@ -229,24 +246,24 @@
         <nav class="desktop-nav">
             <ul class="nav-links">
                 <li class={activeTab === "acquireTokens" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("acquireTokens")}>
+                    <button on:click={() => changeTab("acquireTokens")}>
                         Contribute to a Campaign
-                    </a>
+                    </button>
                 </li>
                 <li class={activeTab === "myContributions" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("myContributions")}>
+                    <button on:click={() => changeTab("myContributions")}>
                         My Contributions
-                    </a>
+                    </button>
                 </li>
                 <li class={activeTab === "myProjects" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("myProjects")}>
+                    <button on:click={() => changeTab("myProjects")}>
                         My Campaigns
-                    </a>
+                    </button>
                 </li>
                 <li class={activeTab === "submitProject" ? "active" : ""}>
-                    <a href="#" on:click={() => changeTab("submitProject")}>
+                    <button on:click={() => changeTab("submitProject")}>
                         New Campaign
-                    </a>
+                    </button>
                 </li>
             </ul>
         </nav>
@@ -319,24 +336,24 @@
     <div class="mobile-nav" transition:fade={{ duration: 200 }}>
         <ul class="mobile-nav-links">
             <li class={activeTab === "acquireTokens" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("acquireTokens")}>
+                <button on:click={() => changeTab("acquireTokens")}>
                     Contribute to a Campaign
-                </a>
+                </button>
             </li>
             <li class={activeTab === "myContributions" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("myContributions")}>
+                <button on:click={() => changeTab("myContributions")}>
                     My Contributions
-                </a>
+                </button>
             </li>
             <li class={activeTab === "myProjects" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("myProjects")}>
+                <button on:click={() => changeTab("myProjects")}>
                     My Campaigns
-                </a>
+                </button>
             </li>
             <li class={activeTab === "submitProject" ? "active" : ""}>
-                <a href="#" on:click={() => changeTab("submitProject")}>
+                <button on:click={() => changeTab("submitProject")}>
                     New Campaign
-                </a>
+                </button>
             </li>
         </ul>
     </div>
@@ -345,13 +362,13 @@
 <main class="responsive-main">
     {#if $project_detail === null}
         {#if activeTab === "acquireTokens"}
-            <TokenAcquisition />
+            <TokenAcquisition bind:searchTerm />
         {/if}
         {#if activeTab === "myContributions"}
             <MyContributions />
         {/if}
         {#if activeTab === "myProjects"}
-            <MyProjects />
+            <MyProjects bind:searchTerm/>
         {/if}
         {#if activeTab === "submitProject"}
             <NewProject />
@@ -573,7 +590,7 @@
         position: relative;
     }
 
-    .nav-links li a {
+    .nav-links li button {
         color: inherit;
         text-decoration: none;
         font-weight: 500;
@@ -582,15 +599,20 @@
         transition: all 0.2s ease;
         border-radius: 8px;
         border-bottom: 2px solid transparent;
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
     }
 
-    .nav-links li a:hover {
+    .nav-links li button:hover {
         color: orange;
         background: rgba(255, 165, 0, 0.05);
         box-shadow: 0 0 10px rgba(255, 165, 0, 0.1);
     }
 
-    .nav-links li.active a {
+    .nav-links li.active button {
         border-bottom: 2px solid orange;
         color: orange;
         background: rgba(255, 165, 0, 0.1);
@@ -704,7 +726,7 @@
         gap: 0.5rem;
     }
 
-    .mobile-nav-links li a {
+    .mobile-nav-links li button {
         color: white;
         text-decoration: none;
         font-weight: 500;
@@ -712,14 +734,19 @@
         display: block;
         border-radius: 8px;
         transition: all 0.2s ease;
+        background: none;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
     }
 
-    .mobile-nav-links li a:hover {
+    .mobile-nav-links li button:hover {
         background-color: rgba(255, 165, 0, 0.1);
         box-shadow: 0 0 15px rgba(255, 165, 0, 0.1);
     }
 
-    .mobile-nav-links li.active a {
+    .mobile-nav-links li.active button {
         background-color: rgba(255, 165, 0, 0.2);
         color: orange;
         box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);
