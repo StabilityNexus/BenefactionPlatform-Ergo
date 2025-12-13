@@ -67,8 +67,11 @@
         const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
         const platformId = $page.url.searchParams.get("chain");
 
+        // Direct campaign access: skip full list load and fetch only the target campaign
         if (projectId && platformId == platform.id) {
-            await loadProjectById(projectId, platform);
+            console.log(`[App] Direct campaign access detected: ${projectId}`);
+            await loadProjectById(projectId, true); // true = direct fetch mode
+            activeTab = "projectDetails"; // Switch to project details view
         }
 
         // Setup footer scrolling text
