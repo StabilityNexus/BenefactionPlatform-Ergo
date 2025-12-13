@@ -77,6 +77,13 @@ export class ErgoPlatform implements Platform {
         }
 
         console.warn('ErgoPlatform.connect() is deprecated. Use WalletManager instead.');
+        
+        // Guard against undefined walletManager
+        if (!walletManager) {
+            console.error('WalletManager is not defined. Cannot connect wallet.');
+            return;
+        }
+
         // For backward compatibility, try to connect to Nautilus if available
         try {
             await walletManager.connectWallet('nautilus');
