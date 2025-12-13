@@ -1,3 +1,16 @@
+/**
+ * Submit Project - Chained Transaction Implementation
+ * 
+ * This module handles campaign creation using chained transactions.
+ * Instead of creating two separate transactions (mint + campaign box),
+ * we now create a single chained transaction that:
+ * 1. Mints the APT token via the mint contract
+ * 2. Creates the campaign box that spends the mint output
+ * 
+ * This improves UX by requiring only one signature from the user.
+ * 
+ * See: https://docs.ergoplatform.com/dev/anatomy/transactions/chained/
+ */
 
 import {
     OutputBuilder,
@@ -5,7 +18,6 @@ import {
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
-    type Box,
     BOX_VALUE_PER_BYTE,
     ErgoAddress
 } from '@fleet-sdk/core';
@@ -14,7 +26,7 @@ import { SString } from '../utils';
 import { type contract_version, get_ergotree_hex, mint_contract_address } from '../contract';
 import { createR8Structure, type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
-import { fetch_token_details, wait_until_confirmation } from '../fetch';
+import { fetch_token_details } from '../fetch';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
 import {
     validateProjectContent,
@@ -54,69 +66,27 @@ function playBeep(frequency = 1000, duration = 3000) {
     osc.stop(now + 0.55);
 }
 
-async function* mint_tx(title: string, constants: ConstantContent, version: contract_version, amount: number, decimals: number): AsyncGenerator<string, Box, void> {
-    // Get the wallet address (will be the project address)
-    const walletPk = await getChangeAddress();
-
-    // Get the UTXOs from the current wallet to use as inputs
-    const inputs = await getUtxos();
-
-    let outputs: OutputBuilder[] = [
-        new OutputBuilder(
-            SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
-            mint_contract_address(constants, version)
-        )
-            .mintToken({
-                amount: BigInt(amount),
-                name: title + " APT",    // A pro for use IDT (identity token) and TFT (temporal funding token) with the same token is that the TFT token that the user holds has the same id than the project.  This allows the user to verify the exact project in case than two projects has the same name.
-                decimals: decimals,
-                description: "Temporal-funding Token for the " + title + " project."
-            })
-    ]
-
-    // Building the unsigned transaction
-    const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
-        .from(inputs)                          // Inputs coming from the user's UTXOs
-        .to(outputs)                           // Outputs (the new project box)
-        .sendChangeTo(walletPk)                // Send change back to the wallet
-        .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
-        .build()                               // Build the transaction
-        .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
-
-    yield "Please sign the mint transaction...";
-
-    // Sign the transaction
-    const signedTransaction = await signTransaction(unsignedTransaction);
-
-    // Send the transaction to the Ergo network
-    const transactionId = await submitTransaction(signedTransaction);
-
-    console.log("Mint tx id: " + transactionId);
-
-    yield "Waiting for mint confirmation... (this may take a few minutes)";
-
-    let box = await wait_until_confirmation(transactionId);
-    if (box == null) {
-        alert("Mint tx failed.")
-        throw new Error("Mint tx failed.")
-    }
-
-    return box
-}
-
-// Function to submit a project to the blockchain
+/**
+ * Submit a project to the blockchain using chained transactions.
+ * 
+ * This creates a single chained transaction that:
+ * 1. First TX: Mints the APT token to the mint contract address
+ * 2. Second TX (chained): Spends the mint output to create the campaign box
+ * 
+ * The user only needs to sign once, improving UX significantly.
+ */
 export async function* submit_project(
     version: contract_version,
     token_id: string,
     token_amount: number,
-    blockLimit: number,     // Block height until withdrawal/refund is allowed
-    is_timestamp_limit: boolean, // Whether the limit is based on timestamp or block height
-    exchangeRate: number,   // Exchange rate base_token/PFT
-    projectContent: string,    // Project content (JSON with title, description, image, link)
-    minimumSold: number,     // Minimum amount sold to allow withdrawal
+    blockLimit: number,
+    is_timestamp_limit: boolean,
+    exchangeRate: number,
+    projectContent: string,
+    minimumSold: number,
     title: string,
-    base_token_id: string = "",  // Base token ID for contributions (empty for ERG)
-    owner_ergotree: string = ""  // Optional: Owner ErgoTree (if different from wallet)
+    base_token_id: string = "",
+    owner_ergotree: string = ""
 ): AsyncGenerator<string, string | null, void> {
 
     // Parse and validate project content
@@ -128,7 +98,7 @@ export async function* submit_project(
         return null;
     }
 
-    // Validate that the project content (title, description, image, link) fits within limits
+    // Validate that the project content fits within limits
     const validation = validateProjectContent(parsedContent);
     if (!validation.isValid) {
         alert(validation.message);
@@ -147,27 +117,25 @@ export async function* submit_project(
         "base_token_id": base_token_id
     };
 
-    // Get token emission amount.
+    // Get token emission amount
+    yield "Fetching token data...";
     let token_data = await get_token_data(token_id);
     let id_token_amount = token_data["amount"] + 1;
 
-    // Build the mint tx.
-    yield "Preparing mint transaction...";
-    const mintGen = mint_tx(title, addressContent, version, id_token_amount, token_data["decimals"]);
-    let mintResult = await mintGen.next();
-    while (!mintResult.done) {
-        yield mintResult.value;
-        mintResult = await mintGen.next();
+    // Get the UTXOs from the current wallet
+    const inputs = await getUtxos();
+    
+    if (!inputs || inputs.length === 0) {
+        alert("No UTXOs available in wallet.");
+        return null;
     }
-    let mint_box = mintResult.value;
 
-    let project_id = mint_box.assets[0].tokenId;
+    // The first input's boxId will be used as the token ID for the minted APT
+    const firstInputBoxId = inputs[0].boxId;
 
-    if (project_id === null) { alert("Token minting failed!"); return null; }
+    yield "Building chained transaction...";
 
-    // Get the UTXOs from the current wallet to use as inputs
-    const inputs = [mint_box, ...await window.ergo!.get_utxos()];
-
+    // Prepare register values for the campaign box
     const r4Hex = SPair(SBool(is_timestamp_limit), SLong(BigInt(blockLimit))).toHex();
     const r5Hex = SLong(BigInt(minimumSold)).toHex();
     const r6Hex = SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex();
@@ -175,36 +143,48 @@ export async function* submit_project(
     const r8Hex = createR8Structure(addressContent).toHex();
     const r9Hex = SString(projectContent);
 
-    // Calculate register sizes using utility functions
+    // Calculate register sizes for box value estimation
     const registerSizes = estimateRegisterSizes(r4Hex, r5Hex, r6Hex, r7Hex, r8Hex, r9Hex);
-
     const ergoTreeAddress = get_ergotree_hex(addressContent, version);
 
     // Estimate total box size
     const totalEstimatedSize = estimateTotalBoxSize(
         ergoTreeAddress.length,
-        3, // number of tokens (project_id, pft_token_id, and possibly base_token_id)
+        3, // number of tokens
         registerSizes
     );
-
 
     let minRequiredValue = BOX_VALUE_PER_BYTE * BigInt(totalEstimatedSize);
     if (minRequiredValue < SAFE_MIN_BOX_VALUE) {
         minRequiredValue = SAFE_MIN_BOX_VALUE;
     }
 
-    // Building the project output
-    let outputs: OutputBuilder[] = [new OutputBuilder(
-        minRequiredValue,                       // Minimum value in ERG that a box can have
-        ergoTreeAddress        // Address of the project contract
+    const currentHeight = await getCurrentHeight();
+
+    // Build the mint output (first transaction output)
+    const mintOutput = new OutputBuilder(
+        SAFE_MIN_BOX_VALUE,
+        mint_contract_address(addressContent, version)
+    ).mintToken({
+        amount: BigInt(id_token_amount),
+        name: title + " APT",
+        decimals: token_data["decimals"],
+        description: "Temporal-funding Token for the " + title + " project."
+    });
+
+    // Build the campaign box output (second transaction output)
+    // Note: The token ID for the minted token will be the first input's boxId
+    const campaignOutput = new OutputBuilder(
+        minRequiredValue,
+        ergoTreeAddress
     )
         .addTokens([
             {
-                tokenId: project_id,
-                amount: BigInt(id_token_amount)     // The mint contract force to spend all the id_token_amount
+                tokenId: firstInputBoxId, // The minted APT token ID
+                amount: BigInt(id_token_amount)
             },
             {
-                tokenId: token_id ?? "",
+                tokenId: token_id,
                 amount: token_amount.toString()
             }
         ])
@@ -215,16 +195,24 @@ export async function* submit_project(
             R7: r7Hex,
             R8: r8Hex,
             R9: r9Hex
-        })];
+        });
 
-    // Building the unsigned transaction
-    const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
-        .from(inputs)                          // Inputs coming from the user's UTXOs
-        .to(outputs)                           // Outputs (the new project box)
-        .sendChangeTo(walletPk)                // Send change back to the wallet
-        .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
-        .build()                               // Build the transaction
-        .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
+    // Build the chained transaction
+    // First transaction: mint the APT token
+    // Second transaction (chained): create the campaign box spending the mint output
+    const unsignedTransaction = await new TransactionBuilder(currentHeight)
+        .from(inputs)
+        .to(mintOutput)
+        .sendChangeTo(walletPk)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build()
+        .chain((builder) =>
+            builder
+                .to(campaignOutput)
+                .payFee(RECOMMENDED_MIN_FEE_VALUE)
+                .build()
+        )
+        .toEIP12Object();
 
     try {
         playBeep();
@@ -232,14 +220,14 @@ export async function* submit_project(
         console.error('Error executing play beep:', error);
     }
 
-    yield "Please sign the project transaction...";
+    yield "Please sign the transaction...";
 
-    // Sign the transaction
+    // Sign the chained transaction (user signs once for both transactions)
     const signedTransaction = await signTransaction(unsignedTransaction);
 
-    // Send the transaction to the Ergo network
+    // Submit the transaction to the network
     const transactionId = await submitTransaction(signedTransaction);
 
-    console.log("Transaction id -> ", transactionId);
+    console.log("Chained transaction id -> ", transactionId);
     return transactionId;
 }
