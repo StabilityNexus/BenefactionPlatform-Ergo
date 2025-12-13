@@ -139,6 +139,7 @@
     }
 
     let current_height: number | null = null;
+    let isNavigating = false; // Flag to prevent navigation loop on popstate
 
     async function getCurrentHeight() {
         try {
@@ -151,6 +152,9 @@
 
     async function changeUrl(project: Project | null, search: string) {
         if (typeof window === "undefined") return;
+        
+        // Don't push state if we're handling a popstate event
+        if (isNavigating) return;
 
         const url = new URL(window.location.href);
 
@@ -196,11 +200,14 @@
         // Listen for browser navigation to keep search filter in sync
         const handlePopState = () => {
             try {
+                isNavigating = true; // Set flag to prevent URL push on store update
                 const url = new URL(window.location.href);
                 const s = url.searchParams.get("search") || "";
                 search_query.set(s);
+                isNavigating = false; // Reset flag after updating store
             } catch (e) {
                 console.warn("Failed to sync search from URL on popstate", e);
+                isNavigating = false; // Reset flag on error
             }
         };
         window.addEventListener("popstate", handlePopState);
