@@ -41,6 +41,8 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
     });
 
     it("should allow project owner to add more PFT tokens", () => {
+      console.log('\n--- owner-script-complex-test-start ---');
+      console.log('\n--- owner-script-test-start ---');
       // Arrange
       const tokensToAdd = 50_000n;
       const newPFTAmount = BigInt(projectBox.assets[1].amount) + tokensToAdd;
@@ -81,7 +83,35 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
         .payFee(RECOMMENDED_MIN_FEE_VALUE)
         .build();
 
-      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner] });
+      console.log('\n--- Debug: Transaction Inputs ---');
+      transaction.inputs.forEach((i, idx) => {
+        try {
+          const hex = Buffer.from(i.ergoTree).toString('hex');
+          console.log(`Input ${idx}: ${hex}`);
+        } catch (e) {
+          console.log(`Input ${idx}: (non-buffer)`, i.ergoTree);
+        }
+      });
+      // Print owner script box ergoTree and contract constants
+      try {
+        console.log('ownerScriptBox.ergoTree:', Buffer.from(ownerScriptBox.ergoTree).toString('hex'));
+      } catch (e) {
+        console.log('ownerScriptBox.ergoTree (raw):', ownerScriptBox.ergoTree);
+      }
+      console.log('Owner ErgoTree in constants:', ctx.constants[0]);
+      console.log('\n--- Debug: Transaction Inputs (Complex Owner Script) ---');
+      transaction.inputs.forEach((i, idx) => {
+        try {
+          const hex = Buffer.from(i.ergoTree).toString('hex');
+          console.log(`Input ${idx}: ${hex}`);
+        } catch (e) {
+          console.log(`Input ${idx}: (non-buffer)`, i.ergoTree);
+        }
+      });
+      console.log('ownerScriptBox.ergoTree:', Buffer.from(ownerScriptBox.ergoTree).toString('hex'));
+      console.log('Owner ErgoTree in constants:', ctx.constants[0]);
+      // Try proving with both the project owner and the custom owner contract as signers
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.projectOwner, customOwnerContract] });
 
       // Assert
       expect(result).toBe(true);

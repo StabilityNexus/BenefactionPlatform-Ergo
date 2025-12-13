@@ -9,6 +9,7 @@ import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
+import { reserveBoxes, releaseBoxes, registerPendingTx, areBoxesReserved } from '$lib/common/pending-utxos';
 import { get_dev_contract_address } from '../dev/dev_contract';
 import { SColl, SPair, SByte, SBool } from '@fleet-sdk/serializer';
 
@@ -39,6 +40,14 @@ export async function withdraw(
 
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = [project.box, ...(await getUtxos())];
+
+    if (areBoxesReserved(inputs)) {
+        throw new Error('Input box already reserved by a pending transaction; wait until confirmation or try again later.');
+    }
+    const reserved = reserveBoxes(inputs);
+    if (!reserved) {
+        throw new Error('Input box already reserved by a pending transaction; wait until confirmation or try again later.');
+    }
 
     // Building the project output
     let outputs: OutputBuilder[] = [];
@@ -245,9 +254,15 @@ export async function withdraw(
         const transactionId = await submitTransaction(signedTransaction);
 
         console.log("Transaction id -> ", transactionId);
+        registerPendingTx(transactionId, inputs).catch(err => {
+            console.warn('Failed to register pending tx cleanup: ', err);
+            try { releaseBoxes(inputs); } catch (e) { /* ignore */ }
+        });
+
         return transactionId;
     } catch (e) {
         console.log(e)
+        try { releaseBoxes(inputs); } catch (err) { /* ignore */ }
         return null;
     }
 }

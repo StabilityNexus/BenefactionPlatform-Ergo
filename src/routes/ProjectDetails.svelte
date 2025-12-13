@@ -38,6 +38,7 @@
     import { fade, fly, scale, slide } from "svelte/transition";
     import { quintOut, elasticOut } from "svelte/easing";
     import { ErgoAddress } from "@fleet-sdk/core";
+    import AnalyticsDashboard from "./AnalyticsDashboard.svelte";
 
     let project: Project = $project_detail;
 
@@ -48,6 +49,7 @@
     let isSubmitting: boolean = false;
 
     let showCopyMessage = false;
+    let showAnalytics = false;
 
     // --- TRANSACTION COPY LOGIC ---
     let clipboardCopied = false;
@@ -795,6 +797,13 @@
                 <Button class="share-btn" on:click={shareProject}>
                     Share Project
                 </Button>
+                <Button 
+                    class="share-btn analytics-btn" 
+                    on:click={() => showAnalytics = true}
+                    style="background-color: #6366f1; margin-left: 0.5rem;"
+                >
+                    View Analytics
+                </Button>
                 {#if showCopyMessage}
                     <div class="copy-msg" transition:fade>
                         Project page url copied to clipboard!
@@ -1319,6 +1328,26 @@
             connected={$connected}
             />
     </div>
+
+    {#if showAnalytics}
+        <div class="analytics-overlay" transition:fade={{ duration: 200 }}>
+            <div class="analytics-modal" transition:scale={{ duration: 200 }}>
+                <div class="analytics-header">
+                    <h2>Project Analytics</h2>
+                    <Button 
+                        variant="outline" 
+                        on:click={() => showAnalytics = false}
+                        style="padding: 0.5rem; min-width: auto;"
+                    >
+                        ✕
+                    </Button>
+                </div>
+                <div class="analytics-content">
+                    <AnalyticsDashboard />
+                </div>
+            </div>
+        </div>
+    {/if}
 </div>
 
 <style>
@@ -1576,6 +1605,53 @@
         opacity: 0.5;
         cursor: not-allowed;
         box-shadow: none;
+    }
+
+    /* Analytics Modal */
+    .analytics-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+    }
+
+    .analytics-modal {
+        background: var(--background);
+        border-radius: 12px;
+        max-width: 95vw;
+        max-height: 95vh;
+        width: 1400px;
+        overflow: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .analytics-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .analytics-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .analytics-content {
+        padding: 0;
+    }
+
+    .analytics-btn {
+        margin-left: 0.5rem;
     }
     .action-btn.primary {
         font-weight: 700;

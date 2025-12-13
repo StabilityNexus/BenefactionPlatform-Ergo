@@ -11,6 +11,7 @@ import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
+import { reserveBoxes, releaseBoxes, registerPendingTx, areBoxesReserved } from '$lib/common/pending-utxos';
 import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
 export async function rebalance(
@@ -30,6 +31,17 @@ export async function rebalance(
         // For adding tokens, we need the project box first, then a wallet UTXO
         // This ensures INPUTS.size > 1 and INPUTS(1) comes from project address
         const inputs = [project.box, ...walletUtxos];
+
+        // Prevent double spend by reserving these boxes for pending transactions
+        if (areBoxesReserved(inputs)) {
+            throw new Error('Input box already reserved by a pending transaction; wait until confirmation or try again later.');
+        }
+
+        // Reserve boxes, if reservation fails then abort
+        const reserved = reserveBoxes(inputs);
+        if (!reserved) {
+            throw new Error('Input box already reserved by a pending transaction; wait until confirmation or try again later.');
+        }
 
         // Building the project output
         let contract_output = new OutputBuilder(
@@ -119,6 +131,14 @@ export async function rebalance(
         const transactionId = await submitTransaction(signedTransaction);
 
         console.log("Transaction id -> ", transactionId);
+
+        // Register this transaction to unreserve inputs once it's confirmed
+        registerPendingTx(transactionId, inputs).catch((err) => {
+            console.warn('Failed to register pending tx cleanup: ', err);
+            // Ensure release so we don't lock forever
+            try { releaseBoxes(inputs); } catch (e) { /* ignore */ }
+        });
+
         return transactionId;
 
     } catch (error) {
@@ -135,6 +155,8 @@ export async function rebalance(
             console.error("Input validation error - ensure wallet has UTXOs and project box is accessible");
         }
 
+        // On error, release the boxes to avoid leaving them reserved
+        try { releaseBoxes([project.box, ...walletUtxos]); } catch (e) { /* ignore */ }
         return null;
     }
 }
