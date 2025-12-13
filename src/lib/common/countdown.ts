@@ -4,7 +4,7 @@ import { type Platform } from "./platform";
 
 export async function block_to_time(target_block: number, platform: Platform): Promise<number>
 {
-    let current_block = platform.get_current_height();
+    let current_block = await platform.get_current_height();
     let diff_block = target_block - current_block;
 
     let diff_time = diff_block * platform.time_per_block;
@@ -23,7 +23,7 @@ export async function block_to_date(target_block: number, platform: Platform): P
 export async function time_to_block(target_time: number, platform: Platform): Promise<number>
 {
     // Get the current block height
-    let current_block = platform.get_current_height();
+    let current_block = await platform.get_current_height();
     
     // Get the current timestamp in milliseconds
     let current_time = new Date().getTime();

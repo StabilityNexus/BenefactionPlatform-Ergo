@@ -85,7 +85,7 @@ export class ErgoPlatform implements Platform {
         }
     }
 
-    get_current_height(): number {
+    async get_current_height(): Promise<number> {
         return get(cached_height);
     }
 
