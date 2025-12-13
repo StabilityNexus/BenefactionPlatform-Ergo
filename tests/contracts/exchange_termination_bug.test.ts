@@ -46,7 +46,7 @@
 // 3. Adjust the inner logic to handle the case where OUTPUTS(0) is not the contract
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
+import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE, SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
 import { SByte, SColl, SLong } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
 import {
@@ -82,7 +82,7 @@ describe.each(baseModes)("BUG: Exchange Action Cannot Terminate Contract ($name)
 
       const collectedFunds = soldTokens * ctx.exchangeRate;
 
-      let value = RECOMMENDED_MIN_FEE_VALUE;
+      let value = SAFE_MIN_BOX_VALUE;
       const assets = [
         // APT: 1 (NFT) + 100k (total) - 100k (sold) + 90k (exchanged back) = 90,001
         { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens + exchangedTokens },
@@ -214,7 +214,8 @@ describe.each(baseModes)("BUG: Exchange Action Cannot Terminate Contract ($name)
       const newExchangeCounter = exchangedTokens + aptToExchange;
 
       // New APT amount: current + exchanged = 90,001 + 10,000 = 100,001
-      const newAPTAmount = BigInt(projectBox.assets[0].amount) + aptToExchange;
+      const aptInContract = projectBox.assets.find((a) => a.tokenId === ctx.projectNftId)!.amount;
+      const newAPTAmount = BigInt(aptInContract) + aptToExchange;
 
       const contractAssets = [
         { tokenId: ctx.projectNftId, amount: newAPTAmount },
