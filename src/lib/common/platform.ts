@@ -25,7 +25,8 @@ export interface Platform {
         projectLink: string,
         minimumSold: number,
         title: string,
-        base_token_id?: string
-    ): AsyncGenerator<string, string | null, void>;
+        base_token_id?: string,
+        owner_ergotree?: string
+    ): Promise<string | null>;
     fetch(): Promise<Map<string, Project>>;
 }

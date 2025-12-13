@@ -582,7 +582,7 @@
                 }
             }
 
-            const submissionGen = platform.submit(
+            const submissionResult = await platform.submit(
                 platform.last_version,
                 rewardTokenId,
                 tokenAmountToSellRaw,
@@ -595,13 +595,8 @@
                 baseTokenId,
                 owner_ergotree,
             );
-
-            let result = await submissionGen.next();
-            while (!result.done) {
-                statusMessage = result.value;
-                result = await submissionGen.next();
-            }
-            transactionId = result.value;
+            
+            transactionId = submissionResult;
         } catch (error) {
             console.error(error);
             errorMessage = formatTransactionError(error);

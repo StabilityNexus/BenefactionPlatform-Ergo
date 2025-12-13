@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
-import { pushState, replaceState } from '$app/navigation';
+import { goto } from '$app/navigation';
 
 /**
  * Search Query Store with URL Synchronization
@@ -9,10 +9,9 @@ import { pushState, replaceState } from '$app/navigation';
  * When the search query changes, the URL is updated with ?search= parameter.
  * When the URL changes (e.g., browser back/forward), the search query is updated.
  * 
- * Uses SvelteKit's navigation API to properly manage history state.
  * Uses a "push once per typing burst" strategy to prevent history pollution:
- * - First update in a burst: pushState (creates history entry)
- * - Subsequent updates: replaceState (updates URL without new history)
+ * - First update in a burst: creates history entry
+ * - Subsequent updates: replaces current entry (no new history)
  * - After 500ms idle: reset for next burst
  */
 
@@ -38,7 +37,7 @@ function createSearchStore() {
                 clearDebounce();
 
                 // Push once (so Back works), then replace while the user keeps typing
-                updateURL(value, hasPushedForBurst ? 'replace' : 'push');
+                updateURL(value, hasPushedForBurst);
                 hasPushedForBurst = true;
 
                 // Reset the burst after idle
@@ -64,11 +63,11 @@ function createSearchStore() {
 }
 
 /**
- * Update the URL with the current search term using SvelteKit's navigation API
+ * Update the URL with the current search term using SvelteKit's goto
  * @param searchTerm - The search term to add to URL
- * @param mode - 'push' creates new history entry, 'replace' updates current entry
+ * @param replaceHistory - If true, replace current entry; otherwise create new entry
  */
-function updateURL(searchTerm: string, mode: 'push' | 'replace') {
+function updateURL(searchTerm: string, replaceHistory: boolean = false) {
     if (!browser) return;
 
     const url = new URL(window.location.href);
@@ -82,12 +81,12 @@ function updateURL(searchTerm: string, mode: 'push' | 'replace') {
     // Skip if URL unchanged to avoid duplicate entries and unnecessary work
     if (url.toString() === window.location.href) return;
 
-    // Use SvelteKit's navigation API to preserve router state
-    if (mode === 'replace') {
-        replaceState(url.toString(), {});
-    } else {
-        pushState(url.toString(), {});
-    }
+    // Use goto with replaceState option
+    goto(url.toString(), {
+        replaceState: replaceHistory,
+        noScroll: true,
+        keepFocus: true
+    });
 }
 
 export const searchQuery = createSearchStore();
