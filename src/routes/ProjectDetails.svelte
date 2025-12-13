@@ -38,10 +38,14 @@
     import { fade, fly, scale, slide } from "svelte/transition";
     import { quintOut, elasticOut } from "svelte/easing";
     import { ErgoAddress } from "@fleet-sdk/core";
+    import ProjectAnalytics from "$lib/components/analytics/ProjectAnalytics.svelte";
 
     let project: Project = $project_detail;
 
     let platform = new ErgoPlatform();
+    
+    let showAnalytics = false;
+    let currentBlockHeight = 0;
 
     let transactionId: string | null = null;
     let errorMessage: string | null = null;
@@ -594,6 +598,13 @@
         deadline_passed = await is_ended(project);
         is_min_raised = await min_raised(project);
         is_max_raised = await max_raised(project);
+        
+        // Get current block height for analytics
+        try {
+            currentBlockHeight = await platform.get_current_height();
+        } catch (error) {
+            console.error("Error fetching current height:", error);
+        }
 
         // Handle both timestamp and block height modes
         if (project.is_timestamp_limit) {
@@ -791,9 +802,12 @@
                 </p>
             </div>
 
-            <div class="share-button">
+            <div class="action-buttons-row">
                 <Button class="share-btn" on:click={shareProject}>
                     Share Project
+                </Button>
+                <Button class="analytics-btn" on:click={() => showAnalytics = !showAnalytics}>
+                    {showAnalytics ? 'Hide' : 'Show'} Analytics
                 </Button>
                 {#if showCopyMessage}
                     <div class="copy-msg" transition:fade>
@@ -802,6 +816,10 @@
                 {/if}
             </div>
         </div>
+        
+        {#if showAnalytics}
+            <ProjectAnalytics {project} {currentBlockHeight} />
+        {/if}
 
         <div
             class="project-stats"
@@ -1387,15 +1405,16 @@
         margin-top: 0.5rem;
     }
 
-    .share-button {
+    .action-buttons-row {
         display: flex;
-        flex-direction: column;
+        gap: 0.75rem;
         align-items: flex-start;
-        gap: 0.5rem;
+        flex-wrap: wrap;
         margin-top: 1rem;
+        position: relative;
     }
 
-    .share-btn {
+    .share-btn, .analytics-btn {
         background-color: #6b7280;
         color: white;
         border: none;
@@ -1406,10 +1425,22 @@
             background-color 0.2s,
             transform 0.1s;
     }
-    .share-btn:hover {
-        background-color: #4b5563;
+    
+    .analytics-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
-    .share-btn:active {
+    
+    .share-btn:hover, .analytics-btn:hover {
+        background-color: #4b5563;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .analytics-btn:hover {
+        background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    }
+    
+    .share-btn:active, .analytics-btn:active {
         transform: scale(0.98);
     }
 
