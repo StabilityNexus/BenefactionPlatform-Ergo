@@ -11,6 +11,7 @@
         timer,
         user_tokens,
         web_explorer_uri_addr,
+        search_query,
     } from "$lib/common/store";
     import MyProjects from "./MyProjects.svelte";
     import MyContributions from "./MyContributions.svelte";
@@ -66,6 +67,10 @@
 
         const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
         const platformId = $page.url.searchParams.get("chain");
+        const initialSearch = $page.url.searchParams.get("search") || "";
+
+        // Apply initial search from URL
+        search_query.set(initialSearch);
 
         if (projectId && platformId == platform.id) {
             await loadProjectById(projectId, platform);
@@ -144,7 +149,7 @@
     }
     getCurrentHeight();
 
-    async function changeUrl(project: Project | null) {
+    async function changeUrl(project: Project | null, search: string) {
         if (typeof window === "undefined") return;
 
         const url = new URL(window.location.href);
@@ -158,10 +163,17 @@
             url.searchParams.delete("campaign");
         }
 
+        // Sync search parameter
+        if (search && search.trim() !== "") {
+            url.searchParams.set("search", search.trim());
+        } else {
+            url.searchParams.delete("search");
+        }
+
         window.history.pushState({}, "", url);
     }
 
-    $: changeUrl($project_detail);
+    $: changeUrl($project_detail, $search_query);
 
     // Function to update wallet information periodically
     async function updateWalletInfo() {
@@ -181,6 +193,17 @@
         if (browser) {
             balanceUpdateInterval = setInterval(updateWalletInfo, 30000);
         }
+        // Listen for browser navigation to keep search filter in sync
+        const handlePopState = () => {
+            try {
+                const url = new URL(window.location.href);
+                const s = url.searchParams.get("search") || "";
+                search_query.set(s);
+            } catch (e) {
+                console.warn("Failed to sync search from URL on popstate", e);
+            }
+        };
+        window.addEventListener("popstate", handlePopState);
         // Add document click listener to close wallet modal when clicking outside
         function handleDocumentClick(e: MouseEvent) {
             try {
@@ -215,6 +238,7 @@
                 );
             }
             document.removeEventListener('mousedown', handleDocumentClick, true);
+            window.removeEventListener("popstate", handlePopState);
         };
     });
 </script>

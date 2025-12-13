@@ -20,3 +20,4 @@ export const explorer_uri = writable<string | null>("https://api.ergoplatform.co
 export const web_explorer_uri_tx = writable<string>(DEFAULT_WEB_EXPLORER_URI_TX);
 export const web_explorer_uri_tkn = writable<string>(DEFAULT_WEB_EXPLORER_URI_TKN);
 export const web_explorer_uri_addr = writable<string>(DEFAULT_WEB_EXPLORER_URI_ADDR);
+export const search_query = writable<string>("");
