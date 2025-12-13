@@ -144,3 +144,48 @@ As a *client-side* application, you can run it locally without third-party depen
     ```
 
 You can access the deployed version at: [BenefactionPlatform-Ergo](https://stabilitynexus.github.io/BenefactionPlatform-Ergo/)
+
+---
+
+## 📊 Analytics Feature
+
+Bene includes a comprehensive **Project Analytics** dashboard that provides data-driven insights into fundraising campaigns.
+
+### Features
+
+* **Platform Overview**
+  * Total projects statistics and success rates
+  * Visual breakdowns of project statuses (active, successful, failed)
+  * Quick access to all projects with key metrics
+
+* **Project Details Analytics**
+  * Real-time funding progress and token distribution
+  * Historical trend analysis with time-series charts
+  * Detailed metrics tables with exchange rates and deadlines
+
+* **Data Export**
+  * JSON export for platform-wide and individual project data
+  * CSV export for time-series analysis in spreadsheets
+  * All exports work client-side (no server required)
+
+* **100% Static Page Compatible**
+  * All calculations performed in browser
+  * Data stored locally using localStorage
+  * No backend or database dependencies
+  * Works offline after initial page load
+
+### Quick Start
+
+1. **Access Analytics:** Click "Analytics" in the navigation menu
+2. **View Platform Stats:** See overall platform performance and project breakdowns
+3. **Drill Down:** Click any project to view detailed analytics
+4. **Export Data:** Use export buttons to download JSON or CSV reports
+
+### Documentation
+
+* [Analytics Feature Documentation](ANALYTICS_FEATURE.md) - Complete technical guide
+* [Implementation Summary](IMPLEMENTATION_SUMMARY.md) - Implementation details
+* [Quick Start Guide](QUICK_START_ANALYTICS.md) - User-friendly guide
+* [Issue #41 Completion](ISSUE_41_COMPLETION.md) - Feature completion report
+
+The analytics feature maintains Bene's core principles: fully decentralized, client-side only, and compatible with static site deployment.
