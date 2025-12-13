@@ -10,9 +10,3 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .idea
 .idea/workspace.xml
-# Linting cache
-.eslintcache
-.prettier-cache
-
-# Test coverage
-coverage/
