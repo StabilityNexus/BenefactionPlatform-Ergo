@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
+import { pushState, replaceState } from '$app/navigation';
 
 /**
  * Search Query Store with URL Synchronization
@@ -8,6 +9,7 @@ import { browser } from '$app/environment';
  * When the search query changes, the URL is updated with ?search= parameter.
  * When the URL changes (e.g., browser back/forward), the search query is updated.
  * 
+ * Uses SvelteKit's navigation API to properly manage history state.
  * Uses a "push once per typing burst" strategy to prevent history pollution:
  * - First update in a burst: pushState (creates history entry)
  * - Subsequent updates: replaceState (updates URL without new history)
@@ -62,7 +64,7 @@ function createSearchStore() {
 }
 
 /**
- * Update the URL with the current search term
+ * Update the URL with the current search term using SvelteKit's navigation API
  * @param searchTerm - The search term to add to URL
  * @param mode - 'push' creates new history entry, 'replace' updates current entry
  */
@@ -77,10 +79,14 @@ function updateURL(searchTerm: string, mode: 'push' | 'replace') {
         url.searchParams.delete('search');
     }
 
+    // Skip if URL unchanged to avoid duplicate entries and unnecessary work
+    if (url.toString() === window.location.href) return;
+
+    // Use SvelteKit's navigation API to preserve router state
     if (mode === 'replace') {
-        window.history.replaceState({}, '', url);
+        replaceState(url.toString(), {});
     } else {
-        window.history.pushState({}, '', url);
+        pushState(url.toString(), {});
     }
 }
 
