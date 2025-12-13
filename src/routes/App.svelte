@@ -164,15 +164,22 @@
     $: changeUrl($project_detail);
 
     // Function to update wallet information periodically
-    async function updateWalletInfo() {
-        try {
-            await platform.get_balance(); // This updates the balance store
-            // Update current height
-            current_height = await platform.get_current_height();
-        } catch (error) {
-            console.error("Error updating wallet info:", error);
+   async function updateWalletInfo() {
+    try {
+        const addr = get(walletAddress);
+
+        // ✅ Guard: do nothing if wallet is not connected
+        if (!addr) {
+            return;
         }
+
+        await platform.get_balance(addr);
+        current_height = await platform.get_current_height();
+    } catch (error) {
+        console.error("Error updating wallet info:", error);
     }
+}
+
 
     // Set up periodic balance refresh (every 30 seconds)
     let balanceUpdateInterval: number;
