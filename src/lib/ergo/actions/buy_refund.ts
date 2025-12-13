@@ -10,6 +10,7 @@ import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
+import { reserveBoxes, releaseBoxes, registerPendingTx, areBoxesReserved } from '$lib/common/pending-utxos';
 import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
 // Function to submit a project to the blockchain
@@ -66,6 +67,16 @@ export async function buy_refund(
     }
 
     const inputs = [project.box, ...walletUtxos];
+
+    // Reserve the input boxes to prevent double spending; error out if already reserved
+    if (areBoxesReserved(inputs)) {
+        throw new Error('Input box already reserved by a pending transaction; wait until confirmation or try again later.');
+    }
+
+    const reserved = reserveBoxes(inputs);
+    if (!reserved) {
+        throw new Error('Input box already reserved by a pending transaction; wait until confirmation or try again later.');
+    }
 
     // Calculate ERG value for the contract
     let contractErgValue = project.value;
@@ -220,9 +231,16 @@ export async function buy_refund(
         const transactionId = await submitTransaction(signedTransaction);
 
         console.log("Transaction id -> ", transactionId);
+        registerPendingTx(transactionId, inputs).catch(err => {
+            console.warn('Failed to register pending tx cleanup: ', err);
+            try { releaseBoxes(inputs); } catch (e) { /* ignore */ }
+        });
+
         return transactionId;
     } catch (e) {
         console.log("Transaction error:", e);
+        // release reserved boxes on error
+        try { releaseBoxes(inputs); } catch (xx) { /* ignore */ }
         throw e; // Re-throw to help with debugging
     }
 }

@@ -16,6 +16,7 @@ import { createR8Structure, type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
+import { reserveBoxes, releaseBoxes, registerPendingTx, areBoxesReserved } from '$lib/common/pending-utxos';
 import {
     validateProjectContent,
     type ProjectContent,
@@ -61,6 +62,15 @@ async function* mint_tx(title: string, constants: ConstantContent, version: cont
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = await getUtxos();
 
+    // Prevent double spend by reserving the wallet inputs
+    if (areBoxesReserved(inputs)) {
+        throw new Error('Input box already reserved by a pending transaction; wait until confirmation or try again later.');
+    }
+    const reserved = reserveBoxes(inputs);
+    if (!reserved) {
+        throw new Error('Input box already reserved by a pending transaction; wait until confirmation or try again later.');
+    }
+
     let outputs: OutputBuilder[] = [
         new OutputBuilder(
             SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
@@ -92,6 +102,12 @@ async function* mint_tx(title: string, constants: ConstantContent, version: cont
     const transactionId = await submitTransaction(signedTransaction);
 
     console.log("Mint tx id: " + transactionId);
+
+    // Register pending tx cleanup
+    registerPendingTx(transactionId, inputs).catch(err => {
+        console.warn('Failed to register pending tx cleanup for mint transaction:', err);
+        try { releaseBoxes(inputs); } catch (e) { /* ignore */ }
+    });
 
     yield "Waiting for mint confirmation... (this may take a few minutes)";
 
@@ -168,6 +184,13 @@ export async function* submit_project(
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = [mint_box, ...await window.ergo!.get_utxos()];
 
+    if (areBoxesReserved(inputs)) {
+        alert('Some inputs are currently used by a pending transaction, wait for confirmation or try again later.');
+        return null;
+    }
+    const reserved = reserveBoxes(inputs);
+    if (!reserved) { alert('Failed to reserve inputs for transaction; please try again later.'); return null; }
+
     const r4Hex = SPair(SBool(is_timestamp_limit), SLong(BigInt(blockLimit))).toHex();
     const r5Hex = SLong(BigInt(minimumSold)).toHex();
     const r6Hex = SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex();
@@ -241,5 +264,10 @@ export async function* submit_project(
     const transactionId = await submitTransaction(signedTransaction);
 
     console.log("Transaction id -> ", transactionId);
+    // Register pending tx cleanup for main submission
+    registerPendingTx(transactionId, inputs).catch(err => {
+        console.warn('Failed to register pending tx cleanup: ', err);
+        try { releaseBoxes(inputs); } catch (e) { /* ignore */ }
+    });
     return transactionId;
 }

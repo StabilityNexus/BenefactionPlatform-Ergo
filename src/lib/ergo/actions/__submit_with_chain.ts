@@ -10,6 +10,7 @@ import { SInt, SPair } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
 import { type contract_version, get_ergotree_hex, mint_contract_address } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
+import { reserveBoxes, releaseBoxes, registerPendingTx, areBoxesReserved } from '$lib/common/pending-utxos';
 import { type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { fetch_token_details, wait_until_confirmation } from '../fetch';
@@ -52,6 +53,15 @@ export async function submit_project(
 
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = await getUtxos();
+
+    // prevent double-spend by reserving inputs
+    if (areBoxesReserved(inputs)) {
+        throw new Error('Input box already reserved by a pending transaction; wait until confirmation or try again later.');
+    }
+    const reserved = reserveBoxes(inputs);
+    if (!reserved) {
+        throw new Error('Input box already reserved by a pending transaction; wait until confirmation or try again later.');
+    }
 
     let mintOutput = new OutputBuilder(
         SAFE_MIN_BOX_VALUE, // Minimum value in ERG that a box can have
@@ -107,5 +117,9 @@ export async function submit_project(
     const transactionId = await submitTransaction(signedTransaction);
 
     console.log("Transaction id -> ", transactionId);
+    registerPendingTx(transactionId, inputs).catch(err => {
+        console.warn('Failed to register pending tx cleanup: ', err);
+        try { releaseBoxes(inputs); } catch (e) { /* ignore */ }
+    });
     return transactionId;
 }
