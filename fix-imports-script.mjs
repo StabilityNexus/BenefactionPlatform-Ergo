@@ -67,8 +67,9 @@ async function fixImportsInFile(filePath) {
       /export\s+{[^}]+}\s+from\s+['"](\.[^'"]+)(?<!\.js|\.svelte|\.json)['"]/g,
       (match, path) => {
         fileImportCount++;
-        const exportPart = match.substring(0, match.lastIndexOf("'"));
-        return `${exportPart}'${path}.js'`;
+        const quote = match.includes('"') && match.lastIndexOf('"') > match.lastIndexOf("'") ? '"' : "'";
+        const exportPart = match.substring(0, match.lastIndexOf(quote));
+        return `${exportPart}${quote}${path}.js${quote}`;
       }
     );
 
@@ -77,8 +78,9 @@ async function fixImportsInFile(filePath) {
       /import\s+.*?from\s+['"](\.[^'"]+)(?<!\.js|\.svelte|\.json)['"]/g,
       (match, path) => {
         fileImportCount++;
-        const importPart = match.substring(0, match.lastIndexOf("'"));
-        return `${importPart}'${path}.js'`;
+        const quote = match.includes('"') && match.lastIndexOf('"') > match.lastIndexOf("'") ? '"' : "'";
+        const importPart = match.substring(0, match.lastIndexOf(quote));
+        return `${importPart}${quote}${path}.js${quote}`;
       }
     );
 
