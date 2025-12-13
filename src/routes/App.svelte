@@ -471,19 +471,9 @@
         }
     }
 
-    /* Dropdown menu z-index - ensures dropdowns appear above all content including mobile menu */
-    :global(.bits-dropdown-menu-content-wrapper),
-    :global(.bits-dropdown-menu-content),
-    :global([data-bits-menu-content]),
-    :global([role="menu"]) {
-        position: fixed !important;
+    /* Theme dropdown z-index - ensures theme menu appears above mobile menu */
+    :global(.theme-dropdown-content) {
         z-index: 9999 !important;
-        pointer-events: auto !important;
-    }
-
-    :global(.bits-dropdown-menu-root-open) {
-        position: static !important;
-        overflow: visible !important;
     }
 
     /* Navbar Styles */
