@@ -69,6 +69,7 @@ export interface Project {
     block_limit: number,
     is_timestamp_limit: boolean,
     minimum_amount: number,
+    minimum_amount_big?: bigint | null,
     maximum_amount: number,
     value: number,  // Real exact value
     current_value: number,  // Current value - contract reserves (ex: min box value on ergo)
@@ -78,6 +79,9 @@ export interface Project {
     sold_counter: number,
     refund_counter: number,
     auxiliar_exchange_counter: number,
+    tokens_sold_big?: bigint,
+    refund_counter_big?: bigint,
+    auxiliar_exchange_counter_big?: bigint,
     exchange_rate: number,  // Base token per PFT exchange rate
     token_details: TokenEIP4,
     content: ProjectContent,
@@ -97,7 +101,25 @@ export async function is_ended(project: Project): Promise<boolean> {
 }
 
 export async function min_raised(project: Project): Promise<boolean> {
-    return (project.sold_counter - project.refund_counter) >= project.minimum_amount
+    // Prefer bigint comparison when available
+    const minBig: bigint | null | undefined = (project as any).minimum_amount_big;
+    if (minBig !== undefined && minBig !== null) {
+        if (minBig <= 0n) return false;
+        const soldBig: bigint = (project as any).tokens_sold_big ?? BigInt(project.sold_counter ?? 0);
+        const refundedBig: bigint = (project as any).refund_counter_big ?? BigInt(project.refund_counter ?? 0);
+        const raised = soldBig - refundedBig;
+        return raised >= minBig;
+    }
+
+    // Fallback to numeric path
+    const min = (project as any).minimum_amount;
+    if (min === null || min === undefined) return false;
+    if (typeof min === 'number') {
+        if (min <= 0) return false;
+        return (project.sold_counter - project.refund_counter) >= min;
+    }
+
+    return false;
 }
 
 export async function max_raised(project: Project): Promise<boolean> {

@@ -64,9 +64,10 @@
     // Reactive statement to handle URL parameter changes
     $: if (browser) {
         const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
-        const platformId = $page.url.searchParams.get("chain");
+        const platformId = $page.url.searchParams.get("chain") || $page.url.searchParams.get("network");
 
-        if (projectId && platformId == platform.id) {
+        // Load the project only when both chain/platform and project id are present
+        if (projectId && platformId && platformId === platform.id) {
             // Only load if we don't already have this project loaded
             if (!$project_detail || $project_detail.project_id !== projectId) {
                 // Load the specific project directly without fetching all campaigns

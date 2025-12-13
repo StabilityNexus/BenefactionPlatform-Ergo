@@ -66,37 +66,37 @@
         // Compute min/max in smallest base token units, then format for display
         const minBaseUnits = project.minimum_amount * project.exchange_rate;
         const maxBaseUnits = project.maximum_amount * project.exchange_rate;
-        const minDisplay = formatBaseTokenAmount(
-            minBaseUnits,
-            baseDecimals,
-            baseSymbol,
-        );
         const maxDisplay = formatBaseTokenAmount(
             maxBaseUnits,
             baseDecimals,
             baseSymbol,
         );
-        const isMaxReached = project.sold_counter >= project.total_pft_amount;
 
-        if (isMaxReached) {
-            statusMessage = `Reached maximum goal of ${maxDisplay}; currently closed for contributions.`;
-            statusColor =
-                "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20";
+        // Prefer BigInt minimum when available
+        const minBig: bigint | null | undefined = (project as any).minimum_amount_big ?? (project.minimum_amount != null ? BigInt(project.minimum_amount) : null);
+        const goalText = (minBig && minBig > 0n)
+            ? `Goal: ${minBig.toString()} PFT`
+            : "Goal not set";
+
+        const isMaxReached = project.sold_counter >= project.total_pft_amount;
+        const isSuccessful = is_min_raised; // `min_raised` now uses token counts when available
+
+        let status = "";
+        if (isSuccessful) {
+            status = "Campaign successful";
+            statusColor = "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20";
         } else if (deadline_passed) {
-            statusMessage = is_min_raised
-                ? `Reached minimum of ${minDisplay}; open for contributions up to ${maxDisplay}.`
-                : `Did not raise minimum of ${minDisplay} before ${limit_date}; open for contributions up to ${maxDisplay}.`;
-            statusColor = is_min_raised
-                ? "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20"
-                : "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/20";
+            status = "Campaign failed";
+            statusColor = "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/20";
+        } else if (isMaxReached) {
+            status = `Reached maximum goal of ${maxDisplay}; currently closed for contributions.`;
+            statusColor = "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20";
         } else {
-            statusMessage = is_min_raised
-                ? `Reached minimum of ${minDisplay}; open for contributions up to ${maxDisplay}.`
-                : `Aiming to raise a minimum of ${minDisplay} before ${limit_date}.`;
-            statusColor = is_min_raised
-                ? "bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/20"
-                : "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/20";
+            status = "Open for contributions";
+            statusColor = "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/20";
         }
+
+        statusMessage = `${status} — ${goalText}`;
     }
     load();
 </script>
