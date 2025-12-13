@@ -55,6 +55,10 @@
 		"wallet-svelte-component": "ergo-basics/wallet-svelte-component"
 	},
     "overrides": {
-        "marked": "^4.3.0"
+        "marked": "^4.3.0",
+        "set-value": "^4.1.0",
+        "glob": "^10.5.0",
+        "rimraf": "^5.0.10",
+        "lodash.isequal": "^4.5.0"
     }
 }
