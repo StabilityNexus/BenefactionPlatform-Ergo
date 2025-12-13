@@ -11,12 +11,15 @@
         timer,
         user_tokens,
         web_explorer_uri_addr,
+        projects as projectsStore,
     } from "$lib/common/store";
+    import { fetchProjects } from "$lib/ergo/fetch";
     import MyProjects from "./MyProjects.svelte";
     import MyContributions from "./MyContributions.svelte";
     import NewProject from "./NewProject.svelte";
     import TokenAcquisition from "./TokenAcquisition.svelte";
     import ProjectDetails from "./ProjectDetails.svelte";
+    import Analytics from "./Analytics.svelte";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { loadProjectById } from "$lib/common/load_by_id";
     import { browser } from "$app/environment";
@@ -248,6 +251,11 @@
                         New Campaign
                     </a>
                 </li>
+                <li class={activeTab === "analytics" ? "active" : ""}>
+                    <a href="#" on:click={() => changeTab("analytics")}>
+                        Analytics
+                    </a>
+                </li>
             </ul>
         </nav>
 
@@ -338,6 +346,11 @@
                     New Campaign
                 </a>
             </li>
+            <li class={activeTab === "analytics" ? "active" : ""}>
+                <a href="#" on:click={() => changeTab("analytics")}>
+                    Analytics
+                </a>
+            </li>
         </ul>
     </div>
 {/if}
@@ -355,6 +368,9 @@
         {/if}
         {#if activeTab === "submitProject"}
             <NewProject />
+        {/if}
+        {#if activeTab === "analytics"}
+            <Analytics projects={Array.from($projectsStore.data.values())} currentHeight={current_height ?? undefined} />
         {/if}
     {:else}
         <ProjectDetails />
