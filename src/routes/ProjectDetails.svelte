@@ -46,7 +46,7 @@
     // Create a writable store that ensures explorer_uri is never null
     const safeExplorerUri = writable<string>(get(explorer_uri) || "https://api.ergoplatform.com");
     // Keep it synced with the original store
-    explorer_uri.subscribe(value => {
+    const unsubscribeExplorer = explorer_uri.subscribe(value => {
         if (value) safeExplorerUri.set(value);
     });
 
@@ -628,7 +628,7 @@
     checkIfIsOwner();
     let timerValue = get(timer);
     let targetDate = timerValue.target;
-    let countdownInterval: any = timerValue.countdownInterval;
+    let countdownInterval: ReturnType<typeof setInterval> | number = timerValue.countdownInterval;
     async function setTargetDate() {
         if (project.is_timestamp_limit) {
             // In timestamp mode, block_limit is already a timestamp
@@ -679,8 +679,8 @@
         }
     }
 
-    countdownInterval = setInterval(updateCountdown, 1000);
-    timer.update((current) => ({ ...current, countdownInterval }));
+    countdownInterval = setInterval(updateCountdown, 1000) as any;
+    timer.update((current) => ({ ...current, countdownInterval: countdownInterval as number }));
 
     async function get_user_project_tokens() {
         var user_project_tokens =
@@ -733,6 +733,9 @@
     onDestroy(() => {
         if (countdownInterval) {
             clearInterval(countdownInterval);
+        }
+        if (unsubscribeExplorer) {
+            unsubscribeExplorer();
         }
     });
 </script>
