@@ -757,12 +757,12 @@
         
         /* Force settings and theme off on mobile to save space */
         .theme-toggle, .settings-button {
-            display: none !important;
-        }
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        padding: 0.25rem; /* optional tweak */
+    }
 
-        .mobile-menu-button {
-            margin-left: 0.25rem;
-        }
     }
     
     /* Super small screens */
