@@ -339,6 +339,12 @@
                 </a>
             </li>
         </ul>
+        <div class="mobile-nav-footer">
+            <div class="mobile-nav-theme">
+                <span class="theme-label">Theme:</span>
+                <Theme />
+            </div>
+        </div>
     </div>
 {/if}
 
@@ -725,6 +731,28 @@
         box-shadow: 0 0 15px rgba(255, 165, 0, 0.2);
     }
 
+    /* Mobile Navigation Footer with Theme Toggle */
+    .mobile-nav-footer {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 165, 0, 0.2);
+    }
+
+    .mobile-nav-theme {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem;
+        border-radius: 8px;
+        background-color: rgba(255, 165, 0, 0.05);
+    }
+
+    .theme-label {
+        font-weight: 500;
+        color: var(--foreground);
+        font-size: 0.95rem;
+    }
+
     /* Responsive Header Adjustments */
     @media (max-width: 1024px) {
         .navbar-content {
@@ -755,9 +783,14 @@
             min-width: 0;
         }
         
-        /* Force settings and theme off on mobile to save space */
-        .theme-toggle, .settings-button {
+        /* Hide settings button on mobile to save space, but keep theme toggle in mobile menu */
+        .settings-button {
             display: none !important;
+        }
+        
+        /* Hide theme toggle from header on mobile, it's now in the mobile menu */
+        .theme-toggle {
+            display: none;
         }
 
         .mobile-menu-button {
