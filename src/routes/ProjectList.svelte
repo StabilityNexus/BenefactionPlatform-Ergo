@@ -2,7 +2,7 @@
     import ProjectCard from "./ProjectCard.svelte";
     import ProjectCardSkeleton from "./ProjectCardSkeleton.svelte";
     import { type Project } from "$lib/common/project";
-    import { projects } from "$lib/common/store";
+    import { projects, search_query } from "$lib/common/store";
     import { fetchProjects } from "$lib/ergo/fetch";
     import * as Alert from "$lib/components/ui/alert";
     import { Loader2, Search, Filter } from "lucide-svelte";
@@ -27,6 +27,21 @@
 
     export let filterProject: ((project: Project) => Promise<boolean>) | null =
         null;
+
+    // Initialize local search from global store and keep them in sync
+    let unsubscribeSearch: () => void;
+    onMount(() => {
+        searchQuery = get(search_query) || "";
+        unsubscribeSearch = search_query.subscribe((v) => {
+            if (searchQuery !== v) {
+                searchQuery = v || "";
+            }
+        });
+    });
+
+    $: if (searchQuery !== get(search_query)) {
+        search_query.set(searchQuery);
+    }
 
     async function applyFiltersAndSearch(sourceItems: Map<string, Project>) {
         const filteredItemsMap = new Map<string, Project>();
@@ -178,6 +193,7 @@
     onDestroy(() => {
         unsubscribeProjects();
         if (debouncedSearch) clearTimeout(debouncedSearch);
+        if (unsubscribeSearch) unsubscribeSearch();
     });
 </script>
 
