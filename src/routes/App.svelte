@@ -68,7 +68,7 @@
         const platformId = $page.url.searchParams.get("chain");
 
         if (projectId && platformId == platform.id) {
-            await loadProjectById(projectId, platform);
+            await loadProjectById(projectId);
         }
 
         // Setup footer scrolling text
@@ -137,7 +137,7 @@
 
     async function getCurrentHeight() {
         try {
-            current_height = platform.get_current_height();
+            current_height = await platform.get_current_height();
         } catch (error) {
             console.error("Error fetching current height:", error);
         }
@@ -168,14 +168,14 @@
         try {
             await platform.get_balance(); // This updates the balance store
             // Update current height
-            current_height = platform.get_current_height();
+            current_height = await platform.get_current_height();
         } catch (error) {
             console.error("Error updating wallet info:", error);
         }
     }
 
     // Set up periodic balance refresh (every 30 seconds)
-    let balanceUpdateInterval: number;
+    let balanceUpdateInterval: any;
 
     onMount(() => {
         if (browser) {

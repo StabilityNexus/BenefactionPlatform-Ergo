@@ -28,7 +28,7 @@
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label/index.js";
     import { badgeVariants } from "$lib/components/ui/badge/index.js";
-    import { get } from "svelte/store";
+    import { get, writable } from "svelte/store";
     import { onDestroy } from "svelte";
     import { fetchProjects } from "$lib/ergo/fetch";
     import { marked } from "marked";
@@ -39,9 +39,16 @@
     import { quintOut, elasticOut } from "svelte/easing";
     import { ErgoAddress } from "@fleet-sdk/core";
 
-    let project: Project = $project_detail;
+    let project: Project = $project_detail!;
 
     let platform = new ErgoPlatform();
+
+    // Create a writable store that ensures explorer_uri is never null
+    const safeExplorerUri = writable<string>(get(explorer_uri) || "https://api.ergoplatform.com");
+    // Keep it synced with the original store
+    explorer_uri.subscribe(value => {
+        if (value) safeExplorerUri.set(value);
+    });
 
     let transactionId: string | null = null;
     let errorMessage: string | null = null;
@@ -51,7 +58,7 @@
 
     // --- TRANSACTION COPY LOGIC ---
     let clipboardCopied = false;
-    let clipboardTimeout;
+    let clipboardTimeout: ReturnType<typeof setTimeout> | undefined;
 
     function copyTransactionId() {
         if (!transactionId) return;
@@ -130,7 +137,7 @@
     let submit_amount_label = "";
 
     $: submit_info = (() => {
-        const cleanAmount = (num) =>
+        const cleanAmount = (num: number) =>
             Number(num)
                 .toFixed(10)
                 .replace(/\.?0+$/, "");
@@ -501,7 +508,7 @@
             if (result) {
                 await refreshProjectFromContract();
             }
-        } catch (error) {
+        } catch (error: any) {
             errorMessage =
                 error.message || "Error occurred while buying tokens";
         } finally {
@@ -531,7 +538,7 @@
             if (result) {
                 await refreshProjectFromContract();
             }
-        } catch (error) {
+        } catch (error: any) {
             errorMessage =
                 error.message || "Error occurred while refunding tokens";
         } finally {
@@ -559,7 +566,7 @@
         try {
             const result = await platform.temp_exchange(project, value_submit);
             transactionId = result;
-        } catch (error) {
+        } catch (error: any) {
             errorMessage =
                 error.message || "Error occurred while exchange TFT <-> PFT";
         } finally {
@@ -621,7 +628,7 @@
     checkIfIsOwner();
     let timerValue = get(timer);
     let targetDate = timerValue.target;
-    let countdownInterval = timerValue.countdownInterval;
+    let countdownInterval: any = timerValue.countdownInterval;
     async function setTargetDate() {
         if (project.is_timestamp_limit) {
             // In timestamp mode, block_limit is already a timestamp
@@ -1312,7 +1319,7 @@
     <div class="forum-section" in:fly={{ y: 20, delay: 600 }}>
         <Forum topic_id={project.project_id} 
             connect_executed={$connected}
-            explorer_uri={explorer_uri} 
+            explorer_uri={safeExplorerUri} 
             web_explorer_uri_addr={web_explorer_uri_addr}
             web_explorer_uri_tkn={web_explorer_uri_tkn}
             web_explorer_uri_tx={web_explorer_uri_tx}

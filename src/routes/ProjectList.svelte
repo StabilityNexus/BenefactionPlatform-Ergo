@@ -103,8 +103,8 @@
             case "amount":
                 sortedItemsArray.sort(
                     ([, a], [, b]) =>
-                        (b.content.targetAmount ?? 0) -
-                        (a.content.targetAmount ?? 0),
+                        (b.maximum_amount ?? 0) -
+                        (a.maximum_amount ?? 0),
                 );
                 break;
             case "name":
