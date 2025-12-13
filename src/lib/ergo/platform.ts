@@ -18,6 +18,7 @@ export class ErgoPlatform implements Platform {
     icon = "";
     time_per_block = 2 * 60 * 1000;  // every 2 minutes
     last_version: contract_version = "v2";
+    private heightUpdateInterval: ReturnType<typeof setInterval> | null = null;
 
     constructor() {
         // Sync explorer URI from app to wallet library
@@ -29,7 +30,11 @@ export class ErgoPlatform implements Platform {
         
         // Initialize and periodically update cached height
         this.updateCachedHeight();
-        setInterval(() => this.updateCachedHeight(), 60000); // Update every minute
+        // Clear any existing interval before creating a new one
+        if (this.heightUpdateInterval !== null) {
+            clearInterval(this.heightUpdateInterval);
+        }
+        this.heightUpdateInterval = setInterval(() => this.updateCachedHeight(), 60000); // Update every minute
     }
 
     private async updateCachedHeight(): Promise<void> {
@@ -187,5 +192,16 @@ export class ErgoPlatform implements Platform {
 
     async fetch(offset: number = 0): Promise<Map<string, Project>> {
         return await new Map();
+    }
+
+    /**
+     * Cleanup method to stop the height update interval and prevent memory leaks.
+     * Call this when the ErgoPlatform instance is no longer needed.
+     */
+    dispose(): void {
+        if (this.heightUpdateInterval !== null) {
+            clearInterval(this.heightUpdateInterval);
+            this.heightUpdateInterval = null;
+        }
     }
 }
