@@ -23,15 +23,28 @@ import {
     estimateTotalBoxSize
 } from '../utils/box-size-calculator';
 
-async function get_token_data(token_id: string): Promise<{ amount: bigint; decimals: number }> {
-    let token_fetch = await fetch_token_details(token_id);
-    const emission = token_fetch['emissionAmount'] ?? 0;
-    if (emission === 0) {
-        alert(token_id + " token emission amount is 0.");
-        throw new Error(token_id + " token emission amount is 0.");
+/**
+ * Fetches token data and validates emission amount
+ * @param token_id - The token ID to fetch data for
+ * @returns Token data with amount as bigint and decimals, or null if invalid
+ */
+async function get_token_data(token_id: string): Promise<{ amount: bigint; decimals: number } | null> {
+    try {
+        const token_fetch = await fetch_token_details(token_id);
+        const emission = token_fetch['emissionAmount'] ?? 0;
+
+        if (emission === 0) {
+            alert(token_id + " token emission amount is 0.");
+            return null;
+        }
+
+        // Return emission amount as bigint (increment will be done in submit_project)
+        return { amount: BigInt(emission), decimals: token_fetch['decimals'] };
+    } catch (error) {
+        console.error("Error fetching token data:", error);
+        alert("Failed to fetch token details. Please check the token ID.");
+        return null;
     }
-    // Return emission amount as bigint (increment will be done in submit_project)
-    return { amount: BigInt(emission), decimals: token_fetch['decimals'] };
 }
 
 function playBeep(frequency = 1000, duration = 3000) {
@@ -58,17 +71,23 @@ function playBeep(frequency = 1000, duration = 3000) {
 }
 
 /**
- * Submit a project to the blockchain using a chained transaction
+ * Submit a project to the blockchain using a single transaction with multiple outputs
  * 
- * This function creates a single chained transaction that:
- * 1. Mints a new token (APT + IDT) in the first part
- * 2. Creates the campaign box using the minted token in the second part
+ * This function creates a single transaction with two outputs:
+ * 1. Mint output: Creates a new token (APT + IDT) following EIP-004 standard
+ * 2. Campaign output: Creates the campaign box with the minted token
  * 
  * Benefits over the old two-transaction approach:
  * - User signs only once (better UX)
- * - No waiting for confirmation between transactions
- * - Atomic operation (both succeed or both fail)
- * - Faster campaign creation
+ * - Both outputs created atomically (both succeed or both fail)
+ * - Faster campaign creation (no wait for confirmation)
+ * - Lower total fees (single transaction overhead)
+ * 
+ * Technical approach:
+ * - Uses FleetSDK's multiple .to() calls to add both outputs
+ * - Token ID is predicted as inputs[0].boxId (Ergo standard)
+ * - Mint output must be first (for token ID prediction to work)
+ * - Campaign output references the predicted token ID
  * 
  * @param version - Contract version to use
  * @param token_id - PFT token ID for contributions
@@ -126,20 +145,30 @@ export async function submit_project(
     };
 
     // Get token emission amount and add 1 for the identity token
-    let token_data = await get_token_data(token_id);
-    let id_token_amount = token_data.amount + 1n; // Add 1 using bigint arithmetic
+    const token_data = await get_token_data(token_id);
+    if (!token_data) {
+        return null; // Error already shown to user
+    }
+
+    const id_token_amount = token_data.amount + 1n; // Add 1 using bigint arithmetic
+
+    // Validate token_amount before conversion to BigInt
+    if (!Number.isSafeInteger(token_amount) || token_amount < 0) {
+        alert("Invalid token amount: must be a positive integer.");
+        return null;
+    }
 
     // Get the UTXOs from the current wallet to use as inputs
     const inputs = await getUtxos();
 
-    // In a chained transaction, the token ID will be the first input's boxId
+    // In a single transaction with multiple outputs, the token ID will be the first input's boxId
     // This is because Ergo's token ID = box ID of the box that minted it
     const project_id = inputs[0].boxId;
 
     console.log("Predicted token ID:", project_id);
 
-    // Build the mint output (first part of chained transaction)
-    let mintOutput = new OutputBuilder(
+    // Build the mint output (first output - MUST be first for token ID prediction)
+    const mintOutput = new OutputBuilder(
         SAFE_MIN_BOX_VALUE,
         mint_contract_address(addressContent, version)
     )
@@ -163,10 +192,10 @@ export async function submit_project(
 
     const ergoTreeAddress = get_ergotree_hex(addressContent, version);
 
-    // Estimate total box size
+    // Estimate total box size (2 tokens: project_id + pft_token_id)
     const totalEstimatedSize = estimateTotalBoxSize(
         ergoTreeAddress.length,
-        3, // number of tokens (project_id, pft_token_id, and possibly base_token_id)
+        2, // number of tokens (project_id and pft_token_id)
         registerSizes
     );
 
@@ -175,8 +204,8 @@ export async function submit_project(
         minRequiredValue = SAFE_MIN_BOX_VALUE;
     }
 
-    // Build the campaign output (second part of chained transaction)
-    let contractOutput = new OutputBuilder(
+    // Build the campaign output (second output)
+    const contractOutput = new OutputBuilder(
         minRequiredValue,
         ergoTreeAddress
     )
@@ -187,7 +216,7 @@ export async function submit_project(
             },
             {
                 tokenId: token_id ?? "",
-                amount: BigInt(token_amount)
+                amount: BigInt(token_amount) // Safe after validation
             }
         ])
         .setAdditionalRegisters({
@@ -199,22 +228,17 @@ export async function submit_project(
             R9: r9Hex
         });
 
-    // Build the chained transaction
-    // First part: mint token
-    // Second part: create campaign box using minted token
+    // Build the transaction with multiple outputs
+    // FleetSDK supports multiple .to() calls to add multiple outputs in a single transaction
+    // The mint output MUST be first so the token ID prediction works correctly
     const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
         .from(inputs)                          // Inputs from user's UTXOs
-        .to(mintOutput)                        // First output: mint box
+        .to(mintOutput)                        // First output: mint box (MUST be first!)
+        .to(contractOutput)                    // Second output: campaign box
         .sendChangeTo(walletPk)                // Send change back to wallet
-        .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay fee for first part
-        .build()                               // Build first transaction
-        .chain((builder) =>                    // Chain second transaction
-            builder
-                .to(contractOutput)            // Second output: campaign box
-                .payFee(RECOMMENDED_MIN_FEE_VALUE)  // Pay fee for second part
-                .build()
-        )
-        .toEIP12Object();
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay transaction fee
+        .build()                               // Build the transaction
+        .toEIP12Object();                      // Convert to EIP-12 compatible object
 
     try {
         playBeep();
@@ -222,14 +246,15 @@ export async function submit_project(
         console.error('Error executing play beep:', error);
     }
 
-    // Sign the transaction (user signs once for both parts!)
+    // Sign the transaction (user signs once for both outputs!)
     const signedTransaction = await signTransaction(unsignedTransaction);
 
-    // Submit the chained transaction to the Ergo network
+    // Submit the transaction to the Ergo network
     const transactionId = await submitTransaction(signedTransaction);
 
-    console.log("Chained transaction ID ->", transactionId);
+    console.log("Transaction ID ->", transactionId);
     console.log("Campaign created with token ID:", project_id);
+    console.log("Both mint and campaign boxes created atomically!");
 
     return transactionId;
 }
