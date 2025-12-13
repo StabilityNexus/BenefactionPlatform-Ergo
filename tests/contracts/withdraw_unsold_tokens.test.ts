@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE, ErgoTree } from "@fleet-sdk/core";
+import { type Box, OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE, ErgoTree } from "@fleet-sdk/core";
 import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
 import {
