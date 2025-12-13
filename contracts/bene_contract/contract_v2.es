@@ -136,8 +136,17 @@
         OUTPUTS(0).tokens.size == 1 || OUTPUTS(0).tokens.size == 2 || OUTPUTS(0).tokens.size == 3
       }
 
+      // Ensure replication output does not contain foreign tokens (only APT, PFT, and base token if non-ERG)
+      val noForeignTokens = {
+        val allowed = OUTPUTS(0).tokens.filter({ (token: (Coll[Byte], Long)) =>
+          val id = token._1
+          if (isERGBase) { id == selfId || id == pftTokenId } else { id == selfId || id == pftTokenId || id == baseTokenId }
+        })
+        allowed.size == OUTPUTS(0).tokens.size
+      }
+
       // Verify that the output box is a valid copy of the input box
-      sameId && sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript && noAddsOtherTokens
+      sameId && sameBlockLimit && sameMinimumSold && sameExchangeRate && sameConstants && sameProjectContent && sameScript && noAddsOtherTokens && noForeignTokens
     }
   }
 
