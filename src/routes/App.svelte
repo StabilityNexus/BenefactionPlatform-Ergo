@@ -65,10 +65,11 @@
         if (!browser) return;
 
         const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
-        const platformId = $page.url.searchParams.get("chain");
+        const platformId = $page.url.searchParams.get("chain") || $page.url.searchParams.get("network");
 
-        if (projectId && platformId == platform.id) {
-            await loadProjectById(projectId, platform);
+        // Load the project only when both chain/platform and project id are present
+        if (projectId && platformId && platformId === platform.id) {
+            await loadProjectById(projectId);
         }
 
         // Setup footer scrolling text

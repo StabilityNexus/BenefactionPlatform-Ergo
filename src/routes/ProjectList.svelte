@@ -7,6 +7,7 @@
     import * as Alert from "$lib/components/ui/alert";
     import { Loader2, Search, Filter } from "lucide-svelte";
     import { onMount, onDestroy } from "svelte";
+    import { browser } from '$app/environment';
     import { get } from "svelte/store";
     import { Input } from "$lib/components/ui/input";
     import { Button } from "$lib/components/ui/button";
@@ -159,20 +160,28 @@
     onMount(() => {
         const cachedData = get(projects).data;
 
-        // Decide whether to show the initial loader.
-        // Show it if the cache is NOT a Map, or if it is an empty Map.
-        if (!(cachedData instanceof Map) || cachedData.size === 0) {
-            isLoadingApi = true;
-        } else {
-            // If there is data, the 'subscribe' has already run synchronously,
-            // populated 'allFetchedItems', and set 'isLoadingApi = false'.
-            // No need to do anything here.
+        // If the URL contains both a chain/network and a campaign/project id,
+        // we assume direct campaign access and skip fetching the full list.
+        let skipFullFetch = false;
+        if (browser) {
+            const params = new URLSearchParams(window.location.search);
+            const chainParam = params.get('chain') || params.get('network');
+            const campaignParam = params.get('campaign') || params.get('project') || params.get('id');
+            if (chainParam && campaignParam) skipFullFetch = true;
         }
 
-        // Always start the load.
-        // If the cache was empty, it's the initial load.
-        // If the cache had data, it's a background refresh.
-        loadInitialItems();
+        // Decide whether to show the initial loader.
+        if (skipFullFetch) {
+            isLoadingApi = false;
+        } else {
+            // Show loader if cache is not populated
+            if (!(cachedData instanceof Map) || cachedData.size === 0) {
+                isLoadingApi = true;
+            }
+
+            // Start normal load (initial or background)
+            loadInitialItems();
+        }
     });
 
     onDestroy(() => {
