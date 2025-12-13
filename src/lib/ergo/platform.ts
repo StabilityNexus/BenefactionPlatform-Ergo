@@ -37,6 +37,33 @@ export class ErgoPlatform implements Platform {
         this.heightUpdateInterval = setInterval(() => this.updateCachedHeight(), 60000); // Update every minute
     }
 
+    /**
+     * Validates and normalizes a height value.
+     * Accepts numbers or numeric strings, coerces to integer, validates >= 0.
+     * @param value - The value to validate (from wallet, API, etc.)
+     * @param source - Description of the source for logging
+     * @returns Normalized height as a valid integer, or null if invalid
+     */
+    private validateHeight(value: any, source: string): number | null {
+        let normalized: number;
+
+        if (typeof value === 'string') {
+            normalized = parseInt(value, 10);
+        } else if (typeof value === 'number') {
+            normalized = Math.floor(value);
+        } else {
+            console.warn(`Invalid height from ${source}: not a number or string (${typeof value})`);
+            return null;
+        }
+
+        if (!Number.isFinite(normalized) || !Number.isInteger(normalized) || normalized < 0) {
+            console.warn(`Invalid height from ${source}: ${value} (normalized: ${normalized})`);
+            return null;
+        }
+
+        return normalized;
+    }
+
     private async updateCachedHeight(): Promise<void> {
         try {
             // Check if wallet manager is available and connected
@@ -44,16 +71,22 @@ export class ErgoPlatform implements Platform {
                 const adapter = walletManager.getConnectedWallet();
                 if (adapter && adapter.getCurrentHeight) {
                     const height = await adapter.getCurrentHeight();
-                    cached_height.set(height);
-                    return;
+                    const validHeight = this.validateHeight(height, 'wallet adapter');
+                    if (validHeight !== null) {
+                        cached_height.set(validHeight);
+                        return;
+                    }
                 }
             }
 
             // Try direct window.ergo if available
             if (typeof window !== 'undefined' && window.ergo && window.ergo.get_current_height) {
                 const height = await window.ergo.get_current_height();
-                cached_height.set(height);
-                return;
+                const validHeight = this.validateHeight(height, 'window.ergo');
+                if (validHeight !== null) {
+                    cached_height.set(validHeight);
+                    return;
+                }
             }
         } catch (error) {
             console.warn('Failed to get height from wallet, falling back to API:', error);
@@ -66,7 +99,10 @@ export class ErgoPlatform implements Platform {
                 throw new Error(`API request failed with status: ${response.status}`);
             }
             const data = await response.json();
-            cached_height.set(data.height);
+            const validHeight = this.validateHeight(data.height, 'API');
+            if (validHeight !== null) {
+                cached_height.set(validHeight);
+            }
         } catch (error) {
             console.error("Failed to fetch network height:", error);
         }
