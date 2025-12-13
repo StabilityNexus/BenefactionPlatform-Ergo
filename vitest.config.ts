@@ -1,9 +1,9 @@
 import { defineConfig } from 'vitest/config';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
+import { sveltekit } from '@sveltejs/kit/vite';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [svelte()], // Add Svelte plugin to handle .svelte files
+  plugins: [sveltekit()], // Use SvelteKit plugin (already installed)
   test: {
     include: ['tests/**/*.test.ts'],
     exclude: ['web/**', 'node_modules/**', '.svelte-kit/**'],
