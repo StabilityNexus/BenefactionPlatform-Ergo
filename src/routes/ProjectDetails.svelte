@@ -1592,6 +1592,8 @@
         justify-content: center;
         align-items: center;
         z-index: 2000;
+        overflow-y: auto;
+        padding: 1rem;
     }
 
     /* Modal Box */
@@ -1599,6 +1601,7 @@
         position: relative;
         width: 95%;
         max-width: 540px;
+        max-height: 90vh;
         border-radius: 20px;
         padding: 3.5rem 2.5rem 2.5rem 2.5rem; /* Increased top padding to clear close button */
         background: linear-gradient(
@@ -1608,6 +1611,8 @@
         );
         box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
         border: 1px solid rgba(255, 152, 0, 0.15);
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .close-button {
@@ -1634,6 +1639,19 @@
         background: rgba(255, 255, 255, 0.15);
         transform: rotate(90deg);
         color: #fff;
+    }
+
+    .centered-form {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+    }
+
+    .form-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
     }
 
     .form-info {
@@ -1865,6 +1883,16 @@
         .forum-section {
             padding: 1rem;
             margin-top: 1.5rem;
+        }
+
+        /* Improved mobile modal experience */
+        .modal-overlay {
+            align-items: flex-start;
+            padding-top: 1rem;
+        }
+
+        .actions-form {
+            margin-top: 1rem;
         }
     }
 
