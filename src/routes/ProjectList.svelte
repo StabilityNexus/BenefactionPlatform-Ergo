@@ -1,7 +1,7 @@
 <script lang="ts">
     import ProjectCard from "./ProjectCard.svelte";
     import ProjectCardSkeleton from "./ProjectCardSkeleton.svelte";
-    import { type Project } from "$lib/common/project";
+    import { type Project, is_ended } from "$lib/common/project";
     import { projects } from "$lib/common/store";
     import { fetchProjects } from "$lib/ergo/fetch";
     import * as Alert from "$lib/components/ui/alert";
@@ -22,6 +22,7 @@
     let searchQuery: string = "";
     let sortBy: "newest" | "oldest" | "amount" | "name" = "newest";
     let hideTestProjects: boolean = true;
+    let statusFilter: "all" | "active" | "finished" = "all";
     let filterOpen = false;
     let debouncedSearch: any;
 
@@ -52,6 +53,15 @@
                 const description =
                     item.content.description?.toLowerCase() || "";
                 if (name.includes("test") || description.includes("test")) {
+                    shouldAdd = false;
+                }
+            }
+
+            if (shouldAdd && statusFilter !== "all") {
+                const projectEnded = await is_ended(item);
+                if (statusFilter === "active" && projectEnded) {
+                    shouldAdd = false;
+                } else if (statusFilter === "finished" && !projectEnded) {
                     shouldAdd = false;
                 }
             }
@@ -152,6 +162,15 @@
     async function handleTestFilterToggle() {
         isFiltering = true;
         hideTestProjects = !hideTestProjects;
+        await applyFiltersAndSearch(allFetchedItems);
+        isFiltering = false;
+    }
+
+    async function handleStatusFilterChange(
+        newStatus: "all" | "active" | "finished",
+    ) {
+        isFiltering = true;
+        statusFilter = newStatus;
         await applyFiltersAndSearch(allFetchedItems);
         isFiltering = false;
     }
@@ -259,6 +278,29 @@
                             >
                             <span>Hide "Test" Campaigns</span>
                         </div>
+                    </DropdownMenu.Item>
+
+                    <DropdownMenu.Separator />
+                    <DropdownMenu.Label>Status</DropdownMenu.Label>
+                    <DropdownMenu.Item
+                        class={statusFilter === "active" ? "bg-orange-500/10" : ""}
+                        on:click={() => handleStatusFilterChange("active")}
+                    >
+                        {statusFilter === "active" ? "✓ " : ""}Active
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
+                        class={statusFilter === "finished"
+                            ? "bg-orange-500/10"
+                            : ""}
+                        on:click={() => handleStatusFilterChange("finished")}
+                    >
+                        {statusFilter === "finished" ? "✓ " : ""}Finished
+                    </DropdownMenu.Item>
+                    <DropdownMenu.Item
+                        class={statusFilter === "all" ? "bg-orange-500/10" : ""}
+                        on:click={() => handleStatusFilterChange("all")}
+                    >
+                        {statusFilter === "all" ? "✓ " : ""}All
                     </DropdownMenu.Item>
                 </DropdownMenu.Content>
             </DropdownMenu.Root>
