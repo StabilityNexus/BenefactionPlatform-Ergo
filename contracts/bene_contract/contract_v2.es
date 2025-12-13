@@ -161,7 +161,21 @@
       selfAmount == outAmount
     }
   }
-  val soldCounterRemainsConstant = !isReplicationBoxPresent || (selfSoldCounter == OUTPUTS(0).R6[Coll[Long]].get(0))
+  val NonCoreTokensRemainConstant = !isReplicationBoxPresent || {
+    val selfOther = SELF.tokens.filter({ (token: (Coll[Byte], Long)) =>
+      val id = token._1
+      if (isERGBase) { id != selfId && id != pftTokenId } else { id != selfId && id != pftTokenId && id != baseTokenId }
+    })
+    val outOther = OUTPUTS(0).tokens.filter({ (token: (Coll[Byte], Long)) =>
+      val id = token._1
+      if (isERGBase) { id != selfId && id != pftTokenId } else { id != selfId && id != pftTokenId && id != baseTokenId }
+    })
+    val badMatches = selfOther.filter({ (token: (Coll[Byte], Long)) =>
+      val matches = outOther.filter({ (t: (Coll[Byte], Long)) => t._1 == token._1 && t._2 == token._2 })
+      matches.size == 0
+    })
+    badMatches.size == 0 && selfOther.size == outOther.size
+  }
   val refundCounterRemainsConstant = !isReplicationBoxPresent || (selfRefundCounter == OUTPUTS(0).R6[Coll[Long]].get(1))
   val auxiliarExchangeCounterRemainsConstant = !isReplicationBoxPresent || (selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2))
   val mantainValue = !isReplicationBoxPresent || ({
@@ -444,7 +458,8 @@
         auxiliarExchangeCounterRemainsConstant,   
         // mantainValue,                           // Needs to extract value from the contract
         APTokenRemainsConstant,                    // There is no need to modify the auxiliar token, so it must be constant
-        ProofFundingTokenRemainsConstant           // There is no need to modify the proof of funding token, so it must be constant
+        ProofFundingTokenRemainsConstant,          // There is no need to modify the proof of funding token, so it must be constant
+        NonCoreTokensRemainConstant                // Prevents withdrawing unrelated tokens
       ))
 
       sigmaProp(allOf(Coll(
