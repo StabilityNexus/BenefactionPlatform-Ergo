@@ -735,6 +735,7 @@
     style={$mode === "light" ? "color: black;" : "color: #ddd;"}
 >
     <div class="project-container">
+        <!-- Project Info Section -->
         <div
             class="project-info"
             in:fly={{ y: 30, duration: 800, delay: 200, easing: quintOut }}
@@ -746,10 +747,7 @@
                         href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es"
                         target="_blank"
                         class={badgeVariants({ variant: "outline" })}
-                        >Contract version: {project.version.replace(
-                            "_",
-                            ".",
-                        )}</a
+                        >Contract version: {project.version.replace("_", ".")}</a
                     >
                 </div>
             </div>
@@ -803,25 +801,18 @@
             </div>
         </div>
 
+        <!-- Project Stats Section -->
         <div
             class="project-stats"
             in:fly={{ y: 30, duration: 800, delay: 400, easing: quintOut }}
         >
             <div class="countdown-container">
-                <div
-                    class="timeleft {deadline_passed
-                        ? 'ended'
-                        : countdownAnimation
-                          ? 'soon'
-                          : ''}"
-                >
+                <div class="timeleft {deadline_passed ? 'ended' : countdownAnimation ? 'soon' : ''}">
                     <span class="timeleft-label">
                         {#if deadline_passed}
                             TIME'S UP!
                             {#if !is_max_raised}
-                                <small class="secondary-text"
-                                    >... But you can still contribute!</small
-                                >
+                                <small class="secondary-text">... But you can still contribute!</small>
                             {/if}
                         {:else}
                             TIME LEFT
@@ -832,7 +823,6 @@
                             <div>{daysValue}</div>
                             <div class="h3"><h3>Days</h3></div>
                         </div>
-
                         <div class="item">
                             <div>{hoursValue}</div>
                             <div class="h3"><h3>Hours</h3></div>
@@ -849,17 +839,12 @@
 
                     <small class="deadline-info">
                         {#if project.is_timestamp_limit}
-                            <span
-                                title="This project has a fixed deadline at a specific date and time, regardless of blockchain block height"
-                            >
+                            <span title="This project has a fixed deadline at a specific date and time, regardless of blockchain block height">
                                 🕐 Deadline (by time): {limit_date}
                             </span>
                         {:else}
-                            <span
-                                title="This project's deadline is tied to the Ergo blockchain reaching block #{project.block_limit}. The estimated time may vary based on network conditions"
-                            >
-                                ⛓️ Deadline (by block): {limit_date}
-                                <br />
+                            <span title="This project's deadline is tied to the Ergo blockchain reaching block #{project.block_limit}. The estimated time may vary based on network conditions">
+                                ⛓️ Deadline (by block): {limit_date}<br />
                                 <span style="opacity: 0.7; font-size: 0.9em;">
                                     (at block #{project.block_limit})
                                 </span>
@@ -881,30 +866,11 @@
                         </div>
                         <div class="amount-ergs">
                             {(() => {
-                                const isERGBase =
-                                    !project.base_token_id ||
-                                    project.base_token_id === "";
-                                if (isERGBase) {
-                                    return (
-                                        (min * project.exchange_rate) /
-                                            Math.pow(10, 9) +
-                                        " " +
-                                        platform.main_token
-                                    );
-                                } else {
-                                    const baseTokenDecimals =
-                                        project.base_token_details?.decimals ||
-                                        0;
-                                    const baseTokenName =
-                                        project.base_token_details?.name ||
-                                        "tokens";
-                                    return (
-                                        (min * project.exchange_rate) /
-                                            Math.pow(10, baseTokenDecimals) +
-                                        " " +
-                                        baseTokenName
-                                    );
-                                }
+                                const isERGBase = !project.base_token_id || project.base_token_id === "";
+                                if (isERGBase) return (min * project.exchange_rate) / Math.pow(10, 9) + " " + platform.main_token;
+                                const baseTokenDecimals = project.base_token_details?.decimals || 0;
+                                const baseTokenName = project.base_token_details?.name || "tokens";
+                                return (min * project.exchange_rate) / Math.pow(10, baseTokenDecimals) + " " + baseTokenName;
                             })()}
                         </div>
                     </div>
@@ -912,36 +878,16 @@
                     <div class="amount-item current">
                         <div class="amount-label">Current Amount</div>
                         <div class="amount-value">
-                            {currentVal /
-                                Math.pow(10, project.token_details.decimals)}
+                            {currentVal / Math.pow(10, project.token_details.decimals)}
                             {project.token_details.name}
                         </div>
                         <div class="amount-ergs">
                             {(() => {
-                                const isERGBase =
-                                    !project.base_token_id ||
-                                    project.base_token_id === "";
-                                if (isERGBase) {
-                                    return (
-                                        (currentVal * project.exchange_rate) /
-                                            Math.pow(10, 9) +
-                                        " " +
-                                        platform.main_token
-                                    );
-                                } else {
-                                    const baseTokenDecimals =
-                                        project.base_token_details?.decimals ||
-                                        0;
-                                    const baseTokenName =
-                                        project.base_token_details?.name ||
-                                        "tokens";
-                                    return (
-                                        (currentVal * project.exchange_rate) /
-                                            Math.pow(10, baseTokenDecimals) +
-                                        " " +
-                                        baseTokenName
-                                    );
-                                }
+                                const isERGBase = !project.base_token_id || project.base_token_id === "";
+                                if (isERGBase) return (currentVal * project.exchange_rate) / Math.pow(10, 9) + " " + platform.main_token;
+                                const baseTokenDecimals = project.base_token_details?.decimals || 0;
+                                const baseTokenName = project.base_token_details?.name || "tokens";
+                                return (currentVal * project.exchange_rate) / Math.pow(10, baseTokenDecimals) + " " + baseTokenName;
                             })()}
                         </div>
                     </div>
@@ -954,36 +900,18 @@
                         </div>
                         <div class="amount-ergs">
                             {(() => {
-                                const isERGBase =
-                                    !project.base_token_id ||
-                                    project.base_token_id === "";
-                                if (isERGBase) {
-                                    return (
-                                        (max * project.exchange_rate) /
-                                            Math.pow(10, 9) +
-                                        " " +
-                                        platform.main_token
-                                    );
-                                } else {
-                                    const baseTokenDecimals =
-                                        project.base_token_details?.decimals ||
-                                        0;
-                                    const baseTokenName =
-                                        project.base_token_details?.name ||
-                                        "tokens";
-                                    return (
-                                        (max * project.exchange_rate) /
-                                            Math.pow(10, baseTokenDecimals) +
-                                        " " +
-                                        baseTokenName
-                                    );
-                                }
+                                const isERGBase = !project.base_token_id || project.base_token_id === "";
+                                if (isERGBase) return (max * project.exchange_rate) / Math.pow(10, 9) + " " + platform.main_token;
+                                const baseTokenDecimals = project.base_token_details?.decimals || 0;
+                                const baseTokenName = project.base_token_details?.name || "tokens";
+                                return (max * project.exchange_rate) / Math.pow(10, baseTokenDecimals) + " " + baseTokenName;
                             })()}
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Actions -->
             <div class="actions-section">
                 <h2 class="actions-title">Actions</h2>
                 <div class="action-buttons">
@@ -991,14 +919,8 @@
                         class="action-btn primary"
                         style="background-color: #FFA500; color: black;"
                         on:click={setupBuy}
-                        disabled={!$connected ||
-                            maxContributeAmount <= 0 ||
-                            project.sold_counter >= project.total_pft_amount}
-                        title={!$connected
-                            ? "Connect your wallet to contribute"
-                            : maxContributeAmount <= 0
-                              ? "Insufficient funds"
-                              : "Contribute"}
+                        disabled={!$connected || maxContributeAmount <= 0 || project.sold_counter >= project.total_pft_amount}
+                        title={!$connected ? "Connect your wallet to contribute" : maxContributeAmount <= 0 ? "Insufficient funds" : "Contribute"}
                     >
                         Contribute
                     </Button>
@@ -1007,9 +929,7 @@
                         class="action-btn"
                         style="background-color: #FF8C00; color: black;"
                         on:click={setupRefund}
-                        disabled={!$connected ||
-                            !(deadline_passed && !is_min_raised) ||
-                            maxRefundAmount <= 0}
+                        disabled={!$connected || !(deadline_passed && !is_min_raised) || maxRefundAmount <= 0}
                         title="Get a Refund"
                     >
                         Get a Refund
@@ -1019,9 +939,7 @@
                         class="action-btn"
                         style="background-color: #FF8C00; color: black;"
                         on:click={setupTempExchange}
-                        disabled={!$connected ||
-                            !is_min_raised ||
-                            maxCollectAmount <= 0}
+                        disabled={!$connected || !is_min_raised || maxCollectAmount <= 0}
                         title="Collect Tokens"
                     >
                         Collect {project.token_details.name}
@@ -1033,36 +951,14 @@
                 <div class="actions-section owner" transition:slide>
                     <h2 class="actions-title">Owner Actions</h2>
                     <div class="action-buttons">
-                        <Button
-                            class="action-btn"
-                            style="background-color: #FF8C00; color: black;"
-                            on:click={setupAddTokens}
-                        >
+                        <Button class="action-btn" style="background-color: #FF8C00; color: black;" on:click={setupAddTokens}>
                             Add {project.token_details.name}
                         </Button>
-
-                        <Button
-                            class="action-btn"
-                            style="background-color: #FF8C00; color: black;"
-                            on:click={setupWithdrawTokens}
-                            disabled={!$connected ||
-                                maxWithdrawTokenAmount <= 0}
-                        >
+                        <Button class="action-btn" style="background-color: #FF8C00; color: black;" on:click={setupWithdrawTokens} disabled={!$connected || maxWithdrawTokenAmount <= 0}>
                             Withdraw {project.token_details.name}
                         </Button>
-
-                        <Button
-                            class="action-btn"
-                            style="background-color: #FF8C00; color: black;"
-                            on:click={setupWithdrawErg}
-                            disabled={!$connected ||
-                                !is_min_raised ||
-                                maxWithdrawErgAmount <= 0}
-                        >
-                            Collect {!project.base_token_id ||
-                            project.base_token_id === ""
-                                ? platform.main_token
-                                : project.base_token_details?.name || "tokens"}
+                        <Button class="action-btn" style="background-color: #FF8C00; color: black;" on:click={setupWithdrawErg} disabled={!$connected || !is_min_raised || maxWithdrawErgAmount <= 0}>
+                            Collect {!project.base_token_id || project.base_token_id === "" ? platform.main_token : project.base_token_details?.name || "tokens"}
                         </Button>
                     </div>
                 </div>
@@ -1070,256 +966,62 @@
         </div>
     </div>
 
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-static-element-interactions -->
-    {#if show_submit}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
-        <div
-            class="modal-overlay"
-            transition:fade={{ duration: 200 }}
-            on:click|self={close_submit_form}
-        >
-            <div
-                class="actions-form"
-                class:light-mode={$mode === "light"}
-                style={$mode === "light"
-                    ? "background: white;"
-                    : "background: #2a2a2a;"}
-                transition:scale={{
-                    start: 0.95,
-                    duration: 300,
-                    easing: quintOut,
-                }}
-            >
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-static-element-interactions -->
-                <div class="close-button" on:click={close_submit_form}>
-                    &times;
-                </div>
-                <div class="centered-form">
-                    {#if transactionId}
-                        <div
-                            class="result"
-                            in:slide={{ duration: 300, easing: quintOut }}
-                        >
-                            <div class="result-content">
-                                <span class="result-label">Transaction ID</span>
-                                <a
-                                    href={$web_explorer_uri_tx + transactionId}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="transaction-link"
-                                    class:light-mode={$mode === "light"}
-                                >
-                                    <span>{transactionId.slice(0, 8)}...</span>
-                                    <svg
-                                        width="12"
-                                        height="12"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        ><path
-                                            d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
-                                        ></path><polyline
-                                            points="15 3 21 3 21 9"
-                                        ></polyline><line
-                                            x1="10"
-                                            y1="14"
-                                            x2="21"
-                                            y2="3"
-                                        ></line></svg
-                                    >
-                                </a>
-                            </div>
-
-                            <button
-                                class="copy-btn"
-                                class:success={clipboardCopied}
-                                on:click={copyTransactionId}
-                                aria-label="Copy Transaction ID"
-                            >
-                                {#if clipboardCopied}
-                                    <div
-                                        in:scale={{
-                                            duration: 400,
-                                            start: 0.5,
-                                            easing: elasticOut,
-                                        }}
-                                    >
-                                        <svg
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="3"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            style="width: 18px; height: 18px;"
-                                        >
-                                            <polyline points="20 6 9 17 4 12"
-                                            ></polyline>
-                                        </svg>
-                                    </div>
-                                {:else}
-                                    <div
-                                        in:scale={{ duration: 200, start: 0.8 }}
-                                    >
-                                        <svg
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            style="width: 18px; height: 18px;"
-                                        >
-                                            <rect
-                                                x="9"
-                                                y="9"
-                                                width="13"
-                                                height="13"
-                                                rx="2"
-                                                ry="2"
-                                            ></rect>
-                                            <path
-                                                d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                                            ></path>
-                                        </svg>
-                                    </div>
-                                {/if}
-                            </button>
-                        </div>
-                    {:else if errorMessage}
-                        <div class="error" in:slide>
-                            <p>{errorMessage}</p>
-                        </div>
-                    {:else}
-                        <div class="form-container" in:slide>
-                            <div class="form-info">
-                                {#if info_type_to_show === "buy"}
-                                    <p>
-                                        <strong>Exchange Rate:</strong>
-                                        {displayExchangeRate.toFixed(6)}
-                                        {baseTokenName} / {project.token_details
-                                            .name}
-                                    </p>
-                                    <p>
-                                        <strong>Your Wallet Balance:</strong>
-                                        {userErgBalance.toFixed(4)}
-                                        {baseTokenName}
-                                    </p>
-                                    <p>
-                                        <strong>Max You Can Buy:</strong>
-                                        {maxContributeAmount.toFixed(4)}
-                                        {baseTokenName}
-                                    </p>
-                                {/if}
-                                {#if info_type_to_show === "dev-collect"}
-                                    <p>
-                                        <strong>Project Funds:</strong>
-                                        {projectFundsAmount.toFixed(4)}
-                                        {baseTokenName}
-                                    </p>
-                                {/if}
-                                {#if info_type_to_show === "dev"}
-                                    <p>
-                                        <strong>Your Token Balance:</strong>
-                                        {userProjectTokenBalance.toFixed(2)}
-                                        {project.token_details.name}
-                                    </p>
-                                {/if}
-                                {#if info_type_to_show === "dev-withdraw"}
-                                    <p>
-                                        <strong>Project Unsold Balance:</strong>
-                                        {(
-                                            project.unsold_pft_amount /
-                                            Math.pow(
-                                                10,
-                                                project.token_details.decimals,
-                                            )
-                                        ).toFixed(2)}
-                                        {project.token_details.name}
-                                    </p>
-                                {/if}
-                                {#if function_submit === refund}
-                                    <p>
-                                        <strong>Refundable Amount:</strong>
-                                        {maxRefundAmount} APT
-                                    </p>
-                                {/if}
-                                {#if function_submit === temp_exchange}
-                                    <p>
-                                        <strong>Exchangeable Amount:</strong>
-                                        {maxCollectAmount.toFixed(4)}
-                                        {project.token_details.name}
-                                    </p>
-                                {/if}
-                            </div>
-
-                            <div class="form-content">
-                                <Label for="amount-input" class="form-label"
-                                    >{label_submit}</Label
-                                >
-                                <div class="input-container">
-                                    <Input
-                                        id="amount-input"
-                                        type="number"
-                                        bind:value={value_submit}
-                                        min="0"
-                                        step="0.001"
-                                        class="form-input"
-                                    />
-                                    <span class="input-suffix"
-                                        >{submit_amount_label}</span
-                                    >
-                                </div>
-
-                                {#if !hide_submit_info}
-                                    <Label for="amount-input" class="form-label"
-                                        >{submit_info.prefix}</Label
-                                    >
-                                    <div class="input-container">
-                                        <Input
-                                            disabled={true}
-                                            type="number"
-                                            value={submit_info.amount}
-                                            class="form-input"
-                                        />
-                                        <span class="input-suffix"
-                                            >{submit_info.token}</span
-                                        >
-                                    </div>
-                                {/if}
-
-                                <Button
-                                    on:click={function_submit}
-                                    disabled={isSubmitting || value_submit <= 0}
-                                    class="submit-btn"
-                                    style="background-color: #FF8C00; color: black;"
-                                >
-                                    {isSubmitting ? "Processing..." : "Submit"}
-                                </Button>
-                            </div>
-                        </div>
-                    {/if}
-                </div>
-            </div>
-        </div>
-    {/if}
-
+    <!-- Forum Section -->
     <div class="forum-section" in:fly={{ y: 20, delay: 600 }}>
-        <Forum topic_id={project.project_id} 
+        <Forum 
+            topic_id={project.project_id} 
             connect_executed={$connected}
             explorer_uri={explorer_uri} 
             web_explorer_uri_addr={web_explorer_uri_addr}
             web_explorer_uri_tkn={web_explorer_uri_tkn}
             web_explorer_uri_tx={web_explorer_uri_tx}
             connected={$connected}
-            />
+        />
     </div>
 </div>
+
+<!-- Modal Section -->
+{#if show_submit}
+    <div
+        class="modal-overlay"
+        transition:fade={{ duration: 200 }}
+        on:click|self={close_submit_form}
+        style="position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 2000;"
+    >
+        <div
+            class="actions-form"
+            class:light-mode={$mode === "light"}
+            style={$mode === "light" ? "background: white; z-index: 2100;" : "background: #2a2a2a; z-index: 2100;"}
+            transition:scale={{ start: 0.95, duration: 300, easing: quintOut }}
+        >
+            <div class="close-button" on:click={close_submit_form}>
+                &times;
+            </div>
+            <div class="centered-form">
+                {#if transactionId}
+                    <!-- Transaction Success -->
+                    <div class="result" in:slide={{ duration: 300, easing: quintOut }}>
+                        <!-- Your transaction display logic here -->
+                    </div>
+                {:else if errorMessage}
+                    <div class="error" in:slide>
+                        <p>{errorMessage}</p>
+                    </div>
+                {:else}
+                    <div class="form-container" in:slide>
+                        <!-- Form Fields -->
+                    </div>
+                {/if}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Scroll lock while modal is open
+        $: document.body.style.overflow = show_submit ? 'hidden' : '';
+    </script>
+{/if}
+
 
 <style>
     /* Base Layout */
@@ -1597,6 +1299,7 @@
     /* Modal Box */
     .actions-form {
         position: relative;
+        z-index: 2100;
         width: 95%;
         max-width: 540px;
         border-radius: 20px;
