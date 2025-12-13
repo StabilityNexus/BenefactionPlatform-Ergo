@@ -2,17 +2,6 @@
 //  Project Submission Flow
 //  SINGLE-SIGNATURE VERSION
 // =======================
-//
-// This file replaces the previous 2-step flow (mint → create)
-// with ONE atomic transaction:
-//
-// • Mints the project token
-// • Creates the project (APT) box
-// • Adds registers R4–R9
-// • Sends only ONE signing request to Nautilus
-//
-// No debugging code, no extra logs — pure clean PR-ready version.
-//
 
 import {
   OutputBuilder,
@@ -47,29 +36,32 @@ import {
   estimateTotalBoxSize
 } from '../utils/box-size-calculator';
 
-
 // ===================================
-// Helper: Load token metadata
+// Helper: Load token metadata (FIXED)
 // ===================================
 async function get_token_data(token_id: string) {
   const data = await fetch_token_details(token_id);
 
-  const emission = (data["emissionAmount"] ?? 0) + 1;
-
-  if (emission === 0) {
+  const emission = data["emissionAmount"] ?? 0;
+  if (emission <= 0) {
     throw new Error("Token emission is 0 — cannot mint.");
   }
 
   return {
-    amount: emission + 1,     // Minted supply for APT
+    amount: emission + 1, // +1 only for ID token
     decimals: data["decimals"]
   };
 }
 
+// ===================================
+// Helper: Validate ErgoTree hex
+// ===================================
+function isValidErgoTreeHex(tree: string): boolean {
+  return /^[0-9a-fA-F]+$/.test(tree) && tree.length > 10;
+}
 
 // ===================================
-// Main: Build & submit project TX
-// SINGLE SIGNATURE
+// Main submission flow
 // ===================================
 export async function* submit_project(
   version: contract_version,
@@ -84,7 +76,6 @@ export async function* submit_project(
   base_token_id: string = "",
   owner_ergotree: string = ""
 ) {
-
   // -------------------------------
   // (1) Validate project JSON
   // -------------------------------
@@ -103,76 +94,74 @@ export async function* submit_project(
   }
 
   // -------------------------------
-  // (2) Determine wallet owner tree
+  // (2) Determine owner safely
   // -------------------------------
   const walletPk = await getChangeAddress();
 
+  let ownerTree = ErgoAddress.fromBase58(walletPk).ergoTree;
+  if (owner_ergotree) {
+    if (!isValidErgoTreeHex(owner_ergotree)) {
+      alert("Invalid owner ErgoTree hex.");
+      return null;
+    }
+    ownerTree = owner_ergotree;
+  }
+
   const addressContent: ConstantContent = {
-    owner: owner_ergotree || ErgoAddress.fromBase58(walletPk).ergoTree,   // This makes user the owner
+    owner: ownerTree,
     dev_addr: get_dev_contract_address(),
     dev_hash: get_dev_contract_hash(),
     dev_fee: get_dev_fee(),
     pft_token_id: token_id,
-    base_token_id: base_token_id
+    base_token_id
   };
 
   // -------------------------------
-  // (3) Load token emission metadata
+  // (3) Load token data
   // -------------------------------
   const token_data = await get_token_data(token_id);
 
   // -------------------------------
-  // (4) Build registers R4–R9
+  // (4) Registers R4–R9
   // -------------------------------
-  // R4: (is_timestamp_limit, blockLimit)
   const r4 = SPair(
     SBool(is_timestamp_limit),
     SLong(BigInt(blockLimit))
   ).toHex();
 
-  // R5: minimum sold requirement
   const r5 = SLong(BigInt(minimumSold)).toHex();
 
-  // R6: empty tracking structure
-  const r6 = SColl(SLong, [0n, 0n, 0n]).toHex();
+  // R6: SAFE 2-element structure (contract compatible)
+  const r6 = SColl(SLong, [0n, 0n]).toHex();
 
-  // R7: exchange rate
   const r7 = SLong(BigInt(exchangeRate)).toHex();
-
-  // R8: contract-required constants (owner, dev info, token ids)
   const r8 = createR8Structure(addressContent).toHex();
-
-  // R9: project content JSON (UTF-8 encoded)
   const r9 = SString(projectContent);
 
-
   // -------------------------------
-  // (5) Estimate box size & min value
+  // (5) Estimate box size (FIXED)
   // -------------------------------
   const registerSizes = estimateRegisterSizes(r4, r5, r6, r7, r8, r9);
-
   const ergoTree = get_ergotree_hex(addressContent, version);
 
   const estimatedSize = estimateTotalBoxSize(
     ergoTree.length,
-    3,                 // number of assets the box will contain
+    2, // minted APT + contributed token
     registerSizes
   );
 
   let minValue = BOX_VALUE_PER_BYTE * BigInt(estimatedSize);
   if (minValue < SAFE_MIN_BOX_VALUE) minValue = SAFE_MIN_BOX_VALUE;
 
-
   // -------------------------------
-  // (6) Build the SINGLE output box
-  //     This box mints AND creates project
+  // (6) Build project output
   // -------------------------------
   const projectOutput = new OutputBuilder(minValue, ergoTree)
     .mintToken({
       amount: BigInt(token_data.amount),
-      name: title + " APT",
+      name: `${title} APT`,
       decimals: token_data.decimals,
-      description: "Temporal-funding Token for " + title
+      description: `Temporal-funding Token for ${title}`
     })
     .addTokens([
       { tokenId: token_id, amount: token_amount.toString() }
@@ -186,9 +175,8 @@ export async function* submit_project(
       R9: r9
     });
 
-
   // -------------------------------
-  // (7) Build unsigned transation
+  // (7) Build transaction
   // -------------------------------
   const height = await getCurrentHeight();
   const utxos = await getUtxos();
@@ -201,18 +189,12 @@ export async function* submit_project(
     .build()
     .toEIP12Object();
 
-
   // -------------------------------
-  // (8) Only ONE signature needed
+  // (8) Sign & submit
   // -------------------------------
   yield "Please sign the transaction…";
 
   const signed = await signTransaction(unsignedTx);
-
-
-  // -------------------------------
-  // (9) Submit to Ergo network
-  // -------------------------------
   const txId = await submitTransaction(signed);
 
   return txId;
