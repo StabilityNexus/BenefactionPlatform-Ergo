@@ -3,8 +3,14 @@
 // ===== Contract Description ===== //
 // Name: Bene Fundraising Platform Contract (Multi-Token Support) - FIXED VERSION
 // Description: Enables a project to receive funding in exchange for participation tokens using any base token.
-// Version: 1.2.1 (Fixed: Removed 1 smallest unit requirement)
+// Version: 1.2.2 (Fixed: isExchangeFundingTokens termination bug)
 // Author: The Stable Order
+
+// ===== CHANGES FROM v1.2.1 =====
+// - Fixed isExchangeFundingTokens to allow contract termination when all PFT tokens are exchanged
+// - Changed from isSelfReplication to endOrReplicate in constants check
+// - Restructured outer condition to allow non-replication scenarios
+// - Contract can now properly terminate after final APT->PFT exchange
 
 // ===== CHANGES FROM v1.2.0 =====
 // - Modified isWithdrawUnsoldTokens to allow full PFT withdrawal (using endOrReplicate)
@@ -514,6 +520,8 @@
   } else { sigmaProp(false) }
   
   // Exchange APT (token that identies the project used as temporary funding token) with PFT (proof-of-funding token)
+  // FIXED: Use endOrReplicate instead of isSelfReplication to allow contract termination
+  // when all PFT tokens have been exchanged (contract has only APT remaining)
   val isExchangeFundingTokens: SigmaProp = if (isReplicationBoxPresent) {
 
     val deltaTemporaryFundingTokenAdded = {
@@ -547,22 +555,22 @@
       deltaTemporaryFundingTokenAdded == counterIncrement
     }
 
+    // FIXED: endOrReplicate allows contract termination when all PFT tokens are exchanged
     val endOrReplicate = {
       val allFundsWithdrawn = selfValue == OUTPUTS(0).value
       val allTokensWithdrawn = SELF.tokens.size == 1 // There is no PFT in the contract, which means that all the PFT tokens have been exchanged for their respective APTs.
 
-      isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
+      isSelfReplication || (allFundsWithdrawn && allTokensWithdrawn)
     }
 
     val constants = allOf(Coll(
-      isSelfReplication,                        
-      // endOrReplicate,
-      soldCounterRemainsConstant,                           // Sold counter must be constant
-      refundCounterRemainsConstant,                         // Refund counter must be constant
-      // auxiliarExchangeCounterRemainsConstant,            // Auxiliar tokens are added to the contract to be exchanged with PFT
-      mantainValue                                          // ERG value must be constant
-      // APTokenRemainsConstant,                            // APT will change
-      // ProofFundingTokenRemainsConstant,                  // PFT will change
+      endOrReplicate,                                     // FIXED: Changed from isSelfReplication to endOrReplicate
+      soldCounterRemainsConstant,                         // Sold counter must be constant
+      refundCounterRemainsConstant,                       // Refund counter must be constant
+      // auxiliarExchangeCounterRemainsConstant,          // Auxiliar tokens are added to the contract to be exchanged with PFT
+      mantainValue                                        // ERG value must be constant
+      // APTokenRemainsConstant,                          // APT will change
+      // ProofFundingTokenRemainsConstant,                // PFT will change
     ))
 
     sigmaProp(allOf(Coll(
