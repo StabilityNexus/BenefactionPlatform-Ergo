@@ -69,37 +69,36 @@ onMount(() => {
     }
 });
 
-   onMount(() => {
+   onMount(async () => {
     if (!browser) return;
 
     const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
     const platformId = $page.url.searchParams.get("chain");
 
-    if (projectId && platformId === platform.id) {
-        isDirectCampaign = true;
-        isLoadingDirectCampaign = true;
-        activeTab = ""; // prevent default tab logic
+    console.log("projectId:", projectId, "platformId:", platformId, "platform.id:", platform.id);
 
-        // Fire async task without blocking UI
-        (async () => {
-            try {
-                const project = await loadProjectById(projectId, platform);
-                if (project) {
-                    project_detail.set(project);
-                } else {
-                    console.error("Project not found");
-                    activeTab = "acquireTokens";
-                    isDirectCampaign = false;
-                }
-            } catch (err) {
-                console.error("Error loading project:", err);
-                activeTab = "acquireTokens";
-                isDirectCampaign = false;
-            } finally {
-                isLoadingDirectCampaign = false;
-            }
-        })();
+   if (projectId && platformId == platform.id) {
+    isDirectCampaign = true;
+    isLoadingDirectCampaign = true;   // 👈 ADD HERE
+
+    // prevent default tab logic
+    activeTab = "";
+
+    const project = await loadProjectById(projectId);
+
+
+    isLoadingDirectCampaign = false;  // 👈 ADD HERE (AFTER await)
+
+    if (project) {
+        project_detail.set(project);
+    } else {
+        console.error("Project not found or invalid ID");
+        isDirectCampaign = false;
+        activeTab = "acquireTokens";
     }
+
+}
+
 });
 
 
