@@ -20,6 +20,7 @@
     import { block_to_time } from "$lib/common/countdown";
     import { formatTransactionError } from "$lib/common/error-utils";
     import { ErgoPlatform } from "$lib/ergo/platform";
+    import ShareModal from "$lib/components/ShareModal.svelte";
     import {
         web_explorer_uri_tkn,
         web_explorer_uri_tx,
@@ -48,6 +49,7 @@
     let isSubmitting: boolean = false;
 
     let showCopyMessage = false;
+    let shareModalOpen = false;
 
     // --- TRANSACTION COPY LOGIC ---
     let clipboardCopied = false;
@@ -112,6 +114,15 @@
                 Math.pow(10, project.token_details.decimals - baseTokenDecimals)
             );
         }
+    })();
+
+    // Compute project status for share modal
+    $: projectStatus = (() => {
+        const isEnded = deadline_passed;
+        const isMinRaised = is_min_raised;
+        if (isEnded && isMinRaised) return "funded";
+        if (isEnded) return "ended";
+        return "active";
     })();
 
     // States for amounts
@@ -568,15 +579,7 @@
     }
 
     function shareProject() {
-        navigator.clipboard
-            .writeText(window.location.href)
-            .then(() => {
-                showCopyMessage = true;
-                setTimeout(() => {
-                    showCopyMessage = false;
-                }, 2000);
-            })
-            .catch((err) => console.error("Failed to copy text: ", err));
+        shareModalOpen = true;
     }
 
     function close_submit_form() {
@@ -1396,21 +1399,26 @@
     }
 
     .share-btn {
-        background-color: #6b7280;
+        background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
         color: white;
         border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
+        padding: 0.625rem 1.25rem;
+        border-radius: 6px;
         cursor: pointer;
+        font-weight: 600;
+        font-size: 0.95rem;
         transition:
-            background-color 0.2s,
-            transform 0.1s;
+            all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
     }
     .share-btn:hover {
-        background-color: #4b5563;
+        background: linear-gradient(135deg, #ffb74d 0%, #ff9800 100%);
+        box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+        transform: translateY(-2px);
     }
     .share-btn:active {
-        transform: scale(0.98);
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
     }
 
     .copy-msg {
@@ -1977,3 +1985,11 @@
         margin-bottom: 1em;
     }
 </style>
+
+<ShareModal
+    bind:open={shareModalOpen}
+    projectName={project.content.title}
+    projectId={project.box.boxId}
+    projectStatus={projectStatus}
+    description={project.content.description}
+/>
