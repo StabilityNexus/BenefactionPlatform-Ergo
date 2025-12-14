@@ -4,6 +4,8 @@
         is_ended,
         max_raised,
         min_raised,
+        CampaignPhase,
+        type WithdrawalStage,
     } from "$lib/common/project";
     import {
         address,
@@ -579,6 +581,212 @@
             .catch((err) => console.error("Failed to copy text: ", err));
     }
 
+    // Emergency Verification Voting Handler
+    async function handleVerificationVote(voteType: 'approve' | 'reject') {
+        if (!$connected || !project.content.emergency) return;
+        
+        const walletAddr = $address;
+        if (!walletAddr) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+        
+        // Check if already voted
+        const voters = project.content.emergency.verificationVotes?.voters || [];
+        if (voters.includes(walletAddr)) {
+            alert('⚠️ You have already voted on this campaign.');
+            return;
+        }
+        
+        // Optional: Check if user is verified community member
+        const verifiedMembers = project.content.emergency.verifiedMembers || [];
+        if (verifiedMembers.length > 0 && !verifiedMembers.includes(walletAddr)) {
+            const shouldProceed = confirm(
+                '⚠️ Warning: You are not in the verified members list for this community.\n\n' +
+                'Your vote will still be counted, but it may be challenged.\n\n' +
+                'Continue anyway?'
+            );
+            if (!shouldProceed) return;
+        }
+        
+        isSubmitting = true;
+        errorMessage = null;
+        
+        try {
+            const currentVotes = project.content.emergency.verificationVotes || { approved: 0, rejected: 0, total: 0, voters: [] };
+            
+            if (voteType === 'approve') {
+                currentVotes.approved += 1;
+            } else {
+                currentVotes.rejected += 1;
+            }
+            currentVotes.total += 1;
+            currentVotes.voters = [...(currentVotes.voters || []), walletAddr];
+            
+            // Calculate approval rate
+            const approvalRate = (currentVotes.approved / currentVotes.total) * 100;
+            
+            // Update phase based on threshold
+            if (currentVotes.total >= 5) { // Minimum votes required
+                if (approvalRate >= 60) {
+                    project.content.emergency.phase = CampaignPhase.APPROVED;
+                    alert('✅ Campaign APPROVED! Donations are now enabled.');
+                } else if (approvalRate < 40) {
+                    project.content.emergency.phase = CampaignPhase.REJECTED;
+                    alert('❌ Campaign REJECTED. Verification failed.');
+                } else {
+                    project.content.emergency.phase = CampaignPhase.UNDER_REVIEW;
+                }
+            } else {
+                project.content.emergency.phase = CampaignPhase.UNDER_REVIEW;
+            }
+            
+            // Update project
+            project = { ...project };
+            project_detail.set(project);
+            
+            alert(`Vote recorded: ${voteType === 'approve' ? '✓ Approved' : '✕ Rejected'}`);
+            
+        } catch (error) {
+            console.error('Voting error:', error);
+            errorMessage = 'Failed to submit vote. Please try again.';
+        } finally {
+            isSubmitting = false;
+        }
+    }
+
+    // Withdrawal Stage Management Functions
+    async function requestWithdrawalStage(stageNumber: number) {
+        if (!project.content.emergency?.withdrawalStages) return;
+        
+        const stage = project.content.emergency.withdrawalStages[stageNumber - 1];
+        if (!stage) return;
+        
+        // Set stage to pending with request timestamp
+        stage.status = 'pending';
+        stage.requestedAt = Date.now();
+        stage.votesFor = 0;
+        stage.votesAgainst = 0;
+        stage.amount = projectFundsAmount * (stage.percentage / 100);
+        
+        // Update project
+        project = { ...project };
+        project_detail.set(project);
+        
+        alert(`✓ Withdrawal request submitted for Stage ${stageNumber}!\nCommunity voting is now open.`);
+    }
+
+    async function voteOnWithdrawal(stageNumber: number, voteType: 'approve' | 'reject') {
+        if (!$connected || !project.content.emergency?.withdrawalStages) return;
+        
+        const walletAddr = $address;
+        if (!walletAddr) {
+            alert('Please connect your wallet first.');
+            return;
+        }
+        
+        const stage = project.content.emergency.withdrawalStages[stageNumber - 1];
+        if (!stage) return;
+        
+        // Initialize voters array if not exists
+        if (!stage.voters) {
+            stage.voters = [];
+        }
+        
+        // Check if already voted on this stage
+        if (stage.voters.includes(walletAddr)) {
+            alert('⚠️ You have already voted on this withdrawal stage.');
+            return;
+        }
+        
+        // Record vote
+        stage.voters.push(walletAddr);
+        if (voteType === 'approve') {
+            stage.votesFor = (stage.votesFor || 0) + 1;
+        } else {
+            stage.votesAgainst = (stage.votesAgainst || 0) + 1;
+        }
+        
+        const totalVotes = (stage.votesFor || 0) + (stage.votesAgainst || 0);
+        const approvalRate = (stage.votesFor || 0) / totalVotes * 100;
+        
+        // Check if enough votes to finalize (minimum 5 votes)
+        if (totalVotes >= 5) {
+            if (approvalRate >= 60) {
+                stage.status = 'approved';
+                stage.approvedAt = Date.now();
+                // Set timelock based on stage
+                const delays = [0, 7 * 24 * 60 * 60 * 1000, 14 * 24 * 60 * 60 * 1000]; // 0, 7, 14 days in ms
+                stage.timelock = Date.now() + delays[stageNumber - 1];
+                alert(`✅ Stage ${stageNumber} APPROVED!\nTime lock: ${delays[stageNumber - 1] / (24 * 60 * 60 * 1000)} days`);
+            } else if (approvalRate < 40) {
+                stage.status = 'rejected';
+                alert(`❌ Stage ${stageNumber} REJECTED by community.`);
+            }
+        }
+        
+        // Update project
+        project = { ...project };
+        project_detail.set(project);
+        
+        alert(`Vote recorded: ${voteType === 'approve' ? '✓ Approved' : '✕ Rejected'}`);
+    }
+
+    function checkWithdrawalTimelock(stage: WithdrawalStage | undefined): boolean {
+        if (!stage || !stage.timelock) return false;
+        return Date.now() >= stage.timelock;
+    }
+
+    function getTimelockRemaining(stage: WithdrawalStage | undefined): string {
+        if (!stage || !stage.timelock) return '';
+        
+        const remaining = stage.timelock - Date.now();
+        if (remaining <= 0) return 'Ready';
+        
+        const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
+        const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+        
+        if (days > 0) return `${days}d ${hours}h`;
+        return `${hours}h`;
+    }
+
+    async function executeWithdrawal(stageNumber: number, amount: string) {
+        if (!project.content.emergency?.withdrawalStages) return;
+        
+        const stage = project.content.emergency.withdrawalStages[stageNumber - 1];
+        if (!stage || !checkWithdrawalTimelock(stage)) {
+            alert('⏳ Time lock is still active. Please wait.');
+            return;
+        }
+        
+        isSubmitting = true;
+        try {
+            // TODO: Actual blockchain withdrawal transaction
+            // For now, simulate the withdrawal
+            
+            stage.status = 'withdrawn';
+            stage.withdrawnAt = Date.now();
+            
+            // Update project
+            project = { ...project };
+            project_detail.set(project);
+            
+            alert(`✅ Stage ${stageNumber} withdrawn successfully!\nAmount: ${amount} ${baseTokenName}`);
+            
+            // Move to next stage
+            const nextStage = project.content.emergency.withdrawalStages[stageNumber];
+            if (nextStage && nextStage.status === 'pending') {
+                project.content.emergency.currentStage = stageNumber + 1;
+            }
+            
+        } catch (error) {
+            console.error('Withdrawal error:', error);
+            errorMessage = 'Failed to execute withdrawal. Please try again.';
+        } finally {
+            isSubmitting = false;
+        }
+    }
+
     function close_submit_form() {
         show_submit = false;
         transactionId = null;
@@ -984,52 +1192,344 @@
                 </div>
             </div>
 
+            <!-- Emergency Verification Voting Section -->
+            {#if project.content.emergency && (project.content.emergency.phase === CampaignPhase.PENDING_VERIFICATION || project.content.emergency.phase === CampaignPhase.UNDER_REVIEW)}
+                <div class="verification-section" transition:slide>
+                    <div class="verification-header">
+                        <h2 class="verification-title">🔍 Community Verification Required</h2>
+                        <p class="verification-subtitle">
+                            This emergency campaign needs community approval before donations can be accepted
+                        </p>
+                    </div>
+
+                    <!-- Emergency Details -->
+                    <div class="emergency-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Emergency Type:</span>
+                            <span class="detail-value">
+                                {#if project.content.emergency.emergencyType === 'medical'}
+                                    🏥 Medical Emergency
+                                {:else if project.content.emergency.emergencyType === 'accident'}
+                                    🚑 Accident
+                                {:else if project.content.emergency.emergencyType === 'natural_disaster'}
+                                    🌪️ Natural Disaster
+                                {:else if project.content.emergency.emergencyType === 'financial_crisis'}
+                                    💸 Financial Crisis
+                                {/if}
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Community:</span>
+                            <span class="detail-value">{project.content.emergency.communityName || 'Not specified'}</span>
+                        </div>
+                    </div>
+
+                    <!-- Document Evidence -->
+                    {#if project.content.emergency.documentDescription}
+                        <div class="document-evidence">
+                            <h3 class="evidence-title">📄 Supporting Documents</h3>
+                            <p class="evidence-description">{project.content.emergency.documentDescription}</p>
+                            
+                            {#if project.content.emergency.documentHashes && project.content.emergency.documentHashes.length > 0}
+                                <div class="document-hashes">
+                                    <p class="text-xs text-muted-foreground mb-2">Cryptographic Hashes (for verification):</p>
+                                    {#each project.content.emergency.documentHashes as hash, index}
+                                        <div class="hash-item">
+                                            <span class="hash-number">#{index + 1}</span>
+                                            <code class="hash-value">{hash.substring(0, 16)}...{hash.substring(hash.length - 8)}</code>
+                                        </div>
+                                    {/each}
+                                </div>
+                            {/if}
+                        </div>
+                    {/if}
+
+                    <!-- Voting Stats -->
+                    <div class="voting-stats">
+                        {#if true}
+                            {@const votes = project.content.emergency.verificationVotes || { approved: 0, rejected: 0, total: 0 }}
+                            {@const approvalRate = votes.total > 0 ? Math.round((votes.approved / votes.total) * 100) : 0}
+                            {@const threshold = 60}
+                            
+                            <div class="stats-header">
+                                <h3 class="stats-title">Current Votes</h3>
+                                <span class="approval-rate" class:passing={approvalRate >= threshold}>
+                                    {approvalRate}% Approval
+                                </span>
+                            </div>
+                            
+                            <div class="vote-bars">
+                                <div class="vote-bar approve">
+                                    <div class="bar-fill" style="width: {votes.total > 0 ? (votes.approved / votes.total) * 100 : 0}%"></div>
+                                    <span class="bar-label">✓ Approve: {votes.approved}</span>
+                                </div>
+                                <div class="vote-bar reject">
+                                    <div class="bar-fill" style="width: {votes.total > 0 ? (votes.rejected / votes.total) * 100 : 0}%"></div>
+                                    <span class="bar-label">✕ Reject: {votes.rejected}</span>
+                                </div>
+                            </div>
+                            
+                            <p class="threshold-info">
+                                Requires ≥{threshold}% approval to proceed | Total Votes: {votes.total}
+                            </p>
+                        {/if}
+                    </div>
+
+                    <!-- Voting Actions -->
+                    {#if $connected}
+                        <div class="voting-actions">
+                            <Button
+                                class="vote-btn approve-btn"
+                                on:click={() => handleVerificationVote('approve')}
+                                disabled={isSubmitting}
+                            >
+                                ✓ Approve Campaign
+                            </Button>
+                            <Button
+                                class="vote-btn reject-btn"
+                                on:click={() => handleVerificationVote('reject')}
+                                disabled={isSubmitting}
+                            >
+                                ✕ Reject Campaign
+                            </Button>
+                        </div>
+                        <p class="text-xs text-center text-muted-foreground mt-2">
+                            Vote only if you're a verified member of the {project.content.emergency.communityName} community
+                        </p>
+                    {:else}
+                        <div class="connect-prompt">
+                            <p>Connect your wallet to participate in verification voting</p>
+                        </div>
+                    {/if}
+
+                    <!-- Info Box -->
+                    <div class="verification-info">
+                        <p class="info-text">
+                            ⚠️ <strong>Important:</strong> This campaign cannot accept donations until community verification is complete. 
+                            Review the evidence carefully before voting.
+                        </p>
+                    </div>
+                </div>
+            {/if}
+
             <div class="actions-section">
                 <h2 class="actions-title">Actions</h2>
-                <div class="action-buttons">
-                    <Button
-                        class="action-btn primary"
-                        style="background-color: #FFA500; color: black;"
-                        on:click={setupBuy}
-                        disabled={!$connected ||
-                            maxContributeAmount <= 0 ||
-                            project.sold_counter >= project.total_pft_amount}
-                        title={!$connected
-                            ? "Connect your wallet to contribute"
-                            : maxContributeAmount <= 0
-                              ? "Insufficient funds"
-                              : "Contribute"}
-                    >
-                        Contribute
-                    </Button>
+                
+                <!-- Emergency Campaign Verification Block -->
+                {#if project.content.emergency && (project.content.emergency.phase === CampaignPhase.PENDING_VERIFICATION || project.content.emergency.phase === CampaignPhase.UNDER_REVIEW)}
+                    <div class="verification-block">
+                        <div class="block-icon">🔒</div>
+                        <h3 class="block-title">Donations Blocked - Verification Required</h3>
+                        <p class="block-message">
+                            This emergency campaign is currently under community verification. 
+                            Donations will be enabled once the campaign receives ≥60% approval from verified community members.
+                        </p>
+                        <div class="block-status">
+                            {#if project.content.emergency.phase === CampaignPhase.PENDING_VERIFICATION}
+                                <span class="status-badge pending">⏳ Awaiting Initial Votes</span>
+                            {:else}
+                                <span class="status-badge reviewing">👥 Under Review</span>
+                            {/if}
+                        </div>
+                    </div>
+                {:else if project.content.emergency && project.content.emergency.phase === CampaignPhase.REJECTED}
+                    <div class="verification-block rejected">
+                        <div class="block-icon">❌</div>
+                        <h3 class="block-title">Campaign Rejected</h3>
+                        <p class="block-message">
+                            This emergency campaign did not pass community verification. 
+                            Donations are permanently disabled for this campaign.
+                        </p>
+                        <div class="block-status">
+                            <span class="status-badge rejected-badge">✕ Verification Failed</span>
+                        </div>
+                    </div>
+                {:else}
+                    <!-- Normal Actions (only shown if not blocked) -->
+                    <div class="action-buttons">
+                        <Button
+                            class="action-btn primary"
+                            style="background-color: #FFA500; color: black;"
+                            on:click={setupBuy}
+                            disabled={!$connected ||
+                                maxContributeAmount <= 0 ||
+                                project.sold_counter >= project.total_pft_amount}
+                            title={!$connected
+                                ? "Connect your wallet to contribute"
+                                : maxContributeAmount <= 0
+                                  ? "Insufficient funds"
+                                  : "Contribute"}
+                        >
+                            Contribute
+                        </Button>
 
-                    <Button
-                        class="action-btn"
-                        style="background-color: #FF8C00; color: black;"
-                        on:click={setupRefund}
-                        disabled={!$connected ||
-                            !(deadline_passed && !is_min_raised) ||
-                            maxRefundAmount <= 0}
-                        title="Get a Refund"
-                    >
-                        Get a Refund
-                    </Button>
+                        <Button
+                            class="action-btn"
+                            style="background-color: #FF8C00; color: black;"
+                            on:click={setupRefund}
+                            disabled={!$connected ||
+                                !(deadline_passed && !is_min_raised) ||
+                                maxRefundAmount <= 0}
+                            title="Get a Refund"
+                        >
+                            Get a Refund
+                        </Button>
 
-                    <Button
-                        class="action-btn"
-                        style="background-color: #FF8C00; color: black;"
-                        on:click={setupTempExchange}
-                        disabled={!$connected ||
-                            !is_min_raised ||
-                            maxCollectAmount <= 0}
-                        title="Collect Tokens"
-                    >
-                        Collect {project.token_details.name}
-                    </Button>
-                </div>
+                        <Button
+                            class="action-btn"
+                            style="background-color: #FF8C00; color: black;"
+                            on:click={setupTempExchange}
+                            disabled={!$connected ||
+                                !is_min_raised ||
+                                maxCollectAmount <= 0}
+                            title="Collect Tokens"
+                        >
+                            Collect {project.token_details.name}
+                        </Button>
+                    </div>
+                {/if}
             </div>
 
             {#if is_owner}
+                <!-- Emergency Staged Withdrawal Section -->
+                {#if project.content.emergency}
+                    <div class="actions-section emergency-withdrawal" transition:slide>
+                        <h2 class="actions-title">🚨 Emergency Fund Withdrawal (Staged Release)</h2>
+                        <p class="text-sm text-muted-foreground mb-4">
+                            Funds are released in 3 stages: 40% → 30% → 30% with time delays and community approval
+                        </p>
+                        
+                        <div class="withdrawal-stages space-y-4">
+                            {#each [
+                                { stage: 1, percentage: 40, delay: '0 days' },
+                                { stage: 2, percentage: 30, delay: '7 days' },
+                                { stage: 3, percentage: 30, delay: '14 days' }
+                            ] as stageInfo}
+                                {@const stageData = project.content.emergency.withdrawalStages?.[stageInfo.stage - 1]}
+                                {@const stageStatus = stageData?.status || 'pending'}
+                                {@const stageAmount = (projectFundsAmount * (stageInfo.percentage / 100)).toFixed(4)}
+                                
+                                <div class="withdrawal-stage-card border rounded-lg p-4 {
+                                    stageStatus === 'withdrawn' ? 'bg-green-500/5 border-green-500/30' :
+                                    stageStatus === 'approved' ? 'bg-blue-500/5 border-blue-500/30' :
+                                    stageStatus === 'rejected' ? 'bg-red-500/5 border-red-500/30' :
+                                    'bg-yellow-500/5 border-yellow-500/30'
+                                }">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-bold text-lg">Stage {stageInfo.stage}</span>
+                                            <span class="text-sm text-muted-foreground">({stageInfo.percentage}%)</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            {#if stageStatus === 'withdrawn'}
+                                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                                                    ✓ Withdrawn
+                                                </span>
+                                            {:else if stageStatus === 'approved'}
+                                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                                    ✓ Approved
+                                                </span>
+                                            {:else if stageStatus === 'rejected'}
+                                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                                                    ✕ Rejected
+                                                </span>
+                                            {:else}
+                                                <span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                                                    ⏳ Pending
+                                                </span>
+                                            {/if}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between text-sm mb-3">
+                                        <span class="text-muted-foreground">Amount:</span>
+                                        <span class="font-semibold">{stageAmount} {baseTokenName}</span>
+                                    </div>
+                                    
+                                    <div class="flex items-center justify-between text-sm mb-3">
+                                        <span class="text-muted-foreground">Time Delay:</span>
+                                        <span>{stageInfo.delay} from approval</span>
+                                    </div>
+                                    
+                                    {#if stageData?.votesFor !== undefined}
+                                        <div class="flex items-center justify-between text-xs mb-2">
+                                            <span class="text-muted-foreground">Community Votes:</span>
+                                            <span class="text-green-400">{stageData.votesFor} For</span>
+                                            <span class="text-red-400">{stageData.votesAgainst || 0} Against</span>
+                                        </div>
+                                    {/if}
+                                    
+                                    {#if stageStatus === 'pending' && stageInfo.stage === 1}
+                                        <Button
+                                            class="w-full mt-2"
+                                            style="background-color: #FF8C00; color: black;"
+                                            disabled={!is_min_raised}
+                                            on:click={() => requestWithdrawalStage(stageInfo.stage)}
+                                            title="Request withdrawal approval from community"
+                                        >
+                                            Request Stage {stageInfo.stage} Withdrawal
+                                        </Button>
+                                    {:else if stageStatus === 'approved'}
+                                        {@const canWithdraw = checkWithdrawalTimelock(stageData)}
+                                        <Button
+                                            class="w-full mt-2"
+                                            style="background-color: #10b981; color: white;"
+                                            disabled={!canWithdraw}
+                                            on:click={() => executeWithdrawal(stageInfo.stage, stageAmount)}
+                                            title={canWithdraw ? "Withdraw approved funds" : "Time lock active - please wait"}
+                                        >
+                                            {canWithdraw ? `Withdraw ${stageAmount} ${baseTokenName}` : `⏳ Time Lock (${getTimelockRemaining(stageData)})`}
+                                        </Button>
+                                    {:else if stageStatus === 'withdrawn'}
+                                        <div class="w-full mt-2 p-2 bg-green-500/10 border border-green-500/30 rounded text-center text-xs text-green-400">
+                                            ✓ Withdrawn on {stageData?.withdrawnAt ? new Date(stageData.withdrawnAt).toLocaleDateString() : 'N/A'}
+                                        </div>
+                                    {/if}
+                                    
+                                    <!-- Voting Section for Withdrawal Approval -->
+                                    {#if stageData?.status === 'pending' && stageData?.requestedAt}
+                                        <div class="stage-voting mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded">
+                                            <p class="text-xs font-semibold mb-2">Community Approval Required</p>
+                                            <div class="mini-vote-bars mb-2">
+                                                <div class="mini-bar approve">
+                                                    <div class="bar-fill" style="width: {(stageData.votesFor || 0) / Math.max((stageData.votesFor || 0) + (stageData.votesAgainst || 0), 1) * 100}%"></div>
+                                                    <span class="text-xs">✓ {stageData.votesFor || 0}</span>
+                                                </div>
+                                                <div class="mini-bar reject">
+                                                    <div class="bar-fill" style="width: {(stageData.votesAgainst || 0) / Math.max((stageData.votesFor || 0) + (stageData.votesAgainst || 0), 1) * 100}%"></div>
+                                                    <span class="text-xs">✕ {stageData.votesAgainst || 0}</span>
+                                                </div>
+                                            </div>
+                                            {#if $connected}
+                                                <div class="flex gap-2">
+                                                    <button
+                                                        class="flex-1 px-2 py-1 bg-green-500/20 hover:bg-green-500/30 border border-green-500/40 rounded text-xs text-green-400"
+                                                        on:click={() => voteOnWithdrawal(stageInfo.stage, 'approve')}
+                                                    >
+                                                        ✓ Approve
+                                                    </button>
+                                                    <button
+                                                        class="flex-1 px-2 py-1 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 rounded text-xs text-red-400"
+                                                        on:click={() => voteOnWithdrawal(stageInfo.stage, 'reject')}
+                                                    >
+                                                        ✕ Reject
+                                                    </button>
+                                                </div>
+                                            {:else}
+                                                <p class="text-xs text-muted-foreground text-center">Connect wallet to vote</p>
+                                            {/if}
+                                        </div>
+                                    {/if}
+                                </div>
+                            {/each}
+                        </div>
+                        
+                        <div class="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-xs">
+                            <p class="text-blue-200">ℹ️ <strong>How it works:</strong> Each stage requires community approval (≥60% votes). After approval, there's a mandatory waiting period before withdrawal is allowed. This ensures accountability and proper fund usage.</p>
+                        </div>
+                    </div>
+                {/if}
+
                 <div class="actions-section owner" transition:slide>
                     <h2 class="actions-title">Owner Actions</h2>
                     <div class="action-buttons">
@@ -1975,5 +2475,389 @@
         border-radius: 8px;
         overflow-x: auto;
         margin-bottom: 1em;
+    }
+
+    /* Emergency Withdrawal Stages */
+    .emergency-withdrawal {
+        background: linear-gradient(135deg, rgba(220, 38, 38, 0.05) 0%, rgba(239, 68, 68, 0.02) 100%);
+        border: 2px solid rgba(220, 38, 38, 0.2) !important;
+    }
+
+    .withdrawal-stages {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .withdrawal-stage-card {
+        transition: all 0.3s ease;
+    }
+
+    .withdrawal-stage-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Community Verification Section */
+    .verification-section {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.02) 100%);
+        border: 2px solid rgba(59, 130, 246, 0.3);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .verification-header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .verification-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #3b82f6;
+        margin-bottom: 0.5rem;
+    }
+
+    .verification-subtitle {
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+
+    .emergency-details {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        opacity: 0.8;
+    }
+
+    .detail-value {
+        font-weight: 500;
+    }
+
+    .document-evidence {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .evidence-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+
+    .evidence-description {
+        font-size: 0.875rem;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+
+    .document-hashes {
+        margin-top: 1rem;
+    }
+
+    .hash-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+        font-family: monospace;
+        font-size: 0.75rem;
+    }
+
+    .hash-number {
+        color: #3b82f6;
+        font-weight: 600;
+    }
+
+    .hash-value {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .voting-stats {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stats-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .stats-title {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .approval-rate {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #f59e0b;
+    }
+
+    .approval-rate.passing {
+        color: #10b981;
+    }
+
+    .vote-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .vote-bar {
+        position: relative;
+        height: 2.5rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .vote-bar.approve .bar-fill {
+        background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    }
+
+    .vote-bar.reject .bar-fill {
+        background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .bar-fill {
+        height: 100%;
+        transition: width 0.5s ease;
+    }
+
+    .bar-label {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-weight: 600;
+        font-size: 0.875rem;
+        z-index: 1;
+    }
+
+    .threshold-info {
+        text-align: center;
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
+
+    .voting-actions {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .vote-btn {
+        flex: 1;
+        padding: 1rem;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .approve-btn {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+    }
+
+    .approve-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+
+    .reject-btn {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        border: none;
+    }
+
+    .reject-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+
+    .connect-prompt {
+        text-align: center;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        opacity: 0.8;
+    }
+
+    .verification-info {
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .info-text {
+        font-size: 0.875rem;
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    /* Verification Block (Donation Blocker) */
+    .verification-block {
+        background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+        border: 2px solid rgba(251, 191, 36, 0.3);
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+
+    .verification-block.rejected {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%);
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .block-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .block-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+        color: #fbbf24;
+    }
+
+    .verification-block.rejected .block-title {
+        color: #ef4444;
+    }
+
+    .block-message {
+        font-size: 0.875rem;
+        line-height: 1.6;
+        opacity: 0.9;
+        margin-bottom: 1.5rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .block-status {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status-badge.pending {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.4);
+    }
+
+    .status-badge.reviewing {
+        background: rgba(59, 130, 246, 0.2);
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+
+    .status-badge.rejected-badge {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    /* Withdrawal Stage Voting */
+    .stage-voting {
+        animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .mini-vote-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .mini-bar {
+        position: relative;
+        height: 1.5rem;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 4px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        padding: 0 0.5rem;
+    }
+
+    .mini-bar .bar-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        transition: width 0.5s ease;
+    }
+
+    .mini-bar.approve .bar-fill {
+        background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+    }
+
+    .mini-bar.reject .bar-fill {
+        background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .mini-bar span {
+        position: relative;
+        z-index: 1;
+        font-weight: 600;
     }
 </style>

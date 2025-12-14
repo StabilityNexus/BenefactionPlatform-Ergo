@@ -98,25 +98,24 @@ export class ErgoPlatform implements Platform {
 
         if (addr) {
             try {
-                // Fetch balance for the specific address from the API
-                const response = await fetch(get(explorer_uri) + `/api/v1/addresses/${addr}/balance/confirmed`);
-                if (!response.ok) {
-                    throw new Error(`API request failed with status: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                // Add nanoErgs balance to the map
-                balanceMap.set("ERG", data.nanoErgs);
-                balance.set(data.nanoErgs)
+                // Use wallet's getBalance() method directly
+                const walletBalance = await ergoConnector.nautilus.getBalance();
+                console.log("💰 Wallet balance from Nautilus:", walletBalance);
+                
+                // Add ERG balance to the map
+                balanceMap.set("ERG", BigInt(walletBalance.balance));
+                balance.set(BigInt(walletBalance.balance));
 
                 // Add tokens balances to the map
-                data.tokens.forEach((token: { tokenId: string; amount: number }) => {
-                    balanceMap.set(token.tokenId, token.amount);
-                });
+                if (walletBalance.tokens && walletBalance.tokens.length > 0) {
+                    walletBalance.tokens.forEach((token: { tokenId: string; amount: string }) => {
+                        balanceMap.set(token.tokenId, BigInt(token.amount));
+                    });
+                }
+                console.log("✅ Balance loaded:", balanceMap.size, "items");
             } catch (error) {
-                console.error(`Failed to fetch balance for address ${addr} from API:`, error);
-                throw new Error("Unable to fetch balance.");
+                console.error(`Failed to fetch balance from wallet:`, error);
+                throw new Error("Unable to fetch balance from wallet.");
             }
         } else {
             throw new Error("Address is required to fetch balance.");

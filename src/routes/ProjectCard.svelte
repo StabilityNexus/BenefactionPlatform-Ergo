@@ -1,6 +1,6 @@
 <script lang="ts">
     import { block_to_date } from "$lib/common/countdown";
-    import { is_ended, min_raised, type Project } from "$lib/common/project";
+    import { is_ended, min_raised, type Project, CampaignPhase } from "$lib/common/project";
     import { project_detail, connected, balance } from "$lib/common/store";
     import { badgeVariants } from "$lib/components/ui/badge";
     import { Button } from "$lib/components/ui/button";
@@ -115,6 +115,46 @@
             : 'bg-gradient-to-b from-black/5 to-transparent'}"
     >
         <div class="flex-1 min-w-0">
+            {#if project.content.emergency}
+                <div class="mb-2 flex items-center gap-2 flex-wrap">
+                    {#if project.content.emergency.phase === CampaignPhase.PENDING_VERIFICATION}
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                            ⏳ Pending Verification
+                        </span>
+                    {:else if project.content.emergency.phase === CampaignPhase.UNDER_REVIEW}
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                            👥 Under Community Review
+                        </span>
+                    {:else if project.content.emergency.phase === CampaignPhase.APPROVED}
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                            ✓ Approved - Accepting Donations
+                        </span>
+                    {:else if project.content.emergency.phase === CampaignPhase.REJECTED}
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-500/20 text-red-400 border border-red-500/30">
+                            ✕ Verification Failed
+                        </span>
+                    {:else if project.content.emergency.phase === CampaignPhase.COMPLETED}
+                        <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                            ✓ Completed
+                        </span>
+                    {/if}
+                    
+                    {#if project.content.emergency.emergencyType}
+                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-500/10 text-red-400 border border-red-500/20">
+                            {#if project.content.emergency.emergencyType === 'medical'}
+                                🏥 Medical
+                            {:else if project.content.emergency.emergencyType === 'accident'}
+                                🚑 Accident
+                            {:else if project.content.emergency.emergencyType === 'natural_disaster'}
+                                🌪️ Disaster
+                            {:else if project.content.emergency.emergencyType === 'financial_crisis'}
+                                💸 Crisis
+                            {/if}
+                        </span>
+                    {/if}
+                </div>
+            {/if}
+            
             <Card.Title
                 class="text-xl font-bold text-orange-500 leading-tight break-words"
             >
@@ -213,6 +253,22 @@
             {/if}
         </div>
 
+        <!-- Emergency Donation Status Indicator -->
+        {#if project.content.emergency && (project.content.emergency.phase === CampaignPhase.PENDING_VERIFICATION || project.content.emergency.phase === CampaignPhase.UNDER_REVIEW || project.content.emergency.phase === CampaignPhase.REJECTED)}
+            <div class="donation-status-alert {project.content.emergency.phase === CampaignPhase.REJECTED ? 'rejected' : 'pending'}">
+                {#if project.content.emergency.phase === CampaignPhase.REJECTED}
+                    <span class="status-icon">❌</span>
+                    <span class="status-text">Donations Blocked - Verification Failed</span>
+                {:else if project.content.emergency.phase === CampaignPhase.UNDER_REVIEW}
+                    <span class="status-icon">🔍</span>
+                    <span class="status-text">Donations Blocked - Under Community Review</span>
+                {:else}
+                    <span class="status-icon">⏳</span>
+                    <span class="status-text">Donations Blocked - Awaiting Verification</span>
+                {/if}
+            </div>
+        {/if}
+
         <div class="mt-auto pt-4">
             <div
                 class={`p-3 rounded-lg text-xs font-medium border ${statusColor}`}
@@ -284,5 +340,41 @@
         background: rgba(156, 163, 175, 0.1);
         color: #9ca3af;
         border-color: rgba(156, 163, 175, 0.2);
+    }
+
+    /* Donation Status Alert */
+    .donation-status-alert {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border: 1px solid;
+    }
+
+    .donation-status-alert.pending {
+        background: rgba(251, 191, 36, 0.1);
+        border-color: rgba(251, 191, 36, 0.3);
+        color: #fbbf24;
+    }
+
+    .donation-status-alert.rejected {
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #ef4444;
+    }
+
+    .status-icon {
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .status-text {
+        flex: 1;
+        line-height: 1.4;
     }
 </style>
