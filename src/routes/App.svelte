@@ -17,6 +17,8 @@
     import NewProject from "./NewProject.svelte";
     import TokenAcquisition from "./TokenAcquisition.svelte";
     import ProjectDetails from "./ProjectDetails.svelte";
+    import Analytics from "./Analytics.svelte";
+    import { BarChart3 } from 'lucide-svelte';
     import { ErgoPlatform } from "$lib/ergo/platform";
     import { loadProjectById } from "$lib/common/load_by_id";
     import { browser } from "$app/environment";
@@ -248,6 +250,11 @@
                         New Campaign
                     </a>
                 </li>
+                                <li class={activeTab === "analytics" ? "active" : ""}>
+                    <a href="#" on:click={() => changeTab("analytics")}>
+                        Analytics
+                    </a>
+                </li>
             </ul>
         </nav>
 
@@ -338,6 +345,11 @@
                     New Campaign
                 </a>
             </li>
+                        <li class={activeTab === "analytics" ? "active" : ""}>
+                <a href="#" on:click={() => changeTab("analytics")}>
+                    Analytics
+                </a>
+            </li>
         </ul>
     </div>
 {/if}
@@ -355,6 +367,9 @@
         {/if}
         {#if activeTab === "submitProject"}
             <NewProject />
+        {/if}
+        {#if activeTab === "analytics"}
+            <Analytics />
         {/if}
     {:else}
         <ProjectDetails />

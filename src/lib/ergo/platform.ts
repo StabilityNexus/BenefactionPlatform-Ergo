@@ -11,6 +11,15 @@ import { get } from "svelte/store";
 import { temp_exchange } from './actions/temp_exchange';
 import { type contract_version } from './contract';
 
+declare global {
+    interface Window {
+        ergo?: {
+            get_current_height(): Promise<number>;
+            get_change_address(): Promise<string>;
+        };
+    }
+}
+
 export class ErgoPlatform implements Platform {
 
     id = "ergo";
