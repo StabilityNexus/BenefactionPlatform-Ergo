@@ -63,3 +63,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media (max-width: 768px) {
+  .repo-link-box {
+    overflow-wrap: break-word;
+  }
+}
