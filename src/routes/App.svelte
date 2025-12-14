@@ -338,6 +338,35 @@
                     New Campaign
                 </a>
             </li>
+            <li>
+                <a
+                    href="#"
+                    aria-label="Open settings"
+                    on:click={() => {
+                        showSettingsModal = true;
+                        mobileMenuOpen = false;
+                    }}
+                    class="settings-link"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        class="feather feather-settings"
+                        style="flex-shrink:0"
+                    >
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 2.28 18.9l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09c.7 0 1.3-.4 1.51-1a1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.7 2.28l.06.06a1.65 1.65 0 0 0 1.82.33h.09c.7 0 1.3-.4 1.51-1V3a2 2 0 1 1 4 0v.09c.2.6.8 1 1.51 1h.09c.7 0 1.3.4 1.51 1 .13.35.35.66.63.94l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33H12a1.65 1.65 0 0 0-1 1.51V9a2 2 0 1 1 4 0v.09c.2.6.8 1 1.51 1h.09c.7 0 1.3.4 1.51 1 .13.35.35.66.63.94l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06c-.3-.29-.52-.6-.63-.94z"></path>
+                    </svg>
+                    <span>Settings</span>
+                </a>
+            </li>
         </ul>
     </div>
 {/if}
@@ -712,6 +741,25 @@
         display: block;
         border-radius: 8px;
         transition: all 0.2s ease;
+    }
+
+    /* Ensure mobile nav links (including Settings) fill the container and align icon+text */
+    .mobile-nav-links li a,
+    .mobile-nav-links li .settings-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .mobile-nav-links li .settings-link svg {
+        flex-shrink: 0;
+    }
+
+    /* Make sure hover state visually fills the menu width */
+    .mobile-nav-links li a:hover {
+        width: 100%;
     }
 
     .mobile-nav-links li a:hover {
