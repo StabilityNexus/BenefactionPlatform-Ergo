@@ -66,8 +66,7 @@
         if (!browser) return;
 
         const searchID = $page.url.searchParams.get("search");
-        if (searchID)
-    {
+        if (searchID) {
             searchTerm = searchID;
         }
 
@@ -77,7 +76,9 @@
         const platformId = $page.url.searchParams.get("chain");
 
         if (projectId && platformId == platform.id) {
-            await loadProjectById(projectId);
+            // Direct URL access detected: fetch only the specific campaign
+            console.log(`[App.svelte] Direct campaign access detected for: ${projectId}`);
+            await loadProjectById(projectId, true);
         }
 
         // Setup footer scrolling text
