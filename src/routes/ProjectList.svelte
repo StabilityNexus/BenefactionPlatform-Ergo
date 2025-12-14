@@ -21,7 +21,7 @@
 
     let searchQuery: string = "";
     let sortBy: "newest" | "oldest" | "amount" | "name" = "newest";
-    let hideTestProjects: boolean = true;
+    let hideTestProjects: boolean = false;
     let filterOpen = false;
     let debouncedSearch: any;
 

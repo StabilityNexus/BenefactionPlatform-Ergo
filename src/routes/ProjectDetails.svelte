@@ -19,6 +19,7 @@
     } from "$lib/common/store";
     import { Progress } from "$lib/components/ui/progress";
     import { Button } from "$lib/components/ui/button";
+    import { Alert, AlertDescription } from "$lib/components/ui/alert";
     import { block_to_time } from "$lib/common/countdown";
     import { formatTransactionError } from "$lib/common/error-utils";
     import { ErgoPlatform } from "$lib/ergo/platform";
@@ -35,6 +36,8 @@
     import { fetchProjects } from "$lib/ergo/fetch";
     import { marked } from "marked";
     import { Forum, web_explorer_uri_addr } from "forum-application";
+    import { VotingContract } from "$lib/ergo/voting/voting_contract";
+    import CommunityVoting from "./CommunityVoting.svelte";
 
     // --- ANIMATION IMPORTS ---
     import { fade, fly, scale, slide } from "svelte/transition";
@@ -246,6 +249,18 @@
     let maxWithdrawTokenAmount = 0;
     let maxWithdrawErgAmount = 0;
     let maxAddTokenAmount = 0;
+
+    // Check if donations are allowed based on verification status
+    $: isEmergencyCampaign = !!project.content.emergency;
+    $: campaignPhase = project.content.emergency?.phase || CampaignPhase.PENDING_VERIFICATION;
+    $: isDonationAllowed = !isEmergencyCampaign || 
+                           campaignPhase === CampaignPhase.APPROVED || 
+                           campaignPhase === CampaignPhase.ACTIVE;
+    $: verificationPending = isEmergencyCampaign && 
+                             (campaignPhase === CampaignPhase.PENDING_VERIFICATION || 
+                              campaignPhase === CampaignPhase.UNDER_REVIEW);
+    $: verificationRejected = isEmergencyCampaign && 
+                              campaignPhase === CampaignPhase.REJECTED;
 
     async function getWalletBalances() {
         const isERGBase =
@@ -581,7 +596,7 @@
             .catch((err) => console.error("Failed to copy text: ", err));
     }
 
-    // Emergency Verification Voting Handler
+    // Emergency Verification Voting Handler - Using VotingContract
     async function handleVerificationVote(voteType: 'approve' | 'reject') {
         if (!$connected || !project.content.emergency) return;
         
@@ -591,65 +606,46 @@
             return;
         }
         
-        // Check if already voted
-        const voters = project.content.emergency.verificationVotes?.voters || [];
-        if (voters.includes(walletAddr)) {
-            alert('⚠️ You have already voted on this campaign.');
-            return;
-        }
-        
-        // Optional: Check if user is verified community member
-        const verifiedMembers = project.content.emergency.verifiedMembers || [];
-        if (verifiedMembers.length > 0 && !verifiedMembers.includes(walletAddr)) {
-            const shouldProceed = confirm(
-                '⚠️ Warning: You are not in the verified members list for this community.\n\n' +
-                'Your vote will still be counted, but it may be challenged.\n\n' +
-                'Continue anyway?'
-            );
-            if (!shouldProceed) return;
-        }
-        
         isSubmitting = true;
         errorMessage = null;
         
         try {
-            const currentVotes = project.content.emergency.verificationVotes || { approved: 0, rejected: 0, total: 0, voters: [] };
+            // Use VotingContract to submit vote
+            const result = await VotingContract.submitVote(
+                project.id,
+                project,
+                voteType === 'approve' ? 'approved' : 'rejected',
+                walletAddr
+            );
             
-            if (voteType === 'approve') {
-                currentVotes.approved += 1;
-            } else {
-                currentVotes.rejected += 1;
-            }
-            currentVotes.total += 1;
-            currentVotes.voters = [...(currentVotes.voters || []), walletAddr];
-            
-            // Calculate approval rate
-            const approvalRate = (currentVotes.approved / currentVotes.total) * 100;
-            
-            // Update phase based on threshold
-            if (currentVotes.total >= 5) { // Minimum votes required
-                if (approvalRate >= 60) {
-                    project.content.emergency.phase = CampaignPhase.APPROVED;
-                    alert('✅ Campaign APPROVED! Donations are now enabled.');
-                } else if (approvalRate < 40) {
-                    project.content.emergency.phase = CampaignPhase.REJECTED;
-                    alert('❌ Campaign REJECTED. Verification failed.');
-                } else {
-                    project.content.emergency.phase = CampaignPhase.UNDER_REVIEW;
-                }
-            } else {
-                project.content.emergency.phase = CampaignPhase.UNDER_REVIEW;
+            if (!result.success) {
+                throw new Error(result.message);
             }
             
-            // Update project
+            // Update project with new voting state
+            project.content.emergency.verificationVotes = result.votingState;
+            
+            // Calculate new phase
+            const newPhase = VotingContract.calculatePhaseFromVotes(result.votingState);
+            project.content.emergency.phase = newPhase;
+            
+            // Update project store
             project = { ...project };
             project_detail.set(project);
             
-            alert(`Vote recorded: ${voteType === 'approve' ? '✓ Approved' : '✕ Rejected'}`);
+            // Show appropriate alert
+            if (newPhase === CampaignPhase.APPROVED) {
+                alert('✅ Campaign APPROVED! Donations are now enabled.');
+            } else if (newPhase === CampaignPhase.REJECTED) {
+                alert('❌ Campaign REJECTED. Verification failed.');
+            } else {
+                alert(`Vote recorded: ${voteType === 'approve' ? '✓ Approved' : '✕ Rejected'}`);
+            }
             
         } catch (error) {
             console.error('Voting error:', error);
-            errorMessage = 'Failed to submit vote. Please try again.';
+            errorMessage = error instanceof Error ? error.message : 'Failed to submit vote. Please try again.';
+            alert(errorMessage);
         } finally {
             isSubmitting = false;
         }
@@ -1195,116 +1191,28 @@
             <!-- Emergency Verification Voting Section -->
             {#if project.content.emergency && (project.content.emergency.phase === CampaignPhase.PENDING_VERIFICATION || project.content.emergency.phase === CampaignPhase.UNDER_REVIEW)}
                 <div class="verification-section" transition:slide>
-                    <div class="verification-header">
-                        <h2 class="verification-title">🔍 Community Verification Required</h2>
-                        <p class="verification-subtitle">
-                            This emergency campaign needs community approval before donations can be accepted
-                        </p>
-                    </div>
-
-                    <!-- Emergency Details -->
-                    <div class="emergency-details">
-                        <div class="detail-row">
-                            <span class="detail-label">Emergency Type:</span>
-                            <span class="detail-value">
-                                {#if project.content.emergency.emergencyType === 'medical'}
-                                    🏥 Medical Emergency
-                                {:else if project.content.emergency.emergencyType === 'accident'}
-                                    🚑 Accident
-                                {:else if project.content.emergency.emergencyType === 'natural_disaster'}
-                                    🌪️ Natural Disaster
-                                {:else if project.content.emergency.emergencyType === 'financial_crisis'}
-                                    💸 Financial Crisis
-                                {/if}
-                            </span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="detail-label">Community:</span>
-                            <span class="detail-value">{project.content.emergency.communityName || 'Not specified'}</span>
-                        </div>
-                    </div>
-
-                    <!-- Document Evidence -->
-                    {#if project.content.emergency.documentDescription}
-                        <div class="document-evidence">
-                            <h3 class="evidence-title">📄 Supporting Documents</h3>
-                            <p class="evidence-description">{project.content.emergency.documentDescription}</p>
-                            
-                            {#if project.content.emergency.documentHashes && project.content.emergency.documentHashes.length > 0}
-                                <div class="document-hashes">
-                                    <p class="text-xs text-muted-foreground mb-2">Cryptographic Hashes (for verification):</p>
-                                    {#each project.content.emergency.documentHashes as hash, index}
-                                        <div class="hash-item">
-                                            <span class="hash-number">#{index + 1}</span>
-                                            <code class="hash-value">{hash.substring(0, 16)}...{hash.substring(hash.length - 8)}</code>
-                                        </div>
-                                    {/each}
-                                </div>
-                            {/if}
-                        </div>
-                    {/if}
-
-                    <!-- Voting Stats -->
-                    <div class="voting-stats">
-                        {#if true}
-                            {@const votes = project.content.emergency.verificationVotes || { approved: 0, rejected: 0, total: 0 }}
-                            {@const approvalRate = votes.total > 0 ? Math.round((votes.approved / votes.total) * 100) : 0}
-                            {@const threshold = 60}
-                            
-                            <div class="stats-header">
-                                <h3 class="stats-title">Current Votes</h3>
-                                <span class="approval-rate" class:passing={approvalRate >= threshold}>
-                                    {approvalRate}% Approval
-                                </span>
-                            </div>
-                            
-                            <div class="vote-bars">
-                                <div class="vote-bar approve">
-                                    <div class="bar-fill" style="width: {votes.total > 0 ? (votes.approved / votes.total) * 100 : 0}%"></div>
-                                    <span class="bar-label">✓ Approve: {votes.approved}</span>
-                                </div>
-                                <div class="vote-bar reject">
-                                    <div class="bar-fill" style="width: {votes.total > 0 ? (votes.rejected / votes.total) * 100 : 0}%"></div>
-                                    <span class="bar-label">✕ Reject: {votes.rejected}</span>
-                                </div>
-                            </div>
-                            
-                            <p class="threshold-info">
-                                Requires ≥{threshold}% approval to proceed | Total Votes: {votes.total}
-                            </p>
-                        {/if}
-                    </div>
-
-                    <!-- Voting Actions -->
-                    {#if $connected}
-                        <div class="voting-actions">
-                            <Button
-                                class="vote-btn approve-btn"
-                                on:click={() => handleVerificationVote('approve')}
-                                disabled={isSubmitting}
-                            >
-                                ✓ Approve Campaign
-                            </Button>
-                            <Button
-                                class="vote-btn reject-btn"
-                                on:click={() => handleVerificationVote('reject')}
-                                disabled={isSubmitting}
-                            >
-                                ✕ Reject Campaign
-                            </Button>
-                        </div>
-                        <p class="text-xs text-center text-muted-foreground mt-2">
-                            Vote only if you're a verified member of the {project.content.emergency.communityName} community
-                        </p>
-                    {:else}
-                        <div class="connect-prompt">
-                            <p>Connect your wallet to participate in verification voting</p>
-                        </div>
-                    {/if}
-
+                    <!-- Use the CommunityVoting Component -->
+                    <CommunityVoting 
+                        campaignId={project.id}
+                        project={project}
+                        emergencyData={project.content.emergency}
+                        campaignDetails={{
+                            title: project.content.title,
+                            description: project.content.description
+                        }}
+                        onVoteSubmitted={(newPhase) => {
+                            // Update project phase when vote is submitted
+                            if (project.content.emergency) {
+                                project.content.emergency.phase = newPhase;
+                                project = { ...project };
+                                project_detail.set(project);
+                            }
+                        }}
+                    />
+                    
                     <!-- Info Box -->
-                    <div class="verification-info">
-                        <p class="info-text">
+                    <div class="verification-info mt-6 p-4 border border-yellow-500/30 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                        <p class="info-text text-sm">
                             ⚠️ <strong>Important:</strong> This campaign cannot accept donations until community verification is complete. 
                             Review the evidence carefully before voting.
                         </p>
@@ -1347,20 +1255,45 @@
                 {:else}
                     <!-- Normal Actions (only shown if not blocked) -->
                     <div class="action-buttons">
+                        {#if verificationPending}
+                            <Alert class="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500 mb-4">
+                                <AlertDescription>
+                                    ⏳ <strong>Verification Pending:</strong> This emergency campaign is currently under community review. Donations will be enabled once verification reaches 60% approval with minimum 20 votes.
+                                </AlertDescription>
+                            </Alert>
+                        {:else if verificationRejected}
+                            <Alert class="bg-red-50 dark:bg-red-900/20 border-red-500 mb-4">
+                                <AlertDescription>
+                                    ❌ <strong>Verification Failed:</strong> This campaign did not pass community verification. Donations are disabled.
+                                </AlertDescription>
+                            </Alert>
+                        {/if}
+                        
                         <Button
                             class="action-btn primary"
                             style="background-color: #FFA500; color: black;"
                             on:click={setupBuy}
                             disabled={!$connected ||
+                                !isDonationAllowed ||
                                 maxContributeAmount <= 0 ||
                                 project.sold_counter >= project.total_pft_amount}
                             title={!$connected
                                 ? "Connect your wallet to contribute"
+                                : !isDonationAllowed
+                                  ? verificationPending 
+                                    ? "Waiting for community verification" 
+                                    : "Campaign verification failed"
                                 : maxContributeAmount <= 0
                                   ? "Insufficient funds"
                                   : "Contribute"}
                         >
-                            Contribute
+                            {#if verificationPending}
+                                ⏳ Verification Pending
+                            {:else if verificationRejected}
+                                ❌ Verification Failed
+                            {:else}
+                                Contribute
+                            {/if}
                         </Button>
 
                         <Button

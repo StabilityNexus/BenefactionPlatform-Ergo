@@ -221,6 +221,61 @@ Release: Remaining 30% of funds
 
 ---
 
+## 🆕 Phase 2 Features (NEW)
+
+### Community Voting System
+The platform now includes a comprehensive community verification interface:
+
+**Features:**
+- 🗳️ **Visual Voting Progress** - Real-time approval percentage tracking
+- ✅ **Vote Breakdown** - Transparent approved/rejected vote counts
+- 📊 **Threshold Monitoring** - 60% approval requirement visualization
+- 🔒 **Double-Vote Prevention** - One wallet = one vote enforcement
+- 📄 **Document Review** - Integrated document viewing for voters
+- 🛡️ **Anti-Corruption Measures** - Geographic/institutional voter verification
+
+**Component:** [CommunityVoting.svelte](src/routes/CommunityVoting.svelte)
+
+**Usage:**
+```svelte
+<CommunityVoting 
+  campaignId={project.id}
+  emergencyData={project.emergency}
+  campaignDetails={project}
+/>
+```
+
+### Staged Fund Release Management
+Multi-stage withdrawal system with proof-of-use requirements:
+
+**Features:**
+- 💰 **3-Stage Timeline** - Visual representation of 40%-30%-30% release
+- 📤 **Proof Submission** - Document upload interface for each stage
+- 🗳️ **Stage-Level Voting** - Community approval for each withdrawal
+- 🔒 **Auto-Freeze Protection** - Automatic fund locking on rejection
+- 📊 **Progress Tracking** - Real-time stage status monitoring
+- ⏱️ **Timelock Visualization** - Shows when stages become available
+
+**Component:** [StagedWithdrawal.svelte](src/routes/StagedWithdrawal.svelte)
+
+**Usage:**
+```svelte
+<StagedWithdrawal 
+  campaignId={project.id}
+  withdrawalStages={project.emergency.withdrawalStages}
+  totalFundsRaised={project.totalRaised}
+  currentStage={project.emergency.currentStage}
+  isOwner={$walletAddress === project.owner}
+/>
+```
+
+**Stage Flow:**
+1. **Stage 1 (40%):** Released after initial community approval
+2. **Stage 2 (30%):** Requires proof of hospital admission/expense update
+3. **Stage 3 (30%):** Requires final discharge/completion report
+
+---
+
 ## 🛠️ Development
 
 ### Project Structure
@@ -231,7 +286,9 @@ BenefactionPlatform-Ergo/
 │   │   ├── +page.svelte         # Homepage (Browse Campaigns)
 │   │   ├── NewProject.svelte    # Campaign creation form
 │   │   ├── ProjectDetails.svelte # Campaign detail view
-│   │   └── ProjectCard.svelte   # Campaign card component
+│   │   ├── ProjectCard.svelte   # Campaign card component
+│   │   ├── CommunityVoting.svelte # NEW: Voting interface
+│   │   └── StagedWithdrawal.svelte # NEW: Withdrawal management
 │   ├── lib/
 │   │   ├── ergo/                # Blockchain integration
 │   │   │   ├── platform.ts      # Main API (submit, buy, refund)
@@ -456,10 +513,12 @@ Check:   Deadline expired AND minimum goal not met
 - ⚠️ Basic ErgoScript contract (no voting yet)
 
 **Phase 2 (Next 3 months):** Smart Contract Enforcement
-- 🔄 Implement voting logic in ErgoScript
+- ✅ Implement voting logic UI (frontend ready)
+- ✅ Community voting interface with progress tracking
+- ✅ Automated stage transition UI
+- ✅ Document hash verification interface
+- 🔄 ErgoScript implementation (backend logic pending)
 - 🔄 Oracle integration for off-chain data
-- 🔄 Automated stage transition logic
-- 🔄 Document hash verification
 
 **Phase 3 (6 months):** Production Readiness
 - 📅 Security audit

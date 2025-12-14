@@ -31,7 +31,9 @@
     let minContributionAmount = 0;
 
     $: {
-        userErgBalance = ($balance || 0) / Math.pow(10, 9);
+        // Convert BigInt to Number safely
+        const balanceValue = $balance ? Number($balance) : 0;
+        userErgBalance = balanceValue / Math.pow(10, 9);
         minContributionAmount =
             project.exchange_rate *
             Math.pow(10, project.token_details.decimals - 9);

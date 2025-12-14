@@ -156,7 +156,8 @@ export function getProjectContent(id: string, value: string): ProjectContent {
             title: parsed.title || 'Id ' + id,
             description: parsed.description || "No description provided.",
             link: parsed.link || null,
-            image: parsed.image || "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg"
+            image: parsed.image || "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg",
+            emergency: parsed.emergency || undefined  // ✅ FIXED: Extract emergency data!
         };
     } catch (error) {
         return {

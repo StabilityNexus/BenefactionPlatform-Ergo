@@ -630,46 +630,17 @@
             description: projectDescription,
             image: projectImage,
             link: projectLink,
-            emergency: emergencyType ? {
-                emergencyType: emergencyType,
-                communityType: communityType,
-                communityName: communityName,
-                documentHashes: emergencyDocuments,
-                documentDescription: documentDescription,
-                phase: "pending_verification", // Initial phase
-                verificationVotes: {
-                    approved: 0,
-                    rejected: 0,
-                    total: 0,
-                    voters: []
-                },
-                withdrawalStages: [
-                    {
-                        stageNumber: 1,
-                        percentage: 40,
-                        amount: 0,
-                        status: 'pending',
-                        timelock: 0
-                    },
-                    {
-                        stageNumber: 2,
-                        percentage: 30,
-                        amount: 0,
-                        status: 'pending',
-                        timelock: 0
-                    },
-                    {
-                        stageNumber: 3,
-                        percentage: 30,
-                        amount: 0,
-                        status: 'pending',
-                        timelock: 0
-                    }
-                ],
-                totalFundsRaised: 0,
-                currentStage: 0
-            } : undefined
+            // Simplified emergency data to fit blockchain box size
+            emergency: {
+                type: emergencyType || "general",
+                community: communityName || "General",
+                phase: "pending_verification",
+                votes: { approved: 0, rejected: 0, total: 0 }
+            }
         });
+        
+        console.log("🔍 PROJECT CONTENT BEING SUBMITTED:", projectContent);
+        console.log("🔍 Emergency data included:", JSON.parse(projectContent).emergency);
 
         try {
             let owner_ergotree = "";
@@ -986,6 +957,12 @@
                                     class="hover:bg-red-500/10 cursor-pointer"
                                 >
                                     🏢 Organization/DAO
+                                </Select.Item>
+                                <Select.Item
+                                    value="regional"
+                                    class="hover:bg-red-500/10 cursor-pointer"
+                                >
+                                    🌍 Regional/State
                                 </Select.Item>
                             </Select.Content>
                         </Select.Root>
@@ -1330,7 +1307,7 @@
                                                 <div class="flex flex-col">
                                                     <span class="font-medium">{token.title}</span>
                                                     <span class="text-xs text-muted-foreground">
-                                                        Balance: {token.balance / Math.pow(10, token.decimals)} | ID: {token.tokenId.substring(0, 8)}...
+                                                        Balance: {Number(token.balance) / Math.pow(10, token.decimals)} | ID: {token.tokenId.substring(0, 8)}...
                                                     </span>
                                                 </div>
                                             </Select.Item>

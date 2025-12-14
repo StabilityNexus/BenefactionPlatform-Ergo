@@ -98,21 +98,65 @@ export class ErgoPlatform implements Platform {
 
         if (addr) {
             try {
-                // Use wallet's getBalance() method directly
-                const walletBalance = await ergoConnector.nautilus.getBalance();
-                console.log("💰 Wallet balance from Nautilus:", walletBalance);
+                // Try to get balance from wallet manager first
+                let walletBalance: any = null;
                 
-                // Add ERG balance to the map
-                balanceMap.set("ERG", BigInt(walletBalance.balance));
-                balance.set(BigInt(walletBalance.balance));
-
-                // Add tokens balances to the map
-                if (walletBalance.tokens && walletBalance.tokens.length > 0) {
-                    walletBalance.tokens.forEach((token: { tokenId: string; amount: string }) => {
-                        balanceMap.set(token.tokenId, BigInt(token.amount));
-                    });
+                if (walletManager && walletManager.isConnected()) {
+                    const adapter = walletManager.getConnectedWallet();
+                    if (adapter && adapter.getBalance) {
+                        walletBalance = await adapter.getBalance();
+                        console.log("💰 Wallet balance from adapter:", walletBalance);
+                    }
                 }
-                console.log("✅ Balance loaded:", balanceMap.size, "items");
+                
+                // Fallback to window.ergo for Nautilus
+                if (!walletBalance && typeof window !== 'undefined' && window.ergo) {
+                    walletBalance = await window.ergo.get_balance();
+                    console.log("💰 Wallet balance from window.ergo:", walletBalance);
+                }
+
+                if (walletBalance) {
+                    // Handle different balance response formats
+                    let ergBalance: bigint;
+                    let tokensList: any[] = [];
+                    
+                    // Format 1: {nanoErgs: bigint, tokens: [...]}
+                    if (walletBalance.nanoErgs !== undefined) {
+                        ergBalance = typeof walletBalance.nanoErgs === 'bigint' 
+                            ? walletBalance.nanoErgs 
+                            : BigInt(walletBalance.nanoErgs);
+                        tokensList = walletBalance.tokens || [];
+                    }
+                    // Format 2: {balance: string, tokens: [...]}
+                    else if (walletBalance.balance !== undefined) {
+                        ergBalance = BigInt(walletBalance.balance);
+                        tokensList = walletBalance.tokens || [];
+                    }
+                    // Format 3: direct bigint value
+                    else if (typeof walletBalance === 'bigint' || typeof walletBalance === 'number' || typeof walletBalance === 'string') {
+                        ergBalance = BigInt(walletBalance);
+                    }
+                    else {
+                        throw new Error("Unrecognized wallet balance format");
+                    }
+                    
+                    // Add ERG balance to the map
+                    balanceMap.set("ERG", ergBalance);
+                    balance.set(ergBalance);
+
+                    // Add tokens balances to the map
+                    if (tokensList.length > 0) {
+                        tokensList.forEach((token: { tokenId: string; amount: string | bigint }) => {
+                            const tokenAmount = typeof token.amount === 'bigint' 
+                                ? token.amount 
+                                : BigInt(token.amount);
+                            balanceMap.set(token.tokenId, tokenAmount);
+                        });
+                    }
+                    console.log("✅ Balance loaded:", balanceMap.size, "items (ERG + " + tokensList.length + " tokens)");
+                } else {
+                    throw new Error("Could not retrieve balance from wallet");
+                }
             } catch (error) {
                 console.error(`Failed to fetch balance from wallet:`, error);
                 throw new Error("Unable to fetch balance from wallet.");
