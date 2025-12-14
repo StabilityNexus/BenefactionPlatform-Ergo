@@ -9,4 +9,9 @@ declare global {
 	}
 }
 
+// Environment variables - see .env.example for documentation
+declare module '$env/static/public' {
+	export const PUBLIC_ORIGIN: string;
+}
+
 export {};
