@@ -42,6 +42,7 @@
     let showWalletInfo = false;
     let mobileMenuOpen = false;
     let showSettingsModal = false;
+    let searchQuery = "";
 
     // Reference to the wallet button wrapper to detect outside clicks
     let walletButtonWrapper: HTMLElement | null = null;
@@ -66,6 +67,11 @@
 
         const projectId = $page.url.searchParams.get("project") || $page.url.searchParams.get("campaign");
         const platformId = $page.url.searchParams.get("chain");
+        const searchParam = $page.url.searchParams.get("search");
+
+        if (searchParam) {
+            searchQuery = searchParam;
+        }
 
         if (projectId && platformId == platform.id) {
             await loadProjectById(projectId, platform);
@@ -161,7 +167,22 @@
         window.history.pushState({}, "", url);
     }
 
+    function updateSearchUrl(search: string) {
+        if (typeof window === "undefined") return;
+
+        const url = new URL(window.location.href);
+
+        if (search && search.trim() !== "") {
+            url.searchParams.set("search", search);
+        } else {
+            url.searchParams.delete("search");
+        }
+
+        window.history.pushState({}, "", url);
+    }
+
     $: changeUrl($project_detail);
+    $: updateSearchUrl(searchQuery);
 
     // Function to update wallet information periodically
     async function updateWalletInfo() {
@@ -345,13 +366,13 @@
 <main class="responsive-main">
     {#if $project_detail === null}
         {#if activeTab === "acquireTokens"}
-            <TokenAcquisition />
+            <TokenAcquisition bind:searchQuery />
         {/if}
         {#if activeTab === "myContributions"}
-            <MyContributions />
+            <MyContributions bind:searchQuery />
         {/if}
         {#if activeTab === "myProjects"}
-            <MyProjects />
+            <MyProjects bind:searchQuery />
         {/if}
         {#if activeTab === "submitProject"}
             <NewProject />

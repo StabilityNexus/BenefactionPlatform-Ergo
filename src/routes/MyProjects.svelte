@@ -4,6 +4,8 @@
     import { ErgoAddress } from "@fleet-sdk/core";
     import ProjectList from "./ProjectList.svelte";
 
+    export let searchQuery: string = "";
+
     const filter = async (project: Project) => {
         // Only show projects if wallet is connected and matches owner
         if (!$address) return false;
@@ -13,4 +15,4 @@
     };
 </script>
 
-<ProjectList filterProject={filter}>My Campaigns</ProjectList>
+<ProjectList filterProject={filter} bind:searchQuery>My Campaigns</ProjectList>
