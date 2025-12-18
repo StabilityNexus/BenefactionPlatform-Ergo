@@ -1,4 +1,4 @@
-# Guide for Integrating External Apps with Bene
+# Guide for Integrating External Apps with Bene [in development]
 
 This guide explains how external applications and smart contracts can interact with the **Bene** fundraising platform. Specifically, it details how to set a **Contract (Script)** as the owner of a Bene campaign, allowing for programmable fund management, DAOs, and automated workflows.
 
