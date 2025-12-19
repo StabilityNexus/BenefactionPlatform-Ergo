@@ -1,5 +1,3 @@
-// SINGLE-SIGNATURE CHAINED TX FIX
-
 import {
     OutputBuilder,
     SAFE_MIN_BOX_VALUE,
@@ -31,31 +29,6 @@ async function get_token_data(token_id: string): Promise<{ amount: number, decim
     id_token_amount += 1;
     return { "amount": id_token_amount, "decimals": token_fetch['decimals'] }
 }
-
-function playBeep(frequency = 1000, duration = 3000) {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    const audioCtx = new AudioContextClass();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(660, audioCtx.currentTime);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    const now = audioCtx.currentTime;
-
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.25, now + 0.05);
-    gain.gain.setValueAtTime(0.25, now + 0.5);
-    gain.gain.linearRampToValueAtTime(0, now + 0.55);
-
-    osc.start(now);
-    osc.stop(now + 0.55);
-}
-
-
 
 // Function to submit a project to the blockchain
 export async function* submit_project(
@@ -106,86 +79,78 @@ export async function* submit_project(
 
 
 
-const inputs = await getUtxos();
+    const inputs = await getUtxos();
 
 
-const r4Hex = SPair(SBool(is_timestamp_limit), SLong(BigInt(blockLimit))).toHex();
-const r5Hex = SLong(BigInt(minimumSold)).toHex();
-const r6Hex = SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex();
-const r7Hex = SLong(BigInt(exchangeRate)).toHex();
-const r8Hex = createR8Structure(addressContent).toHex();
-const r9Hex = SString(projectContent);
+    const r4Hex = SPair(SBool(is_timestamp_limit), SLong(BigInt(blockLimit))).toHex();
+    const r5Hex = SLong(BigInt(minimumSold)).toHex();
+    const r6Hex = SColl(SLong, [BigInt(0), BigInt(0), BigInt(0)]).toHex();
+    const r7Hex = SLong(BigInt(exchangeRate)).toHex();
+    const r8Hex = createR8Structure(addressContent).toHex();
+    const r9Hex = SString(projectContent);
 
-// Calculate register sizes using utility functions
-const registerSizes = estimateRegisterSizes(r4Hex, r5Hex, r6Hex, r7Hex, r8Hex, r9Hex);
+    // Calculate register sizes using utility functions
+    const registerSizes = estimateRegisterSizes(r4Hex, r5Hex, r6Hex, r7Hex, r8Hex, r9Hex);
 
-const ergoTreeAddress = get_ergotree_hex(addressContent, version);
+    const ergoTreeAddress = get_ergotree_hex(addressContent, version);
 
-// Estimate total box size
-const totalEstimatedSize = estimateTotalBoxSize(
-    ergoTreeAddress.length,
-    3, // number of tokens (project_id, pft_token_id, and possibly base_token_id)
-    registerSizes
-);
-
-
-let minRequiredValue = BOX_VALUE_PER_BYTE * BigInt(totalEstimatedSize);
-if (minRequiredValue < SAFE_MIN_BOX_VALUE) {
-    minRequiredValue = SAFE_MIN_BOX_VALUE;
-}
+    // Estimate total box size
+    const totalEstimatedSize = estimateTotalBoxSize(
+        ergoTreeAddress.length,
+        3, // number of tokens (project_id, pft_token_id, and possibly base_token_id)
+        registerSizes
+    );
 
 
-
-const mintOutput = new OutputBuilder(
-  SAFE_MIN_BOX_VALUE,
-  mint_contract_address(addressContent, version)
-).mintToken({
-  amount: BigInt(id_token_amount),
-  name: title + " APT",
-  decimals: token_data.decimals,
-  description: "Temporal-funding Token for the " + title + " project."
-});
-
-// Token ID generated INSIDE the same transaction
-const projectTokenId = mintOutput.minting.tokenId;
-
-// 🔹 Output 2: Campaign box (uses minted token)
-const campaignOutput = new OutputBuilder(
-  minRequiredValue,
-  ergoTreeAddress
-)
-  .addTokens([
-    {
-      tokenId: projectTokenId,
-      amount: BigInt(id_token_amount)
-    },
-    {
-      tokenId: token_id,
-      amount: BigInt(token_amount)
+    let minRequiredValue = BOX_VALUE_PER_BYTE * BigInt(totalEstimatedSize);
+    if (minRequiredValue < SAFE_MIN_BOX_VALUE) {
+        minRequiredValue = SAFE_MIN_BOX_VALUE;
     }
-  ])
-   .setAdditionalRegisters({
-    R4: r4Hex,
-    R5: r5Hex,
-    R6: r6Hex,
-    R7: r7Hex,
-    R8: r8Hex,
-    R9: r9Hex
-  });
-// Building the unsigned transaction
-const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
-.from(inputs)                          // Inputs coming from the user's UTXOs
-.to([mintOutput, campaignOutput])                          // Outputs (the new project box)
-.sendChangeTo(walletPk)                // Send change back to the wallet
-.payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
-.build()                               // Build the transaction
-.toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
 
-try {
-    playBeep();
-} catch (error) {
-    console.error('Error executing play beep:', error);
-}
+    const mintOutput = new OutputBuilder(
+      SAFE_MIN_BOX_VALUE,
+      mint_contract_address(addressContent, version)
+    ).mintToken({
+      amount: BigInt(id_token_amount),
+      name: title + " APT",
+      decimals: token_data.decimals,
+      description: "Temporal-funding Token for the " + title + " project."
+    });
+
+    // Token ID generated INSIDE the same transaction
+    const projectTokenId = inputs[0].boxId;
+
+    // 🔹 Output 2: Campaign box (uses minted token)
+    const campaignOutput = new OutputBuilder(
+      minRequiredValue,
+      ergoTreeAddress
+    )
+      .addTokens([
+        {
+          tokenId: projectTokenId,
+          amount: BigInt(id_token_amount)
+        },
+        {
+          tokenId: token_id,
+          amount: BigInt(token_amount)
+        }
+      ])
+      .setAdditionalRegisters({
+        R4: r4Hex,
+        R5: r5Hex,
+        R6: r6Hex,
+        R7: r7Hex,
+        R8: r8Hex,
+        R9: r9Hex
+      });
+    // Building the unsigned transaction
+    const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
+    .from(inputs)                          // Inputs coming from the user's UTXOs
+    .to([mintOutput, campaignOutput])                          // Outputs (the new project box)
+    .sendChangeTo(walletPk)                // Send change back to the wallet
+    .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
+    .build()                               // Build the transaction
+    .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
 
     yield "Please sign the project transaction...";
 
