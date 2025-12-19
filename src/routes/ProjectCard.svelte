@@ -11,8 +11,6 @@
         getBaseTokenDisplayInfo,
         formatBaseTokenAmount,
     } from "$lib/ergo/token_utils";
-    import ShareModal from "$lib/components/ShareModal.svelte";
-    import ShareIcon from "lucide-svelte/icons/share-2";
 
     export let project: Project;
 
@@ -26,7 +24,6 @@
     let baseDecimals = 9;
 
     let showFullDescription = false;
-    let shareModalOpen = false;
 
     // Balance awareness for project cards
     let userErgBalance = 0;
@@ -225,33 +222,15 @@
         </div>
     </Card.Content>
 
-    <Card.Footer class="p-5 pt-0 flex gap-2">
+    <Card.Footer class="p-5 pt-0">
         <Button
-            variant="outline"
-            size="sm"
-            on:click={() => (shareModalOpen = true)}
-            class="share-button flex-shrink-0 gap-2"
-            title="Share this project"
-        >
-            <ShareIcon class="w-4 h-4" />
-            <span>Share</span>
-        </Button>
-        <Button
-            class="flex-1 font-bold shadow-lg hover:shadow-orange-500/25 active:scale-[0.98] transition-all duration-200"
+            class="w-full font-bold shadow-lg hover:shadow-orange-500/25 active:scale-[0.98] transition-all duration-200"
             on:click={() => project_detail.set(project)}
             style="background-color: orange; color: black;"
         >
             View Campaign
         </Button>
     </Card.Footer>
-
-    <ShareModal
-        bind:open={shareModalOpen}
-        projectName={project.content.title}
-        projectId={project.box.boxId}
-        projectStatus={deadline_passed ? "Ended" : "Active"}
-        description={project.content.description}
-    />
 </Card.Root>
 
 <style>

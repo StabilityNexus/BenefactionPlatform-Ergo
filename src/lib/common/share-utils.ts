@@ -13,9 +13,7 @@ export interface ShareConfig {
     baseUrl?: string;
 }
 
-const DEFAULT_BASE_URL = typeof window !== 'undefined' 
-    ? window.location.origin 
-    : 'https://benefaction.platform';
+const DEFAULT_BASE_URL = window.location.origin
 
 const STABILITY_NEXUS_ACCOUNT = '@StabilityNexus';
 

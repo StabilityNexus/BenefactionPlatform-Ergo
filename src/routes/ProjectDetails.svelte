@@ -794,7 +794,7 @@
                 </p>
             </div>
 
-            <div class="share-button">
+            <div>
                 <Button class="share-btn" on:click={shareProject}>
                     Share Project
                 </Button>
