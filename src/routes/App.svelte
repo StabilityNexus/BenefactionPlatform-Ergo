@@ -42,6 +42,7 @@
     let showWalletInfo = false;
     let mobileMenuOpen = false;
     let showSettingsModal = false;
+    let loadingSpecificProject = false;
     let searchQuery = "";
 
     // Reference to the wallet button wrapper to detect outside clicks
@@ -74,7 +75,9 @@
         }
 
         if (projectId && platformId == platform.id) {
-            await loadProjectById(projectId, platform);
+            loadingSpecificProject = true;
+            await loadProjectById(projectId);
+            loadingSpecificProject = false;
         }
 
         // Setup footer scrolling text
@@ -387,21 +390,27 @@
 {/if}
 
 <main class="responsive-main">
-    {#if $project_detail === null}
-        {#if activeTab === "acquireTokens"}
-            <TokenAcquisition bind:searchQuery />
-        {/if}
-        {#if activeTab === "myContributions"}
-            <MyContributions bind:searchQuery />
-        {/if}
-        {#if activeTab === "myProjects"}
-            <MyProjects bind:searchQuery />
-        {/if}
-        {#if activeTab === "submitProject"}
-            <NewProject />
-        {/if}
+    {#if loadingSpecificProject}
+        <div class="flex items-center justify-center min-h-[50vh]">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+        </div>
     {:else}
-        <ProjectDetails />
+        {#if $project_detail === null}
+            {#if activeTab === "acquireTokens"}
+                <TokenAcquisition />
+            {/if}
+            {#if activeTab === "myContributions"}
+                <MyContributions />
+            {/if}
+            {#if activeTab === "myProjects"}
+                <MyProjects />
+            {/if}
+            {#if activeTab === "submitProject"}
+                <NewProject />
+            {/if}
+        {:else}
+            <ProjectDetails />
+        {/if}
     {/if}
 </main>
 
