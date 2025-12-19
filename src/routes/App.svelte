@@ -397,13 +397,13 @@
     {:else}
         {#if $project_detail === null}
             {#if activeTab === "acquireTokens"}
-                <TokenAcquisition />
+                <TokenAcquisition bind:searchQuery/>
             {/if}
             {#if activeTab === "myContributions"}
-                <MyContributions />
+                <MyContributions bind:searchQuery/>
             {/if}
             {#if activeTab === "myProjects"}
-                <MyProjects />
+                <MyProjects bind:searchQuery/>
             {/if}
             {#if activeTab === "submitProject"}
                 <NewProject />
