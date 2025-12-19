@@ -36,6 +36,7 @@
         walletBalance,
     } from 'wallet-svelte-component';
     import SettingsModal from "./SettingsModal.svelte";
+    import DirectWalletConnect from "$lib/components/DirectWalletConnect.svelte";
 
     let activeTab = "acquireTokens";
     let showCopyMessage = false;
@@ -364,6 +365,13 @@
 {/if}
 
 <main class="responsive-main">
+    <!-- Direct Wallet Connect (Alternative Method) -->
+    <div style="background: #f0f9ff; border: 2px solid #3b82f6; padding: 1rem; margin: 1rem auto; max-width: 600px; border-radius: 0.5rem; text-align: center;">
+        <h3 style="margin: 0 0 0.5rem 0; color: #1e40af;">Alternative Wallet Connection</h3>
+        <p style="margin: 0 0 1rem 0; font-size: 0.875rem; color: #475569;">If the main wallet button isn't working, try this direct connection method:</p>
+        <DirectWalletConnect />
+    </div>
+    
     {#if $project_detail === null}
         {#if activeTab === "acquireTokens"}
             <TokenAcquisition bind:searchQuery />

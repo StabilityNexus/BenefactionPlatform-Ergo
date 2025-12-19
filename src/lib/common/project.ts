@@ -9,12 +9,56 @@ export interface TokenEIP4 {
     emissionAmount: number | null
 }
 
+export enum CampaignPhase {
+    PENDING_VERIFICATION = "pending_verification",
+    UNDER_REVIEW = "under_review", 
+    APPROVED = "approved",
+    ACTIVE = "active",
+    REJECTED = "rejected",
+    COMPLETED = "completed",
+    CANCELLED = "cancelled"
+}
+
+export interface WithdrawalStage {
+    stageNumber: number,
+    percentage: number,
+    amount: number,
+    status: 'pending' | 'approved' | 'rejected' | 'withdrawn',
+    requestedAt?: number,
+    approvedAt?: number,
+    withdrawnAt?: number,
+    votesFor?: number,
+    votesAgainst?: number,
+    timelock?: number,  // Timestamp when this stage becomes available
+    voters?: string[]   // Track who voted to prevent double voting
+}
+
+export interface EmergencyData {
+    emergencyType?: string,
+    communityType?: string,
+    communityName?: string,
+    documentHashes?: string[],
+    documentDescription?: string,
+    phase?: CampaignPhase,
+    verificationVotes?: {
+        approved: number,
+        rejected: number,
+        total: number,
+        voters?: string[]  // Track who voted to prevent double voting
+    },
+    withdrawalStages?: WithdrawalStage[],
+    totalFundsRaised?: number,
+    currentStage?: number,
+    verifiedMembers?: string[]  // Whitelist of verified community member addresses
+}
+
 export interface ProjectContent {
     raw: string,
     title: string,
     description: string,
     link: string | null,
-    image: string | null
+    image: string | null,
+    emergency?: EmergencyData
 }
 
 export interface ConstantContent {
@@ -112,7 +156,8 @@ export function getProjectContent(id: string, value: string): ProjectContent {
             title: parsed.title || 'Id ' + id,
             description: parsed.description || "No description provided.",
             link: parsed.link || null,
-            image: parsed.image || "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg"
+            image: parsed.image || "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg",
+            emergency: parsed.emergency || undefined  // ✅ FIXED: Extract emergency data!
         };
     } catch (error) {
         return {

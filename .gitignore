@@ -1,12 +1,56 @@
-.DS_Store
-node_modules
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build Output
 /build
 /.svelte-kit
 /package
+dist/
+.output/
+
+# Environment Variables
 .env
 .env.*
 !.env.example
+
+# IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary Files
+*.tmp
+*.temp
+.cache/
+
+# Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
-.idea
-.idea/workspace.xml
+
+# Wallet (NEVER COMMIT!)
+*.wallet
+*.seed
+mnemonic.txt
+
+# Local Development
+.service/
+local-data/

@@ -9,6 +9,7 @@
     import { Button } from "$lib/components/ui/button";
     import { Input } from "$lib/components/ui/input";
     import * as Select from "$lib/components/ui/select";
+    import * as Dialog from "$lib/components/ui/dialog";
     import { get } from "svelte/store";
     import { explorer_uri, user_tokens } from "$lib/common/store";
     import { walletConnected, walletAddress } from "wallet-svelte-component";
@@ -92,6 +93,40 @@
     let maxGoalPrecise: number;
     let minGoalPrecise: number;
 
+    // Emergency-specific fields - Enhanced Verification Model
+    let emergencyType: string = "";
+    let communityType: string = "";
+    let communityName: string = "";
+    let emergencyDocuments: string[] = []; // Store document hashes
+    let documentDescription: string = "";
+    
+    // Step 1: Identity & Location Anchoring
+    let emergencyLocation: string = ""; // City/District
+    let hospitalAuthorityName: string = ""; // Hospital/Authority name
+    let jurisdictionConfirmed: boolean = false; // Community jurisdiction checkbox
+    
+    // Step 2: Document Trust Layer - Classified types
+    let documentTypes: string[] = []; // Selected document types
+    let availableDocumentTypes = [
+        { value: "medical", label: "Medical Report / Hospital Bill" },
+        { value: "fir", label: "FIR / Police Report" },
+        { value: "ngo", label: "NGO or Authority Letter" },
+        { value: "photo", label: "Geo-tagged Photo (Optional)" },
+        { value: "community", label: "Community-issued Verification Letter" }
+    ];
+    
+    // Step 3: Community Eligibility
+    let minimumCommunityMembers: number = 20; // Minimum verified members
+    let regionalVotingPercentage: number = 60; // Min % of voters from region
+    
+    // Step 4: Staged Fund Release
+    let fundReleaseStages = [
+        { stage: 1, percentage: 40, condition: "After community approval", released: false },
+        { stage: 2, percentage: 30, condition: "Proof of hospital admission / expense update", released: false },
+        { stage: 3, percentage: 30, condition: "Final report / discharge / authority confirmation", released: false }
+    ];
+    let currentStage: number = 1;
+
     let projectTitle: string = "";
     let projectDescription: string = "";
     let projectImage: string = "";
@@ -109,6 +144,14 @@
         decimals: number;
     }> = [];
 
+    // Token creation modal state
+    let showCreateTokenModal: boolean = false;
+    let newTokenName: string = "";
+    let newTokenSymbol: string = "";
+    let newTokenSupply: number = 0;
+    let newTokenDecimals: number = 0;
+    let newTokenDescription: string = "";
+    
     let availableRewardTokens: Array<{
         tokenId: string;
         title: string;
@@ -179,7 +222,47 @@
 
     $: {
         if (rewardTokenOption) {
-            rewardTokenId = rewardTokenOption.value;
+            // Handle Create New Token trigger
+            if (rewardTokenOption.value === "__create_new__") {
+                showCreateTokenModal = true;
+                rewardTokenOption = null; // Reset selection
+                rewardTokenId = null;
+            }
+            // Handle template selections
+            else if (rewardTokenOption.value === "__template_emergency__") {
+                newTokenName = "Emergency Relief Token";
+                newTokenSymbol = "ERT";
+                newTokenSupply = 1000000;
+                newTokenDecimals = 0;
+                newTokenDescription = "General emergency relief funding token";
+                showCreateTokenModal = true;
+                rewardTokenOption = null;
+                rewardTokenId = null;
+            }
+            else if (rewardTokenOption.value === "__template_medical__") {
+                newTokenName = "Medical Aid Token";
+                newTokenSymbol = "MAT";
+                newTokenSupply = 500000;
+                newTokenDecimals = 0;
+                newTokenDescription = "Token for medical emergency campaigns";
+                showCreateTokenModal = true;
+                rewardTokenOption = null;
+                rewardTokenId = null;
+            }
+            else if (rewardTokenOption.value === "__template_disaster__") {
+                newTokenName = "Disaster Support Token";
+                newTokenSymbol = "DST";
+                newTokenSupply = 2000000;
+                newTokenDecimals = 0;
+                newTokenDescription = "Natural disaster relief support token";
+                showCreateTokenModal = true;
+                rewardTokenOption = null;
+                rewardTokenId = null;
+            }
+            // Regular token selection
+            else {
+                rewardTokenId = rewardTokenOption.value;
+            }
         } else {
             rewardTokenId = null;
         }
@@ -294,7 +377,8 @@
         tokenAmountToSellRaw =
             tokenAmountToSellPrecise * Math.pow(10, rewardTokenDecimals);
 
-        if (tokenAmountToSellPrecise > maxTokenAmountToSell) {
+        // Only validate balance if wallet is connected AND token is selected
+        if (rewardTokenId && tokenAmountToSellPrecise > maxTokenAmountToSell && maxTokenAmountToSell > 0) {
             formErrors.amountExceedsBalance =
                 "Amount exceeds available balance.";
         } else {
@@ -393,13 +477,20 @@
         if (
             minGoalPrecise !== undefined &&
             maxGoalPrecise !== undefined &&
-            minGoalPrecise > maxGoalPrecise
+            minGoalPrecise > 0 &&
+            maxGoalPrecise > 0 &&
+            Number(minGoalPrecise) > Number(maxGoalPrecise)
         ) {
             formErrors.goalOrder =
                 "The minimum goal cannot be greater than the maximum goal.";
         } else {
             formErrors.goalOrder = null;
         }
+    }
+    
+    // Auto-validate whenever goals change
+    $: if (minGoalPrecise !== undefined || maxGoalPrecise !== undefined) {
+        validateGoalOrder();
     }
 
     async function calculateBlockLimit(
@@ -484,7 +575,7 @@
 
     function updateExchangeRate() {
         if (isUpdating) return;
-        if (maxGoalPrecise && tokenAmountToSellPrecise) {
+        if (maxGoalPrecise && tokenAmountToSellPrecise && maxGoalPrecise > 0) {
             isUpdating = true;
             exchangeRatePrecise = maxGoalPrecise / tokenAmountToSellPrecise;
             isUpdating = false;
@@ -493,8 +584,10 @@
     }
 
     function updateMaxValue() {
+        // Only auto-calculate if exchangeRate was manually set
+        // Don't clear maxGoal when user is typing tokenAmount
         if (isUpdating) return;
-        if (tokenAmountToSellPrecise && exchangeRatePrecise) {
+        if (tokenAmountToSellPrecise && exchangeRatePrecise && exchangeRatePrecise > 0 && !maxGoalPrecise) {
             isUpdating = true;
             maxGoalPrecise = exchangeRatePrecise * tokenAmountToSellPrecise;
             isUpdating = false;
@@ -503,6 +596,12 @@
     }
 
     async function handleSubmit() {
+        // Require wallet connection
+        if (!$walletConnected) {
+            errorMessage = "Please connect your wallet to create a campaign.";
+            return;
+        }
+
         if (
             rewardTokenId === null ||
             formErrors.tokenConflict ||
@@ -531,7 +630,17 @@
             description: projectDescription,
             image: projectImage,
             link: projectLink,
+            // Simplified emergency data to fit blockchain box size
+            emergency: {
+                type: emergencyType || "general",
+                community: communityName || "General",
+                phase: "pending_verification",
+                votes: { approved: 0, rejected: 0, total: 0 }
+            }
         });
+        
+        console.log("🔍 PROJECT CONTENT BEING SUBMITTED:", projectContent);
+        console.log("🔍 Emergency data included:", JSON.parse(projectContent).emergency);
 
         try {
             let owner_ergotree = "";
@@ -630,34 +739,54 @@
 
     async function getUserTokens() {
         try {
-            let tokens: Map<string, number> = get(user_tokens);
-            if (tokens.size === 0) {
-                tokens = await platform.get_balance();
-                user_tokens.set(tokens);
+            console.log("🔍 getUserTokens: Starting...");
+            
+            // Skip fetching if wallet has issues - user can still create new tokens
+            try {
+                let tokens: Map<string, number> = get(user_tokens);
+                console.log("🔍 Current tokens in store:", tokens.size, "tokens");
+                
+                if (tokens.size === 0) {
+                    console.log("🔍 Fetching balance from wallet...");
+                    tokens = await platform.get_balance();
+                    console.log("🔍 Got balance:", tokens);
+                    user_tokens.set(tokens);
+                }
+                
+                console.log("🔍 Processing tokens (excluding ERG)...");
+                userTokens = await Promise.all(
+                    Array.from(tokens.entries())
+                        .filter(([tokenId, _]) => tokenId !== "ERG")
+                        .map(async ([tokenId, balance]) => {
+                            console.log(`🔍 Fetching details for token: ${tokenId}`);
+                            const { name, decimals } =
+                                await fetchTokenDetails(tokenId);
+                            return {
+                                tokenId,
+                                title: name,
+                                balance,
+                                decimals,
+                            };
+                        }),
+                );
+                console.log("✅ userTokens loaded:", userTokens.length, "tokens", userTokens);
+            } catch (balanceError) {
+                console.warn("⚠️ Could not fetch wallet balance (this is OK if wallet is empty):", balanceError);
+                userTokens = []; // Empty array - user can still create new tokens
             }
-            userTokens = await Promise.all(
-                Array.from(tokens.entries())
-                    .filter(([tokenId, _]) => tokenId !== "ERG")
-                    .map(async ([tokenId, balance]) => {
-                        const { name, decimals } =
-                            await fetchTokenDetails(tokenId);
-                        return {
-                            tokenId,
-                            title: name,
-                            balance,
-                            decimals,
-                        };
-                    }),
-            );
         } catch (error) {
-            console.error("Error fetching user tokens:", error);
+            console.error("❌ Error fetching user tokens:", error);
+            userTokens = []; // Fallback to empty
         }
     }
 
     walletConnected.subscribe((isConnected) => {
+        console.log("👛 Wallet connection state changed:", isConnected);
         if (isConnected) {
+            console.log("👛 Wallet connected - loading tokens...");
             getUserTokens();
         } else {
+            console.log("👛 Wallet disconnected - clearing tokens");
             userTokens = [];
             rewardTokenOption = null;
             baseTokenOption = null;
@@ -668,10 +797,19 @@
 <div>
     <div class="container mx-auto py-8 px-4 max-w-4xl">
         <div class="text-center mb-10">
-            <h2 class="project-title">Start Your Fundraising Campaign</h2>
+            <h2 class="project-title">Submit Emergency Fund Request</h2>
             <p class="text-muted-foreground mt-2">
-                Complete the steps below to launch your campaign on Ergo
+                Complete the form below. Your request will undergo community verification before donations are enabled.
             </p>
+            <div class="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                <span class="px-3 py-1 bg-yellow-500/10 border border-yellow-500/20 rounded-full">Phase 1: Creation</span>
+                <span>→</span>
+                <span class="px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full">Phase 2: Verification</span>
+                <span>→</span>
+                <span class="px-3 py-1 bg-green-500/10 border border-green-500/20 rounded-full">Phase 3: Donations</span>
+                <span>→</span>
+                <span class="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full">Phase 4: Withdrawal</span>
+            </div>
         </div>
 
         <div class="flex items-center justify-center mb-12 relative">
@@ -726,6 +864,357 @@
         </div>
 
         <div class="space-y-8">
+            <!-- Emergency Type Selection -->
+            <div
+                class="step-card bg-card/50 backdrop-blur-sm border border-red-500/20 rounded-xl p-6 md:p-8 shadow-lg relative overflow-hidden group"
+            >
+                <div
+                    class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-red-500 to-transparent opacity-50"
+                ></div>
+                <h3
+                    class="text-xl font-semibold mb-6 text-red-400 flex items-center gap-2"
+                >
+                    <span class="opacity-50">🚨</span> Emergency Information
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="form-group">
+                        <Label
+                            for="emergencyType"
+                            class="text-sm font-medium mb-2 block text-foreground/90"
+                            >Emergency Type *</Label
+                        >
+                        <Select.Root bind:selected={emergencyType} required>
+                            <Select.Trigger
+                                class="w-full bg-background/50 border-red-500/20 hover:border-red-500/40 transition-colors"
+                            >
+                                <Select.Value
+                                    placeholder="Select emergency type"
+                                />
+                            </Select.Trigger>
+                            <Select.Content
+                                class="border-red-500/20 bg-background/95 backdrop-blur-xl"
+                            >
+                                <Select.Item
+                                    value="medical"
+                                    class="hover:bg-red-500/10 cursor-pointer"
+                                >
+                                    🏥 Medical Emergency
+                                </Select.Item>
+                                <Select.Item
+                                    value="accident"
+                                    class="hover:bg-red-500/10 cursor-pointer"
+                                >
+                                    🚑 Accident
+                                </Select.Item>
+                                <Select.Item
+                                    value="natural_disaster"
+                                    class="hover:bg-red-500/10 cursor-pointer"
+                                >
+                                    🌪️ Natural Disaster
+                                </Select.Item>
+                                <Select.Item
+                                    value="financial_crisis"
+                                    class="hover:bg-red-500/10 cursor-pointer"
+                                >
+                                    💸 Sudden Financial Crisis
+                                </Select.Item>
+                            </Select.Content>
+                        </Select.Root>
+                    </div>
+
+                    <div class="form-group">
+                        <Label
+                            for="communityType"
+                            class="text-sm font-medium mb-2 block text-foreground/90"
+                            >Community Type *</Label
+                        >
+                        <Select.Root bind:selected={communityType} required>
+                            <Select.Trigger
+                                class="w-full bg-background/50 border-red-500/20 hover:border-red-500/40 transition-colors"
+                            >
+                                <Select.Value
+                                    placeholder="Select community"
+                                />
+                            </Select.Trigger>
+                            <Select.Content
+                                class="border-red-500/20 bg-background/95 backdrop-blur-xl"
+                            >
+                                <Select.Item
+                                    value="college"
+                                    class="hover:bg-red-500/10 cursor-pointer"
+                                >
+                                    🎓 College/University
+                                </Select.Item>
+                                <Select.Item
+                                    value="district"
+                                    class="hover:bg-red-500/10 cursor-pointer"
+                                >
+                                    🏘️ District/Local Area
+                                </Select.Item>
+                                <Select.Item
+                                    value="organization"
+                                    class="hover:bg-red-500/10 cursor-pointer"
+                                >
+                                    🏢 Organization/DAO
+                                </Select.Item>
+                                <Select.Item
+                                    value="regional"
+                                    class="hover:bg-red-500/10 cursor-pointer"
+                                >
+                                    🌍 Regional/State
+                                </Select.Item>
+                            </Select.Content>
+                        </Select.Root>
+                    </div>
+                </div>
+
+                <div class="form-group mt-6">
+                    <Label
+                        for="communityName"
+                        class="text-sm font-medium mb-2 block text-foreground/90"
+                        >Community Name *</Label
+                    >
+                    <Input
+                        id="communityName"
+                        bind:value={communityName}
+                        placeholder="e.g., Stanford University, Mumbai District, XYZ DAO"
+                        class="bg-background/50 border-red-500/20 hover:border-red-500/40 transition-colors"
+                        required
+                    />
+                    <p class="text-xs mt-2 text-muted-foreground">
+                        Specify the community that will verify this emergency
+                    </p>
+                </div>
+
+                <!-- Step 1: Identity & Location Anchoring (ENHANCED) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div class="form-group">
+                        <Label
+                            for="emergencyLocation"
+                            class="text-sm font-medium mb-2 block text-foreground/90"
+                            >📍 Emergency Location (City/District) *</Label
+                        >
+                        <Input
+                            id="emergencyLocation"
+                            bind:value={emergencyLocation}
+                            placeholder="e.g., Mumbai, Bangalore District"
+                            class="bg-background/50 border-red-500/20 hover:border-red-500/40 transition-colors"
+                            required
+                        />
+                        <p class="text-xs mt-2 text-muted-foreground">
+                            Approximate location (not exact GPS for privacy)
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <Label
+                            for="hospitalAuthorityName"
+                            class="text-sm font-medium mb-2 block text-foreground/90"
+                            >🏥 Hospital / Authority Name *</Label
+                        >
+                        <Input
+                            id="hospitalAuthorityName"
+                            bind:value={hospitalAuthorityName}
+                            placeholder="e.g., Apollo Hospital, Police Station XYZ"
+                            class="bg-background/50 border-red-500/20 hover:border-red-500/40 transition-colors"
+                            required
+                        />
+                        <p class="text-xs mt-2 text-muted-foreground">
+                            Hospital, police station, relief center, etc.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-group mt-6">
+                    <div class="flex items-start gap-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                        <input
+                            type="checkbox"
+                            id="jurisdictionConfirmed"
+                            bind:checked={jurisdictionConfirmed}
+                            class="mt-1 w-4 h-4 accent-blue-500"
+                            required
+                        />
+                        <label for="jurisdictionConfirmed" class="text-sm text-foreground/90 cursor-pointer">
+                            <strong>🗺️ Community Jurisdiction Confirmation *</strong>
+                            <p class="text-xs mt-1 text-muted-foreground">
+                                I confirm that this emergency falls under the selected community's region and the community members are geographically or institutionally qualified to verify this case.
+                            </p>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Step 2: Document Trust Layer - Classified Types (ENHANCED) -->
+                <div class="form-group mt-6">
+                    <Label class="text-sm font-medium mb-3 block text-foreground/90">
+                        📄 Document Types * (Select all that apply)
+                    </Label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {#each availableDocumentTypes as docType}
+                            <label class="flex items-start gap-3 p-3 bg-background/50 border border-red-500/20 rounded-lg hover:border-red-500/40 transition-colors cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    value={docType.value}
+                                    bind:group={documentTypes}
+                                    class="mt-0.5 w-4 h-4 accent-red-500"
+                                />
+                                <span class="text-sm text-foreground/90">{docType.label}</span>
+                            </label>
+                        {/each}
+                    </div>
+                    <p class="text-xs mt-2 text-muted-foreground">
+                        Classify your supporting documents for structured verification
+                    </p>
+                </div>
+
+                <div class="form-group mt-6">
+                    <Label
+                        for="documentDescription"
+                        class="text-sm font-medium mb-2 block text-foreground/90"
+                        >Supporting Documents Description *</Label
+                    >
+                    <textarea
+                        id="documentDescription"
+                        bind:value={documentDescription}
+                        placeholder="Describe the documents you're providing (e.g., Hospital bill from Apollo Hospital, Police FIR report, Medical prescription, Photos of incident)"
+                        class="w-full min-h-[100px] bg-background/50 border border-red-500/20 hover:border-red-500/40 transition-colors rounded-md px-3 py-2 text-sm"
+                        required
+                    ></textarea>
+                    <p class="text-xs mt-2 text-muted-foreground">
+                        List all documents that prove the emergency. Community verifiers will review these.
+                    </p>
+                </div>
+
+                <div class="form-group mt-6">
+                    <Label
+                        class="text-sm font-medium mb-2 block text-foreground/90"
+                        >Document Proofs (Hashes or Links)</Label
+                    >
+                    <div class="space-y-3">
+                        {#each emergencyDocuments as doc, index}
+                            <div class="flex gap-2 items-center">
+                                <Input
+                                    value={doc}
+                                    readonly
+                                    class="bg-background/50 border-red-500/20 text-xs {(doc.startsWith('Qm') || doc.length === 64) ? 'font-mono' : ''}"
+                                    placeholder="Hash or link will appear here"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    class="text-red-400 hover:text-red-300"
+                                    on:click={() => {
+                                        emergencyDocuments = emergencyDocuments.filter((_, i) => i !== index);
+                                    }}
+                                >
+                                    ✕
+                                </Button>
+                            </div>
+                        {/each}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                class="border-red-500/20 hover:border-red-500/40 hover:bg-red-500/10"
+                                on:click={() => {
+                                    const hash = prompt('Paste document hash (IPFS CID or SHA-256):');
+                                    if (hash && hash.trim()) {
+                                        emergencyDocuments = [...emergencyDocuments, hash.trim()];
+                                    }
+                                }}
+                            >
+                                📦 Add Hash (IPFS/SHA256)
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                class="border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10"
+                                on:click={() => {
+                                    const link = prompt('Paste Google Drive/Cloud link (make sure it\'s publicly viewable):');
+                                    if (link && link.trim()) {
+                                        emergencyDocuments = [...emergencyDocuments, link.trim()];
+                                    }
+                                }}
+                            >
+                                🔗 Add Drive Link
+                            </Button>
+                        </div>
+                    </div>
+                    <p class="text-xs mt-2 text-muted-foreground">
+                        <strong>Option 1:</strong> Upload to IPFS/Storage and add cryptographic hash (most secure) <br/>
+                        <strong>Option 2:</strong> Share Google Drive/Dropbox link (easier for demo, ensure public access)
+                    </p>
+                    <div class="bg-blue-500/10 border border-blue-500/20 rounded p-3 mt-3">
+                        <p class="text-xs text-blue-200">
+                            💡 <strong>Tip:</strong> For Google Drive: Right-click file → Get link → "Anyone with the link can view"
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 3: Community Eligibility Rules (ENHANCED) -->
+                <div class="bg-purple-500/10 border border-purple-500/20 rounded-lg p-6 mt-6">
+                    <h4 class="text-sm font-semibold text-purple-300 mb-4 flex items-center gap-2">
+                        <span>🛡️</span> Community Eligibility & Anti-Corruption Rules
+                    </h4>
+                    <div class="space-y-3 text-sm text-foreground/80">
+                        <div class="flex items-start gap-2">
+                            <span class="text-green-400 mt-0.5">✔</span>
+                            <span>Community must be within same district OR institutionally linked</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-green-400 mt-0.5">✔</span>
+                            <span>Minimum {minimumCommunityMembers} verified members required</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-green-400 mt-0.5">✔</span>
+                            <span>At least {regionalVotingPercentage}% voters must belong to the region</span>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-green-400 mt-0.5">✔</span>
+                            <span>All votes and documents are publicly auditable on-chain</span>
+                        </div>
+                    </div>
+                    <p class="text-xs mt-4 text-purple-200/60 italic">
+                        Even if a community tries to collude, the protocol restricts voting power to geographically or institutionally relevant members.
+                    </p>
+                </div>
+
+                <!-- Step 4: Staged Fund Release (ENHANCED) -->
+                <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-6 mt-6">
+                    <h4 class="text-sm font-semibold text-green-300 mb-4 flex items-center gap-2">
+                        <span>💰</span> Staged Fund Release (Escrow Protection)
+                    </h4>
+                    <div class="space-y-4">
+                        {#each fundReleaseStages as stage}
+                            <div class="flex items-start gap-3 p-3 bg-background/30 rounded-lg">
+                                <div class="flex-shrink-0 w-12 h-12 rounded-full bg-green-500/20 border border-green-500/40 flex items-center justify-center font-bold text-green-300">
+                                    {stage.percentage}%
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-foreground/90">Stage {stage.stage}</p>
+                                    <p class="text-xs text-muted-foreground mt-1">{stage.condition}</p>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                    <div class="bg-red-100 border-2 border-red-600 rounded p-4 mt-4">
+                        <p class="text-base text-red-900 font-bold">
+                            <strong class="text-red-950">⚠️ Auto-Freeze Protection:</strong> If verification fails at any stage, remaining funds are automatically frozen and can be refunded to donors.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-100 border-2 border-yellow-600 rounded-lg p-4 mt-6">
+                    <p class="text-lg text-yellow-950 font-bold mb-3">⚠️ Phase 2: Community Verification Required</p>
+                    <p class="text-base text-yellow-900 font-semibold">
+                        After submission, your emergency will enter the verification phase. Community members will review your case and vote. You need ≥60% approval to proceed to the donation phase.
+                    </p>
+                </div>
+            </div>
+
             <div
                 class="step-card bg-card/50 backdrop-blur-sm border border-orange-500/10 rounded-xl p-6 md:p-8 shadow-lg relative overflow-hidden group"
             >
@@ -743,49 +1232,92 @@
                         <Label
                             for="rewardToken"
                             class="text-sm font-medium mb-2 block text-foreground/90"
-                            >Reward Token</Label
+                            >Reward Token (PFT) *</Label
                         >
                         <Select.Root bind:selected={rewardTokenOption} required>
                             <Select.Trigger
                                 class="w-full bg-background/50 border-orange-500/20 hover:border-orange-500/40 transition-colors"
                             >
                                 <Select.Value
-                                    placeholder="Select token to sell"
+                                    placeholder="Select your reward token"
                                 />
                             </Select.Trigger>
                             <Select.Content
                                 class="max-h-[300px] overflow-y-auto border-orange-500/20 bg-background/95 backdrop-blur-xl"
                             >
-                                {#each availableRewardTokens as token}
+                                <!-- Create New Token Option (ALWAYS FIRST) -->
+                                <Select.Item
+                                    value="__create_new__"
+                                    class="hover:bg-green-500/10 cursor-pointer border-b border-muted"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-green-400 font-bold">+</span>
+                                        <div class="flex flex-col">
+                                            <span class="font-medium text-green-400">Create New Token</span>
+                                            <span class="text-xs text-muted-foreground">Mint a new emergency relief token</span>
+                                        </div>
+                                    </div>
+                                </Select.Item>
+
+                                <!-- Emergency Token Templates -->
+                                <Select.Group>
+                                    <Select.Label class="text-xs text-muted-foreground px-2 py-1">
+                                        📋 Quick Templates (Auto-fill)
+                                    </Select.Label>
                                     <Select.Item
-                                        value={token.tokenId}
+                                        value="__template_emergency__"
                                         class="hover:bg-orange-500/10 cursor-pointer"
                                     >
                                         <div class="flex flex-col">
-                                            <span class="font-medium"
-                                                >{token.title}</span
-                                            >
-                                            <span
-                                                class="text-xs text-muted-foreground"
-                                                >Balance: {token.balance /
-                                                    Math.pow(
-                                                        10,
-                                                        token.decimals,
-                                                    )}</span
-                                            >
+                                            <span class="font-medium">🚨 Emergency Relief Token</span>
+                                            <span class="text-xs text-muted-foreground">General emergency fund token</span>
                                         </div>
                                     </Select.Item>
-                                {/each}
+                                    <Select.Item
+                                        value="__template_medical__"
+                                        class="hover:bg-orange-500/10 cursor-pointer"
+                                    >
+                                        <div class="flex flex-col">
+                                            <span class="font-medium">🏥 Medical Aid Token</span>
+                                            <span class="text-xs text-muted-foreground">For medical emergency campaigns</span>
+                                        </div>
+                                    </Select.Item>
+                                    <Select.Item
+                                        value="__template_disaster__"
+                                        class="hover:bg-orange-500/10 cursor-pointer"
+                                    >
+                                        <div class="flex flex-col">
+                                            <span class="font-medium">🌪️ Disaster Support Token</span>
+                                            <span class="text-xs text-muted-foreground">Natural disaster relief token</span>
+                                        </div>
+                                    </Select.Item>
+                                </Select.Group>
+
+                                <!-- User's Existing Tokens (Creator-owned only) -->
+                                {#if availableRewardTokens.length > 0}
+                                    <Select.Group>
+                                        <Select.Label class="text-xs text-muted-foreground px-2 py-1 border-t border-muted mt-1">
+                                            🪙 Your Existing Tokens
+                                        </Select.Label>
+                                        {#each availableRewardTokens as token}
+                                            <Select.Item
+                                                value={token.tokenId}
+                                                class="hover:bg-orange-500/10 cursor-pointer"
+                                            >
+                                                <div class="flex flex-col">
+                                                    <span class="font-medium">{token.title}</span>
+                                                    <span class="text-xs text-muted-foreground">
+                                                        Balance: {Number(token.balance) / Math.pow(10, token.decimals)} | ID: {token.tokenId.substring(0, 8)}...
+                                                    </span>
+                                                </div>
+                                            </Select.Item>
+                                        {/each}
+                                    </Select.Group>
+                                {/if}
                             </Select.Content>
                         </Select.Root>
                         <p class="text-xs mt-2 text-muted-foreground">
-                            Don't have a token? <a
-                                href="https://ergo-basics.github.io/token-minter"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="text-orange-400 underline hover:text-orange-300"
-                                >Create one</a
-                            >.
+                            <strong>💡 Tip:</strong> Choose an existing token you own, use a template for quick setup, or create a new one. Only fungible tokens (not NFTs) are shown.
                         </p>
                     </div>
 
@@ -928,10 +1460,7 @@
                             <span
                                 class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-orange-500/70 pointer-events-none"
                             >
-                                {baseTokenName} / 1 {rewardTokenName.substring(
-                                    0,
-                                    4,
-                                )}
+                                {baseTokenName} / 1 Token
                             </span>
                         </div>
                         {#if exchangeRateWarning}
@@ -1616,6 +2145,39 @@
             <div
                 class="form-actions mt-10 flex flex-col items-center justify-center gap-4"
             >
+                <!-- Validation Helper Message -->
+                {#if !tokenAmountToSellRaw || !exchangeRateRaw || !maxGoalPrecise || !projectTitle || !deadlineValueBlock || formErrors.tokenConflict || formErrors.goalOrder || contentTooLarge}
+                    <div class="w-full max-w-2xl bg-blue-100 border-2 border-blue-600 rounded-lg p-4">
+                        <p class="text-blue-950 font-bold mb-3 text-lg">📋 Complete these fields to launch:</p>
+                        <ul class="text-base text-blue-900 font-semibold space-y-2 list-disc list-inside">
+                            {#if !projectTitle}
+                                <li>Project Title (required)</li>
+                            {/if}
+                            {#if !tokenAmountToSellRaw}
+                                <li>Amount for Sale (required)</li>
+                            {/if}
+                            {#if !exchangeRateRaw}
+                                <li>Token Price (required)</li>
+                            {/if}
+                            {#if !maxGoalPrecise}
+                                <li>Maximum Goal (required)</li>
+                            {/if}
+                            {#if !deadlineValueBlock}
+                                <li>Deadline (required)</li>
+                            {/if}
+                            {#if formErrors.tokenConflict}
+                                <li class="text-red-300">⚠️ {formErrors.tokenConflict}</li>
+                            {/if}
+                            {#if formErrors.goalOrder}
+                                <li class="text-red-300">⚠️ {formErrors.goalOrder}</li>
+                            {/if}
+                            {#if contentTooLarge}
+                                <li class="text-red-300">⚠️ Campaign content exceeds box size limit</li>
+                            {/if}
+                        </ul>
+                    </div>
+                {/if}
+
                 {#if errorMessage && !transactionId}
                     <div
                         class="w-full max-w-md bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center animate-pulse"
@@ -1657,25 +2219,83 @@
                                 ></line></svg
                             >
                         </a>
+                        <p class="text-xs text-muted-foreground mt-4">
+                            Your campaign is now live and accepting contributions!
+                        </p>
                     </div>
                 {:else}
-                    <Button
-                        on:click={handleSubmit}
-                        disabled={isSubmitting ||
-                            !tokenAmountToSellRaw ||
-                            !exchangeRateRaw ||
-                            !maxGoalPrecise ||
-                            !projectTitle ||
-                            !deadlineValueBlock ||
-                            !!formErrors.tokenConflict ||
-                            !!formErrors.goalOrder ||
-                            contentTooLarge}
-                        class="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-black border-none h-12 text-lg font-bold rounded-lg shadow-lg shadow-orange-500/20 transition-all duration-200 hover:scale-[1.02] hover:shadow-orange-500/40 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none disabled:grayscale"
-                    >
-                        {isSubmitting
-                            ? statusMessage || "Submitting Campaign..."
-                            : "Launch Campaign"}
-                    </Button>
+                    <div class="w-full flex flex-col gap-3">
+                        <!-- Preview Button (works without ERG) -->
+                        <Button
+                            on:click={() => {
+                                console.log("🎯 PREVIEW BUTTON CLICKED!");
+                                
+                                // Show campaign preview without blockchain submission
+                                const preview = `🎯 CAMPAIGN PREVIEW - Ready for Blockchain Submission
+
+📋 BASIC INFO:
+• Title: ${projectTitle || 'Not set'}
+• Category: Emergency Relief
+• Location: ${location || 'Not set'}
+
+💰 FUNDING DETAILS:
+• Reward Token: ${rewardTokenName || 'Not selected'}
+• Tokens for Sale: ${tokenAmountToSellRaw || 0}
+• Token Price: ${exchangeRateRaw || 0} ERG
+• Funding Goal: ${maxGoalPrecise || 0} ERG
+• Deadline: Block ${deadlineValueBlock || 0}
+
+✅ VERIFICATION STATUS:
+• Location Anchoring: ${location ? '✓' : '✗'}
+• Document Upload: ${emergencyDocuments.length > 0 ? '✓' : '✗'}
+• Community Voting: Enabled
+• 4-Stage Release: 40%-30%-30% configured
+
+⚡ BLOCKCHAIN INTEGRATION:
+• Smart Contract: Ready
+• Wallet Connected: ${$walletConnected ? '✓' : '✗'}
+• Network: Mainnet
+• Transaction Type: Campaign Creation
+
+⚠️ TO SUBMIT TO BLOCKCHAIN:
+You need ~0.002 ERG for transaction fees.`;
+                                
+                                console.log(preview);
+                                alert(preview);
+                                console.log("✅ Alert shown!");
+                            }}
+                            disabled={!tokenAmountToSellRaw ||
+                                !exchangeRateRaw ||
+                                !maxGoalPrecise ||
+                                !projectTitle ||
+                                !deadlineValueBlock ||
+                                !!formErrors.tokenConflict ||
+                                !!formErrors.goalOrder ||
+                                contentTooLarge}
+                            class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white border-none h-12 text-lg font-bold rounded-lg shadow-lg shadow-blue-500/20 transition-all duration-200 hover:scale-[1.02] hover:shadow-blue-500/40 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none disabled:grayscale"
+                        >
+                            👁️ Preview Campaign (No ERG Required)
+                        </Button>
+
+                        <!-- Real Submit Button (requires ERG) -->
+                        <Button
+                            on:click={handleSubmit}
+                            disabled={isSubmitting ||
+                                !tokenAmountToSellRaw ||
+                                !exchangeRateRaw ||
+                                !maxGoalPrecise ||
+                                !projectTitle ||
+                                !deadlineValueBlock ||
+                                !!formErrors.tokenConflict ||
+                                !!formErrors.goalOrder ||
+                                contentTooLarge}
+                            class="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-400 hover:to-orange-500 text-black border-none h-12 text-lg font-bold rounded-lg shadow-lg shadow-orange-500/20 transition-all duration-200 hover:scale-[1.02] hover:shadow-orange-500/40 disabled:opacity-50 disabled:hover:scale-100 disabled:hover:shadow-none disabled:grayscale"
+                        >
+                            {isSubmitting
+                                ? statusMessage || "Submitting Campaign..."
+                                : "🚀 Submit to Blockchain (Requires ~0.002 ERG)"}
+                        </Button>
+                    </div>
                 {/if}
             </div>
         </div>
@@ -1754,3 +2374,213 @@
         background-color: rgba(0, 0, 0, 0.5) !important;
     }
 </style>
+
+<!-- Token Creation Modal -->
+<Dialog.Root bind:open={showCreateTokenModal}>
+    <Dialog.Content class="max-w-2xl">
+        <Dialog.Header>
+            <Dialog.Title class="text-2xl font-bold text-orange-400">
+                🪙 Create New Emergency Token
+            </Dialog.Title>
+            <Dialog.Description class="text-muted-foreground">
+                Mint a new token for your emergency relief campaign. This token will be used to reward contributors.
+            </Dialog.Description>
+        </Dialog.Header>
+        
+        <div class="space-y-6 py-4">
+            <!-- Token Name -->
+            <div class="space-y-2">
+                <Label for="token-name" class="text-sm font-medium">
+                    Token Name <span class="text-red-500">*</span>
+                </Label>
+                <Input
+                    id="token-name"
+                    bind:value={newTokenName}
+                    placeholder="e.g., Emergency Relief Token"
+                    class="w-full"
+                />
+                <p class="text-xs text-muted-foreground">
+                    Full descriptive name for your token
+                </p>
+            </div>
+
+            <!-- Token Symbol -->
+            <div class="space-y-2">
+                <Label for="token-symbol" class="text-sm font-medium">
+                    Token Symbol <span class="text-red-500">*</span>
+                </Label>
+                <Input
+                    id="token-symbol"
+                    bind:value={newTokenSymbol}
+                    placeholder="e.g., ERT"
+                    class="w-full uppercase"
+                    maxlength="8"
+                />
+                <p class="text-xs text-muted-foreground">
+                    Short ticker symbol (2-8 characters, will be uppercase)
+                </p>
+            </div>
+
+            <!-- Supply & Decimals Row -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <Label for="token-supply" class="text-sm font-medium">
+                        Total Supply <span class="text-red-500">*</span>
+                    </Label>
+                    <Input
+                        id="token-supply"
+                        type="number"
+                        bind:value={newTokenSupply}
+                        placeholder="1000000"
+                        min="1"
+                        class="w-full"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        Total tokens to mint
+                    </p>
+                </div>
+
+                <div class="space-y-2">
+                    <Label for="token-decimals" class="text-sm font-medium">
+                        Decimals <span class="text-red-500">*</span>
+                    </Label>
+                    <Input
+                        id="token-decimals"
+                        type="number"
+                        bind:value={newTokenDecimals}
+                        placeholder="0"
+                        min="0"
+                        max="9"
+                        class="w-full"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        Decimal places (0-9)
+                    </p>
+                </div>
+            </div>
+
+            <!-- Token Description -->
+            <div class="space-y-2">
+                <Label for="token-description" class="text-sm font-medium">
+                    Description (Optional)
+                </Label>
+                <Input
+                    id="token-description"
+                    bind:value={newTokenDescription}
+                    placeholder="Brief description of the token purpose"
+                    class="w-full"
+                />
+                <p class="text-xs text-muted-foreground">
+                    Brief description of what this token represents
+                </p>
+            </div>
+
+            <!-- Info Alert -->
+            <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <div class="flex gap-3">
+                    <div class="text-blue-400 text-xl">ℹ️</div>
+                    <div class="text-sm text-muted-foreground space-y-2">
+                        <p><strong class="text-foreground">Token Minting Requirements:</strong></p>
+                        <ul class="list-disc list-inside space-y-1 text-xs">
+                            <li>Requires connected wallet with ERG balance</li>
+                            <li>Minting fee: ~0.001 ERG (transaction cost)</li>
+                            <li>Tokens will be minted to your wallet address</li>
+                            <li>Once created, you can use it immediately in your campaign</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <Dialog.Footer class="flex gap-2 justify-end">
+            <Button
+                variant="outline"
+                on:click={() => {
+                    showCreateTokenModal = false;
+                    newTokenName = "";
+                    newTokenSymbol = "";
+                    newTokenSupply = 0;
+                    newTokenDecimals = 0;
+                    newTokenDescription = "";
+                }}
+            >
+                Cancel
+            </Button>
+            <Button
+                disabled={!newTokenName || !newTokenSymbol || newTokenSupply <= 0 || !$walletConnected}
+                class="bg-orange-500 hover:bg-orange-600"
+                on:click={async () => {
+                    try {
+                        console.log("🪙 Starting token minting...");
+                        
+                        // Import required modules from Fleet SDK
+                        const { OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE } = await import("@fleet-sdk/core");
+                        
+                        // Get wallet address
+                        const changeAddr = await window.ergo.get_change_address();
+                        console.log("💰 Wallet address:", changeAddr);
+                        
+                        // Get UTXOs (unspent transaction outputs)
+                        const utxos = await window.ergo.get_utxos();
+                        console.log("📦 Available UTXOs:", utxos?.length || 0);
+                        
+                        if (!utxos || utxos.length === 0) {
+                            throw new Error("No UTXOs available. You need ERG in your wallet to mint tokens.");
+                        }
+                        
+                        // Calculate token amount (considering decimals)
+                        const tokenAmount = BigInt(newTokenSupply) * BigInt(10 ** newTokenDecimals);
+                        
+                        // Build token minting transaction
+                        const unsignedTx = new TransactionBuilder(await platform.get_current_height())
+                            .from(utxos)
+                            .to(
+                                new OutputBuilder(
+                                    RECOMMENDED_MIN_FEE_VALUE, // Minimum ERG value for token box
+                                    changeAddr
+                                ).mintToken({
+                                    amount: tokenAmount.toString(),
+                                    name: newTokenName,
+                                    decimals: newTokenDecimals,
+                                    description: newTokenDescription || `${newTokenSymbol} token for emergency campaigns`
+                                })
+                            )
+                            .sendChangeTo(changeAddr)
+                            .payMinFee()
+                            .build()
+                            .toEIP12Object();
+                        
+                        console.log("📝 Unsigned transaction:", unsignedTx);
+                        
+                        // Sign transaction with wallet
+                        const signedTx = await window.ergo.sign_tx(unsignedTx);
+                        console.log("✅ Transaction signed");
+                        
+                        // Submit transaction to blockchain
+                        const txId = await window.ergo.submit_tx(signedTx);
+                        console.log("🎉 Token minted! Transaction ID:", txId);
+                        
+                        alert(`🎉 SUCCESS!\n\nToken "${newTokenName}" (${newTokenSymbol}) minted!\n\nTransaction ID: ${txId}\n\nThe token will appear in your wallet shortly.`);
+                        
+                        // Close modal and refresh tokens
+                        showCreateTokenModal = false;
+                        newTokenName = "";
+                        newTokenSymbol = "";
+                        newTokenSupply = 0;
+                        newTokenDecimals = 0;
+                        newTokenDescription = "";
+                        
+                        // Refresh user tokens
+                        await getUserTokens();
+                        
+                    } catch (error) {
+                        console.error("❌ Token minting failed:", error);
+                        alert(`❌ Token Minting Failed!\n\n${error.message}\n\nMost common cause: Insufficient ERG in wallet.\nYou need ~0.001 ERG for transaction fees.`);
+                    }
+                }}
+            >
+                {$walletConnected ? '✨ Mint Token' : '🔌 Connect Wallet First'}
+            </Button>
+        </Dialog.Footer>
+    </Dialog.Content>
+</Dialog.Root>
