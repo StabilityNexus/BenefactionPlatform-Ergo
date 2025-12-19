@@ -19,7 +19,7 @@
     let isFiltering: boolean = false;
     let totalProjectsCount: number = 0;
 
-    let searchQuery: string = "";
+    export let searchQuery: string = "";
     let sortBy: "newest" | "oldest" | "amount" | "name" = "newest";
     let hideTestProjects: boolean = true;
     let filterOpen = false;

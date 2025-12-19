@@ -6,6 +6,8 @@
     import { user_tokens, address } from "$lib/common/store";
     import { walletConnected } from "wallet-svelte-component";
 
+    export let searchQuery: string = "";
+
     let platform = new ErgoPlatform();
 
     const filter = async (project: Project) => {
@@ -43,4 +45,4 @@
     });
 </script>
 
-<ProjectList filterProject={filter}>My Contributions</ProjectList>
+<ProjectList filterProject={filter} bind:searchQuery>My Contributions</ProjectList>
