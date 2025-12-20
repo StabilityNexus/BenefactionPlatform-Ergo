@@ -87,6 +87,8 @@ When creating the campaign, the following parameters are immutably recorded in t
 
 This section is for developers and auditors who wish to understand the inner workings of the `contract_v2.es`.
 
+> **New:** Check out the [Guide for Integrating External Apps](docs/INTEGRATION_GUIDE.md) to learn how to use smart contracts as campaign owners.
+
 ### Token Dynamics and Accounting
 
 #### 1. The Dual Nature of the APT
