@@ -1,7 +1,55 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+body {
+  font-family: 'Russo One', sans-serif;
+}
+
+:root {
+  --bg-main: #0f172a;        /* dark blue */
+  --bg-secondary: #020617;  /* darker */
+  --text-main: #e5e7eb;     /* light text */
+  --accent: #38bdf8;        /* cyan */
+  --footer-bg: #020617;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
+footer {
+  background-color: var(--footer-bg);
+  color: var(--text-main);
+  padding: 24px;
+  text-align: center;
+  margin-top: 40px;
+  border-top: 1px solid #1e293b;
+}
+
+footer a {
+  color: var(--accent);
+  text-decoration: none;
+  margin: 0 10px;
+}
+
+footer a:hover {
+  text-decoration: underline;
+}
+
+p {
+  line-height: 1.6;
+}
+
+h1, h2, h3 {
+  letter-spacing: 1px;
+}
+
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -54,11 +102,12 @@
     --footer-border-color: hsl(0 0% 100% / 0.1);
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
