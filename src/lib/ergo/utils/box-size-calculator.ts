@@ -173,24 +173,24 @@ export function calculateRegisterSizesEstimate(): {
  * Calculate the actual ErgoTree size for a given contract version
  * Uses template constants (random values) to generate a representative ErgoTree
  */
-export function calculateErgoTreeSize(version: string = "v2"): number {
+import type { contract_version } from '../contract';
+
+export function calculateErgoTreeSize(version: contract_version = "v2"): number {
     try {
-        // Use the same random constants as in contract.ts get_template_hash()
         const random_constants: ConstantContent = {
-            "owner": "9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T",  // RANDOM
-            "dev_addr": get_dev_contract_address(),
-            "dev_hash": get_dev_contract_hash(),
-            "dev_fee": get_dev_fee(),
-            "pft_token_id": "a3f7c9e12bd45890ef12aa7c6d54b9317c0df4a28b6e5590d4f1b3e8c92d77af",   // RANDOM
-            "base_token_id": "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717" // RANDOM
+            owner: "9fcwctfPQPkDfHgxBns5Uu3dwWpaoywhkpLEobLuztfQuV5mt3T",
+            dev_addr: get_dev_contract_address(),
+            dev_hash: get_dev_contract_hash(),
+            dev_fee: get_dev_fee(),
+            pft_token_id: "a3f7c9e12bd45890ef12aa7c6d54b9317c0df4a28b6e5590d4f1b3e8c92d77af",
+            base_token_id: "2c5d596d617aaafe16f3f58b2c562d046eda658f0243dc1119614160d92a4717"
         };
 
-        const ergoTreeHex = get_ergotree_hex(random_constants);
+        const ergoTreeHex = get_ergotree_hex(random_constants, version);
         return hexByteLength(ergoTreeHex);
     } catch (error) {
-        // Fallback to measured value if calculation fails
         console.warn('Could not calculate ErgoTree size dynamically, using measured value:', error);
-        return 300; // This is the actual measured size of v2 contracts
+        return 300;
     }
 }
 
@@ -200,7 +200,7 @@ let cachedErgoTreeSize: number | null = null;
 /**
  * Get the ErgoTree size (cached for performance)
  */
-export function getErgoTreeSize(version: string = "v2"): number {
+export function getErgoTreeSize(version: contract_version = "v2"): number {
     if (cachedErgoTreeSize === null) {
         cachedErgoTreeSize = calculateErgoTreeSize(version);
     }
@@ -211,18 +211,23 @@ export function getErgoTreeSize(version: string = "v2"): number {
  * Estimate total box size for a project with given content
  * This calculates the actual size using real register values
  */
-export function estimateCompleteBoxSize(content: ProjectContent, contractVersion: string = "v2"): number {
+
+
+export function estimateCompleteBoxSize(
+    content: ProjectContent,
+    contractVersion: contract_version = "v2" // <-- fixed type
+): number {
     const BASE_BOX_OVERHEAD = 60;
     const PER_TOKEN_BYTES = 40;
-    const NUM_TOKENS = 3; // project_id, token_id, (optional base_token)
+    const NUM_TOKENS = 3;
     const SIZE_MARGIN = 120;
     const PER_REGISTER_OVERHEAD = 1;
 
-    // Calculate R9 size (actual project content)
+    // R9 size
     const r9ContentBytes = calculateProjectContentBytes(content);
     const r9TotalBytes = r9ContentBytes + PER_REGISTER_OVERHEAD;
 
-    // Get actual calculated sizes
+    // Actual sizes
     const ergoTreeBytes = getErgoTreeSize(contractVersion);
     const tokensBytes = PER_TOKEN_BYTES * NUM_TOKENS;
     const registerSizes = calculateRegisterSizesEstimate();
@@ -242,6 +247,7 @@ export function estimateCompleteBoxSize(content: ProjectContent, contractVersion
 
     return totalSize;
 }
+
 
 /**
  * Validation result for project content
