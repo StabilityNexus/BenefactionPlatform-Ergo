@@ -125,6 +125,21 @@
         return "active";
     })();
 
+    // Format creator address
+    $: creatorAddress = (() => {
+        try {
+            const ergoTree = project.constants.owner;
+            if (ergoTree.startsWith("0008cd")) {
+                return ErgoAddress.fromErgoTree(ergoTree).encode();
+            }
+            return ergoTree;
+        } catch (e) {
+            return project.constants.owner;
+        }
+    })();
+
+    $: isCreatorP2PK = project.constants.owner.startsWith("0008cd");
+
     // States for amounts
     let show_submit = false;
     let label_submit = "";
@@ -792,6 +807,22 @@
                         {project.token_details.name}
                     </a>
                 </p>
+                <p class="mt-2">
+                    <span class="font-semibold">Creator:</span>
+                    <a
+                        href={get(web_explorer_uri_addr) + creatorAddress}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-blue-500 underline break-all"
+                    >
+                        {isCreatorP2PK ? creatorAddress : "Contract Address"}
+                    </a>
+                    {#if !isCreatorP2PK}
+                        <span class="text-xs opacity-70 block mt-1"
+                            >ErgoTree: {creatorAddress.slice(0, 20)}...</span
+                        >
+                    {/if}
+                </p>
             </div>
 
             <div>
@@ -1313,16 +1344,25 @@
     {/if}
 
     <div class="forum-section" in:fly={{ y: 20, delay: 600 }}>
-        <Forum topic_id={project.project_id} 
+        <Forum
+            topic_id={project.project_id}
             connect_executed={$connected}
-            explorer_uri={explorer_uri} 
-            web_explorer_uri_addr={web_explorer_uri_addr}
-            web_explorer_uri_tkn={web_explorer_uri_tkn}
-            web_explorer_uri_tx={web_explorer_uri_tx}
+            {explorer_uri}
+            {web_explorer_uri_addr}
+            {web_explorer_uri_tkn}
+            {web_explorer_uri_tx}
             connected={$connected}
-            />
+        />
     </div>
 </div>
+
+<ShareModal
+    bind:open={shareModalOpen}
+    projectName={project.content.title}
+    projectId={project.box.boxId}
+    {projectStatus}
+    description={project.content.description}
+/>
 
 <style>
     /* Base Layout */
@@ -1407,8 +1447,7 @@
         cursor: pointer;
         font-weight: 600;
         font-size: 0.95rem;
-        transition:
-            all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
     }
     .share-btn:hover {
@@ -1839,7 +1878,7 @@
             flex-direction: row;
         }
     }
-    
+
     @media (max-width: 1023px) {
         .project-title {
             font-size: 1.5rem;
@@ -1849,7 +1888,7 @@
         .project-image {
             height: 200px;
         }
-        
+
         .countdown-container,
         .progress-container,
         .actions-section {
@@ -1857,7 +1896,7 @@
         }
 
         .amounts-info {
-            grid-template-columns: 1fr; 
+            grid-template-columns: 1fr;
             gap: 1.5rem;
         }
 
@@ -1985,11 +2024,3 @@
         margin-bottom: 1em;
     }
 </style>
-
-<ShareModal
-    bind:open={shareModalOpen}
-    projectName={project.content.title}
-    projectId={project.box.boxId}
-    projectStatus={projectStatus}
-    description={project.content.description}
-/>
