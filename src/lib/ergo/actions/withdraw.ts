@@ -76,7 +76,6 @@ export async function withdraw(
     }
 
     // Calculate dev fee and project amounts according to contract logic
-    const minnerFeeAmount = 1100000; // Contract constant
     let devFeeAmount = Math.floor(extractedBaseAmount * devFeePercentage / 100);
 
     // Apply contract logic: if devFeeAmount < 1, set to 0
@@ -87,7 +86,7 @@ export async function withdraw(
     const projectAmountBase = extractedBaseAmount - devFeeAmount;
 
     // For ERG, subtract miner fee from project amount. For base tokens, no miner fee needed.
-    const projectAmount = isERGBase ? projectAmountBase - minnerFeeAmount : projectAmountBase;
+    const projectAmount = projectAmountBase;
 
     // Validation according to contract requirements
     if (isERGBase) {
