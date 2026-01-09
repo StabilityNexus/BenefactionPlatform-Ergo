@@ -1366,8 +1366,7 @@
                                     class="submit-btn"
                                     style="background-color: #FF8C00; color: black;"
                                 >
-                                    style="background-color: #FF8C00; color: black;"
-                                >
+
                                     {isSubmitting ? "Processing..." : submit_btn_label}
                                 </Button>
                             </div>
