@@ -5,6 +5,7 @@ import { hexToUtf8 } from "./utils";
 import { type contract_version, get_template_hash } from "./contract";
 import { explorer_uri, projects } from "$lib/common/store";
 import { get } from "svelte/store";
+import { get_dev_contract_hash, get_dev_fee } from "./dev/dev_contract";
 
 const expectedSigmaTypesV1 = {
     R4: 'SInt',
@@ -267,6 +268,13 @@ async function parseProjectBox(e: any, version: contract_version): Promise<Proje
                     base_token_id: rawValues[4] ?? "",
                     raw: e.additionalRegisters.R8.serializedValue
                 };
+
+                const correct_dev_hash = rawValues[1] === get_dev_contract_hash();
+                const correct_dev_fee = parseInt(rawValues[2], 16) === get_dev_fee();
+                if (!correct_dev_hash || !correct_dev_fee) {
+                    console.warn(`Dev contract hash or fee mismatch. Expected hash: ${get_dev_contract_hash()}, found: ${rawValues[1]}. Expected fee: ${get_dev_fee()}, found: ${parseInt(rawValues[2], 16)}`);
+                    return null;
+                }
             } catch (err) {
                 console.warn("Failed to parse R8 constants", err);
                 return null;
