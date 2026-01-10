@@ -1256,6 +1256,34 @@
                                         {projectFundsAmount.toFixed(4)}
                                         {baseTokenName}
                                     </p>
+                                    {#if value_submit > 0}
+                                        <div
+                                            class="mt-2 pt-2 border-t border-white/10"
+                                        >
+                                            <p
+                                                class="text-sm opacity-80 flex justify-between"
+                                            >
+                                                <span>Developer Fee (5%):</span>
+                                                <span
+                                                    >{(
+                                                        value_submit * 0.05
+                                                    ).toFixed(4)}
+                                                    {baseTokenName}</span
+                                                >
+                                            </p>
+                                            <p
+                                                class="text-sm font-bold text-[#A8E6A1] flex justify-between mt-1"
+                                            >
+                                                <span>Net You Receive:</span>
+                                                <span
+                                                    >{(
+                                                        value_submit * 0.95
+                                                    ).toFixed(4)}
+                                                    {baseTokenName}</span
+                                                >
+                                            </p>
+                                        </div>
+                                    {/if}
                                 {/if}
                                 {#if info_type_to_show === "dev"}
                                     <p>
