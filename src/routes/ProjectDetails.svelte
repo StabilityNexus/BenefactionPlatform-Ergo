@@ -143,7 +143,7 @@
     // States for amounts
     let show_submit = false;
     let label_submit = "";
-    let submit_btn_label = "Submit";
+let submit_btn_label = "Collect";
     let info_type_to_show: "buy" | "dev" | "dev-collect" | "dev-withdraw" | "" =
         "";
     let function_submit: ((event?: any) => Promise<void>) | null = null;
@@ -171,7 +171,7 @@
         }
         if (function_submit === withdraw_tokens) {
             return {
-                prefix: "Withdraw:",
+                prefix: "Collect:",
                 amount: cleanAmount(value_submit),
                 token: project.token_details.name,
             };
@@ -183,7 +183,7 @@
                 ? platform.main_token
                 : project.base_token_details?.name || "tokens";
             return {
-                prefix: "Withdraw:",
+                prefix: "Collect:",
                 amount: cleanAmount(value_submit),
                 token: tokenName,
             };
@@ -1102,11 +1102,7 @@
                             class="action-btn"
                             style="background-color: #FF8C00; color: black;"
                             on:click={setupWithdrawTokens}
-                            disabled={!$connected ||
-                                maxWithdrawTokenAmount <= 0}
-                        >
-                            disabled={!$connected ||
-                                maxWithdrawTokenAmount <= 0}
+                            disabled={!$connected || maxWithdrawTokenAmount <= 0}
                         >
                             Collect {project.token_details.name}
                         </Button>
@@ -1279,8 +1275,12 @@
                                 {#if info_type_to_show === "dev-collect"}
                                     <p>
                                         <strong>Project Funds:</strong>
-                                        {projectFundsAmount.toFixed(4)}
-                                        {baseTokenName}
+                                        <span
+                                            class="clickable-amount"
+                                            on:click={() => setMax()}
+                                        >
+                                            {projectFundsAmount.toFixed(4)} {baseTokenName}
+                                        </span>
                                     </p>
                                 {/if}
                                 {#if info_type_to_show === "dev"}
@@ -1366,9 +1366,12 @@
                                     class="submit-btn"
                                     style="background-color: #FF8C00; color: black;"
                                 >
-
                                     {isSubmitting ? "Processing..." : submit_btn_label}
                                 </Button>
+    .clickable-amount {
+        cursor: pointer;
+        text-decoration: underline;
+    }
                             </div>
                         </div>
                     {/if}
