@@ -30,29 +30,6 @@ async function get_token_data(token_id: string): Promise<{ amount: number, decim
     return { "amount": id_token_amount, "decimals": token_fetch['decimals'] }
 }
 
-function playBeep(frequency = 1000, duration = 3000) {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    const audioCtx = new AudioContextClass();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(660, audioCtx.currentTime);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    const now = audioCtx.currentTime;
-
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.25, now + 0.05);
-    gain.gain.setValueAtTime(0.25, now + 0.5);
-    gain.gain.linearRampToValueAtTime(0, now + 0.55);
-
-    osc.start(now);
-    osc.stop(now + 0.55);
-}
-
 // Function to submit a project to the blockchain
 export async function* submit_project(
     version: contract_version,
@@ -213,8 +190,9 @@ export async function* submit_project(
         .sendChangeTo(walletPk)
         .payFee(RECOMMENDED_MIN_FEE_VALUE)
         .build()
-        .chain((builder) =>
+        .chain((builder, parent) =>
             builder
+                .from(parent.outputs[0])
                 // CRITICAL: `mint_idt.es` requires the campaign box to be OUTPUTS(0) of Tx B.
                 // Keep `projectOutput` as the first/only explicit output before change.
                 .to(projectOutput)
@@ -223,12 +201,6 @@ export async function* submit_project(
                 .build()
         )
         .toEIP12Object();
-
-    try {
-        playBeep();
-    } catch (error) {
-        console.error('Error executing play beep:', error);
-    }
 
     yield "Please sign the campaign creation transaction...";
 
