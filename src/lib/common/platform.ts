@@ -26,6 +26,6 @@ export interface Platform {
         minimumSold: number,
         title: string,
         base_token_id?: string
-    ): AsyncGenerator<string, string | null, void>;
+    ): AsyncGenerator<string, string[] | null, void>;
     fetch(): Promise<Map<string, Project>>;
 }

@@ -42,7 +42,7 @@ export async function* submit_project(
     title: string,
     base_token_id: string = "",  // Base token ID for contributions (empty for ERG)
     owner_ergotree: string = ""  // Optional: Owner ErgoTree (if different from wallet)
-): AsyncGenerator<string, string | null, void> {
+): AsyncGenerator<string, string[] | null, void> {
 
     // Parse and validate project content
     let parsedContent: ProjectContent;
@@ -182,15 +182,19 @@ export async function* submit_project(
         });
 
     // Build a chained bundle (Tx A -> Tx B). Wallet signs once.
-    const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
+    const unsignedTransactions = await new TransactionBuilder(await getCurrentHeight())
         // CRITICAL: force issuanceBox to be INPUTS(0) so minted token id is deterministic.
         .from(mintInputs)
         .to(mintOutput)
         .sendChangeTo(walletPk)
         .payFee(RECOMMENDED_MIN_FEE_VALUE)
         .build()
-        .chain((builder, parent) =>
-            builder
+        .chain(function (builder, parent) {
+
+            console.log("Chaining campaign creation transaction...")
+            console.log("Parent ", parent)
+
+            return builder
                 .from(parent.outputs[0])
                 // CRITICAL: `mint_idt.es` requires the campaign box to be OUTPUTS(0) of Tx B.
                 // Keep `projectOutput` as the first/only explicit output before change.
@@ -198,17 +202,30 @@ export async function* submit_project(
                 .payFee(RECOMMENDED_MIN_FEE_VALUE)
                 .sendChangeTo(walletPk)
                 .build()
+        }
         )
         .toEIP12Object();
 
     yield "Please sign the campaign creation transaction...";
+    console.log("Unsigned chained transactions: ", unsignedTransactions);
 
-    // Sign the transaction
-    const signedTransaction = await signTransaction(unsignedTransaction);
+    const signedTransactions = [];
+    const transactionIds = [];
 
-    // Send the transaction to the Ergo network
-    const transactionId = await submitTransaction(signedTransaction);
+    // Iterate over the transactions to sign and submit them sequentially
+    for (const tx of unsignedTransactions) {
+        // Sign the transaction
+        const signed = await signTransaction(tx);
+        signedTransactions.push(signed);
 
-    console.log("Transaction id -> ", transactionId);
-    return transactionId;
+        // Send the transaction to the Ergo network
+        // It is important to submit them in order so the second one finds the inputs from the first in the mempool
+        const txId = await submitTransaction(signed);
+        transactionIds.push(txId);
+
+        console.log("Submitted transaction id -> ", txId);
+    }
+
+    // Return the array of transaction IDs
+    return transactionIds;
 }

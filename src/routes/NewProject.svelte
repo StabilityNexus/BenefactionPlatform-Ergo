@@ -97,7 +97,7 @@
     let projectImage: string = "";
     let projectLink: string = "";
 
-    let transactionId: string | null = null;
+    let transactionId: string[] | null = null;
     let errorMessage: string | null = null;
     let isSubmitting: boolean = false;
     let statusMessage: string = "";
@@ -1634,29 +1634,34 @@
                         <p class="text-sm text-muted-foreground mb-3">
                             Your campaign has been submitted to the blockchain.
                         </p>
-                        <a
-                            href={$web_explorer_uri_tx + transactionId}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            class="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors bg-orange-500/5 px-4 py-2 rounded-lg border border-orange-500/20 hover:border-orange-500/40"
-                        >
-                            <span>{transactionId.slice(0, 8)}...</span>
-                            <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                ><path
-                                    d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
-                                ></path><polyline points="15 3 21 3 21 9"
-                                ></polyline><line x1="10" y1="14" x2="21" y2="3"
-                                ></line></svg
-                            >
-                        </a>
+                        <div class="flex flex-col gap-3 items-center w-full">
+                            {#each transactionId as txId, i}
+                                <a
+                                    href={$web_explorer_uri_tx + txId}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-flex items-center gap-2 text-orange-400 hover:text-orange-300 transition-colors bg-orange-500/5 px-4 py-2 rounded-lg border border-orange-500/20 hover:border-orange-500/40 w-full justify-center max-w-xs"
+                                >
+                                    <span class="font-mono font-bold opacity-50">#{i + 1}</span>
+                                    <span>{txId.slice(0, 8)}...</span>
+                                    <svg
+                                        width="12"
+                                        height="12"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        ><path
+                                            d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"
+                                        ></path><polyline points="15 3 21 3 21 9"
+                                        ></polyline><line x1="10" y1="14" x2="21" y2="3"
+                                        ></line></svg
+                                    >
+                                </a>
+                            {/each}
+                        </div>
                     </div>
                 {:else}
                     <Button

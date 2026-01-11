@@ -145,7 +145,7 @@ export class ErgoPlatform implements Platform {
         title: string,
         base_token_id: string = "",
         owner_ergotree: string = ""
-    ): AsyncGenerator<string, string | null, void> {
+    ): AsyncGenerator<string, string[] | null, void> {
         return yield* submit_project(
             version,
             token_id,
