@@ -39,6 +39,12 @@
     import { fade, fly, scale, slide } from "svelte/transition";
     import { quintOut, elasticOut } from "svelte/easing";
     import { ErgoAddress } from "@fleet-sdk/core";
+    import FundingChart from "$lib/components/analytics/FundingChart.svelte";
+    import ContributorStats from "$lib/components/analytics/ContributorStats.svelte";
+    import {
+        fetchProjectHistory,
+        type ProjectAnalytics,
+    } from "$lib/ergo/analytics";
 
     let project: Project = $project_detail;
 
@@ -746,6 +752,82 @@
             clearInterval(countdownInterval);
         }
     });
+
+    // --- ANALYTICS LOGIC ---
+    let analyticsData: ProjectAnalytics | null = null;
+    let loadingAnalytics = false;
+    let showAnalytics = false;
+
+    async function toggleAnalytics() {
+        showAnalytics = !showAnalytics;
+        if (showAnalytics && !analyticsData) {
+            loadingAnalytics = true;
+            try {
+                analyticsData = await fetchProjectHistory(project);
+            } catch (e) {
+                console.error("Failed to load analytics", e);
+            } finally {
+                loadingAnalytics = false;
+            }
+        }
+    }
+
+    function downloadHistoryCSV() {
+        if (!analyticsData) return;
+
+        const rows = [
+            ["Timestamp", "Date", "Funds Raised (Cumulative)"],
+            ...analyticsData.history.map((d) => [
+                d.timestamp,
+                new Date(d.timestamp).toISOString(),
+                d.value,
+            ]),
+        ];
+
+        downloadFile(
+            rows.map((e) => e.join(",")).join("\n"),
+            `project_${project.project_id}_history.csv`,
+            "text/csv;charset=utf-8",
+        );
+    }
+
+    function downloadContributorsCSV() {
+        if (!analyticsData) return;
+
+        const rows = [
+            ["Address", "Total Contributed", "Transaction Count"],
+            ...analyticsData.contributors.map((c) => [
+                c.address,
+                c.totalContributed,
+                c.transactionCount,
+            ]),
+        ];
+
+        downloadFile(
+            rows.map((e) => e.join(",")).join("\n"),
+            `project_${project.project_id}_contributors.csv`,
+            "text/csv;charset=utf-8",
+        );
+    }
+
+    function downloadJSON() {
+        if (!analyticsData) return;
+        downloadFile(
+            JSON.stringify(analyticsData, null, 2),
+            `project_${project.project_id}_analytics.json`,
+            "application/json;charset=utf-8",
+        );
+    }
+
+    function downloadFile(content: string, fileName: string, mimeType: string) {
+        const encodedUri = encodeURI(`data:${mimeType},${content}`);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 </script>
 
 <div
@@ -1102,6 +1184,71 @@
                 </div>
             {/if}
         </div>
+
+        <!-- NEW ANALYTICS SECTION -->
+        <div
+            class="analytics-section"
+            in:fly={{ y: 30, duration: 800, delay: 500 }}
+        >
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">Project Analytics</h2>
+                <Button variant="outline" on:click={toggleAnalytics}>
+                    {showAnalytics ? "Hide Analytics" : "Show Analytics"}
+                </Button>
+            </div>
+
+            {#if showAnalytics}
+                <div transition:slide>
+                    {#if loadingAnalytics}
+                        <div class="p-8 text-center">
+                            Loading analytics data...
+                        </div>
+                    {:else if analyticsData}
+                        <div class="space-y-6">
+                            <div class="flex justify-end gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    on:click={downloadHistoryCSV}
+                                >
+                                    History (CSV)
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    on:click={downloadContributorsCSV}
+                                >
+                                    Contributors (CSV)
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    on:click={downloadJSON}
+                                >
+                                    Full (JSON)
+                                </Button>
+                            </div>
+                            <ContributorStats
+                                contributors={analyticsData.contributors}
+                                totalUnique={analyticsData.totalUniqueContributors}
+                                averageContribution={analyticsData.averageContribution}
+                                tokenName={baseTokenName}
+                            />
+
+                            <FundingChart
+                                data={analyticsData.history}
+                                minGoal={project.minimum_amount}
+                                maxGoal={project.maximum_amount}
+                            />
+                        </div>
+                    {:else}
+                        <div class="p-8 text-center text-muted-foreground">
+                            Failed to load analytics.
+                        </div>
+                    {/if}
+                </div>
+            {/if}
+        </div>
     </div>
 
     <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -1176,12 +1323,13 @@
                                 aria-label="Copy Transaction ID"
                             >
                                 {#if clipboardCopied}
-                                    <div
+                                    <span
                                         in:scale={{
                                             duration: 400,
                                             start: 0.5,
                                             easing: elasticOut,
                                         }}
+                                        style="display: flex;"
                                     >
                                         <svg
                                             viewBox="0 0 24 24"
@@ -1195,10 +1343,11 @@
                                             <polyline points="20 6 9 17 4 12"
                                             ></polyline>
                                         </svg>
-                                    </div>
+                                    </span>
                                 {:else}
-                                    <div
+                                    <span
                                         in:scale={{ duration: 200, start: 0.8 }}
+                                        style="display: flex;"
                                     >
                                         <svg
                                             viewBox="0 0 24 24"
@@ -1221,7 +1370,7 @@
                                                 d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
                                             ></path>
                                         </svg>
-                                    </div>
+                                    </span>
                                 {/if}
                             </button>
                         </div>
@@ -1616,6 +1765,16 @@
         background-color: rgba(255, 165, 0, 0.05);
         border: 1px solid rgba(255, 165, 0, 0.2);
     }
+
+    .analytics-section {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(5px);
+        margin-top: 2rem;
+    }
+
     .actions-title {
         font-size: 1.25rem;
         font-weight: 600;
