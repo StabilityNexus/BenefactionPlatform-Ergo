@@ -226,7 +226,14 @@
             }
         }
 
+        function handleResize() {
+            if (window.innerWidth >= 1024 && mobileMenuOpen) {
+                mobileMenuOpen = false;
+            }
+        }
+
         document.addEventListener('mousedown', handleDocumentClick, true);
+        window.addEventListener('resize', handleResize);
 
         return () => {
             if (balanceUpdateInterval) {
@@ -239,6 +246,7 @@
                 );
             }
             document.removeEventListener('mousedown', handleDocumentClick, true);
+            window.removeEventListener('resize', handleResize);
         };
     });
 </script>
@@ -378,9 +386,13 @@
                         stroke-linecap="round"
                         stroke-linejoin="round"
                         style="flex-shrink: 0;"
+                        class="feather feather-settings"
                     >
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H1m18.2 5.2l-4.2-4.2m0-6l4.2-4.2"></path>
+                        <path
+                            d="M12.22 2.06c-.5 0-.9.2-1.2.5s-.4.8-.4 1.2c0 .5.2.9.5 1.2s.8.4 1.2.4c.5 0 .9-.2 1.2-.5s.4-.8.4-1.2c0-.5-.2-.9-.5-1.2s-.8-.4-1.2-.4zm0 2.4c-2.4 0-4.5 1.5-5.3 3.7c-.8 2.2-.2 4.7 1.6 6.1s4.4 2.2 6.8 1.4c2.4-.8 4.1-3.2 3.8-5.7s-2.1-4.3-4.5-5zm0-2.4c3.2 0 6.1 1.7 7.7 4.7c1.6 3.0 1.2 6.6-.7 9.1s-4.8 3.8-8.3 3.8-6.5-1.3-8.3-3.8-2.3-6.1-.7-9.1c1.6-3.0 4.5-4.7 7.7-4.7z"
+                        /><path
+                            d="M12.22 2.06c-.5 0-.9.2-1.2.5s-.4.8-.4 1.2c0 .5.2.9.5 1.2s.8.4 1.2.4c.5 0 .9-.2 1.2-.5s.4-.8.4-1.2c0-.5-.2-.9-.5-1.2s-.8-.4-1.2-.4zm0 2.4c-2.4 0-4.5 1.5-5.3 3.7c-.8 2.2-.2 4.7 1.6 6.1s4.4 2.2 6.8 1.4c2.4-.8 4.1-3.2 3.8-5.7s-2.1-4.3-4.5-5zm0-2.4c3.2 0 6.1 1.7 7.7 4.7c1.6 3.0 1.2 6.6-.7 9.1s-4.8 3.8-8.3 3.8-6.5-1.3-8.3-3.8-2.3-6.1-.7-9.1c1.6-3.0 4.5-4.7 7.7-4.7z"
+                        />
                     </svg>
                     Settings
                 </a>
@@ -505,7 +517,7 @@
 
     /* Main padding adjustment for mobile */
     .responsive-main {
-        padding-bottom: 6rem; /* Extra padding for taller footer on mobile */
+        padding-bottom: 9rem; /* Extra padding for taller footer on mobile */
     }
 
     @media (min-width: 769px) {
@@ -976,7 +988,7 @@
     @media (max-width: 768px) {
         :global(.wallet-connected-button),
         :global(.wallet-connect-button) {
-            max-width: 140px; /* Force shrinking */
+            max-width: 120px; /* Force shrinking */
             font-size: 0.8rem;
             padding: 0.35rem 0.5rem;
             white-space: nowrap;
