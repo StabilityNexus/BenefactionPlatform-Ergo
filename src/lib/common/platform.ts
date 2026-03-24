@@ -3,8 +3,8 @@ import { type Project } from "$lib/common/project";
 import { type contract_version } from "$lib/ergo/contract";
 
 export interface Platform {
-    id: string;  // ergo, ethereum ...
-    main_token: string; // ERG, ETH ...
+    id: string;  // ergo, basis ...
+    main_token: string; // ERG, BTC ...
     icon: string;  // Icon path or url.
     time_per_block: number; // milliseconds
     last_version: contract_version;
@@ -20,10 +20,12 @@ export interface Platform {
         token_id: string,
         token_amount: number,
         blockLimit: number,
+        is_timestamp_limit: boolean,
         exchangeRate: number,
         projectLink: string,
         minimumSold: number,
-        title: string
-    ): Promise<string | null>;
+        title: string,
+        base_token_id?: string
+    ): AsyncGenerator<string, string[] | null, void>;
     fetch(): Promise<Map<string, Project>>;
 }

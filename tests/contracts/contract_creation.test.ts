@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { RECOMMENDED_MIN_FEE_VALUE } from "@fleet-sdk/core";
 import { SByte, SColl, SInt, SLong } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
-import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext } from "./bene_contract_helpers";
+import { setupBeneTestContext, ERG_BASE_TOKEN, ERG_BASE_TOKEN_NAME, type BeneTestContext, createR4 } from "./bene_contract_helpers";
 
 // EXECUTION FLOW:
 // 1. beforeEach() → Creates fresh mock blockchain with setupBeneTestContext()
@@ -25,13 +25,13 @@ describe("Bene Contract v1.2 - Project Creation", () => {
   describe("Project Creation", () => {
     it("should successfully create a Bene project box", () => {
       // ARRANGE: Prepare test data for contract creation
-      
+
       // Owner information stored in R8 register
       const ownerDetails = JSON.stringify({
         name: "Project Owner",
         contact: "owner@example.com",
       });
-      
+
       // Project information stored in R9 register
       const projectMetadata = JSON.stringify({
         title: "Test Fundraising Project",
@@ -43,18 +43,18 @@ describe("Bene Contract v1.2 - Project Creation", () => {
       ctx.beneContract.addUTxOs({
         value: RECOMMENDED_MIN_FEE_VALUE,           // Minimum ERG value (1.1 million nanoERG)
         ergoTree: ctx.beneErgoTree.toHex(),         // Contract address/script
-        
+
         // TOKEN ALLOCATION:
         assets: [
           { tokenId: ctx.projectNftId, amount: 1n },              // APT NFT (project identifier)
           { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens }, // 100,000 PFT tokens to sell
         ],
-        
+
         creationHeight: ctx.mockChain.height,       // Created at current block height
-        
+
         // CONTRACT REGISTERS (Storage slots R4-R9):
         additionalRegisters: {
-          R4: SInt(ctx.deadlineBlock).toHex(),                              // Deadline: block 800,200
+          R4: createR4(ctx),                              // Deadline: block 800,200
           R5: SLong(ctx.minimumTokensSold).toHex(),                         // Minimum to sell: 50,000 tokens
           R6: SColl(SLong, [0n, 0n, 0n]).toHex(),                           // Counters: [sold, refunded, exchanged] = [0, 0, 0]
           R7: SLong(ctx.exchangeRate).toHex(), // [price, token_id_length] = [1M, 0]

@@ -1,11 +1,12 @@
 <script lang="ts">
     import ProjectList from "./ProjectList.svelte";
-    import { type Project} from "$lib/common/project";
+    import { type Project } from "$lib/common/project";
+
+    export let searchQuery: string = "";
 
     async function projectFilter(project: Project) {
-        return true  
+        return true;
     }
 </script>
-<ProjectList filterProject={projectFilter}>
-    Fundraising Projects
-</ProjectList>
+
+<ProjectList filterProject={projectFilter} bind:searchQuery>Fundraising Campaigns</ProjectList>

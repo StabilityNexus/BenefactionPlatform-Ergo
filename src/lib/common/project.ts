@@ -1,6 +1,6 @@
 import { type contract_version } from "$lib/ergo/contract";
 import { type Platform } from "./platform";
-import type { Amount, Box } from "@fleet-sdk/core";
+import { ErgoAddress, SByte, SColl, type Amount, type Box } from "@fleet-sdk/core";
 
 export interface TokenEIP4 {
     name: string,
@@ -23,8 +23,38 @@ export interface ConstantContent {
     dev_addr?: string,
     dev_hash: string,
     dev_fee: number,
-    token_id: string,
+    pft_token_id: string,
     base_token_id?: string  // Base token ID for multi-token support (empty for ERG)
+}
+
+export function createR8Structure(content: ConstantContent) {
+
+    function numberToHex(num: number): string {
+        let hex = BigInt(num).toString(16);
+        if (hex.length % 2 !== 0) hex = "0" + hex;
+        return hex;
+    }
+
+    function getErgoTree(input: string): string {
+        try {
+            return ErgoAddress.fromBase58(input).ergoTree;
+        } catch (e) {
+            return input;
+        }
+    }
+
+    const ownerErgoTree = getErgoTree(content.owner);
+    const baseTokenId = content.base_token_id || "";
+
+    const r8Data = SColl(SColl(SByte), [
+        ownerErgoTree,                  // Index 0
+        content.dev_hash,               // Index 1
+        numberToHex(content.dev_fee),   // Index 2
+        content.pft_token_id,           // Index 3
+        baseTokenId                     // Index 4
+    ]);
+
+    return r8Data;
 }
 
 export interface Project {
@@ -33,10 +63,11 @@ export interface Project {
     box: Box<Amount>,
     project_id: string,
     current_idt_amount: number,
-    token_id: string,
+    pft_token_id: string,
     base_token_id: string,  // Base token ID for contributions (empty string for ERG)
     base_token_details?: TokenEIP4,  // Details of the base token (null for ERG)
     block_limit: number,
+    is_timestamp_limit: boolean,
     minimum_amount: number,
     maximum_amount: number,
     value: number,  // Real exact value
@@ -54,13 +85,19 @@ export interface Project {
 }
 
 export async function is_ended(project: Project): Promise<boolean> {
-    let height = await project.platform.get_current_height();
-
-    return project.block_limit < height
+    if (project.is_timestamp_limit) {
+        // In timestamp mode, compare with current time
+        const currentTime = new Date().getTime();
+        return project.block_limit < currentTime;
+    } else {
+        // In block height mode, compare with current block height
+        let height = await project.platform.get_current_height();
+        return project.block_limit < height;
+    }
 }
 
 export async function min_raised(project: Project): Promise<boolean> {
-    return project.sold_counter >= project.minimum_amount
+    return (project.sold_counter - project.refund_counter) >= project.minimum_amount
 }
 
 export async function max_raised(project: Project): Promise<boolean> {
@@ -72,16 +109,16 @@ export function getProjectContent(id: string, value: string): ProjectContent {
         const parsed = JSON.parse(value);
         return {
             raw: value,
-            title: parsed.title || 'Id '+id,
+            title: parsed.title || 'Id ' + id,
             description: parsed.description || "No description provided.",
             link: parsed.link || null,
             image: parsed.image || "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg"
         };
     } catch (error) {
         return {
-            
+
             raw: value,
-            title: 'Id '+id,
+            title: 'Id ' + id,
             description: "No description provided.",
             link: null,
             image: "https://camarasal.com/wp-content/uploads/2020/08/default-image-5-1.jpg"
@@ -98,10 +135,10 @@ export function getConstantContent(value: string): ConstantContent | null {
             dev_addr: parsed.dev_addr,
             dev_hash: parsed.dev_hash,
             dev_fee: parsed.dev_fee,
-            token_id: parsed.token_id,
+            pft_token_id: parsed.pft_token_id || parsed.token_id || null,
             base_token_id: parsed.base_token_id || ""  // Default to empty string for ERG
         }
-    } catch(error) {
+    } catch (error) {
         return null;
     }
 }
