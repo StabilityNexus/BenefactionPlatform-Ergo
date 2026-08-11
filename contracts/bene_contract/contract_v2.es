@@ -432,8 +432,12 @@
       val endOrReplicate = {
         val allFundsWithdrawn = if (isERGBase) extractedBaseAmount == selfValue else (extractedBaseAmount == getBaseTokenAmount(SELF))
         val allTokensWithdrawn = SELF.tokens.exists({(pair: (Coll[Byte], Long)) => pair._1 == pftTokenId}) == false
+        // The contract may only be considered finished if it is not recreated anywhere in the
+        // transaction. Checking OUTPUTS(0) alone (which is what isSelfReplication does) would let a
+        // spender put a copy at another index, where none of the replication guards are evaluated.
+        val ended = OUTPUTS.exists({(box: Box) => box.propositionBytes == SELF.propositionBytes}) == false
 
-        isSelfReplication || allFundsWithdrawn && allTokensWithdrawn
+        isSelfReplication || (ended && allFundsWithdrawn && allTokensWithdrawn)
       }
 
       val constants = allOf(Coll(
