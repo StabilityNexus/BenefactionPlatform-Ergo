@@ -67,6 +67,32 @@ describe("Bene Contract v2 - self-replication guard", () => {
     projectBox = ctx.beneContract.utxos.toArray()[0];
   });
 
+  // Positive control. The same withdrawal, by the same spender, with the same amounts and fee,
+  // and with only the two outputs the contract actually requires. It has to pass both before and
+  // after the fix: without it, a reader cannot tell whether the case below is rejected because of
+  // the clone at OUTPUTS(2) or because the transaction was malformed in some other way.
+  it("should allow the same withdrawal when the contract is not recreated", () => {
+    const spender = ctx.buyer;
+    const devFeeContract = compile(`{ sigmaProp(true) }`);
+
+    const devFeeAmount = (collectedFunds * BigInt(ctx.devFeePercentage)) / 100n;
+    const projectAmount = collectedFunds - devFeeAmount;
+
+    const transaction = new TransactionBuilder(ctx.mockChain.height)
+      .from([projectBox, ...spender.utxos.toArray()])
+      .to([
+        new OutputBuilder(projectAmount, ctx.projectOwner.address),
+        new OutputBuilder(devFeeAmount, devFeeContract),
+      ])
+      .sendChangeTo(spender.address)
+      .payFee(RECOMMENDED_MIN_FEE_VALUE)
+      .build();
+
+    const result = ctx.mockChain.execute(transaction, { signers: [spender], throw: false });
+
+    expect(result).toBe(true);
+  });
+
   it("should not allow a withdrawal to recreate the contract outside OUTPUTS(0)", () => {
     // Anyone can trigger isWithdrawFunds - it carries no owner authentication by design,
     // since the funds are forced to the owner's ErgoTree. Here the spender is not the owner.
