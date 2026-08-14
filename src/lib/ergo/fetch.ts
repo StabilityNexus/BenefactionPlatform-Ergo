@@ -3,7 +3,7 @@ import { type ConstantContent, type Project, type TokenEIP4, getConstantContent,
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
 import { type contract_version, get_template_hash } from "./contract";
-import { explorer_uri, projects } from "$lib/common/store";
+import { explorer_uri, projects, project_id_conflicts } from "$lib/common/store";
 import { get } from "svelte/store";
 import { get_dev_contract_hash, get_dev_fee } from "./dev/dev_contract";
 
@@ -30,6 +30,39 @@ const CACHE_DURATION_MS = 1000 * 60 * 5;
 
 // Variable to track an ongoing request
 let inFlightFetch: Promise<Map<string, Project>> | null = null;
+
+/**
+ * Two unspent boxes can claim to be the same campaign at the same time.
+ *
+ * A project is identified by `tokens(0)` of the contract box, which is the APT: a fungible token
+ * with `amount = PFT emission + 1` that circulates to buyers by design, not a singleton NFT. The
+ * contract ErgoTree carries no per-project constants either, so it is identical for every campaign
+ * and anyone can reproduce it. Together that means anyone holding one unit of a campaign's APT can
+ * build a box that parses as that same campaign, with an owner, an exchange rate and counters of
+ * their choosing.
+ *
+ * When that happens there is nothing in the box that says which one is real, so the UI must not
+ * pick: `fetchProjectsFromBlockchain` used to keep whichever box the explorer returned last, and
+ * `fetchProjectById` whichever parsed first. Both are now recorded as conflicts and hidden.
+ *
+ * The real fix is a singleton NFT plus canonical-box resolution by lineage. See #176.
+ */
+function recordConflict(projectId: string, boxIds: string[]) {
+    console.error(
+        `Project ${projectId} is claimed by ${boxIds.length} unspent boxes: ${boxIds.join(", ")}. ` +
+        `Refusing to display it, one of them is an impersonation.`
+    );
+    project_id_conflicts.update((current) => new Map(current).set(projectId, boxIds));
+}
+
+function clearConflict(projectId: string) {
+    project_id_conflicts.update((current) => {
+        if (!current.has(projectId)) return current;
+        const next = new Map(current);
+        next.delete(projectId);
+        return next;
+    });
+}
 
 function hasValidSigmaTypes(additionalRegisters: any, version: contract_version): boolean {
     if (!additionalRegisters) return false;
@@ -141,6 +174,13 @@ export async function fetchProjectsFromBlockchain() {
 
     const versions: contract_version[] = ["v2", "v1_1", "v1_0"];
 
+    // Box id seen for each project id during THIS sweep. It cannot be read off the `projects`
+    // store: a non-forced refetch keeps the previous entries, whose box ids are legitimately
+    // outdated after any action on the campaign, and comparing against them would report every
+    // active campaign as a conflict.
+    const boxIdByProject = new Map<string, string>();
+    const conflicts = new Map<string, string[]>();
+
     try {
         for (const version of versions) {
             moreDataAvailable = true;
@@ -182,15 +222,33 @@ export async function fetchProjectsFromBlockchain() {
 
                 for (const e of json_data.items) {
                     const project = await parseProjectBox(e, version);
-                    if (project) {
+                    if (!project) continue;
+
+                    const knownBoxId = boxIdByProject.get(project.project_id);
+                    if (knownBoxId !== undefined && knownBoxId !== project.box.boxId) {
+                        const boxIds = conflicts.get(project.project_id) ?? [knownBoxId];
+                        if (!boxIds.includes(project.box.boxId)) boxIds.push(project.box.boxId);
+                        conflicts.set(project.project_id, boxIds);
+
+                        // Drop the one already listed instead of replacing it: neither can be trusted.
                         const current = get(projects).data;
-                        current.set(project.project_id, project)
+                        current.delete(project.project_id);
                         projects.set({ data: current, last_fetch: get(projects).last_fetch });
+                        continue;
                     }
+
+                    boxIdByProject.set(project.project_id, project.box.boxId);
+                    const current = get(projects).data;
+                    current.set(project.project_id, project)
+                    projects.set({ data: current, last_fetch: get(projects).last_fetch });
                 }
                 params.offset += params.limit;
             }
         }
+
+        // This sweep covers every unspent box carrying a campaign contract template, so it is
+        // authoritative for the listing: replace the previous verdict rather than accumulating.
+        project_id_conflicts.set(conflicts);
     } catch (error) {
         console.error('Error while making the POST request:', error);
         return new Map(); // Returns empty map in case of error
@@ -218,18 +276,32 @@ export async function fetchProjectById(projectId: string): Promise<Project | nul
              return null;
          }
 
-         // Iterate through all items to find a valid project box
+         // Parse every box that claims to be this project, not just the first one. Returning the
+         // first match would hand the page to whichever box the explorer happened to list first.
+         const candidates: Project[] = [];
          for (const box of json_data.items) {
              for (const v of versions) {
-                 // Try to parse with each version. 
+                 // Try to parse with each version.
                  const p = await parseProjectBox(box, v);
                  if (p) {
                      console.log(`Successfully parsed project ${projectId} with version ${v}`);
-                     return p;
+                     candidates.push(p);
+                     break;
                  }
              }
          }
-         
+
+         if (candidates.length > 1) {
+             recordConflict(projectId, candidates.map((p) => p.box.boxId));
+             return null;
+         }
+
+         clearConflict(projectId);
+
+         if (candidates.length === 1) {
+             return candidates[0];
+         }
+
          console.warn(`Failed to parse project ${projectId} with any version`);
          return null;
 
