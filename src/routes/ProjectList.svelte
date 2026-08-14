@@ -2,7 +2,7 @@
     import ProjectCard from "./ProjectCard.svelte";
     import ProjectCardSkeleton from "./ProjectCardSkeleton.svelte";
     import { type Project } from "$lib/common/project";
-    import { projects } from "$lib/common/store";
+    import { projects, project_id_conflicts } from "$lib/common/store";
     import { fetchProjects } from "$lib/ergo/fetch";
     import * as Alert from "$lib/components/ui/alert";
     import { Loader2, Search, Filter } from "lucide-svelte";
@@ -272,6 +272,19 @@
             <Alert.Description class="text-center"
                 >{errorMessage}</Alert.Description
             >
+        </Alert.Root>
+    {/if}
+
+    {#if $project_id_conflicts.size > 0}
+        <Alert.Root
+            class="my-4 border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300"
+        >
+            <Alert.Description class="text-center">
+                {$project_id_conflicts.size}
+                {$project_id_conflicts.size === 1 ? "campaign is" : "campaigns are"}
+                hidden: more than one box claims the same campaign id, so the real
+                one cannot be told apart from an imitation.
+            </Alert.Description>
         </Alert.Root>
     {/if}
 

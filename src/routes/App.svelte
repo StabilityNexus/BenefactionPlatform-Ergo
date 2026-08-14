@@ -6,6 +6,7 @@
         balance,
         network,
         project_detail,
+        project_load_error,
         project_token_amount,
         temporal_token_amount,
         timer,
@@ -131,6 +132,7 @@
         timer.set({ countdownInterval: 0, target: 0 });
 
         project_detail.set(null);
+        project_load_error.set(null);
         temporal_token_amount.set(null);
         project_token_amount.set(null);
 
@@ -396,6 +398,12 @@
         </div>
     {:else}
         {#if $project_detail === null}
+            {#if $project_load_error}
+                <div class="project-load-error" role="alert">
+                    <strong>This campaign could not be opened</strong>
+                    <p>{$project_load_error}</p>
+                </div>
+            {/if}
             {#if activeTab === "acquireTokens"}
                 <TokenAcquisition bind:searchQuery/>
             {/if}
@@ -489,6 +497,25 @@
 <SettingsModal bind:open={showSettingsModal} />
 
 <style>
+    .project-load-error {
+        max-width: 46rem;
+        margin: 1.5rem auto;
+        padding: 1rem 1.25rem;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        border-radius: 0.5rem;
+        background: rgba(239, 68, 68, 0.08);
+        color: rgb(185, 28, 28);
+    }
+
+    :global(.dark) .project-load-error {
+        color: rgb(252, 165, 165);
+    }
+
+    .project-load-error p {
+        margin: 0.5rem 0 0;
+        overflow-wrap: anywhere;
+    }
+
     :global(html) {
         height: 100%;
         scroll-behavior: smooth;
