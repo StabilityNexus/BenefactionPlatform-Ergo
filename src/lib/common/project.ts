@@ -61,7 +61,15 @@ export interface Project {
     version: contract_version,
     platform: Platform,
     box: Box<Amount>,
+    /**
+     * What identifies the campaign: the singleton NFT from v3 on, the APT before that.
+     *
+     * Keep using this for identity and for URLs. For the token that has to be moved in and out of
+     * the box, use {@link apt_token_id} - from v3 they are two different tokens.
+     */
     project_id: string,
+    /** The APT, the token contributors receive and hand back. `project_id` before v3. */
+    apt_token_id: string,
     current_idt_amount: number,
     pft_token_id: string,
     base_token_id: string,  // Base token ID for contributions (empty string for ERG)
