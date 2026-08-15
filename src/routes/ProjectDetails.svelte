@@ -21,6 +21,7 @@
     import { formatTransactionError } from "$lib/common/error-utils";
     import { ErgoPlatform } from "$lib/ergo/platform";
     import ShareModal from "$lib/components/ShareModal.svelte";
+    import LegacyContractBadge from "$lib/components/LegacyContractBadge.svelte";
     import {
         web_explorer_uri_tkn,
         web_explorer_uri_tx,
@@ -724,6 +725,9 @@
             if (updatedProject) {
                 project = {
                     ...project,
+                    // The box is replaced below, so the version has to come with it: leaving the
+                    // old one would let the badge describe a box it is not looking at.
+                    version: updatedProject.version,
                     sold_counter: updatedProject.sold_counter,
                     current_value: updatedProject.current_value,
                     refund_counter: updatedProject.refund_counter,
@@ -759,6 +763,9 @@
         >
             <div class="project-header">
                 <h1 class="project-title">{project.content.title}</h1>
+                <div class="project-badge">
+                    <LegacyContractBadge {project} />
+                </div>
                 <div class="project-badge" style="display: none;">
                     <a
                         href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es"

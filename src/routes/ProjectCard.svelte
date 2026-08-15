@@ -3,6 +3,7 @@
     import { is_ended, min_raised, type Project } from "$lib/common/project";
     import { project_detail, connected, balance } from "$lib/common/store";
     import { badgeVariants } from "$lib/components/ui/badge";
+    import LegacyContractBadge from "$lib/components/LegacyContractBadge.svelte";
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
     import { ErgoPlatform } from "$lib/ergo/platform";
@@ -120,6 +121,7 @@
             >
                 {project.content.title}
             </Card.Title>
+            <LegacyContractBadge {project} compact />
             <div hidden>
                 <a
                     href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es"

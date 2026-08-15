@@ -6,6 +6,7 @@ import { type contract_version, get_template_hash } from "./contract";
 import { explorer_uri, projects, project_id_conflicts } from "$lib/common/store";
 import { get } from "svelte/store";
 import { get_dev_contract_hash, get_dev_fee } from "./dev/dev_contract";
+import { resolveCanonicalBox } from "./lineage";
 
 const expectedSigmaTypesV1 = {
     R4: 'SInt',
@@ -62,6 +63,33 @@ function clearConflict(projectId: string) {
         next.delete(projectId);
         return next;
     });
+}
+
+/**
+ * Which of several boxes claiming one project id descends from the mint, or null when that cannot
+ * be established.
+ *
+ * This is the "canonical-box resolution by lineage" the note above points at. It answers the
+ * question the box itself cannot: the APT says which campaign a box claims to be, and the walk
+ * from the mint says which box the campaign actually is. Only called on an actual collision, so
+ * the extra explorer calls are not paid for on every project of every sweep.
+ */
+async function resolveByLineage<T extends { box: { boxId: string } }>(
+    projectId: string,
+    candidates: T[]
+): Promise<T | null> {
+    try {
+        const { box, ended } = await resolveCanonicalBox(projectId);
+        if (ended) {
+            console.warn(`Project ${projectId} has ended on chain; the boxes claiming it are leftovers`);
+        }
+        // With no canonical box - ended, or not resolvable - `box?.boxId` is undefined and matches
+        // no candidate, which is the answer wanted in both cases: none of these is the campaign.
+        return candidates.find((c) => c.box.boxId === box?.boxId) ?? null;
+    } catch (error) {
+        console.warn(`Could not resolve the lineage of ${projectId}:`, error);
+        return null;
+    }
 }
 
 function hasValidSigmaTypes(additionalRegisters: any, version: contract_version): boolean {
@@ -180,6 +208,9 @@ export async function fetchProjectsFromBlockchain() {
     // active campaign as a conflict.
     const boxIdByProject = new Map<string, string>();
     const conflicts = new Map<string, string[]>();
+    // The parsed project behind each box id above, so that a collision can be settled in favour of
+    // whichever of the two the lineage points at without parsing it again.
+    const seenThisSweep = new Map<string, Project>();
 
     try {
         for (const version of versions) {
@@ -226,18 +257,33 @@ export async function fetchProjectsFromBlockchain() {
 
                     const knownBoxId = boxIdByProject.get(project.project_id);
                     if (knownBoxId !== undefined && knownBoxId !== project.box.boxId) {
-                        const boxIds = conflicts.get(project.project_id) ?? [knownBoxId];
-                        if (!boxIds.includes(project.box.boxId)) boxIds.push(project.box.boxId);
-                        conflicts.set(project.project_id, boxIds);
+                        const rival = seenThisSweep.get(project.project_id);
+                        const winner = rival
+                            ? await resolveByLineage(project.project_id, [rival, project])
+                            : null;
 
-                        // Drop the one already listed instead of replacing it: neither can be trusted.
                         const current = get(projects).data;
-                        current.delete(project.project_id);
+                        if (winner) {
+                            // The chain settles it: one of them descends from the mint and the
+                            // other does not, so the campaign can be listed instead of hidden.
+                            conflicts.delete(project.project_id);
+                            boxIdByProject.set(project.project_id, winner.box.boxId);
+                            seenThisSweep.set(project.project_id, winner);
+                            current.set(project.project_id, winner);
+                        } else {
+                            const boxIds = conflicts.get(project.project_id) ?? [knownBoxId];
+                            if (!boxIds.includes(project.box.boxId)) boxIds.push(project.box.boxId);
+                            conflicts.set(project.project_id, boxIds);
+
+                            // Drop the one already listed instead of replacing it: neither can be trusted.
+                            current.delete(project.project_id);
+                        }
                         projects.set({ data: current, last_fetch: get(projects).last_fetch });
                         continue;
                     }
 
                     boxIdByProject.set(project.project_id, project.box.boxId);
+                    seenThisSweep.set(project.project_id, project);
                     const current = get(projects).data;
                     current.set(project.project_id, project)
                     projects.set({ data: current, last_fetch: get(projects).last_fetch });
@@ -258,6 +304,26 @@ export async function fetchProjectsFromBlockchain() {
 export async function fetchProjectById(projectId: string): Promise<Project | null> {
     console.log(`Fetching project by ID: ${projectId}`);
     const versions: contract_version[] = ["v2", "v1_1", "v1_0"];
+
+    // This is the page someone reads before sending money, so identity is established from the
+    // chain rather than taken on trust from a circulating token: walk from the mint and see which
+    // box that reaches. Unlike the listing sweep, one campaign is worth the round trips - and the
+    // walk is cached, so a second visit costs one call. See #176.
+    let lineage: { boxId: string | null; ended: boolean } | null = null;
+    try {
+        const { box, ended } = await resolveCanonicalBox(projectId);
+        lineage = { boxId: box?.boxId ?? null, ended };
+    } catch (error) {
+        console.warn(`Could not resolve the lineage of ${projectId}:`, error);
+    }
+
+    if (lineage?.ended) {
+        // The chain that starts at the mint has terminated: whatever still carries this token is
+        // a leftover, not the campaign. This is the #174 shape, where the closing transaction also
+        // left a copy behind.
+        console.warn(`Project ${projectId} has ended on chain; not displaying a leftover box`);
+        return null;
+    }
 
     try {
          const url = get(explorer_uri) + '/api/v1/boxes/unspent/byTokenId/' + projectId;
@@ -291,6 +357,25 @@ export async function fetchProjectById(projectId: string): Promise<Project | nul
              }
          }
 
+         if (lineage?.boxId) {
+             const canonical = candidates.find((p) => p.box.boxId === lineage!.boxId);
+             if (canonical) {
+                 clearConflict(projectId);
+                 return canonical;
+             }
+             // The box the chain points at is not among the unspent ones. Whatever is here
+             // instead is not the campaign, however plausible it parses.
+             if (candidates.length > 1) {
+                 recordConflict(projectId, candidates.map((p) => p.box.boxId));
+             }
+             console.warn(
+                 `The canonical box ${lineage.boxId} of ${projectId} is not among the unspent boxes`
+             );
+             return null;
+         }
+
+         // The lineage could not be resolved at all - no such token, or the explorer did not
+         // answer. Fall back to refusing a tie, which is where this stood before #176.
          if (candidates.length > 1) {
              recordConflict(projectId, candidates.map((p) => p.box.boxId));
              return null;
