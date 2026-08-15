@@ -289,7 +289,8 @@
         const decimalDivisor = Math.pow(10, project.token_details.decimals);
         userProjectTokenBalance = rawProjectTokens / decimalDivisor;
 
-        const rawTemporalTokens = userTokens.get(project.project_id) || 0;
+        // The APT is what a contributor holds; from v3 on it is not the project id.
+        const rawTemporalTokens = userTokens.get(project.apt_token_id) || 0;
         userTemporalTokenBalance = rawTemporalTokens / decimalDivisor;
 
         let maxBaseTokenContribution;
@@ -709,8 +710,8 @@
         project_token_amount.set(formattedProjectTokens);
 
         var temporal_tokens =
-            (await platform.get_balance(project.project_id)).get(
-                project.project_id,
+            (await platform.get_balance(project.apt_token_id)).get(
+                project.apt_token_id,
             ) ?? 0;
         const normalizedTemporalTokens =
             temporal_tokens / Math.pow(10, project.token_details.decimals);
