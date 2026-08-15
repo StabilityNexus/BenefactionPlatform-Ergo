@@ -1,5 +1,6 @@
 import { vi } from "vitest";
 import { get_dev_contract_hash, get_dev_fee } from "$lib/ergo/dev/dev_contract";
+import { get_ergotree_hex, type contract_version } from "$lib/ergo/contract";
 
 /**
  * A tiny in-memory stand-in for the Ergo explorer, serving only the three endpoints the lineage
@@ -156,9 +157,20 @@ export const PFT_TOKEN_ID = "d".repeat(64);
  */
 export function asV2Project(
     box: FakeBox,
-    opts: { title?: string; pftTokenId?: string; pftAmount?: number; deadline?: number } = {}
+    opts: {
+        title?: string;
+        pftTokenId?: string;
+        pftAmount?: number;
+        deadline?: number;
+        version?: contract_version;
+    } = {}
 ): FakeBox {
+    const version = opts.version ?? "v2";
     const pft = opts.pftTokenId ?? PFT_TOKEN_ID;
+    // The script is what tells the versions apart - the registers do not, and neither do the
+    // tokens once a v2 campaign has sold down to its last APT. A fixture with a made-up ergo tree
+    // parses as nothing at all, which is the correct behaviour and worth having in the fixtures.
+    box.ergoTree = get_ergotree_hex({} as any, version);
     const owner = "0008cd03" + "11".repeat(32);
     const content = JSON.stringify({
         title: opts.title ?? "A project",

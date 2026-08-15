@@ -17,6 +17,7 @@ import { FakeExplorer, EXPLORER_URI, asV2Project, type FakeBox } from "./fake_ex
  */
 
 const PROJECT_ID = "c".repeat(64);
+const NFT_ID = "e".repeat(64);
 
 let explorer: FakeExplorer;
 const realFetch = globalThis.fetch;
@@ -124,6 +125,53 @@ describe("the campaign page", () => {
         asV2Project(explorer.box(PROJECT_ID, 100, "only"), { title: "Alone" });
 
         expect((await fetchProjectById(PROJECT_ID))?.box.boxId).toBe("only");
+    });
+
+    it("reads a sold-out v2 campaign as v2, not as v3", async () => {
+        // A v2 contract keeps one APT in the box so the token is always present, so a campaign
+        // that has sold out holds exactly 1 of it at index 0 - indistinguishable by tokens alone
+        // from v3's singleton NFT. Getting this wrong would put a v2 withdrawal on v3's fee rule,
+        // which the deployed contract rejects.
+        const box = asV2Project(explorer.box(PROJECT_ID, 1, "soldout"), { title: "Sold out" });
+        expect(box.assets[0].amount).toBe(1);
+
+        const project = await fetchProjectById(PROJECT_ID);
+
+        expect(project?.version).toBe("v2");
+        expect(project?.apt_token_id).toBe(PROJECT_ID);
+    });
+
+    it("reads a v3 campaign as v3", async () => {
+        const box = explorer.box(NFT_ID, 1, "v3box");
+        asV2Project(box, { title: "New style", version: "v3" });
+        // NFT at 0, APT at 1, PFT at 2 - the v3 layout.
+        box.assets = [
+            { tokenId: NFT_ID, amount: 1 },
+            { tokenId: PROJECT_ID, amount: 100_001 },
+            box.assets[1],
+        ];
+
+        const project = await fetchProjectById(NFT_ID);
+
+        expect(project?.version).toBe("v3");
+        expect(project?.project_id).toBe(NFT_ID);
+        expect(project?.apt_token_id).toBe(PROJECT_ID);
+        expect(project?.current_idt_amount).toBe(100_001);
+    });
+
+    it("refuses a v3-scripted box whose first token is not a singleton", async () => {
+        // The v3 script is public and anyone can lock a box with it. What they cannot do is put a
+        // singleton at tokens(0) whose id comes from a box that no longer exists - so a lookalike
+        // has to carry something else there, and that is what this catches.
+        const box = explorer.box(NFT_ID, 5, "lookalike");
+        asV2Project(box, { title: "Not a campaign", version: "v3" });
+        box.assets = [
+            { tokenId: NFT_ID, amount: 5 },
+            { tokenId: PROJECT_ID, amount: 100_001 },
+            box.assets[1],
+        ];
+
+        expect(await fetchProjectById(NFT_ID)).toBeNull();
     });
 });
 
