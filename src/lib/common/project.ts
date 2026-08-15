@@ -61,7 +61,15 @@ export interface Project {
     version: contract_version,
     platform: Platform,
     box: Box<Amount>,
+    /**
+     * What identifies the campaign: the singleton NFT from v3 on, the APT before that.
+     *
+     * Keep using this for identity and for URLs. For the token that has to be moved in and out of
+     * the box, use {@link apt_token_id} - from v3 they are two different tokens.
+     */
     project_id: string,
+    /** The APT, the token contributors receive and hand back. `project_id` before v3. */
+    apt_token_id: string,
     current_idt_amount: number,
     pft_token_id: string,
     base_token_id: string,  // Base token ID for contributions (empty string for ERG)
@@ -82,6 +90,19 @@ export interface Project {
     token_details: TokenEIP4,
     content: ProjectContent,
     constants: ConstantContent
+}
+
+/**
+ * Whether a project runs on an older contract than the one the platform deploys today.
+ *
+ * Written as a comparison against `last_version` rather than a list of old versions, so that
+ * publishing a new contract marks its predecessor without anyone having to remember to come back
+ * here. It matters for #176: the versions this returns true for are the ones with no on-chain
+ * identity beyond a circulating token, so a campaign on one is worth a second look before it is
+ * funded.
+ */
+export function is_legacy_version(project: Project): boolean {
+    return project.version !== project.platform.last_version;
 }
 
 export async function is_ended(project: Project): Promise<boolean> {

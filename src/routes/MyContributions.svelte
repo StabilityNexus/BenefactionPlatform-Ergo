@@ -27,8 +27,8 @@
             return (
                 (tokens.has(project.pft_token_id) &&
                     (tokens.get(project.pft_token_id) ?? 0) > 0) ||
-                (tokens.has(project.project_id) &&
-                    (tokens.get(project.project_id) ?? 0) > 0)
+                (tokens.has(project.apt_token_id) &&
+                    (tokens.get(project.apt_token_id) ?? 0) > 0)
             );
         } catch (error) {
             console.error("Error checking project token:", error);

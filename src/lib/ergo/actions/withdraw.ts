@@ -7,7 +7,8 @@ import {
 } from '@fleet-sdk/core';
 import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
-import { get_ergotree_hex } from '../contract';
+import { get_ergotree_hex, supports_base_token } from '../contract';
+import { addIdentityTokens, dev_fee_for } from '../replica';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
 import { get_dev_contract_address } from '../dev/dev_contract';
 import { SColl, SPair, SByte, SBool } from '@fleet-sdk/serializer';
@@ -19,17 +20,23 @@ export async function withdraw(
 ): Promise<string | null> {
 
     // Check if this is a multi-token contract (v2) with a base token
-    const isMultiToken = project.version === "v2" && project.base_token_id && project.base_token_id !== "";
+    const isMultiToken = supports_base_token(project.version) && project.base_token_id && project.base_token_id !== "";
     const isERGBase = !isMultiToken;
 
-    // Convert amount to smallest unit
+    // Convert amount to smallest unit.
+    //
+    // Rounded, because the multiplication does not land on an integer for a good share of ordinary
+    // inputs - 1.07 ERG gives 1070000000.0000001, 2.01 gives 2009999999.9999998 - and everything
+    // downstream turns these into BigInt, which throws on anything fractional. Rounding rather
+    // than truncating, so that 2.01 means 2010000000 and not one nanoERG less. The other actions
+    // already guard this multiplication; this one did not.
     if (isERGBase) {
         // For ERG-based contracts, convert to nanoERG
-        amount = amount * Math.pow(10, 9);
+        amount = Math.round(amount * Math.pow(10, 9));
     } else {
         // For token-based contracts, convert to smallest unit using token decimals
         const baseTokenDecimals = project.base_token_details?.decimals || 0;
-        amount = amount * Math.pow(10, baseTokenDecimals);
+        amount = Math.round(amount * Math.pow(10, baseTokenDecimals));
     }
 
     console.log("wants withdraw ", amount, isERGBase ? "(ERG)" : "(base token)")
@@ -75,13 +82,9 @@ export async function withdraw(
         }
     }
 
-    // Calculate dev fee and project amounts according to contract logic
-    let devFeeAmount = Math.floor(extractedBaseAmount * devFeePercentage / 100);
-
-    // Apply contract logic: if devFeeAmount < 1, set to 0
-    if (devFeeAmount < 1) {
-        devFeeAmount = 0;
-    }
+    // The fee is whatever the contract of THIS box computes - v3 rounds up, v2 and earlier
+    // truncate. See dev_fee_for and #177.
+    const devFeeAmount = Number(dev_fee_for(extractedBaseAmount, devFeePercentage, project.version));
 
     const projectAmountBase = extractedBaseAmount - devFeeAmount;
 
@@ -132,10 +135,9 @@ export async function withdraw(
         const contractOutput = new OutputBuilder(
             remainingErg,
             get_ergotree_hex(project.constants, project.version)
-        ).addTokens({
-            tokenId: project.project_id,
-            amount: BigInt(project.current_idt_amount) // APT remains constant
-        });
+        );
+        // The APT is untouched by a withdrawal; the NFT rides along in v3.
+        addIdentityTokens(contractOutput, project, BigInt(project.current_idt_amount));
 
         // Add PFT tokens if they exist (ProofFundingTokenRemainsConstant)
         if (project.current_pft_amount > 0) {

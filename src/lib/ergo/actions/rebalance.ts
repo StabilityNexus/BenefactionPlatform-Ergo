@@ -10,6 +10,7 @@ import {
 import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
+import { addIdentityTokens } from '../replica';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
 import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
@@ -35,11 +36,8 @@ export async function rebalance(
         let contract_output = new OutputBuilder(
             BigInt(project.value),
             get_ergotree_hex(project.constants, project.version)
-        )
-            .addTokens({
-                tokenId: project.project_id,
-                amount: BigInt(project.current_idt_amount)
-            });
+        );
+        addIdentityTokens(contract_output, project, BigInt(project.current_idt_amount));
 
         console.log("PFT current amount " + project.current_pft_amount / Math.pow(10, project.token_details.decimals))
         let contract_token_amount = project.current_pft_amount + token_amount;

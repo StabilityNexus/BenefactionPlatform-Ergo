@@ -2,10 +2,11 @@ import { type Box, SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
 import { type ConstantContent, type Project, type TokenEIP4, getConstantContent, getProjectContent } from "../common/project";
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
-import { type contract_version, get_template_hash } from "./contract";
+import { type contract_version, get_template_hash, get_ergotree_hex, CONTRACT_VERSIONS, has_project_nft, has_deadline_tuple } from "./contract";
 import { explorer_uri, projects, project_id_conflicts } from "$lib/common/store";
 import { get } from "svelte/store";
 import { get_dev_contract_hash, get_dev_fee } from "./dev/dev_contract";
+import { resolveCanonicalBox } from "./lineage";
 
 const expectedSigmaTypesV1 = {
     R4: 'SInt',
@@ -16,6 +17,7 @@ const expectedSigmaTypesV1 = {
     R9: 'Coll[SByte]'
 };
 
+// v3 changed the token layout, not the registers, so it validates against the same shape as v2.
 const expectedSigmaTypesV2 = {
     R4: '(SBoolean, SLong)',
     R5: 'SLong',
@@ -64,9 +66,36 @@ function clearConflict(projectId: string) {
     });
 }
 
+/**
+ * Which of several boxes claiming one project id descends from the mint, or null when that cannot
+ * be established.
+ *
+ * This is the "canonical-box resolution by lineage" the note above points at. It answers the
+ * question the box itself cannot: the APT says which campaign a box claims to be, and the walk
+ * from the mint says which box the campaign actually is. Only called on an actual collision, so
+ * the extra explorer calls are not paid for on every project of every sweep.
+ */
+async function resolveByLineage<T extends { box: { boxId: string } }>(
+    projectId: string,
+    candidates: T[]
+): Promise<T | null> {
+    try {
+        const { box, ended } = await resolveCanonicalBox(projectId);
+        if (ended) {
+            console.warn(`Project ${projectId} has ended on chain; the boxes claiming it are leftovers`);
+        }
+        // With no canonical box - ended, or not resolvable - `box?.boxId` is undefined and matches
+        // no candidate, which is the answer wanted in both cases: none of these is the campaign.
+        return candidates.find((c) => c.box.boxId === box?.boxId) ?? null;
+    } catch (error) {
+        console.warn(`Could not resolve the lineage of ${projectId}:`, error);
+        return null;
+    }
+}
+
 function hasValidSigmaTypes(additionalRegisters: any, version: contract_version): boolean {
     if (!additionalRegisters) return false;
-    const expectedTypes = version === "v2" ? expectedSigmaTypesV2 : expectedSigmaTypesV1;
+    const expectedTypes = (version === "v2" || version === "v3") ? expectedSigmaTypesV2 : expectedSigmaTypesV1;
     for (const [key, expectedType] of Object.entries(expectedTypes)) {
         // Check if register exists AND has correct type
         if (!additionalRegisters[key] || additionalRegisters[key].sigmaType !== expectedType) {
@@ -172,7 +201,7 @@ export async function fetchProjectsFromBlockchain() {
     const registers = {};
     let moreDataAvailable;
 
-    const versions: contract_version[] = ["v2", "v1_1", "v1_0"];
+    const versions: contract_version[] = [...CONTRACT_VERSIONS];
 
     // Box id seen for each project id during THIS sweep. It cannot be read off the `projects`
     // store: a non-forced refetch keeps the previous entries, whose box ids are legitimately
@@ -180,6 +209,9 @@ export async function fetchProjectsFromBlockchain() {
     // active campaign as a conflict.
     const boxIdByProject = new Map<string, string>();
     const conflicts = new Map<string, string[]>();
+    // The parsed project behind each box id above, so that a collision can be settled in favour of
+    // whichever of the two the lineage points at without parsing it again.
+    const seenThisSweep = new Map<string, Project>();
 
     try {
         for (const version of versions) {
@@ -226,18 +258,33 @@ export async function fetchProjectsFromBlockchain() {
 
                     const knownBoxId = boxIdByProject.get(project.project_id);
                     if (knownBoxId !== undefined && knownBoxId !== project.box.boxId) {
-                        const boxIds = conflicts.get(project.project_id) ?? [knownBoxId];
-                        if (!boxIds.includes(project.box.boxId)) boxIds.push(project.box.boxId);
-                        conflicts.set(project.project_id, boxIds);
+                        const rival = seenThisSweep.get(project.project_id);
+                        const winner = rival
+                            ? await resolveByLineage(project.project_id, [rival, project])
+                            : null;
 
-                        // Drop the one already listed instead of replacing it: neither can be trusted.
                         const current = get(projects).data;
-                        current.delete(project.project_id);
+                        if (winner) {
+                            // The chain settles it: one of them descends from the mint and the
+                            // other does not, so the campaign can be listed instead of hidden.
+                            conflicts.delete(project.project_id);
+                            boxIdByProject.set(project.project_id, winner.box.boxId);
+                            seenThisSweep.set(project.project_id, winner);
+                            current.set(project.project_id, winner);
+                        } else {
+                            const boxIds = conflicts.get(project.project_id) ?? [knownBoxId];
+                            if (!boxIds.includes(project.box.boxId)) boxIds.push(project.box.boxId);
+                            conflicts.set(project.project_id, boxIds);
+
+                            // Drop the one already listed instead of replacing it: neither can be trusted.
+                            current.delete(project.project_id);
+                        }
                         projects.set({ data: current, last_fetch: get(projects).last_fetch });
                         continue;
                     }
 
                     boxIdByProject.set(project.project_id, project.box.boxId);
+                    seenThisSweep.set(project.project_id, project);
                     const current = get(projects).data;
                     current.set(project.project_id, project)
                     projects.set({ data: current, last_fetch: get(projects).last_fetch });
@@ -257,7 +304,27 @@ export async function fetchProjectsFromBlockchain() {
 
 export async function fetchProjectById(projectId: string): Promise<Project | null> {
     console.log(`Fetching project by ID: ${projectId}`);
-    const versions: contract_version[] = ["v2", "v1_1", "v1_0"];
+    const versions: contract_version[] = [...CONTRACT_VERSIONS];
+
+    // This is the page someone reads before sending money, so identity is established from the
+    // chain rather than taken on trust from a circulating token: walk from the mint and see which
+    // box that reaches. Unlike the listing sweep, one campaign is worth the round trips - and the
+    // walk is cached, so a second visit costs one call. See #176.
+    let lineage: { boxId: string | null; ended: boolean } | null = null;
+    try {
+        const { box, ended } = await resolveCanonicalBox(projectId);
+        lineage = { boxId: box?.boxId ?? null, ended };
+    } catch (error) {
+        console.warn(`Could not resolve the lineage of ${projectId}:`, error);
+    }
+
+    if (lineage?.ended) {
+        // The chain that starts at the mint has terminated: whatever still carries this token is
+        // a leftover, not the campaign. This is the #174 shape, where the closing transaction also
+        // left a copy behind.
+        console.warn(`Project ${projectId} has ended on chain; not displaying a leftover box`);
+        return null;
+    }
 
     try {
          const url = get(explorer_uri) + '/api/v1/boxes/unspent/byTokenId/' + projectId;
@@ -291,6 +358,25 @@ export async function fetchProjectById(projectId: string): Promise<Project | nul
              }
          }
 
+         if (lineage?.boxId) {
+             const canonical = candidates.find((p) => p.box.boxId === lineage!.boxId);
+             if (canonical) {
+                 clearConflict(projectId);
+                 return canonical;
+             }
+             // The box the chain points at is not among the unspent ones. Whatever is here
+             // instead is not the campaign, however plausible it parses.
+             if (candidates.length > 1) {
+                 recordConflict(projectId, candidates.map((p) => p.box.boxId));
+             }
+             console.warn(
+                 `The canonical box ${lineage.boxId} of ${projectId} is not among the unspent boxes`
+             );
+             return null;
+         }
+
+         // The lineage could not be resolved at all - no such token, or the explorer did not
+         // answer. Fall back to refusing a tie, which is where this stood before #176.
          if (candidates.length > 1) {
              recordConflict(projectId, candidates.map((p) => p.box.boxId));
              return null;
@@ -308,6 +394,27 @@ export async function fetchProjectById(projectId: string): Promise<Project | nul
     } catch (error) {
         console.error(`Error fetching project ${projectId}:`, error);
         return null;
+    }
+}
+
+/**
+ * Whether the box is actually locked by `version`'s script.
+ *
+ * The registers do not tell versions apart on their own, and neither do the tokens: a v2 campaign
+ * that has sold out holds exactly 1 APT - the +1 the contract keeps so the token is always present
+ * - which looks exactly like v3's singleton NFT. The script is what distinguishes them, and it is
+ * the same check the contract itself makes when it replicates.
+ *
+ * Only checkable for the versions whose source carries no per-project constants; a v1 script
+ * cannot be rebuilt from the box, so those are left to the register shapes as before.
+ */
+function locked_by_version(e: any, version: contract_version, constants: ConstantContent): boolean {
+    if (version !== "v2" && version !== "v3") return true;
+    try {
+        return e.ergoTree === get_ergotree_hex(constants, version);
+    } catch (error) {
+        console.warn(`Could not rebuild the ${version} script to check box ${e.boxId}:`, error);
+        return false;
     }
 }
 
@@ -353,7 +460,21 @@ async function parseProjectBox(e: any, version: contract_version): Promise<Proje
             }
         }
 
+        if (!locked_by_version(e, version, constants)) return null;
+
+        // From v3 the box carries a singleton NFT at index 0 and the APT at index 1; before that
+        // the APT sat at index 0 and did both jobs. The NFT is what makes a v3 box identifiable
+        // without walking its lineage, so its amount is checked here rather than assumed: a box
+        // whose "NFT" has any other amount is not a v3 project, whatever else it looks like.
+        const nft = has_project_nft(version);
+        if (nft && (e.assets.length < 2 || Number(e.assets[0].amount) !== 1)) {
+            console.warn(`Box ${e.boxId} claims to be ${version} but carries no singleton at tokens(0)`);
+            return null;
+        }
+        const aptIndex = nft ? 1 : 0;
         let project_id = e.assets[0].tokenId;
+        let apt_token_id = e.assets[aptIndex].tokenId;
+        let current_idt_amount = e.assets[aptIndex].amount;
         let token_id = constants.pft_token_id;
         let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
 
@@ -370,7 +491,7 @@ async function parseProjectBox(e: any, version: contract_version): Promise<Proje
 
         let block_limit: number = 0;
         let is_timestamp_limit = false;
-        if (version === "v2") {
+        if (has_deadline_tuple(version)) {
             const r4Value = JSON.parse(e.additionalRegisters.R4?.renderedValue.replace(/\[([a-f0-9]+)(,.*)/, '["$1"$2'));
             if (!Array.isArray(r4Value) || r4Value.length < 2) throw new Error("R4 is not a valid tuple (Type, Deadline).");
 
@@ -407,7 +528,8 @@ async function parseProjectBox(e: any, version: contract_version): Promise<Proje
                 transactionId: e.transactionId
             },
             project_id: project_id,
-            current_idt_amount: e.assets[0].amount,
+            apt_token_id: apt_token_id,
+            current_idt_amount: current_idt_amount,
             pft_token_id: constants.pft_token_id,
             base_token_id: base_token_id,
             base_token_details: base_token_details,
