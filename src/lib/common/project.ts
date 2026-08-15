@@ -84,6 +84,19 @@ export interface Project {
     constants: ConstantContent
 }
 
+/**
+ * Whether a project runs on an older contract than the one the platform deploys today.
+ *
+ * Written as a comparison against `last_version` rather than a list of old versions, so that
+ * publishing a new contract marks its predecessor without anyone having to remember to come back
+ * here. It matters for #176: the versions this returns true for are the ones with no on-chain
+ * identity beyond a circulating token, so a campaign on one is worth a second look before it is
+ * funded.
+ */
+export function is_legacy_version(project: Project): boolean {
+    return project.version !== project.platform.last_version;
+}
+
 export async function is_ended(project: Project): Promise<boolean> {
     if (project.is_timestamp_limit) {
         // In timestamp mode, compare with current time
