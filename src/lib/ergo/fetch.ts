@@ -2,7 +2,7 @@ import { type Box, SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
 import { type ConstantContent, type Project, type TokenEIP4, getConstantContent, getProjectContent } from "../common/project";
 import { ErgoPlatform } from "./platform";
 import { hexToUtf8 } from "./utils";
-import { type contract_version, get_template_hash } from "./contract";
+import { type contract_version, get_template_hash, get_ergotree_hex, CONTRACT_VERSIONS, has_project_nft, has_deadline_tuple } from "./contract";
 import { explorer_uri, projects, project_id_conflicts } from "$lib/common/store";
 import { get } from "svelte/store";
 import { get_dev_contract_hash, get_dev_fee } from "./dev/dev_contract";
@@ -17,6 +17,7 @@ const expectedSigmaTypesV1 = {
     R9: 'Coll[SByte]'
 };
 
+// v3 changed the token layout, not the registers, so it validates against the same shape as v2.
 const expectedSigmaTypesV2 = {
     R4: '(SBoolean, SLong)',
     R5: 'SLong',
@@ -94,7 +95,7 @@ async function resolveByLineage<T extends { box: { boxId: string } }>(
 
 function hasValidSigmaTypes(additionalRegisters: any, version: contract_version): boolean {
     if (!additionalRegisters) return false;
-    const expectedTypes = version === "v2" ? expectedSigmaTypesV2 : expectedSigmaTypesV1;
+    const expectedTypes = (version === "v2" || version === "v3") ? expectedSigmaTypesV2 : expectedSigmaTypesV1;
     for (const [key, expectedType] of Object.entries(expectedTypes)) {
         // Check if register exists AND has correct type
         if (!additionalRegisters[key] || additionalRegisters[key].sigmaType !== expectedType) {
@@ -200,7 +201,7 @@ export async function fetchProjectsFromBlockchain() {
     const registers = {};
     let moreDataAvailable;
 
-    const versions: contract_version[] = ["v2", "v1_1", "v1_0"];
+    const versions: contract_version[] = [...CONTRACT_VERSIONS];
 
     // Box id seen for each project id during THIS sweep. It cannot be read off the `projects`
     // store: a non-forced refetch keeps the previous entries, whose box ids are legitimately
@@ -303,7 +304,7 @@ export async function fetchProjectsFromBlockchain() {
 
 export async function fetchProjectById(projectId: string): Promise<Project | null> {
     console.log(`Fetching project by ID: ${projectId}`);
-    const versions: contract_version[] = ["v2", "v1_1", "v1_0"];
+    const versions: contract_version[] = [...CONTRACT_VERSIONS];
 
     // This is the page someone reads before sending money, so identity is established from the
     // chain rather than taken on trust from a circulating token: walk from the mint and see which
@@ -396,6 +397,27 @@ export async function fetchProjectById(projectId: string): Promise<Project | nul
     }
 }
 
+/**
+ * Whether the box is actually locked by `version`'s script.
+ *
+ * The registers do not tell versions apart on their own, and neither do the tokens: a v2 campaign
+ * that has sold out holds exactly 1 APT - the +1 the contract keeps so the token is always present
+ * - which looks exactly like v3's singleton NFT. The script is what distinguishes them, and it is
+ * the same check the contract itself makes when it replicates.
+ *
+ * Only checkable for the versions whose source carries no per-project constants; a v1 script
+ * cannot be rebuilt from the box, so those are left to the register shapes as before.
+ */
+function locked_by_version(e: any, version: contract_version, constants: ConstantContent): boolean {
+    if (version !== "v2" && version !== "v3") return true;
+    try {
+        return e.ergoTree === get_ergotree_hex(constants, version);
+    } catch (error) {
+        console.warn(`Could not rebuild the ${version} script to check box ${e.boxId}:`, error);
+        return false;
+    }
+}
+
 async function parseProjectBox(e: any, version: contract_version): Promise<Project | null> {
     if (hasValidSigmaTypes(e.additionalRegisters, version)) {
         let constants: ConstantContent | null = null;
@@ -438,7 +460,21 @@ async function parseProjectBox(e: any, version: contract_version): Promise<Proje
             }
         }
 
+        if (!locked_by_version(e, version, constants)) return null;
+
+        // From v3 the box carries a singleton NFT at index 0 and the APT at index 1; before that
+        // the APT sat at index 0 and did both jobs. The NFT is what makes a v3 box identifiable
+        // without walking its lineage, so its amount is checked here rather than assumed: a box
+        // whose "NFT" has any other amount is not a v3 project, whatever else it looks like.
+        const nft = has_project_nft(version);
+        if (nft && (e.assets.length < 2 || Number(e.assets[0].amount) !== 1)) {
+            console.warn(`Box ${e.boxId} claims to be ${version} but carries no singleton at tokens(0)`);
+            return null;
+        }
+        const aptIndex = nft ? 1 : 0;
         let project_id = e.assets[0].tokenId;
+        let apt_token_id = e.assets[aptIndex].tokenId;
+        let current_idt_amount = e.assets[aptIndex].amount;
         let token_id = constants.pft_token_id;
         let [token_amount_sold, refunded_token_amount, auxiliar_exchange_counter] = JSON.parse(e.additionalRegisters.R6.renderedValue);
 
@@ -455,7 +491,7 @@ async function parseProjectBox(e: any, version: contract_version): Promise<Proje
 
         let block_limit: number = 0;
         let is_timestamp_limit = false;
-        if (version === "v2") {
+        if (has_deadline_tuple(version)) {
             const r4Value = JSON.parse(e.additionalRegisters.R4?.renderedValue.replace(/\[([a-f0-9]+)(,.*)/, '["$1"$2'));
             if (!Array.isArray(r4Value) || r4Value.length < 2) throw new Error("R4 is not a valid tuple (Type, Deadline).");
 
@@ -492,7 +528,8 @@ async function parseProjectBox(e: any, version: contract_version): Promise<Proje
                 transactionId: e.transactionId
             },
             project_id: project_id,
-            current_idt_amount: e.assets[0].amount,
+            apt_token_id: apt_token_id,
+            current_idt_amount: current_idt_amount,
             pft_token_id: constants.pft_token_id,
             base_token_id: base_token_id,
             base_token_details: base_token_details,
