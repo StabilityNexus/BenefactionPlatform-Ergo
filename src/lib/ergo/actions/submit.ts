@@ -10,6 +10,7 @@ import {
 import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
 import { type contract_version, get_ergotree_hex, mint_contract_address } from '../contract';
+import { buildProjectOutput, project_token_count } from '../replica';
 import { createR8Structure, type ConstantContent } from '$lib/common/project';
 import { get_dev_contract_address, get_dev_contract_hash, get_dev_fee } from '../dev/dev_contract';
 import { fetch_token_details } from '../fetch';
@@ -114,13 +115,15 @@ export async function* submit_project(
     // CRITICAL: token id determinism.
     // The minted token id MUST equal the boxId of the FIRST input of the minting transaction.
     // We explicitly pick and lock `issuanceBox` to guarantee both:
-    // - `project_id` correctness, and
+    // - the APT id being what the project box will declare, and
     // - `issuanceBox` is actually the first input passed to FleetSDK.
     const issuanceBox = walletUtxos[0];
     const mintInputs = [issuanceBox, ...walletUtxos.filter((b: any) => b.boxId !== issuanceBox.boxId)];
 
     // Token id of an issued token is always the boxId of the first input of the issuance transaction.
-    const project_id = issuanceBox.boxId;
+    // From v3 this is the APT only: identity moved to a separate NFT, minted in Tx B, whose id is
+    // the mint box's - see below.
+    const apt_token_id = issuanceBox.boxId;
 
     const r4Hex = SPair(SBool(is_timestamp_limit), SLong(BigInt(blockLimit))).toHex();
     const r5Hex = SLong(BigInt(minimumSold)).toHex();
@@ -138,14 +141,18 @@ export async function* submit_project(
     // CRITICAL: never use placeholder token ids (e.g. `token_id ?? ""`) because it can create invalid boxes.
     // Base token id is a *parameter* (in R8) and is not required to be present in the box at creation.
     const projectTokens: Array<{ tokenId: string; amount: bigint }> = [
-        { tokenId: project_id, amount: BigInt(id_token_amount) },
+        { tokenId: apt_token_id, amount: BigInt(id_token_amount) },
         { tokenId: token_id, amount: BigInt(token_amount) }
     ];
+
+    // v3 carries one token more than the list above: the project NFT, minted in Tx B and placed at
+    // index 0 by the builder, so it does not appear here but does take up room.
+    const tokenCount = project_token_count(version, projectTokens.length);
 
     // Estimate total box size
     const totalEstimatedSize = estimateTotalBoxSize(
         ergoTreeAddress.length,
-        projectTokens.length,
+        tokenCount,
         registerSizes
     );
 
@@ -167,19 +174,15 @@ export async function* submit_project(
     });
 
     // Tx B output #0: campaign/project box. This must be OUTPUTS(0) for `mint_idt.es` validation.
-    const projectOutput = new OutputBuilder(
-        minRequiredValue,
-        ergoTreeAddress
-    )
-        .addTokens(projectTokens)
-        .setAdditionalRegisters({
-            R4: r4Hex,
-            R5: r5Hex,
-            R6: r6Hex,
-            R7: r7Hex,
-            R8: r8Hex,
-            R9: r9Hex
-        });
+    // tests/contracts/v3_creation.test.ts runs this same builder against the compiled contracts.
+    const projectOutput = buildProjectOutput({
+        version,
+        value: minRequiredValue,
+        ergoTree: ergoTreeAddress,
+        title,
+        tokens: projectTokens,
+        registers: { R4: r4Hex, R5: r5Hex, R6: r6Hex, R7: r7Hex, R8: r8Hex, R9: r9Hex }
+    });
 
     // Build a chained bundle (Tx A -> Tx B). Wallet signs once.
     const unsignedTransactions = await new TransactionBuilder(await getCurrentHeight())

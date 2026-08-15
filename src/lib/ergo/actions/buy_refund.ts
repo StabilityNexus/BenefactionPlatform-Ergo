@@ -9,6 +9,7 @@ import {
 import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
+import { addIdentityTokens } from '../replica';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
 import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
@@ -45,10 +46,12 @@ export async function buy_refund(
         let hasRequiredTokens = false;
 
 
+        // What a contributor holds and hands back is the APT, not the project id: from v3 on the
+        // project id is the NFT, which never leaves the box.
         for (const utxo of walletUtxos) {
             if (utxo.assets && utxo.assets.length > 0) {
                 for (const asset of utxo.assets) {
-                    if (asset.tokenId === project.project_id) {
+                    if (asset.tokenId === project.apt_token_id) {
                         if (Number(asset.amount) >= requiredTokenAmount) {
                             hasRequiredTokens = true;
                             break;
@@ -85,11 +88,9 @@ export async function buy_refund(
     let output = new OutputBuilder(
         BigInt(contractErgValue).toString(),
         get_ergotree_hex(project.constants, project.version)
-    )
-        .addTokens({
-            tokenId: project.project_id,
-            amount: BigInt(project.current_idt_amount - token_amount).toString()  // Buy: extract tokens, Refund: add tokens
-        });
+    );
+    // Buy: extract APT, Refund: add it back. The NFT stays put either way.
+    addIdentityTokens(output, project, BigInt(project.current_idt_amount - token_amount));
 
     // Add PFT tokens if they exist
     if (project.current_pft_amount > 0) {
@@ -155,9 +156,10 @@ export async function buy_refund(
     // Create user outputs based on action type
     if (token_amount > 0) {
         // Buy: user gets project tokens
+        // What the contributor receives is the APT, which is not the project id from v3 on.
         let userOutput = new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk)
             .addTokens({
-                tokenId: project.project_id,
+                tokenId: project.apt_token_id,
                 amount: token_amount.toString()
             });
         outputs.push(userOutput);

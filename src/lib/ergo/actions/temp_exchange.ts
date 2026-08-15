@@ -9,7 +9,8 @@ import {
 
 import { SString } from '../utils';
 import { createR8Structure, type Project } from '../../common/project';
-import { get_ergotree_hex } from '../contract';
+import { get_ergotree_hex, supports_base_token } from '../contract';
+import { addIdentityTokens } from '../replica';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
 import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
@@ -31,11 +32,9 @@ export async function temp_exchange(
     let contractOutput = new OutputBuilder(
         BigInt(project.value),
         get_ergotree_hex(project.constants, project.version)
-    )
-        .addTokens({
-            tokenId: project.project_id,
-            amount: BigInt(project.current_idt_amount + token_amount)
-        });
+    );
+    // The exchange hands APT back to the box in return for PFT.
+    addIdentityTokens(contractOutput, project, BigInt(project.current_idt_amount + token_amount));
 
     if (project.current_pft_amount !== token_amount) {
         contractOutput.addTokens({
@@ -45,7 +44,7 @@ export async function temp_exchange(
     }
 
     // Handle base tokens for v2 multitoken contracts
-    if (project.version === "v2" && project.base_token_id && project.base_token_id !== "") {
+    if (supports_base_token(project.version) && project.base_token_id && project.base_token_id !== "") {
         // Find current base token amount in the project box
         let currentBaseTokenAmount = 0;
         for (const token of project.box.assets) {
