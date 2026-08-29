@@ -11,6 +11,8 @@ export default defineConfig({
   resolve: {
     alias: {
       $lib: path.resolve(__dirname, './src/lib'),
+      'wallet-svelte-component': path.resolve(__dirname, './tests/mocks/wallet-svelte-component.ts'),
+      'wallet-svelte-component/dist/wallet/wallet-manager': path.resolve(__dirname, './tests/mocks/wallet-svelte-component.ts'),
     },
   },
 });
