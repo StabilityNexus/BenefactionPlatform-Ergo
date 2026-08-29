@@ -143,6 +143,7 @@
     // States for amounts
     let show_submit = false;
     let label_submit = "";
+let submit_btn_label = "Collect";
     let info_type_to_show: "buy" | "dev" | "dev-collect" | "dev-withdraw" | "" =
         "";
     let function_submit: ((event?: any) => Promise<void>) | null = null;
@@ -170,7 +171,7 @@
         }
         if (function_submit === withdraw_tokens) {
             return {
-                prefix: "Withdraw:",
+                prefix: "Collect:",
                 amount: cleanAmount(value_submit),
                 token: project.token_details.name,
             };
@@ -182,7 +183,7 @@
                 ? platform.main_token
                 : project.base_token_details?.name || "tokens";
             return {
-                prefix: "Withdraw:",
+                prefix: "Collect:",
                 amount: cleanAmount(value_submit),
                 token: tokenName,
             };
@@ -410,10 +411,27 @@
         }
     }
 
+    function setMax() {
+        if (function_submit === buy) {
+            value_submit = maxContributeAmount;
+        } else if (function_submit === refund) {
+            value_submit = maxRefundAmount;
+        } else if (function_submit === temp_exchange) {
+            value_submit = maxCollectAmount;
+        } else if (function_submit === add_tokens) {
+            value_submit = maxAddTokenAmount;
+        } else if (function_submit === withdraw_tokens) {
+            value_submit = maxWithdrawTokenAmount;
+        } else if (function_submit === withdraw_erg) {
+            value_submit = maxWithdrawErgAmount;
+        }
+    }
+
     function setupAddTokens() {
         getWalletBalances();
         info_type_to_show = "dev";
         label_submit = "How many tokens do you want to add?";
+        submit_btn_label = "Add";
         function_submit = add_tokens;
         value_submit = 0;
         show_submit = true;
@@ -436,7 +454,8 @@
     function setupWithdrawTokens() {
         getWalletBalances();
         info_type_to_show = "dev-withdraw";
-        label_submit = "How many tokens do you want to withdraw?";
+        label_submit = "How many tokens do you want to collect?";
+        submit_btn_label = "Collect";
         function_submit = withdraw_tokens;
         value_submit = 0;
         show_submit = true;
@@ -464,7 +483,8 @@
         const baseTokenName = isERGBase
             ? "ERGs"
             : project.base_token_details?.name || "tokens";
-        label_submit = `How many ${baseTokenName} do you want to withdraw?`;
+        label_submit = `How many ${baseTokenName} do you want to collect?`;
+        submit_btn_label = "Collect";
         function_submit = withdraw_erg;
         value_submit = 0;
         show_submit = true;
@@ -493,6 +513,7 @@
             ? platform.main_token
             : project.base_token_details?.name || "tokens";
         label_submit = `How many ${baseTokenName} do you want to contribute?`;
+        submit_btn_label = "Contribute";
         function_submit = buy;
         value_submit = 0;
         show_submit = true;
@@ -539,6 +560,7 @@
         getWalletBalances();
         info_type_to_show = "";
         label_submit = "How many APT do you want to refund?";
+        submit_btn_label = "Refund";
         function_submit = refund;
         value_submit = 0;
         show_submit = true;
@@ -573,6 +595,7 @@
             project.content.title +
             " APT per " +
             project.token_details.name;
+        submit_btn_label = "Collect";
         function_submit = temp_exchange;
         value_submit = 0;
         show_submit = true;
@@ -1079,10 +1102,9 @@
                             class="action-btn"
                             style="background-color: #FF8C00; color: black;"
                             on:click={setupWithdrawTokens}
-                            disabled={!$connected ||
-                                maxWithdrawTokenAmount <= 0}
+                            disabled={!$connected || maxWithdrawTokenAmount <= 0}
                         >
-                            Withdraw {project.token_details.name}
+                            Collect {project.token_details.name}
                         </Button>
 
                         <Button
@@ -1253,8 +1275,12 @@
                                 {#if info_type_to_show === "dev-collect"}
                                     <p>
                                         <strong>Project Funds:</strong>
-                                        {projectFundsAmount.toFixed(4)}
-                                        {baseTokenName}
+                                        <span
+                                            class="clickable-amount"
+                                            on:click={() => setMax()}
+                                        >
+                                            {projectFundsAmount.toFixed(4)} {baseTokenName}
+                                        </span>
                                     </p>
                                     {#if value_submit > 0}
                                         <div
@@ -1333,6 +1359,13 @@
                                         step="0.001"
                                         class="form-input"
                                     />
+                                    <Button
+                                        on:click={setMax}
+                                        class="px-2 h-8 text-xs bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 border border-orange-500/20"
+                                        style="margin-right: 0.5rem;"
+                                    >
+                                        Max
+                                    </Button>
                                     <span class="input-suffix"
                                         >{submit_amount_label}</span
                                     >
@@ -1361,8 +1394,12 @@
                                     class="submit-btn"
                                     style="background-color: #FF8C00; color: black;"
                                 >
-                                    {isSubmitting ? "Processing..." : "Submit"}
+                                    {isSubmitting ? "Processing..." : submit_btn_label}
                                 </Button>
+    .clickable-amount {
+        cursor: pointer;
+        text-decoration: underline;
+    }
                             </div>
                         </div>
                     {/if}
