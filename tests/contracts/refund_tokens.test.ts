@@ -642,4 +642,89 @@ describe.each(testModes)("Bene Contract v1.2 - Refund APT Tokens (%s)", (mode) =
     expect(result).toBe(false);
     expect(ctx.beneContract.utxos.length).toEqual(1);
   });
+
+  it("should fail to refund more tokens than net sold (over-refunding beyond sold counter)", () => {
+    ctx.mockChain.jumpTo(ctx.deadlineBlock + 12);
+
+    const soldTokens = ctx.minimumTokensSold / 2n; // 25,000 sold
+    const excessTokens = 1_000n;
+    const totalAttemptedRefund = soldTokens + excessTokens; // 26,000 > 25,000 sold
+    const refundPayment = totalAttemptedRefund * ctx.exchangeRate;
+
+    ctx.beneContract.utxos.clear();
+    const extraReserve = excessTokens * ctx.exchangeRate + 10_000_000_000n;
+    const contractAssets = [
+      { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
+    ];
+    if (!ctx.isErgMode) {
+      contractAssets.push({ tokenId: ctx.baseTokenId, amount: refundPayment + 1_000_000n });
+    }
+
+    ctx.beneContract.addUTxOs({
+      value: ctx.isErgMode
+        ? RECOMMENDED_MIN_FEE_VALUE + (soldTokens * ctx.exchangeRate) + extraReserve
+        : RECOMMENDED_MIN_FEE_VALUE,
+      ergoTree: ctx.beneErgoTree.toHex(),
+      assets: contractAssets,
+      creationHeight: ctx.mockChain.height - 100,
+      additionalRegisters: {
+        R4: createR4(ctx, mode.useTimestamp),
+        R5: SLong(ctx.minimumTokensSold).toHex(),
+        R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
+        R7: SLong(ctx.exchangeRate).toHex(),
+        R8: ctx.constants.toHex(),
+        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+      },
+    });
+
+    const targetBox = ctx.beneContract.utxos.toArray()[0];
+
+    ctx.buyer.utxos.clear();
+    ctx.buyer.addUTxOs({
+      value: 10_000_000_000n,
+      ergoTree: ctx.buyer.address.ergoTree,
+      assets: [{ tokenId: ctx.projectNftId, amount: totalAttemptedRefund }],
+      creationHeight: ctx.mockChain.height - 50,
+      additionalRegisters: {},
+    });
+    const buyerTokenBox = ctx.buyer.utxos.toArray()[0];
+
+    const newAPTAmount = BigInt(targetBox.assets[0].amount) + totalAttemptedRefund;
+    const outContractAssets = [
+      { tokenId: ctx.projectNftId, amount: newAPTAmount },
+      { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
+    ];
+    if (!ctx.isErgMode) {
+      const currentBase = BigInt(targetBox.assets.find(a => a.tokenId === ctx.baseTokenId)!.amount);
+      outContractAssets.push({ tokenId: ctx.baseTokenId, amount: currentBase - refundPayment });
+    }
+
+    const refundOutput = ctx.isErgMode
+      ? new OutputBuilder(refundPayment, ctx.buyer.address)
+      : new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
+          { tokenId: ctx.baseTokenId, amount: refundPayment },
+        ]);
+
+    const transaction = new TransactionBuilder(ctx.mockChain.height)
+      .from([targetBox, buyerTokenBox])
+      .to([
+        new OutputBuilder(
+          ctx.isErgMode ? BigInt(targetBox.value) - refundPayment : BigInt(targetBox.value),
+          ctx.beneErgoTree
+        )
+          .addTokens(outContractAssets)
+          .setAdditionalRegisters({
+            ...targetBox.additionalRegisters,
+            R6: SColl(SLong, [soldTokens, totalAttemptedRefund, 0n]).toHex(),
+          }),
+        refundOutput,
+      ])
+      .sendChangeTo(ctx.buyer.address)
+      .payFee(RECOMMENDED_MIN_FEE_VALUE)
+      .build();
+
+    const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
+    expect(result).toBe(false);
+  });
 });

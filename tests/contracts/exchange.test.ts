@@ -806,6 +806,139 @@ describe.each(baseModes)("Bene Contract v1.2 - Exchange APT → PFT (%s)", (mode
 
       expect(result).toBe(false);
     });
+
+    it("should fail when exchanging more APT tokens than net sold or injecting foreign tokens into the contract box", () => {
+      // Attempt to exchange more APT than soldTokens - refundTokens (alreadyExchanged = 5,000, soldTokens = 50,000, try to exchange 50,000 more so total exchanged = 55,000 > 50,000 sold)
+      const excessExchange = 50_000n;
+      const foreignTokenId = "f".repeat(64);
+
+      ctx.buyer.utxos.clear();
+      ctx.buyer.addUTxOs({
+        value: 10_000_000_000n,
+        ergoTree: ctx.buyer.address.ergoTree,
+        assets: [
+          { tokenId: ctx.projectNftId, amount: excessExchange },
+          { tokenId: foreignTokenId, amount: 100n },
+        ],
+        creationHeight: ctx.mockChain.height - 50,
+        additionalRegisters: {},
+      });
+      const buyerAPTBox = ctx.buyer.utxos.toArray()[0];
+
+      const newExchangeCounter = alreadyExchanged + excessExchange;
+      const newAPTAmount = BigInt(projectBox.assets[0].amount) + excessExchange;
+      const newPFTAmount = BigInt(projectBox.assets[1].amount) - excessExchange;
+
+      const contractAssets = [
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: newPFTAmount },
+      ];
+
+      if (!ctx.isErgMode) {
+        const currentBaseTokenAmount = projectBox.assets.find((asset) => asset.tokenId === ctx.baseTokenId)!.amount;
+        contractAssets.push({ tokenId: ctx.baseTokenId, amount: BigInt(currentBaseTokenAmount) });
+      } else {
+        // Also test foreign token injection when a token slot is available
+        contractAssets.shift();
+        contractAssets.unshift({ tokenId: ctx.projectNftId, amount: newAPTAmount });
+      }
+
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, buyerAPTBox])
+        .to([
+          new OutputBuilder(projectBox.value, ctx.beneErgoTree)
+            .addTokens(contractAssets)
+            .setAdditionalRegisters({
+              R4: projectBox.additionalRegisters.R4,
+              R5: SLong(ctx.minimumTokensSold).toHex(),
+              R6: SColl(SLong, [soldTokens, 0n, newExchangeCounter]).toHex(),
+              R7: SLong(ctx.exchangeRate).toHex(),
+              R8: projectBox.additionalRegisters.R8,
+              R9: projectBox.additionalRegisters.R9,
+            }),
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
+            { tokenId: ctx.pftTokenId, amount: excessExchange },
+            { tokenId: foreignTokenId, amount: 100n },
+          ]),
+        ])
+        .sendChangeTo(ctx.buyer.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
+      expect(result).toBe(false);
+    });
+
+    it("should fail when injecting an arbitrary foreign token into the replicated contract box during full PFT exchange", () => {
+      const remainingPFT = BigInt(projectBox.assets[1].amount); // 75,000 PFT remaining
+      const foreignTokenId = "e".repeat(64);
+
+      // Update R6[0] so remainingPFT <= soldTokens - alreadyExchanged holds (e.g. 100,000 sold, 25,000 already exchanged)
+      ctx.beneContract.utxos.clear();
+      const fullSold = ctx.totalPFTokens;
+      const collectedFunds = fullSold * ctx.exchangeRate;
+      const boxAssets = [
+        { tokenId: ctx.projectNftId, amount: 1n + alreadyExchanged },
+        { tokenId: ctx.pftTokenId, amount: remainingPFT },
+      ];
+      if (!ctx.isErgMode) {
+        boxAssets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds });
+      }
+
+      ctx.beneContract.addUTxOs({
+        value: ctx.isErgMode ? RECOMMENDED_MIN_FEE_VALUE + collectedFunds : RECOMMENDED_MIN_FEE_VALUE,
+        ergoTree: ctx.beneErgoTree.toHex(),
+        assets: boxAssets,
+        creationHeight: ctx.mockChain.height - 100,
+        additionalRegisters: {
+          ...projectBox.additionalRegisters,
+          R6: SColl(SLong, [fullSold, 0n, alreadyExchanged]).toHex(),
+        },
+      });
+      const targetBox = ctx.beneContract.utxos.toArray()[0];
+
+      ctx.buyer.utxos.clear();
+      ctx.buyer.addUTxOs({
+        value: 10_000_000_000n,
+        ergoTree: ctx.buyer.address.ergoTree,
+        assets: [
+          { tokenId: ctx.projectNftId, amount: remainingPFT },
+          { tokenId: foreignTokenId, amount: 1n },
+        ],
+        creationHeight: ctx.mockChain.height - 50,
+        additionalRegisters: {},
+      });
+      const buyerAPTBox = ctx.buyer.utxos.toArray()[0];
+
+      // Replace the exhausted PFT slot in OUTPUTS(0) with foreignTokenId
+      const outAssets = [
+        { tokenId: ctx.projectNftId, amount: BigInt(targetBox.assets[0].amount) + remainingPFT },
+        { tokenId: foreignTokenId, amount: 1n },
+      ];
+      if (!ctx.isErgMode) {
+        outAssets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds });
+      }
+
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([targetBox, buyerAPTBox])
+        .to([
+          new OutputBuilder(targetBox.value, ctx.beneErgoTree)
+            .addTokens(outAssets)
+            .setAdditionalRegisters({
+              ...targetBox.additionalRegisters,
+              R6: SColl(SLong, [fullSold, 0n, alreadyExchanged + remainingPFT]).toHex(),
+            }),
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
+            { tokenId: ctx.pftTokenId, amount: remainingPFT },
+          ]),
+        ])
+        .sendChangeTo(ctx.buyer.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
+      expect(result).toBe(false);
+    });
   });
 
 });

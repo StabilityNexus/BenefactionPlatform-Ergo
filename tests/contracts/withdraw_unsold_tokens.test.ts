@@ -273,6 +273,67 @@ describe.each(baseModes)("Bene Contract v1.2 - Withdraw Unsold Tokens (%s)", (mo
 
       expect(result).toBe(false);
     });
+
+    it("should fail when spending two contract boxes in a single withdrawUnsoldTokens transaction", () => {
+      const tokensToWithdraw = 50_000n;
+      const remainingPFT = ctx.totalPFTokens - tokensToWithdraw;
+
+      ctx.beneContract.addUTxOs({
+        value: projectBox.value,
+        ergoTree: ctx.beneErgoTree.toHex(),
+        assets: projectBox.assets.map((a) => ({ tokenId: a.tokenId, amount: BigInt(a.amount) })),
+        creationHeight: ctx.mockChain.height - 90,
+        additionalRegisters: { ...projectBox.additionalRegisters },
+      });
+      const secondProjectBox = ctx.beneContract.utxos.toArray()[1];
+
+      ctx.projectOwner.addBalance({ nanoergs: 10_000_000_000n });
+
+      const assets = [
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens - soldTokens },
+        { tokenId: ctx.pftTokenId, amount: remainingPFT },
+      ];
+      if (!ctx.isErgMode) {
+        assets.push({ tokenId: ctx.baseTokenId, amount: collectedFunds });
+      }
+
+      const drainedSecondBoxAssets = secondProjectBox.assets.map((a) => ({
+        tokenId: a.tokenId,
+        amount: BigInt(a.amount),
+      }));
+
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, secondProjectBox, ...ctx.projectOwner.utxos.toArray()])
+        .to([
+          new OutputBuilder(projectBox.value, ctx.beneErgoTree)
+            .addTokens(assets)
+            .setAdditionalRegisters({
+              R4: projectBox.additionalRegisters.R4,
+              R5: SLong(ctx.minimumTokensSold).toHex(),
+              R6: SColl(SLong, [soldTokens, 0n, 0n]).toHex(),
+              R7: SLong(ctx.exchangeRate).toHex(),
+              R8: projectBox.additionalRegisters.R8,
+              R9: projectBox.additionalRegisters.R9,
+            }),
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.projectOwner.address).addTokens([
+            { tokenId: ctx.pftTokenId, amount: tokensToWithdraw },
+          ]),
+          new OutputBuilder(
+            BigInt(secondProjectBox.value) + 1_000_000_000n,
+            ctx.projectOwner.address
+          ).addTokens(drainedSecondBoxAssets),
+        ])
+        .sendChangeTo(ctx.projectOwner.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, {
+        signers: [ctx.projectOwner],
+        throw: false,
+      });
+
+      expect(result).toBe(false);
+    });
   });
 
   describe("Withdraw unsold tokens with all sold APT changed per PFTs ", () => {

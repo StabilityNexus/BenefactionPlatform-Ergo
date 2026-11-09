@@ -259,6 +259,69 @@ describe.each(baseModes)("Bene Contract v1.2 - Add Tokens (%s)", (mode) => {
       // Assert
       expect(result).toBe(false); // Should fail - not owner
     });
+
+    it("should fail when spending two contract boxes in a single addTokens transaction", () => {
+      const tokensToAdd = 10_000n;
+
+      ctx.beneContract.addUTxOs({
+        value: projectBox.value,
+        ergoTree: ctx.beneErgoTree.toHex(),
+        assets: projectBox.assets.map((a) => ({ tokenId: a.tokenId, amount: BigInt(a.amount) })),
+        creationHeight: ctx.mockChain.height - 90,
+        additionalRegisters: { ...projectBox.additionalRegisters },
+      });
+      const secondProjectBox = ctx.beneContract.utxos.toArray()[1];
+
+      ctx.projectOwner.addUTxOs({
+        value: 10_000_000_000n,
+        ergoTree: ctx.projectOwner.address.ergoTree,
+        assets: [{ tokenId: ctx.pftTokenId, amount: tokensToAdd }],
+        creationHeight: ctx.mockChain.height - 50,
+        additionalRegisters: {},
+      });
+
+      const ownerTokenBox = ctx.projectOwner.utxos
+        .toArray()
+        .find((box) => box.assets.some((a) => a.tokenId === ctx.pftTokenId))!;
+
+      const replicatedAssets: { tokenId: string; amount: bigint }[] = [
+        { tokenId: ctx.projectNftId, amount: BigInt(projectBox.assets[0].amount) },
+        { tokenId: ctx.pftTokenId, amount: tokensToAdd },
+      ];
+
+      const drainedAssets = secondProjectBox.assets.map((a) => ({
+        tokenId: a.tokenId,
+        amount: BigInt(a.amount),
+      }));
+
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([projectBox, secondProjectBox, ownerTokenBox])
+        .to([
+          new OutputBuilder(projectBox.value, ctx.beneErgoTree)
+            .addTokens(replicatedAssets)
+            .setAdditionalRegisters({
+              R4: projectBox.additionalRegisters.R4,
+              R5: SLong(ctx.minimumTokensSold).toHex(),
+              R6: projectBox.additionalRegisters.R6,
+              R7: SLong(ctx.exchangeRate).toHex(),
+              R8: projectBox.additionalRegisters.R8,
+              R9: projectBox.additionalRegisters.R9,
+            }),
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.projectOwner.address).addTokens(
+            drainedAssets
+          ),
+        ])
+        .sendChangeTo(ctx.projectOwner.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, {
+        signers: [ctx.projectOwner],
+        throw: false,
+      });
+
+      expect(result).toBe(false);
+    });
   });
 
   describe(("Adds more tokens with complex owner script authorization"), () => {
