@@ -456,6 +456,164 @@ describe.each(baseModes)("Bene Contract v1.2 - Buy APT Tokens (%s)", (mode) => {
       // deltaTokenRemoved (1) <= temporaryFundingUnsoldTokens (0) => FALSE.
       expect(result).toBe(false);
     });
+
+    it("should fail when draining contract ERG reserve in token mode or spending two contract boxes in one purchase", () => {
+      ctx.beneContract.utxos.clear();
+
+      const extraErgReserve = 50_000_000_000n;
+      const boxValue = RECOMMENDED_MIN_FEE_VALUE + extraErgReserve;
+      const boxAssets = [
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
+      ];
+      const boxRegisters = {
+        R4: createR4(ctx),
+        R5: SLong(ctx.minimumTokensSold).toHex(),
+        R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
+        R7: SLong(ctx.exchangeRate).toHex(),
+        R8: ctx.constants.toHex(),
+        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+      };
+
+      const tokensToBuy = 10_000n;
+      const paymentAmount = tokensToBuy * ctx.exchangeRate;
+      const newAPTAmount = 1n + ctx.totalPFTokens - tokensToBuy;
+
+      if (!ctx.isErgMode) {
+        // In non-ERG token mode, buyer attempts to drain extraErgReserve from the replicated contract box during purchase
+        ctx.beneContract.addUTxOs({
+          value: boxValue,
+          ergoTree: ctx.beneErgoTree.toHex(),
+          assets: boxAssets,
+          creationHeight: ctx.mockChain.height - 100,
+          additionalRegisters: boxRegisters,
+        });
+        const targetBox = ctx.beneContract.utxos.toArray()[0];
+
+        const transaction = new TransactionBuilder(ctx.mockChain.height)
+          .from([targetBox, ...ctx.buyer.utxos.toArray()])
+          .to([
+            new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.beneErgoTree)
+              .addTokens([
+                { tokenId: ctx.projectNftId, amount: newAPTAmount },
+                { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
+                { tokenId: ctx.baseTokenId, amount: paymentAmount },
+              ])
+              .setAdditionalRegisters({
+                ...boxRegisters,
+                R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),
+              }),
+            new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE + extraErgReserve, ctx.buyer.address).addTokens([
+              { tokenId: ctx.projectNftId, amount: tokensToBuy },
+            ]),
+          ])
+          .sendChangeTo(ctx.buyer.address)
+          .payFee(RECOMMENDED_MIN_FEE_VALUE)
+          .build();
+
+        const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
+        expect(result).toBe(false);
+      } else {
+        // Multi-input double-satisfaction: spend two identical contract boxes in one purchase transaction
+        for (let i = 0; i < 2; i++) {
+          ctx.beneContract.addUTxOs({
+            value: boxValue,
+            ergoTree: ctx.beneErgoTree.toHex(),
+            assets: boxAssets,
+            creationHeight: ctx.mockChain.height - 100 - i,
+            additionalRegisters: boxRegisters,
+          });
+        }
+        const [box1, box2] = ctx.beneContract.utxos.toArray();
+
+        const transaction = new TransactionBuilder(ctx.mockChain.height)
+          .from([box1, box2, ...ctx.buyer.utxos.toArray()])
+          .to([
+            new OutputBuilder(boxValue + paymentAmount, ctx.beneErgoTree)
+              .addTokens([
+                { tokenId: ctx.projectNftId, amount: newAPTAmount },
+                { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
+              ])
+              .setAdditionalRegisters({
+                ...boxRegisters,
+                R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),
+              }),
+            new OutputBuilder(boxValue - RECOMMENDED_MIN_FEE_VALUE, ctx.buyer.address).addTokens([
+              { tokenId: ctx.projectNftId, amount: tokensToBuy + (1n + ctx.totalPFTokens) },
+              { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
+            ]),
+          ])
+          .sendChangeTo(ctx.buyer.address)
+          .payFee(RECOMMENDED_MIN_FEE_VALUE)
+          .build();
+
+        const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
+        expect(result).toBe(false);
+      }
+    });
+
+    it("should fail when creating a duplicate shadow contract box in OUTPUTS(1) during token purchase", () => {
+      ctx.beneContract.utxos.clear();
+
+      const boxValue = RECOMMENDED_MIN_FEE_VALUE;
+      const boxAssets = [
+        { tokenId: ctx.projectNftId, amount: 1n + ctx.totalPFTokens },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
+      ];
+      const boxRegisters = {
+        R4: createR4(ctx),
+        R5: SLong(ctx.minimumTokensSold).toHex(),
+        R6: SColl(SLong, [0n, 0n, 0n]).toHex(),
+        R7: SLong(ctx.exchangeRate).toHex(),
+        R8: ctx.constants.toHex(),
+        R9: SColl(SByte, stringToBytes("utf8", "{}")).toHex(),
+      };
+
+      ctx.beneContract.addUTxOs({
+        value: boxValue,
+        ergoTree: ctx.beneErgoTree.toHex(),
+        assets: boxAssets,
+        creationHeight: ctx.mockChain.height - 50,
+        additionalRegisters: boxRegisters,
+      });
+      const targetBox = ctx.beneContract.utxos.toArray()[0];
+
+      const tokensToBuy = 10_000n;
+      const paymentAmount = tokensToBuy * ctx.exchangeRate;
+      const newAPTAmount = 1n + ctx.totalPFTokens - tokensToBuy;
+
+      const repAssets = [
+        { tokenId: ctx.projectNftId, amount: newAPTAmount },
+        { tokenId: ctx.pftTokenId, amount: ctx.totalPFTokens },
+      ];
+      let repValue = boxValue;
+      if (!ctx.isErgMode) {
+        repAssets.push({ tokenId: ctx.baseTokenId, amount: paymentAmount });
+      } else {
+        repValue += paymentAmount;
+      }
+
+      // Buyer sends purchased APT into a second contract box at OUTPUTS(1) to trigger a campaign ID conflict DoS
+      const transaction = new TransactionBuilder(ctx.mockChain.height)
+        .from([targetBox, ...ctx.buyer.utxos.toArray()])
+        .to([
+          new OutputBuilder(repValue, ctx.beneErgoTree)
+            .addTokens(repAssets)
+            .setAdditionalRegisters({
+              ...boxRegisters,
+              R6: SColl(SLong, [tokensToBuy, 0n, 0n]).toHex(),
+            }),
+          new OutputBuilder(RECOMMENDED_MIN_FEE_VALUE, ctx.beneErgoTree)
+            .addTokens([{ tokenId: ctx.projectNftId, amount: tokensToBuy }])
+            .setAdditionalRegisters(boxRegisters),
+        ])
+        .sendChangeTo(ctx.buyer.address)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build();
+
+      const result = ctx.mockChain.execute(transaction, { signers: [ctx.buyer], throw: false });
+      expect(result).toBe(false);
+    });
   });
 
 });
