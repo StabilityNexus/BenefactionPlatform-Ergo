@@ -165,7 +165,7 @@
   val refundCounterRemainsConstant = !isReplicationBoxPresent || (selfRefundCounter == OUTPUTS(0).R6[Coll[Long]].get(1))
   val auxiliarExchangeCounterRemainsConstant = !isReplicationBoxPresent || (selfAuxiliarExchangeCounter == OUTPUTS(0).R6[Coll[Long]].get(2))
   val mantainValue = !isReplicationBoxPresent || ({
-    selfValue == OUTPUTS(0).value &&
+    OUTPUTS(0).value >= selfValue &&
     {
       if (isERGBase) { true }
       else {
