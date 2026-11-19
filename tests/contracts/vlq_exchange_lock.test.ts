@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { OutputBuilder, TransactionBuilder, RECOMMENDED_MIN_FEE_VALUE, SAFE_MIN_BOX_VALUE } from "@fleet-sdk/core";
 import type { Box } from "@fleet-sdk/core";
-import { SByte, SColl, SLong } from "@fleet-sdk/serializer";
+import { SByte, SColl, SLong, serializeBox } from "@fleet-sdk/serializer";
 import { stringToBytes } from "@scure/base";
 import { compile } from "@fleet-sdk/compiler";
 import {
@@ -20,13 +20,13 @@ function minErgForOutputs(
   changeAddr: string,
   makeOutputs: (v: bigint) => OutputBuilder[]
 ): bigint {
-  for (let v = 36_000n; v <= SAFE_MIN_BOX_VALUE; v += 360n) {
-    try {
-      new TransactionBuilder(height).from(inputs).to(makeOutputs(v)).sendChangeTo(changeAddr).payFee(RECOMMENDED_MIN_FEE_VALUE).build();
-      return v;
-    } catch {}
-  }
-  throw new Error("No valid min box value <= SAFE_MIN_BOX_VALUE");
+ const tx = new TransactionBuilder(height)
+  .from(inputs)
+  .to(makeOutputs(SAFE_MIN_BOX_VALUE))
+  .sendChangeTo(changeAddr)
+  .payFee(RECOMMENDED_MIN_FEE_VALUE)
+  .build();
+return BigInt(serializeBox(tx.outputs[0]).length) * 360n;
 }
 
 describe("Bene Contract v2 - ZigZag VLQ box-growth PFT redemption lock (#78)", () => {
