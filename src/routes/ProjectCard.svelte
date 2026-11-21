@@ -1,6 +1,6 @@
 <script lang="ts">
     import { block_to_date } from "$lib/common/countdown";
-    import { is_ended, min_raised, type Project } from "$lib/common/project";
+    import { is_ended, is_legacy_version, min_raised, type Project } from "$lib/common/project";
     import { project_detail, connected, balance } from "$lib/common/store";
     import { badgeVariants } from "$lib/components/ui/badge";
     import { Button } from "$lib/components/ui/button";
@@ -120,6 +120,13 @@
             >
                 {project.content.title}
             </Card.Title>
+{#if is_legacy_version(project.version)}
+    <div class="mt-1.5">
+        <span class="legacy-badge" title="Legacy pre-v3 contract ({project.version.replace('_', '.')}); canonical box verified by mint lineage.">
+            Legacy ({project.version.replace("_", ".")})
+        </span>
+    </div>
+{/if}
             <div hidden>
                 <a
                     href="https://github.com/StabilityNexus/BenefactionPlatform-Ergo/blob/main/contracts/bene_contract/contract_{project.version}.es"
@@ -234,6 +241,17 @@
 </Card.Root>
 
 <style>
+.legacy-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: rgba(245, 158, 11, 0.14);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.32);
+}
     .scrollable-description {
         max-height: 160px;
         overflow-y: auto;

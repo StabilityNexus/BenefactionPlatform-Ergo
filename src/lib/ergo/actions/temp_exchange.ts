@@ -3,17 +3,14 @@ import {
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
-    SInt,
     SAFE_MIN_BOX_VALUE
 } from '@fleet-sdk/core';
-
+import { SBool, SColl, SPair, serializeBox } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
-import { createR8Structure, type Project } from '../../common/project';
+import { createR8Structure, getProjectAptId, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
-import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
-// Function to submit a project to the blockchain
 export async function temp_exchange(
     project: Project,
     token_amount: number
@@ -21,89 +18,95 @@ export async function temp_exchange(
 
     token_amount = Math.floor(token_amount * Math.pow(10, project.token_details.decimals));
 
-    // Get the wallet address (will be the user address)
+    const isV3 = project.version === "v3";
+    const aptTokenId = getProjectAptId(project);
     const walletPk = await getChangeAddress();
-
-    // Get the UTXOs from the current wallet to use as inputs
+    const height = await getCurrentHeight();
     const inputs = [project.box, ...(await getUtxos())];
+    const replicaErgoTree = project.box.ergoTree || get_ergotree_hex(project.constants, project.version);
 
-    // Building the project output
-    let contractOutput = new OutputBuilder(
-        BigInt(project.value),
-        get_ergotree_hex(project.constants, project.version)
-    )
-        .addTokens({
-            tokenId: project.project_id,
-            amount: BigInt(project.current_idt_amount + token_amount)
-        });
-
-    if (project.current_pft_amount !== token_amount) {
-        contractOutput.addTokens({
-            tokenId: project.pft_token_id,
-            amount: BigInt(project.current_pft_amount - token_amount)
-        });
-    }
-
-    // Handle base tokens for v2 multitoken contracts
-    if (project.version === "v2" && project.base_token_id && project.base_token_id !== "") {
-        // Find current base token amount in the project box
-        let currentBaseTokenAmount = 0;
+    let currentBaseTokenAmount = 0n;
+    if ((project.version === "v2" || isV3) && project.base_token_id && project.base_token_id !== "") {
         for (const token of project.box.assets) {
             if (token.tokenId === project.base_token_id) {
-                currentBaseTokenAmount = Number(token.amount);
+                currentBaseTokenAmount = BigInt(token.amount);
                 break;
             }
         }
+    }
 
-        // Add base token to contract output (amount remains unchanged during temp exchange)
-        if (currentBaseTokenAmount > 0) {
-            contractOutput.addTokens({
-                tokenId: project.base_token_id,
-                amount: BigInt(currentBaseTokenAmount)
-            });
+    const registers = {
+        R4: SPair(SBool(project.is_timestamp_limit), SLong(BigInt(project.block_limit))).toHex(),
+        R5: SLong(BigInt(project.minimum_amount)).toHex(),
+        R6: SColl(SLong, [
+            BigInt(project.sold_counter),
+            BigInt(project.refund_counter),
+            BigInt(project.auxiliar_exchange_counter) + BigInt(token_amount)
+        ]).toHex(),
+        R7: SLong(BigInt(project.exchange_rate)).toHex(),
+        R8: (project.box.additionalRegisters?.R8) || createR8Structure(project.constants).toHex(),
+        R9: (project.box.additionalRegisters?.R9) || SString(project.content.raw)
+    };
+
+    const buildReplicaOutput = (ergValue: bigint) => {
+        const out = new OutputBuilder(ergValue, replicaErgoTree);
+        const newAptAmount = BigInt(project.current_idt_amount) + BigInt(token_amount);
+        if (isV3) {
+            out.addTokens([
+                { tokenId: project.project_id, amount: 1n },
+                { tokenId: aptTokenId, amount: newAptAmount }
+            ]);
+        } else {
+            out.addTokens({ tokenId: project.project_id, amount: newAptAmount });
+        }
+
+        const remainingPft = BigInt(project.current_pft_amount) - BigInt(token_amount);
+        if (remainingPft > 0n) {
+            out.addTokens({ tokenId: project.pft_token_id, amount: remainingPft });
+        }
+        if (currentBaseTokenAmount > 0n && project.base_token_id) {
+            out.addTokens({ tokenId: project.base_token_id, amount: currentBaseTokenAmount });
+        }
+        out.setAdditionalRegisters(registers);
+        return out;
+    };
+
+    let replicaErgValue = BigInt(project.value);
+    if (isV3) {
+        const probeWalletOut = new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk).addTokens({
+            tokenId: project.pft_token_id,
+            amount: BigInt(token_amount)
+        });
+        const probeTx = new TransactionBuilder(height)
+            .from(inputs)
+            .to([buildReplicaOutput(replicaErgValue), probeWalletOut])
+            .sendChangeTo(walletPk)
+            .payFee(RECOMMENDED_MIN_FEE_VALUE)
+            .build();
+        const requiredMinErg = BigInt(serializeBox(probeTx.outputs[0]).toBytes().length) * 360n;
+        if (requiredMinErg > replicaErgValue) {
+            replicaErgValue = requiredMinErg;
         }
     }
 
-    // Set additional registers based on contract version
-    contractOutput.setAdditionalRegisters({
-        R4: SPair(SBool(project.is_timestamp_limit), SLong(BigInt(project.block_limit))).toHex(),
-        R5: SLong(BigInt(project.minimum_amount)).toHex(),
-        R6: SColl(SLong, [BigInt(project.sold_counter), BigInt(project.refund_counter), BigInt(project.auxiliar_exchange_counter + token_amount)]).toHex(),
-        R7: SLong(BigInt(project.exchange_rate)).toHex(),
-        R8: createR8Structure(project.constants).toHex(),
-        R9: SString(project.content.raw)
+    const contractOutput = buildReplicaOutput(replicaErgValue);
+    const walletOutput = new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk).addTokens({
+        tokenId: project.pft_token_id,
+        amount: BigInt(token_amount)
     });
 
-    let walletOutput = new OutputBuilder(
-        SAFE_MIN_BOX_VALUE,
-        walletPk
-    )
-        .addTokens({
-            tokenId: project.pft_token_id,
-            amount: BigInt(token_amount)
-        })
-
-    let outputs = [contractOutput, walletOutput];
-
-    // Building the unsigned transaction
-    const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
-        .from(inputs)                          // Inputs coming from the user's UTXOs
-        .to(outputs)                           // Outputs (the new project box)
-        .sendChangeTo(walletPk)                // Send change back to the wallet
-        .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
-        .build()                               // Build the transaction
-        .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
+    const unsignedTransaction = await new TransactionBuilder(height)
+        .from(inputs)
+        .to([contractOutput, walletOutput])
+        .sendChangeTo(walletPk)
+        .payFee(RECOMMENDED_MIN_FEE_VALUE)
+        .build()
+        .toEIP12Object();
 
     try {
-        // Sign the transaction
         const signedTransaction = await signTransaction(unsignedTransaction);
-
-        // Send the transaction to the Ergo network
-        const transactionId = await submitTransaction(signedTransaction);
-
-        console.log("Transaction id -> ", transactionId);
-        return transactionId;
-    } catch (e) {
-        console.log(e)
+        return await submitTransaction(signedTransaction);
+    } catch {
+        return null;
     }
 }

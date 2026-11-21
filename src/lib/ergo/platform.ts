@@ -17,7 +17,7 @@ export class ErgoPlatform implements Platform {
     main_token = "ERG";
     icon = "";
     time_per_block = 2 * 60 * 1000;  // every 2 minutes
-    last_version: contract_version = "v2";
+    last_version: contract_version = "v3";
 
     constructor() {
         // Sync explorer URI from app to wallet library

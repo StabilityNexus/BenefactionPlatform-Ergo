@@ -25,6 +25,7 @@ export interface ConstantContent {
     dev_fee: number,
     pft_token_id: string,
     base_token_id?: string  // Base token ID for multi-token support (empty for ERG)
+    apt_token_id?: string
 }
 
 export function createR8Structure(content: ConstantContent) {
@@ -32,6 +33,7 @@ export function createR8Structure(content: ConstantContent) {
     function numberToHex(num: number): string {
         let hex = BigInt(num).toString(16);
         if (hex.length % 2 !== 0) hex = "0" + hex;
+        if (parseInt(hex.slice(0, 2), 16) >= 0x80) hex = "00" + hex;
         return hex;
     }
 
@@ -46,13 +48,17 @@ export function createR8Structure(content: ConstantContent) {
     const ownerErgoTree = getErgoTree(content.owner);
     const baseTokenId = content.base_token_id || "";
 
-    const r8Data = SColl(SColl(SByte), [
-        ownerErgoTree,                  // Index 0
-        content.dev_hash,               // Index 1
-        numberToHex(content.dev_fee),   // Index 2
-        content.pft_token_id,           // Index 3
-        baseTokenId                     // Index 4
-    ]);
+    const items = [
+        ownerErgoTree,
+        content.dev_hash,
+        numberToHex(content.dev_fee),
+        content.pft_token_id,
+        baseTokenId
+    ];
+    if (content.apt_token_id) {
+        items.push(content.apt_token_id);
+    }
+    const r8Data = SColl(SColl(SByte), items);
 
     return r8Data;
 }
@@ -64,6 +70,7 @@ export interface Project {
     project_id: string,
     current_idt_amount: number,
     pft_token_id: string,
+    apt_token_id?: string,
     base_token_id: string,  // Base token ID for contributions (empty string for ERG)
     base_token_details?: TokenEIP4,  // Details of the base token (null for ERG)
     block_limit: number,
@@ -136,9 +143,18 @@ export function getConstantContent(value: string): ConstantContent | null {
             dev_hash: parsed.dev_hash,
             dev_fee: parsed.dev_fee,
             pft_token_id: parsed.pft_token_id || parsed.token_id || null,
-            base_token_id: parsed.base_token_id || ""  // Default to empty string for ERG
+                base_token_id: parsed.base_token_id || "",
+                apt_token_id: parsed.apt_token_id
         }
     } catch (error) {
         return null;
     }
+}
+
+export function is_legacy_version(version: contract_version): boolean {
+    return version !== "v3";
+}
+
+export function getProjectAptId(project: Project): string {
+    return project.apt_token_id || project.constants.apt_token_id || project.project_id;
 }
