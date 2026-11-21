@@ -5,224 +5,154 @@ import {
     SLong,
     SAFE_MIN_BOX_VALUE
 } from '@fleet-sdk/core';
-
+import { SBool, SColl, SPair, serializeBox } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
-import { createR8Structure, type Project } from '../../common/project';
+import { createR8Structure, getProjectAptId, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
-import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
-// Function to submit a project to the blockchain
 export async function buy_refund(
     project: Project,
     token_amount: number
 ): Promise<string | null> {
 
-    /*
-        Token amount positive means buy action.
-        Token amount negative means refund action.
-    */
-
-
-    // Convert to smallest unit without rounding away from zero (handles negatives correctly)
     token_amount = Math.trunc(token_amount * Math.pow(10, project.token_details.decimals));
 
-    // Calculate base token amount based on project's base token
+    const isV3 = project.version === "v3";
+    const aptTokenId = getProjectAptId(project);
     const isERGBase = !project.base_token_id || project.base_token_id === "";
-    let base_token_amount = Math.abs(token_amount) * project.exchange_rate;
+    const base_token_amount = BigInt(Math.abs(token_amount)) * BigInt(project.exchange_rate);
 
-
-    // Get the wallet address (will be the user address)
     const walletPk = await getChangeAddress();
+    const walletUtxos = await getUtxos();
 
-    // Get the UTXOs from the current wallet to use as inputs
-    let walletUtxos = await getUtxos();
-
-    // For refunds, ensure we have the project tokens in inputs
     if (token_amount < 0) {
-        // Check if user has the required project tokens
-        const requiredTokenAmount = Math.abs(token_amount);
-        let hasRequiredTokens = false;
-
-
+        const requiredTokenAmount = BigInt(Math.abs(token_amount));
+        let totalHeldApt = 0n;
         for (const utxo of walletUtxos) {
-            if (utxo.assets && utxo.assets.length > 0) {
-                for (const asset of utxo.assets) {
-                    if (asset.tokenId === project.project_id) {
-                        if (Number(asset.amount) >= requiredTokenAmount) {
-                            hasRequiredTokens = true;
-                            break;
-                        }
-                    }
+            for (const asset of (utxo.assets || [])) {
+                if (asset.tokenId === aptTokenId) {
+                    totalHeldApt += BigInt(asset.amount);
                 }
             }
-            if (hasRequiredTokens) break;
         }
-
-
-        if (!hasRequiredTokens) {
+        if (totalHeldApt < requiredTokenAmount) {
             throw new Error(`Insufficient project tokens for refund. Required: ${requiredTokenAmount}`);
         }
     }
 
     const inputs = [project.box, ...walletUtxos];
 
-    // Calculate ERG value for the contract
-    let contractErgValue = project.value;
+    let contractErgValue = BigInt(project.value);
     if (isERGBase) {
-        if (token_amount > 0) {
-            // Buy: add ERG to contract
-            contractErgValue = project.value + base_token_amount;
-        } else {
-            // Refund: contract retains ERG (user gets ERG from separate output)
-            contractErgValue = project.value; // Keep original ERG in contract
-        }
+        contractErgValue = token_amount > 0
+            ? BigInt(project.value) + base_token_amount
+            : BigInt(project.value) - base_token_amount;
     }
 
-
-    // Building the project output
-
-    let output = new OutputBuilder(
-        BigInt(contractErgValue).toString(),
-        get_ergotree_hex(project.constants, project.version)
-    )
-        .addTokens({
-            tokenId: project.project_id,
-            amount: BigInt(project.current_idt_amount - token_amount).toString()  // Buy: extract tokens, Refund: add tokens
-        });
-
-    // Add PFT tokens if they exist
-    if (project.current_pft_amount > 0) {
-        output.addTokens({
-            tokenId: project.pft_token_id,
-            amount: BigInt(project.current_pft_amount).toString()  // PFT token maintains constant
-        });
+    const replicaErgoTree = project.box.ergoTree || get_ergotree_hex(project.constants, project.version);
+    const newAptAmount = BigInt(project.current_idt_amount) - BigInt(token_amount);
+    if (newAptAmount < 0n) {
+        throw new Error("Insufficient APT tokens remaining in campaign box.");
     }
 
-    // Handle base token changes for non-ERG base tokens
+    let newBaseTokenAmount = 0n;
     if (!isERGBase && project.base_token_id) {
-        // Find current base token amount in the project box
-        let currentBaseTokenAmount = 0;
+        let currentBaseTokenAmount = 0n;
         for (const token of project.box.assets) {
             if (token.tokenId === project.base_token_id) {
-                currentBaseTokenAmount = Number(token.amount);
+                currentBaseTokenAmount = BigInt(token.amount);
                 break;
             }
         }
-
-
-        // Calculate new base token amount
-        let newBaseTokenAmount;
-        if (token_amount > 0) {
-            // Buy: add base tokens to contract
-            newBaseTokenAmount = currentBaseTokenAmount + base_token_amount;
-        } else {
-            // Refund: subtract base tokens from contract (they go to user)
-            newBaseTokenAmount = currentBaseTokenAmount - base_token_amount;
-        }
-
-
-        // Ensure we don't have negative base tokens in contract
-        if (newBaseTokenAmount < 0) {
-            throw new Error(`Insufficient base tokens in contract. Available: ${currentBaseTokenAmount}, Required: ${base_token_amount}`);
-        }
-
-        // Add base token with updated amount only if > 0 to avoid zero-amount token in output
-        if (newBaseTokenAmount > 0) {
-            output.addTokens({
-                tokenId: project.base_token_id,
-                amount: BigInt(newBaseTokenAmount).toString()
-            });
-        } else {
+        newBaseTokenAmount = token_amount > 0
+            ? currentBaseTokenAmount + base_token_amount
+            : currentBaseTokenAmount - base_token_amount;
+        if (newBaseTokenAmount < 0n) {
+            throw new Error(`Insufficient base tokens in contract.`);
         }
     }
 
-    // Update counters
-    let sold_counter = BigInt(token_amount > 0 ? project.sold_counter + token_amount : project.sold_counter);
-    let refund_counter = BigInt(token_amount < 0 ? project.refund_counter + Math.abs(token_amount) : project.refund_counter);
+    const sold_counter = token_amount > 0
+        ? BigInt(project.sold_counter) + BigInt(token_amount)
+        : BigInt(project.sold_counter);
+    const refund_counter = token_amount < 0
+        ? BigInt(project.refund_counter) + BigInt(Math.abs(token_amount))
+        : BigInt(project.refund_counter);
 
-    output.setAdditionalRegisters({
+    const registers = {
         R4: SPair(SBool(project.is_timestamp_limit), SLong(BigInt(project.block_limit))).toHex(),
         R5: SLong(BigInt(project.minimum_amount)).toHex(),
         R6: SColl(SLong, [sold_counter, refund_counter, BigInt(project.auxiliar_exchange_counter)]).toHex(),
         R7: SLong(BigInt(project.exchange_rate)).toHex(),
-        R8: createR8Structure(project.constants).toHex(),
-        R9: SString(project.content.raw)
-    });
+        R8: (project.box.additionalRegisters?.R8) || createR8Structure(project.constants).toHex(),
+        R9: (project.box.additionalRegisters?.R9) || SString(project.content.raw)
+    };
 
-    let outputs = [output];
+    const buildReplicaOutput = (ergVal: bigint) => {
+        const out = new OutputBuilder(ergVal, replicaErgoTree);
+        if (isV3) {
+            out.addTokens({ tokenId: project.project_id, amount: 1n });
+            if (newAptAmount > 0n) {
+                out.addTokens({ tokenId: aptTokenId, amount: newAptAmount });
+            }
+        } else {
+            out.addTokens({ tokenId: project.project_id, amount: newAptAmount });
+        }
+        if (BigInt(project.current_pft_amount) > 0n) {
+            out.addTokens({ tokenId: project.pft_token_id, amount: BigInt(project.current_pft_amount) });
+        }
+        if (!isERGBase && project.base_token_id && newBaseTokenAmount > 0n) {
+            out.addTokens({ tokenId: project.base_token_id, amount: newBaseTokenAmount });
+        }
+        out.setAdditionalRegisters(registers);
+        return out;
+    };
 
-    // Create user outputs based on action type
-    if (token_amount > 0) {
-        // Buy: user gets project tokens
-        let userOutput = new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk)
-            .addTokens({
-                tokenId: project.project_id,
-                amount: token_amount.toString()
-            });
-        outputs.push(userOutput);
-    } else if (token_amount < 0) {
-        const refundTokenAmount = Math.abs(token_amount);
-
-        // For refunds, user needs to provide the project tokens as input
-        // The user output only contains what they receive back (base tokens)
-        if (isERGBase) {
-            // For ERG refunds, user gets ERG
-            let userOutput = new OutputBuilder(
-                (BigInt(base_token_amount) + SAFE_MIN_BOX_VALUE).toString(), // Add minimum box value
-                walletPk
-            );
-            outputs.push(userOutput);
-        } else if (project.base_token_id) {
-            // For token refunds, user gets base tokens
-            let userOutput = new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk)
-                .addTokens({
-                    tokenId: project.base_token_id,
-                    amount: base_token_amount.toString()
-                });
-            outputs.push(userOutput);
+    if (!isERGBase && isV3) {
+        const probeTx = new TransactionBuilder(await getCurrentHeight())
+            .from(inputs)
+            .to([buildReplicaOutput(contractErgValue)])
+            .sendChangeTo(walletPk)
+            .payFee(RECOMMENDED_MIN_FEE_VALUE)
+            .build();
+        const minBoxErg = BigInt(serializeBox(probeTx.outputs[0]).toBytes().length) * 360n;
+        if (minBoxErg > contractErgValue) {
+            contractErgValue = minBoxErg;
         }
     }
 
-    // Building the unsigned transaction using Fleet SDK's built-in change handling
+    const outputs: OutputBuilder[] = [buildReplicaOutput(contractErgValue)];
+
+    if (token_amount > 0) {
+        outputs.push(
+            new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk).addTokens({
+                tokenId: aptTokenId,
+                amount: BigInt(token_amount)
+            })
+        );
+    } else if (token_amount < 0) {
+        if (isERGBase) {
+            const refundOutErg = base_token_amount >= SAFE_MIN_BOX_VALUE ? base_token_amount : SAFE_MIN_BOX_VALUE;
+            outputs.push(new OutputBuilder(refundOutErg, walletPk));
+        } else if (project.base_token_id) {
+            outputs.push(
+                new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk).addTokens({
+                    tokenId: project.base_token_id,
+                    amount: base_token_amount
+                })
+            );
+        }
+    }
+
     const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
         .from(inputs)
         .to(outputs)
-        .sendChangeTo(walletPk)  // Fleet SDK automatically handles ERG and token change
+        .sendChangeTo(walletPk)
         .payFee(RECOMMENDED_MIN_FEE_VALUE)
         .build()
         .toEIP12Object();
 
-
-    // Final sanity check: ensure all token amounts in outputs are > 0
-    try {
-        const invalidTokens: Array<{ outIndex: number, tokenId: string, amount: string }> = [];
-        (unsignedTransaction.outputs || []).forEach((o: any, idx: number) => {
-            (o.assets || []).forEach((t: any) => {
-                const amt = BigInt(typeof t.amount === 'string' ? t.amount : (t.amount?.toString() ?? '0'));
-                if (amt <= 0n) {
-                    invalidTokens.push({ outIndex: idx, tokenId: t.tokenId, amount: amt.toString() });
-                }
-            });
-        });
-        if (invalidTokens.length > 0) {
-            throw new Error("Transaction has non-positive token amounts in outputs");
-        }
-    } catch (e) {
-        throw e;
-    }
-
-    try {
-        // Sign the transaction
-        const signedTransaction = await signTransaction(unsignedTransaction);
-
-        // Send the transaction to the Ergo network
-        const transactionId = await submitTransaction(signedTransaction);
-
-        console.log("Transaction id -> ", transactionId);
-        return transactionId;
-    } catch (e) {
-        console.log("Transaction error:", e);
-        throw e; // Re-throw to help with debugging
-    }
+    const signedTransaction = await signTransaction(unsignedTransaction);
+    return await submitTransaction(signedTransaction);
 }

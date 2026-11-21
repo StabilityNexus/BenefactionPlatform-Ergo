@@ -3,15 +3,13 @@ import {
     RECOMMENDED_MIN_FEE_VALUE,
     TransactionBuilder,
     SLong,
-    SInt,
     SAFE_MIN_BOX_VALUE
 } from '@fleet-sdk/core';
-
+import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 import { SString } from '../utils';
-import { createR8Structure, type Project } from '../../common/project';
+import { createR8Structure, getProjectAptId, type Project } from '../../common/project';
 import { get_ergotree_hex } from '../contract';
 import { getCurrentHeight, getChangeAddress, signTransaction, submitTransaction, getUtxos } from 'wallet-svelte-component';
-import { SBool, SColl, SPair } from '@fleet-sdk/serializer';
 
 export async function rebalance(
     project: Project,
@@ -21,58 +19,42 @@ export async function rebalance(
     try {
         token_amount = Math.trunc(token_amount * Math.pow(10, project.token_details.decimals));
 
-        console.log("wants to add ", token_amount / Math.pow(10, project.token_details.decimals), " tokens of type ", project.token_details.name);
-
-        // Get the wallet address (will be the project address)
+        const isV3 = project.version === "v3";
+        const aptTokenId = getProjectAptId(project);
         const walletPk = await getChangeAddress();
-        // Get the UTXOs from the current wallet to use as inputs
         const walletUtxos = await getUtxos();
-        // For adding tokens, we need the project box first, then a wallet UTXO
-        // This ensures INPUTS.size > 1 and INPUTS(1) comes from project address
         const inputs = [project.box, ...walletUtxos];
+        const replicaErgoTree = project.box.ergoTree || get_ergotree_hex(project.constants, project.version);
 
-        // Building the project output
-        let contract_output = new OutputBuilder(
-            BigInt(project.value),
-            get_ergotree_hex(project.constants, project.version)
-        )
-            .addTokens({
-                tokenId: project.project_id,
-                amount: BigInt(project.current_idt_amount)
-            });
+        const contract_output = new OutputBuilder(BigInt(project.value), replicaErgoTree);
 
-        console.log("PFT current amount " + project.current_pft_amount / Math.pow(10, project.token_details.decimals))
-        let contract_token_amount = project.current_pft_amount + token_amount;
-        console.log("contract token amount " + contract_token_amount / Math.pow(10, project.token_details.decimals))
-
-        if (contract_token_amount > 0) {
-            contract_output.addTokens({
-                tokenId: project.pft_token_id,
-                amount: (contract_token_amount).toString()
-            });
+        if (isV3) {
+            contract_output.addTokens({ tokenId: project.project_id, amount: 1n });
+            if (BigInt(project.current_idt_amount) > 0n) {
+                contract_output.addTokens({ tokenId: aptTokenId, amount: BigInt(project.current_idt_amount) });
+            }
+        } else {
+            contract_output.addTokens({ tokenId: project.project_id, amount: BigInt(project.current_idt_amount) });
         }
 
-        // Handle base tokens for v2 multitoken contracts
+        const contract_token_amount = BigInt(project.current_pft_amount) + BigInt(token_amount);
+        if (contract_token_amount > 0n) {
+            contract_output.addTokens({ tokenId: project.pft_token_id, amount: contract_token_amount });
+        }
+
         if (project.base_token_id && project.base_token_id !== "") {
-            // Find current base token amount in the project box
-            let currentBaseTokenAmount = 0;
+            let currentBaseTokenAmount = 0n;
             for (const token of project.box.assets) {
                 if (token.tokenId === project.base_token_id) {
-                    currentBaseTokenAmount = Number(token.amount);
+                    currentBaseTokenAmount = BigInt(token.amount);
                     break;
                 }
             }
-
-            // Add base token to contract output (amount remains unchanged during token rebalancing)
-            if (currentBaseTokenAmount > 0) {
-                contract_output.addTokens({
-                    tokenId: project.base_token_id,
-                    amount: BigInt(currentBaseTokenAmount)
-                });
+            if (currentBaseTokenAmount > 0n) {
+                contract_output.addTokens({ tokenId: project.base_token_id, amount: currentBaseTokenAmount });
             }
         }
 
-        // Set additional registers based on contract version
         contract_output.setAdditionalRegisters({
             R4: SPair(SBool(project.is_timestamp_limit), SLong(BigInt(project.block_limit))).toHex(),
             R5: SLong(BigInt(project.minimum_amount)).toHex(),
@@ -82,59 +64,32 @@ export async function rebalance(
                 BigInt(project.auxiliar_exchange_counter)
             ]).toHex(),
             R7: SLong(BigInt(project.exchange_rate)).toHex(),
-            R8: createR8Structure(project.constants).toHex(),
-            R9: SString(project.content.raw)
+            R8: (project.box.additionalRegisters?.R8) || createR8Structure(project.constants).toHex(),
+            R9: (project.box.additionalRegisters?.R9) || SString(project.content.raw)
         });
 
+        const outputs: OutputBuilder[] = [contract_output];
 
-        let outputs: OutputBuilder[] = [contract_output];
-
-        // Building withdraw to address output
         if (token_amount < 0) {
             outputs.push(
-                new OutputBuilder(
-                    SAFE_MIN_BOX_VALUE,
-                    walletPk
-                )
-                    .addTokens({
-                        tokenId: project.pft_token_id,
-                        amount: ((-1) * token_amount).toString()
-                    })
-            )
+                new OutputBuilder(SAFE_MIN_BOX_VALUE, walletPk).addTokens({
+                    tokenId: project.pft_token_id,
+                    amount: BigInt(-token_amount)
+                })
+            );
         }
 
-        // Building the unsigned transaction
         const unsignedTransaction = await new TransactionBuilder(await getCurrentHeight())
-            .from(inputs)                          // Inputs coming from the user's UTXOs
-            .to(outputs)                           // Outputs (the new project box)
-            .sendChangeTo(walletPk)                // Send change back to the wallet
-            .payFee(RECOMMENDED_MIN_FEE_VALUE)     // Pay the recommended minimum fee
-            .build()                               // Build the transaction
-            .toEIP12Object();                      // Convert the transaction to an EIP-12 compatible object
+            .from(inputs)
+            .to(outputs)
+            .sendChangeTo(walletPk)
+            .payFee(RECOMMENDED_MIN_FEE_VALUE)
+            .build()
+            .toEIP12Object();
 
-        // Sign the transaction
         const signedTransaction = await signTransaction(unsignedTransaction);
-
-        // Send the transaction to the Ergo network
-        const transactionId = await submitTransaction(signedTransaction);
-
-        console.log("Transaction id -> ", transactionId);
-        return transactionId;
-
-    } catch (error) {
-        console.error("Error in rebalance function:", error);
-        // Log full prover error dump if available
-        if ((error as any).info) console.error("Prover error info:\n", (error as any).info);
-
-        // Check specific error conditions
-        if ((error as any).message && (error as any).message.includes("R7")) {
-            console.error("R7 register format error - check exchange rate and base token ID length");
-        }
-
-        if ((error as any).message && (error as any).message.includes("INPUTS")) {
-            console.error("Input validation error - ensure wallet has UTXOs and project box is accessible");
-        }
-
+        return await submitTransaction(signedTransaction);
+    } catch {
         return null;
     }
 }
